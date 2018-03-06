@@ -25,6 +25,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#define __USE_GNU
+#include <pthread.h>
+
 #include "windef.h"
 #include "winbase.h"
 #include "wingdi.h"
@@ -109,6 +112,7 @@ static const LOGPEN DCPen     = { PS_SOLID, { 0, 0 }, RGB(0,0,0) };
 
 static HGDIOBJ stock_objects[NB_STOCK_OBJECTS];
 
+#if 0
 static CRITICAL_SECTION gdi_section;
 static CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -117,6 +121,9 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": gdi_section") }
 };
 static CRITICAL_SECTION gdi_section = { &critsect_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t gdi_section = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 
 /****************************************************************************
@@ -490,9 +497,17 @@ void CDECL __wine_make_gdi_object_system( HGDIOBJ handle, BOOL set)
 {
     struct gdi_handle_entry *entry;
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( handle ))) entry->system = !!set;
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 }
 
 /******************************************************************************
@@ -546,9 +561,17 @@ UINT GDI_get_ref_count( HGDIOBJ handle )
     struct gdi_handle_entry *entry;
     UINT ret = 0;
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( handle ))) ret = entry->selcount;
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
     return ret;
 }
 
@@ -562,10 +585,18 @@ HGDIOBJ GDI_inc_ref_count( HGDIOBJ handle )
 {
     struct gdi_handle_entry *entry;
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( handle ))) entry->selcount++;
     else handle = 0;
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
     return handle;
 }
 
@@ -579,7 +610,11 @@ BOOL GDI_dec_ref_count( HGDIOBJ handle )
 {
     struct gdi_handle_entry *entry;
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( handle )))
     {
         assert( entry->selcount );
@@ -587,13 +622,21 @@ BOOL GDI_dec_ref_count( HGDIOBJ handle )
         {
             /* handle delayed DeleteObject*/
             entry->deleted = 0;
+#if 0
             LeaveCriticalSection( &gdi_section );
+#else
+            pthread_mutex_unlock( &gdi_section );
+#endif
             TRACE( "executing delayed DeleteObject for %p\n", handle );
             DeleteObject( handle );
             return TRUE;
         }
     }
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
     return entry != NULL;
 }
 
@@ -749,7 +792,11 @@ static void dump_gdi_objects( void )
 
     TRACE( "%u objects:\n", MAX_GDI_HANDLES );
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     for (entry = gdi_handles; entry < next_unused; entry++)
     {
         if (!entry->type)
@@ -759,7 +806,11 @@ static void dump_gdi_objects( void )
                    entry_to_handle( entry ), entry->obj, gdi_obj_type( entry->type ),
                    entry->selcount, entry->deleted );
     }
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 }
 
 /***********************************************************************
@@ -774,7 +825,11 @@ HGDIOBJ alloc_gdi_handle( void *obj, WORD type, const struct gdi_obj_funcs *func
 
     assert( type );  /* type 0 is reserved to mark free entries */
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
 
     entry = next_free;
     if (entry)
@@ -783,7 +838,11 @@ HGDIOBJ alloc_gdi_handle( void *obj, WORD type, const struct gdi_obj_funcs *func
         entry = next_unused++;
     else
     {
+#if 0
         LeaveCriticalSection( &gdi_section );
+#else
+        pthread_mutex_unlock( &gdi_section );
+#endif
         ERR( "out of GDI object handles, expect a crash\n" );
         if (TRACE_ON(gdi)) dump_gdi_objects();
         return 0;
@@ -797,7 +856,11 @@ HGDIOBJ alloc_gdi_handle( void *obj, WORD type, const struct gdi_obj_funcs *func
     entry->deleted  = 0;
     if (++entry->generation == 0xffff) entry->generation = 1;
     ret = entry_to_handle( entry );
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
     TRACE( "allocated %s %p %u/%u\n", gdi_obj_type(type), ret,
            InterlockedIncrement( &debug_count ), MAX_GDI_HANDLES );
     return ret;
@@ -814,7 +877,11 @@ void *free_gdi_handle( HGDIOBJ handle )
     void *object = NULL;
     struct gdi_handle_entry *entry;
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( handle )))
     {
         TRACE( "freed %s %p %u/%u\n", gdi_obj_type( entry->type ), handle,
@@ -824,7 +891,11 @@ void *free_gdi_handle( HGDIOBJ handle )
         entry->obj = next_free;
         next_free = entry;
     }
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
     return object;
 }
 
@@ -840,9 +911,17 @@ HGDIOBJ get_full_gdi_handle( HGDIOBJ handle )
 
     if (!HIWORD( handle ))
     {
+#if 0
         EnterCriticalSection( &gdi_section );
+#else
+        pthread_mutex_lock( &gdi_section );
+#endif
         if ((entry = handle_entry( handle ))) handle = entry_to_handle( entry );
+#if 0
         LeaveCriticalSection( &gdi_section );
+#else
+        pthread_mutex_unlock( &gdi_section );
+#endif
     }
     return handle;
 }
@@ -859,7 +938,11 @@ void *get_any_obj_ptr( HGDIOBJ handle, WORD *type )
     void *ptr = NULL;
     struct gdi_handle_entry *entry;
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
 
     if ((entry = handle_entry( handle )))
     {
@@ -867,7 +950,11 @@ void *get_any_obj_ptr( HGDIOBJ handle, WORD *type )
         *type = entry->type;
     }
 
+#if 0
     if (!ptr) LeaveCriticalSection( &gdi_section );
+#else
+    if (!ptr) pthread_mutex_unlock( &gdi_section );
+#endif
     return ptr;
 }
 
@@ -896,7 +983,11 @@ void *GDI_GetObjPtr( HGDIOBJ handle, WORD type )
  */
 void GDI_ReleaseObj( HGDIOBJ handle )
 {
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 }
 
 
@@ -905,11 +996,13 @@ void GDI_ReleaseObj( HGDIOBJ handle )
  */
 void GDI_CheckNotLock(void)
 {
+#if 0
     if (RtlIsCriticalSectionLockedByThread(&gdi_section))
     {
         ERR( "BUG: holding GDI lock\n" );
         DebugBreak();
     }
+#endif
 }
 
 
@@ -933,17 +1026,29 @@ BOOL WINAPI DeleteObject( HGDIOBJ obj )
     struct hdc_list *hdcs_head;
     const struct gdi_obj_funcs *funcs = NULL;
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if (!(entry = handle_entry( obj )))
     {
+#if 0
         LeaveCriticalSection( &gdi_section );
+#else
+        pthread_mutex_unlock( &gdi_section );
+#endif
         return FALSE;
     }
 
     if (entry->system)
     {
 	TRACE("Preserving system object %p\n", obj);
+#if 0
         LeaveCriticalSection( &gdi_section );
+#else
+        pthread_mutex_unlock( &gdi_section );
+#endif
 	return TRUE;
     }
 
@@ -959,7 +1064,11 @@ BOOL WINAPI DeleteObject( HGDIOBJ obj )
     }
     else funcs = entry->funcs;
 
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 
     while (hdcs_head)
     {
@@ -995,7 +1104,11 @@ void GDI_hdc_using_object(HGDIOBJ obj, HDC hdc)
 
     TRACE("obj %p hdc %p\n", obj, hdc);
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( obj )) && !entry->system)
     {
         for (phdc = entry->hdcs; phdc; phdc = phdc->next)
@@ -1009,7 +1122,11 @@ void GDI_hdc_using_object(HGDIOBJ obj, HDC hdc)
             entry->hdcs = phdc;
         }
     }
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 }
 
 /***********************************************************************
@@ -1023,7 +1140,11 @@ void GDI_hdc_not_using_object(HGDIOBJ obj, HDC hdc)
 
     TRACE("obj %p hdc %p\n", obj, hdc);
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( obj )) && !entry->system)
     {
         for (pphdc = &entry->hdcs; *pphdc; pphdc = &(*pphdc)->next)
@@ -1035,7 +1156,11 @@ void GDI_hdc_not_using_object(HGDIOBJ obj, HDC hdc)
                 break;
             }
     }
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 }
 
 /***********************************************************************
@@ -1062,13 +1187,21 @@ INT WINAPI GetObjectA( HGDIOBJ handle, INT count, LPVOID buffer )
 
     TRACE("%p %d %p\n", handle, count, buffer );
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( handle )))
     {
         funcs = entry->funcs;
         handle = entry_to_handle( entry );  /* make it a full handle */
     }
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 
     if (funcs)
     {
@@ -1093,13 +1226,21 @@ INT WINAPI GetObjectW( HGDIOBJ handle, INT count, LPVOID buffer )
 
     TRACE("%p %d %p\n", handle, count, buffer );
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( handle )))
     {
         funcs = entry->funcs;
         handle = entry_to_handle( entry );  /* make it a full handle */
     }
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 
     if (funcs)
     {
@@ -1121,9 +1262,17 @@ DWORD WINAPI GetObjectType( HGDIOBJ handle )
     struct gdi_handle_entry *entry;
     DWORD result = 0;
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( handle ))) result = entry->type;
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 
     TRACE("%p -> %u\n", handle, result );
     if (!result) SetLastError( ERROR_INVALID_HANDLE );
@@ -1201,13 +1350,21 @@ HGDIOBJ WINAPI SelectObject( HDC hdc, HGDIOBJ hObj )
 
     TRACE( "(%p,%p)\n", hdc, hObj );
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( hObj )))
     {
         funcs = entry->funcs;
         hObj = entry_to_handle( entry );  /* make it a full handle */
     }
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 
     if (funcs && funcs->pSelectObject) return funcs->pSelectObject( hObj, hdc );
     return 0;
@@ -1222,13 +1379,21 @@ BOOL WINAPI UnrealizeObject( HGDIOBJ obj )
     const struct gdi_obj_funcs *funcs = NULL;
     struct gdi_handle_entry *entry;
 
+#if 0
     EnterCriticalSection( &gdi_section );
+#else
+    pthread_mutex_lock( &gdi_section );
+#endif
     if ((entry = handle_entry( obj )))
     {
         funcs = entry->funcs;
         obj = entry_to_handle( entry );  /* make it a full handle */
     }
+#if 0
     LeaveCriticalSection( &gdi_section );
+#else
+    pthread_mutex_unlock( &gdi_section );
+#endif
 
     if (funcs && funcs->pUnrealizeObject) return funcs->pUnrealizeObject( obj );
     return funcs != NULL;

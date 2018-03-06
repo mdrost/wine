@@ -26,6 +26,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
+
+#include <pthread.h>
+
 #include "windef.h"
 #include "winbase.h"
 #include "ddrawgdi.h"
@@ -51,7 +54,12 @@ static struct graphics_driver *display_driver;
 
 const struct gdi_dc_funcs *font_driver = NULL;
 
+#if 0
 static CRITICAL_SECTION driver_section;
+#else
+static pthread_mutex_t driver_section = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
+#if 0
 static CRITICAL_SECTION_DEBUG critsect_debug =
 {
     0, 0, &driver_section,
@@ -59,6 +67,7 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": driver_section") }
 };
 static CRITICAL_SECTION driver_section = { &critsect_debug, -1, 0, 0, 0, 0 };
+#endif
 
 /**********************************************************************
  *	     create_driver
@@ -126,12 +135,20 @@ const struct gdi_dc_funcs *DRIVER_load_driver( LPCWSTR name )
     {
         if (display_driver && display_driver->module == module) return display_driver->funcs;
 
+#if 0
         EnterCriticalSection( &driver_section );
+#else
+        pthread_mutex_lock( &driver_section );
+#endif
         LIST_FOR_EACH_ENTRY( driver, &drivers, struct graphics_driver, entry )
         {
             if (driver->module == module) goto done;
         }
+#if 0
         LeaveCriticalSection( &driver_section );
+#else
+        pthread_mutex_unlock( &driver_section );
+#endif
     }
 
     if (!(module = LoadLibraryW( name ))) return NULL;
@@ -143,7 +160,11 @@ const struct gdi_dc_funcs *DRIVER_load_driver( LPCWSTR name )
     }
 
     /* check if someone else added it in the meantime */
+#if 0
     EnterCriticalSection( &driver_section );
+#else
+    pthread_mutex_lock( &driver_section );
+#endif
     LIST_FOR_EACH_ENTRY( driver, &drivers, struct graphics_driver, entry )
     {
         if (driver->module != module) continue;
@@ -155,7 +176,11 @@ const struct gdi_dc_funcs *DRIVER_load_driver( LPCWSTR name )
     list_add_head( &drivers, &driver->entry );
     TRACE( "loaded driver %p for %s\n", driver, debugstr_w(name) );
 done:
+#if 0
     LeaveCriticalSection( &driver_section );
+#else
+    pthread_mutex_unlock( &driver_section );
+#endif
     return driver->funcs;
 }
 

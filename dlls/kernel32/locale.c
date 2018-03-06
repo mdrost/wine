@@ -32,6 +32,8 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+#include <pthread.h>
+
 #ifdef __APPLE__
 # include <CoreFoundation/CFLocale.h>
 # include <CoreFoundation/CFString.h>
@@ -255,6 +257,7 @@ static struct registry_value
     { LOCALE_ITIMEMARKPOSN, iTimePrefixW }
 };
 
+#if 0
 static CRITICAL_SECTION cache_section;
 static CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -263,6 +266,9 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": cache_section") }
 };
 static CRITICAL_SECTION cache_section = { &critsect_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t cache_section = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 /* Copy Ascii string to Unicode without using codepages */
 static inline void strcpynAtoW( WCHAR *dst, const char *src, size_t n )
@@ -1464,13 +1470,21 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
     KEY_VALUE_PARTIAL_INFORMATION *info;
     static const int info_size = FIELD_OFFSET(KEY_VALUE_PARTIAL_INFORMATION, Data);
 
+#if 0
     RtlEnterCriticalSection( &cache_section );
+#else
+    pthread_mutex_lock( &cache_section );
+#endif
 
     if (!registry_value->cached_value)
     {
         if (!(hkey = create_registry_key()))
         {
+#if 0
             RtlLeaveCriticalSection( &cache_section );
+#else
+            pthread_mutex_unlock( &cache_section );
+#endif
             return -1;
         }
 
@@ -1481,7 +1495,11 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
         {
             NtClose( hkey );
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
+#if 0
             RtlLeaveCriticalSection( &cache_section );
+#else
+            pthread_mutex_unlock( &cache_section );
+#endif
             return 0;
         }
 
@@ -1514,7 +1532,11 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
             {
                 HeapFree( GetProcessHeap(), 0, info );
                 SetLastError( ERROR_NOT_ENOUGH_MEMORY );
+#if 0
                 RtlLeaveCriticalSection( &cache_section );
+#else
+                pthread_mutex_unlock( &cache_section );
+#endif
                 return 0;
             }
 
@@ -1538,8 +1560,12 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
                 SetLastError( RtlNtStatusToDosError(status) );
                 ret = 0;
             }
-            HeapFree( GetProcessHeap(), 0, info );
+            heap_free( info );
+#if 0
             RtlLeaveCriticalSection( &cache_section );
+#else
+            pthread_mutex_unlock( &cache_section );
+#endif
             return ret;
         }
     }
@@ -1559,7 +1585,11 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
         }
     }
 
+#if 0
     RtlLeaveCriticalSection( &cache_section );
+#else
+    pthread_mutex_unlock( &cache_section );
+#endif
 
     return ret;
 }
@@ -1918,10 +1948,18 @@ BOOL WINAPI SetLocaleInfoW( LCID lcid, LCTYPE lctype, LPCWSTR data )
     RtlInitUnicodeString( &valueW, value->name );
     status = NtSetValueKey( hkey, &valueW, 0, REG_SZ, data, (strlenW(data)+1)*sizeof(WCHAR) );
 
+#if 0
     RtlEnterCriticalSection( &cache_section );
-    HeapFree( GetProcessHeap(), 0, value->cached_value );
+#else
+    pthread_mutex_lock( &cache_section );
+#endif
+    heap_free( value->cached_value );
     value->cached_value = NULL;
+#if 0
     RtlLeaveCriticalSection( &cache_section );
+#else
+    pthread_mutex_unlock( &cache_section );
+#endif
 
     if (lctype == LOCALE_SSHORTDATE || lctype == LOCALE_SLONGDATE)
     {
@@ -1959,10 +1997,18 @@ BOOL WINAPI SetLocaleInfoW( LCID lcid, LCTYPE lctype, LPCWSTR data )
       RtlInitUnicodeString( &valueW, value->name );
       status = NtSetValueKey( hkey, &valueW, 0, REG_SZ, szBuff, sizeof(szBuff) );
 
+#if 0
       RtlEnterCriticalSection( &cache_section );
-      HeapFree( GetProcessHeap(), 0, value->cached_value );
+#else
+      pthread_mutex_lock( &cache_section );
+#endif
+      heap_free( value->cached_value );
       value->cached_value = NULL;
+#if 0
       RtlLeaveCriticalSection( &cache_section );
+#else
+      pthread_mutex_unlock( &cache_section );
+#endif
     }
 
     NtClose( hkey );

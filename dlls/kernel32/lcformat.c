@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <pthread.h>
+
 #include "windef.h"
 #include "winbase.h"
 #include "wine/unicode.h"
@@ -83,6 +85,7 @@ typedef struct _NLS_FORMAT_NODE
 #define GetShortMonth(fmt,mth)    fmt->lppszStrings[42 + mth]
 
 /* Write access to the cache is protected by this critical section */
+#if 0
 static CRITICAL_SECTION NLS_FormatsCS;
 static CRITICAL_SECTION_DEBUG NLS_FormatsCS_debug =
 {
@@ -92,6 +95,9 @@ static CRITICAL_SECTION_DEBUG NLS_FormatsCS_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": NLS_Formats") }
 };
 static CRITICAL_SECTION NLS_FormatsCS = { &NLS_FormatsCS_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t NLS_FormatsCS = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 /**************************************************************************
  * NLS_GetLocaleNumber <internal>
@@ -276,7 +282,11 @@ static const NLS_FORMAT_NODE *NLS_GetFormats(LCID lcid, DWORD dwFlags)
     new_node->szShortPM[0] = GetPM(new_node)[0]; new_node->szShortPM[1] = '\0';
 
     /* Now add the computed format to the cache */
+#if 0
     RtlEnterCriticalSection(&NLS_FormatsCS);
+#else
+    pthread_mutex_lock(&NLS_FormatsCS);
+#endif
 
     /* Search again: We may have raced to add the node */
     node = NLS_CachedFormats;
@@ -295,7 +305,11 @@ static const NLS_FORMAT_NODE *NLS_GetFormats(LCID lcid, DWORD dwFlags)
       new_node = NULL;
     }
 
+#if 0
     RtlLeaveCriticalSection(&NLS_FormatsCS);
+#else
+    pthread_mutex_unlock(&NLS_FormatsCS);
+#endif
 
     if (new_node)
     {

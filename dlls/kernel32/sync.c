@@ -48,11 +48,13 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(sync);
 
+#if 0
 /* check if current version is NT or Win95 */
 static inline BOOL is_version_nt(void)
 {
     return !(GetVersion() & 0x80000000);
 }
+#endif
 
 /* returns directory handle to \\BaseNamedObjects */
 static HANDLE get_BaseNamedObjects_handle(void)
@@ -549,7 +551,9 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenEventW( DWORD access, BOOL inherit, LPCWSTR 
     OBJECT_ATTRIBUTES attr;
     NTSTATUS status;
 
+#if 0
     if (!is_version_nt()) access = EVENT_ALL_ACCESS;
+#endif
 
     if (!get_open_object_attributes( &attr, &nameW, inherit, name )) return 0;
 
@@ -689,7 +693,9 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenMutexW( DWORD access, BOOL inherit, LPCWSTR 
     OBJECT_ATTRIBUTES attr;
     NTSTATUS status;
 
+#if 0
     if (!is_version_nt()) access = MUTEX_ALL_ACCESS;
+#endif
 
     if (!get_open_object_attributes( &attr, &nameW, inherit, name )) return 0;
 
@@ -812,7 +818,9 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenSemaphoreW( DWORD access, BOOL inherit, LPCW
     OBJECT_ATTRIBUTES attr;
     NTSTATUS status;
 
+#if 0
     if (!is_version_nt()) access = SEMAPHORE_ALL_ACCESS;
+#endif
 
     if (!get_open_object_attributes( &attr, &nameW, inherit, name )) return 0;
 
@@ -1071,7 +1079,9 @@ HANDLE WINAPI OpenWaitableTimerW( DWORD access, BOOL inherit, LPCWSTR name )
     OBJECT_ATTRIBUTES attr;
     NTSTATUS status;
 
+#if 0
     if (!is_version_nt()) access = TIMER_ALL_ACCESS;
+#endif
 
     if (!get_open_object_attributes( &attr, &nameW, inherit, name )) return 0;
 
@@ -1297,8 +1307,10 @@ HANDLE WINAPI CreateFileMappingW( HANDLE file, LPSECURITY_ATTRIBUTES sa, DWORD p
     protect &= ~sec_flags;
     if (!sec_type) sec_type = SEC_COMMIT;
 
+#if 0
     /* Win9x compatibility */
     if (!protect && !is_version_nt()) protect = PAGE_READONLY;
+#endif
 
     switch(protect)
     {
@@ -1377,11 +1389,13 @@ HANDLE WINAPI OpenFileMappingW( DWORD access, BOOL inherit, LPCWSTR name )
 
     if (access == FILE_MAP_COPY) access = SECTION_MAP_READ;
 
+#if 0
     if (!is_version_nt())
     {
         /* win9x doesn't do access checks, so try with full access first */
         if (!NtOpenSection( &ret, access | SECTION_MAP_READ | SECTION_MAP_WRITE, &attr )) return ret;
     }
+#endif
 
     status = NtOpenSection( &ret, access, &attr );
     if (status != STATUS_SUCCESS)

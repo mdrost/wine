@@ -28,6 +28,8 @@
 #include <time.h>
 #include <assert.h>
 
+#include <pthread.h>
+
 #define NONAMELESSUNION
 
 #include "ntstatus.h"
@@ -96,15 +98,7 @@ typedef struct notify_data_t {
 
 static struct list notify_list = LIST_INIT(notify_list);
 
-static CRITICAL_SECTION service_cs;
-static CRITICAL_SECTION_DEBUG service_cs_debug =
-{
-    0, 0, &service_cs,
-    { &service_cs_debug.ProcessLocksList, 
-      &service_cs_debug.ProcessLocksList },
-      0, 0, { (DWORD_PTR)(__FILE__ ": service_cs") }
-};
-static CRITICAL_SECTION service_cs = { &service_cs_debug, -1, 0, 0, 0, 0 };
+static pthread_mutex_t service_cs = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
 static service_data **services;
 static unsigned int nb_services;
@@ -479,7 +473,7 @@ static DWORD WINAPI service_control_dispatcher(LPVOID arg)
             }
         }
 
-        EnterCriticalSection( &service_cs );
+        pthread_mutex_lock( &service_cs );
 
         /* validate service name */
         name = (WCHAR *)data;
@@ -518,7 +512,7 @@ static DWORD WINAPI service_control_dispatcher(LPVOID arg)
                                         &data[info.name_size * sizeof(WCHAR)] : NULL, data_size);
 
     done:
-        LeaveCriticalSection( &service_cs );
+        pthread_mutex_unlock( &service_cs );
         WriteFile( disp->pipe, &result, sizeof(result), &count, NULL );
         heap_free( data );
     }
@@ -539,7 +533,7 @@ static void handle_shutdown_msg(DWORD msg, DWORD accept)
     BOOL res, done = TRUE;
     SC_HANDLE *wait_handles = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(SC_HANDLE) * nb_services );
 
-    EnterCriticalSection( &service_cs );
+    pthread_mutex_lock( &service_cs );
     for (i = 0; i < nb_services; i++)
     {
         res = QueryServiceStatus( services[i]->full_access_handle, &st );
@@ -562,7 +556,7 @@ static void handle_shutdown_msg(DWORD msg, DWORD accept)
         service_handle_control( services[i], msg, NULL, 0 );
         wait_handles[n++] = services[i]->full_access_handle;
     }
-    LeaveCriticalSection( &service_cs );
+    pthread_mutex_unlock( &service_cs );
 
     /* FIXME: these timeouts should be more generous, but we can't currently delay prefix shutdown */
     timeout = min( timeout, 3000 );
@@ -628,14 +622,14 @@ static BOOL service_run_main_thread(void)
     /* wait for all the threads to pack up and exit */
     while (!stop_service)
     {
-        EnterCriticalSection( &service_cs );
+        pthread_mutex_lock( &service_cs );
         for (i = 0, n = 3; i < nb_services && n < MAXIMUM_WAIT_OBJECTS; i++)
         {
             if (!services[i]->thread) continue;
             wait_services[n] = i;
             wait_handles[n++] = services[i]->thread;
         }
-        LeaveCriticalSection( &service_cs );
+        pthread_mutex_unlock( &service_cs );
 
         ret = WaitForMultipleObjects( n, wait_handles, FALSE, INFINITE );
         if (!ret)  /* system process event */
@@ -657,10 +651,10 @@ static BOOL service_run_main_thread(void)
         else if (ret < n)
         {
             i = wait_services[ret];
-            EnterCriticalSection( &service_cs );
+            pthread_mutex_lock( &service_cs );
             CloseHandle( services[i]->thread );
             services[i]->thread = NULL;
-            LeaveCriticalSection( &service_cs );
+            pthread_mutex_unlock( &service_cs );
         }
         else return FALSE;
     }
@@ -846,7 +840,7 @@ SetServiceStatus( SERVICE_STATUS_HANDLE hService, LPSERVICE_STATUS lpStatus )
     if (lpStatus->dwCurrentState == SERVICE_STOPPED)
     {
         unsigned int i, count = 0;
-        EnterCriticalSection( &service_cs );
+        pthread_mutex_lock( &service_cs );
         for (i = 0; i < nb_services; i++)
         {
             if (services[i]->handle == (SC_HANDLE)hService) continue;
@@ -857,7 +851,7 @@ SetServiceStatus( SERVICE_STATUS_HANDLE hService, LPSERVICE_STATUS lpStatus )
             stop_service = TRUE;
             SetEvent( service_event );  /* notify the main loop */
         }
-        LeaveCriticalSection( &service_cs );
+        pthread_mutex_unlock( &service_cs );
     }
 
     return TRUE;
@@ -2592,14 +2586,14 @@ SERVICE_STATUS_HANDLE WINAPI RegisterServiceCtrlHandlerExW( LPCWSTR lpServiceNam
 
     TRACE("%s %p %p\n", debugstr_w(lpServiceName), lpHandlerProc, lpContext);
 
-    EnterCriticalSection( &service_cs );
+    pthread_mutex_lock( &service_cs );
     if ((service = find_service_by_name( lpServiceName )))
     {
         service->handler = lpHandlerProc;
         service->context = lpContext;
         hService = service->handle;
     }
-    LeaveCriticalSection( &service_cs );
+    pthread_mutex_unlock( &service_cs );
 
     if (!hService) SetLastError( ERROR_SERVICE_DOES_NOT_EXIST );
     return (SERVICE_STATUS_HANDLE)hService;
@@ -2652,11 +2646,11 @@ static DWORD WINAPI notify_thread(void *user)
     }
     __ENDTRY
 
-    EnterCriticalSection( &service_cs );
+    pthread_mutex_lock( &service_cs );
 
     list_remove(&data->entry);
 
-    LeaveCriticalSection( &service_cs );
+    pthread_mutex_unlock( &service_cs );
 
     if (err == ERROR_SUCCESS && list)
     {
@@ -2729,7 +2723,7 @@ DWORD WINAPI NotifyServiceStatusChangeW(SC_HANDLE hService, DWORD dwNotifyMask,
 
     data->cparams.dwNotifyMask = dwNotifyMask;
 
-    EnterCriticalSection( &service_cs );
+    pthread_mutex_lock( &service_cs );
 
     __TRY
     {
@@ -2745,7 +2739,7 @@ DWORD WINAPI NotifyServiceStatusChangeW(SC_HANDLE hService, DWORD dwNotifyMask,
     if (err != ERROR_SUCCESS)
     {
         WARN("NotifyServiceStatusChange server call failed: %u\n", err);
-        LeaveCriticalSection( &service_cs );
+        pthread_mutex_unlock( &service_cs );
         CloseHandle(data->calling_thread);
         CloseHandle(data->ready_evt);
         HeapFree(GetProcessHeap(), 0, data);
@@ -2756,7 +2750,7 @@ DWORD WINAPI NotifyServiceStatusChangeW(SC_HANDLE hService, DWORD dwNotifyMask,
 
     list_add_tail(&notify_list, &data->entry);
 
-    LeaveCriticalSection( &service_cs );
+    pthread_mutex_unlock( &service_cs );
 
     return ERROR_SUCCESS;
 }

@@ -2585,7 +2585,7 @@ static void test_import_export(void)
 
     result = CryptExportKey(hPrivKey, 0, PRIVATEKEYBLOB, 0, NULL, &dwDataLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
-    exported_key = HeapAlloc(GetProcessHeap(), 0, dwDataLen);
+    exported_key = heap_alloc(dwDataLen);
     result = CryptExportKey(hPrivKey, 0, PRIVATEKEYBLOB, 0, exported_key,
         &dwDataLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
@@ -2595,7 +2595,7 @@ static void test_import_export(void)
     ok(!memcmp(exported_key, expected_exported_priv_key, dwDataLen),
         "unexpected value\n");
 
-    HeapFree(GetProcessHeap(), 0, exported_key);
+    heap_free(exported_key);
 
     CryptDestroyKey(hPrivKey);
 
@@ -2606,7 +2606,7 @@ static void test_import_export(void)
 
     result = CryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, NULL, &dwDataLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
-    exported_key = HeapAlloc(GetProcessHeap(), 0, dwDataLen);
+    exported_key = heap_alloc(dwDataLen);
     result = CryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, exported_key,
         &dwDataLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
@@ -2617,7 +2617,7 @@ static void test_import_export(void)
     ok(result, "CryptGetUserKey failed: %08x\n", GetLastError());
     result = CryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, NULL, &dwDataLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
-    exported_key2 = HeapAlloc(GetProcessHeap(), 0, dwDataLen);
+    exported_key2 = heap_alloc(dwDataLen);
     result = CryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, exported_key2,
         &dwDataLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
@@ -2631,7 +2631,7 @@ static void test_import_export(void)
         trace("AT_KEYEXCHANGE public key (%u):\n", dwDataLen);
         trace_hex(exported_key2, dwDataLen);
     }
-    HeapFree(GetProcessHeap(), 0, exported_key2);
+    heap_free(exported_key2);
 
     /* importing a public key doesn't update key container at all */
     result = CryptImportKey(hProv, abPlainPublicKey,
@@ -2644,7 +2644,7 @@ static void test_import_export(void)
     ok(result, "CryptGetUserKey failed: %08x\n", GetLastError());
     result = CryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, NULL, &dwDataLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
-    exported_key2 = HeapAlloc(GetProcessHeap(), 0, dwDataLen);
+    exported_key2 = heap_alloc(dwDataLen);
     result = CryptExportKey(hPrivKey, 0, PUBLICKEYBLOB, 0, exported_key2,
         &dwDataLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
@@ -2659,8 +2659,8 @@ static void test_import_export(void)
         trace_hex(exported_key2, dwDataLen);
     }
 
-    HeapFree(GetProcessHeap(), 0, exported_key);
-    HeapFree(GetProcessHeap(), 0, exported_key2);
+    heap_free(exported_key);
+    heap_free(exported_key2);
 }
 
 static void test_import_hmac(void)
@@ -2729,7 +2729,7 @@ static void test_import_hmac(void)
     {
         const struct rfc2202_test_case *test_case = &cases[i];
         DWORD size = sizeof(BLOBHEADER) + sizeof(DWORD) + test_case->key_len;
-        BYTE *blob = HeapAlloc(GetProcessHeap(), 0, size);
+        BYTE *blob = heap_alloc(size);
 
         if (blob)
         {
@@ -2767,7 +2767,7 @@ static void test_import_hmac(void)
                 CryptDestroyHash(hash);
                 CryptDestroyKey(key);
             }
-            HeapFree(GetProcessHeap(), 0, blob);
+            heap_free(blob);
         }
     }
 }
@@ -3019,7 +3019,7 @@ static void test_rsa_round_trip(void)
     result = CryptExportKey(keyExchangeKey, 0, PRIVATEKEYBLOB, 0, NULL,
                             &keyLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
-    exportedKey = HeapAlloc(GetProcessHeap(), 0, keyLen);
+    exportedKey = heap_alloc(keyLen);
     result = CryptExportKey(keyExchangeKey, 0, PRIVATEKEYBLOB, 0, exportedKey,
                             &keyLen);
     ok(result, "CryptExportKey failed: %08x\n", GetLastError());
@@ -3029,7 +3029,7 @@ static void test_rsa_round_trip(void)
     /* import the key again... */
     result = CryptImportKey(prov, exportedKey, keyLen, 0, 0, &keyExchangeKey);
     ok(result, "CryptImportKey failed: %08x\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, exportedKey);
+    heap_free(exportedKey);
     /* and decrypt the data encrypted with the original key with the imported
      * key.
      */

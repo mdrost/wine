@@ -120,8 +120,8 @@ LONG CoreAudio_MIDIInit(void)
 
     TRACE("MIDIOut_NumDevs %d MIDIIn_NumDevs %d\n", MIDIOut_NumDevs, MIDIIn_NumDevs);
 
-    destinations = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, MIDIOut_NumDevs * sizeof(MIDIDestination));
-    sources = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, MIDIIn_NumDevs * sizeof(MIDISource));
+    destinations = heap_alloc_zero(MIDIOut_NumDevs * sizeof(MIDIDestination));
+    sources = heap_alloc_zero(MIDIIn_NumDevs * sizeof(MIDISource));
 
     if (MIDIIn_NumDevs > 0)
     {
@@ -214,8 +214,8 @@ LONG CoreAudio_MIDIRelease(void)
 
     if (wineMIDIClient) MIDIClientDispose(wineMIDIClient); /* MIDIClientDispose will close all ports */
 
-    HeapFree(GetProcessHeap(), 0, sources);
-    HeapFree(GetProcessHeap(), 0, destinations);
+    heap_free(sources);
+    heap_free(destinations);
     return DRV_SUCCESS;
 }
 

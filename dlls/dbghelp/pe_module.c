@@ -253,7 +253,7 @@ static BOOL pe_map_file(HANDLE file, struct image_file_map* fmap, enum module_ty
                     char* dst;
                     DWORD sz = *(DWORD*)src;
 
-                    if ((dst = HeapAlloc(GetProcessHeap(), 0, sz)))
+                    if ((dst = heap_alloc(sz)))
                         memcpy(dst, src, sz);
                     fmap->u.pe.strtable = dst;
                 }
@@ -296,8 +296,8 @@ static void pe_unmap_file(struct image_file_map* fmap)
             pe_unmap_section(&ism);
         }
         while (fmap->u.pe.full_count) pe_unmap_full(fmap);
-        HeapFree(GetProcessHeap(), 0, fmap->u.pe.sect);
-        HeapFree(GetProcessHeap(), 0, (void*)fmap->u.pe.strtable); /* FIXME ugly (see pe_map_file) */
+        heap_free(fmap->u.pe.sect);
+        heap_free((void*)fmap->u.pe.strtable); /* FIXME ugly (see pe_map_file) */
         CloseHandle(fmap->u.pe.hMap);
         fmap->u.pe.hMap = NULL;
     }
@@ -325,7 +325,7 @@ const char* pe_map_directory(struct module* module, int dirno, DWORD* size)
 static void pe_module_remove(struct process* pcs, struct module_format* modfmt)
 {
     pe_unmap_file(&modfmt->u.pe_info->fmap);
-    HeapFree(GetProcessHeap(), 0, modfmt);
+    heap_free(modfmt);
 }
 
 /******************************************************************
@@ -749,7 +749,7 @@ struct module* pe_load_native_module(struct process* pcs, const WCHAR* name,
     else if (name) strcpyW(loaded_name, name);
     else if (dbghelp_options & SYMOPT_DEFERRED_LOADS)
         FIXME("Trouble ahead (no module name passed in deferred mode)\n");
-    if (!(modfmt = HeapAlloc(GetProcessHeap(), 0, sizeof(struct module_format) + sizeof(struct pe_module_info))))
+    if (!(modfmt = heap_alloc(sizeof(struct module_format) + sizeof(struct pe_module_info))))
         return NULL;
     modfmt->u.pe_info = (struct pe_module_info*)(modfmt + 1);
     if (pe_map_file(hFile, &modfmt->u.pe_info->fmap, DMT_PE))
@@ -779,7 +779,7 @@ struct module* pe_load_native_module(struct process* pcs, const WCHAR* name,
             pe_unmap_file(&modfmt->u.pe_info->fmap);
         }
     }
-    if (!module) HeapFree(GetProcessHeap(), 0, modfmt);
+    if (!module) heap_free(modfmt);
 
     if (opened) CloseHandle(hFile);
 

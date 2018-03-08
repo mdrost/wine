@@ -109,7 +109,7 @@ static int coff_add_file(struct CoffFileSet* coff_files, struct module* module,
         if (coff_files->files)
         {
             coff_files->nfiles_alloc *= 2;
-            coff_files->files = HeapReAlloc(GetProcessHeap(), 0, coff_files->files,
+            coff_files->files = heap_realloc(coff_files->files,
                                             coff_files->nfiles_alloc * sizeof(struct CoffFile));
         }
         else
@@ -139,7 +139,7 @@ static void coff_add_symbol(struct CoffFile* coff_file, struct symt* sym)
         if (coff_file->entries)
         {
             coff_file->neps_alloc *= 2;
-            coff_file->entries = HeapReAlloc(GetProcessHeap(), 0, coff_file->entries,
+            coff_file->entries = heap_realloc(coff_file->entries,
                                              coff_file->neps_alloc * sizeof(struct symt*));
         }
         else
@@ -449,9 +449,9 @@ DECLSPEC_HIDDEN BOOL coff_process_info(const struct msc_debug_info* msc_dbg)
 
         for (j = 0; j < coff_files.nfiles; j++)
 	{
-            HeapFree(GetProcessHeap(), 0, coff_files.files[j].entries);
+            heap_free(coff_files.files[j].entries);
 	}
-        HeapFree(GetProcessHeap(), 0, coff_files.files);
+        heap_free(coff_files.files);
         msc_dbg->module->module.SymType = SymCoff;
         /* FIXME: we could have a finer grain here */
         msc_dbg->module->module.LineNumbers = TRUE;

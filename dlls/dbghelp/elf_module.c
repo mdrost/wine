@@ -311,7 +311,7 @@ static BOOL elf_map_file(struct elf_map_file_data* emfd, struct image_file_map* 
     {
     case from_file:
         len = WideCharToMultiByte(CP_UNIXCP, 0, emfd->u.file.filename, -1, NULL, 0, NULL, NULL);
-        if (!(filename = HeapAlloc(GetProcessHeap(), 0, len))) return FALSE;
+        if (!(filename = heap_alloc(len))) return FALSE;
         WideCharToMultiByte(CP_UNIXCP, 0, emfd->u.file.filename, -1, filename, len, NULL, NULL);
         break;
     case from_process:
@@ -361,7 +361,7 @@ static BOOL elf_map_file(struct elf_map_file_data* emfd, struct image_file_map* 
         if (!elf_map_file_read(fmap, emfd, &fmap->u.elf.sect[i].shdr, sizeof(fmap->u.elf.sect[i].shdr),
                                fmap->u.elf.elfhdr.e_shoff + i * sizeof(fmap->u.elf.sect[i].shdr)))
         {
-            HeapFree(GetProcessHeap(), 0, fmap->u.elf.sect);
+            heap_free(fmap->u.elf.sect);
             fmap->u.elf.sect = NULL;
             goto done;
         }
@@ -391,23 +391,23 @@ static BOOL elf_map_file(struct elf_map_file_data* emfd, struct image_file_map* 
     {
     case from_file: break;
     case from_process:
-        if (!(fmap->u.elf.target_copy = HeapAlloc(GetProcessHeap(), 0, fmap->u.elf.elf_size)))
+        if (!(fmap->u.elf.target_copy = heap_alloc(fmap->u.elf.elf_size)))
         {
-            HeapFree(GetProcessHeap(), 0, fmap->u.elf.sect);
+            heap_free(fmap->u.elf.sect);
             goto done;
         }
         if (!ReadProcessMemory(emfd->u.process.handle, emfd->u.process.load_addr, fmap->u.elf.target_copy,
                                fmap->u.elf.elf_size, NULL))
         {
-            HeapFree(GetProcessHeap(), 0, fmap->u.elf.target_copy);
-            HeapFree(GetProcessHeap(), 0, fmap->u.elf.sect);
+            heap_free(fmap->u.elf.target_copy);
+            heap_free(fmap->u.elf.sect);
             goto done;
         }
         break;
     }
     ret = TRUE;
 done:
-    HeapFree(GetProcessHeap(), 0, filename);
+    heap_free(filename);
     return ret;
 }
 
@@ -428,10 +428,10 @@ static void elf_unmap_file(struct image_file_map* fmap)
             {
                 elf_unmap_section(&ism);
             }
-            HeapFree(GetProcessHeap(), 0, fmap->u.elf.sect);
+            heap_free(fmap->u.elf.sect);
             close(fmap->u.elf.fd);
         }
-        HeapFree(GetProcessHeap(), 0, fmap->u.elf.target_copy);
+        heap_free(fmap->u.elf.target_copy);
         fmap = fmap->u.elf.alternate;
     }
 }
@@ -439,7 +439,7 @@ static void elf_unmap_file(struct image_file_map* fmap)
 static void elf_module_remove(struct process* pcs, struct module_format* modfmt)
 {
     elf_unmap_file(&modfmt->u.elf_info->file_map);
-    HeapFree(GetProcessHeap(), 0, modfmt);
+    heap_free(modfmt);
 }
 
 /******************************************************************
@@ -871,7 +871,7 @@ static BOOL elf_locate_debug_link(struct image_file_map* fmap, const char* filen
     WCHAR* slash;
     struct image_file_map* fmap_link = NULL;
 
-    fmap_link = HeapAlloc(GetProcessHeap(), 0, sizeof(*fmap_link));
+    fmap_link = heap_alloc(sizeof(*fmap_link));
     if (!fmap_link) return FALSE;
 
     filename_len = MultiByteToWideChar(CP_UNIXCP, 0, filename, -1, NULL, 0);
@@ -905,13 +905,13 @@ static BOOL elf_locate_debug_link(struct image_file_map* fmap, const char* filen
 
 
     WARN("Couldn't locate or map %s\n", filename);
-    HeapFree(GetProcessHeap(), 0, p);
-    HeapFree(GetProcessHeap(), 0, fmap_link);
+    heap_free(p);
+    heap_free(fmap_link);
     return FALSE;
 
 found:
     TRACE("Located debug information file %s at %s\n", filename, debugstr_w(p));
-    HeapFree(GetProcessHeap(), 0, p);
+    heap_free(p);
     fmap->u.elf.alternate = fmap_link;
     return TRUE;
 }
@@ -932,7 +932,7 @@ static BOOL elf_locate_build_id_target(struct image_file_map* fmap, const BYTE* 
     const BYTE* idend = id + idlen;
     struct elf_map_file_data emfd;
 
-    fmap_link = HeapAlloc(GetProcessHeap(), 0, sizeof(*fmap_link));
+    fmap_link = heap_alloc(sizeof(*fmap_link));
     if (!fmap_link) return FALSE;
 
     p = HeapAlloc(GetProcessHeap(), 0,
@@ -980,7 +980,7 @@ static BOOL elf_locate_build_id_target(struct image_file_map* fmap, const BYTE* 
                         !memcmp(note + 3 + ((note[0] + 3) >> 2), idend - idlen, idlen))
                     {
                         TRACE("Located debug information file at %s\n", debugstr_w(p));
-                        HeapFree(GetProcessHeap(), 0, p);
+                        heap_free(p);
                         fmap->u.elf.alternate = fmap_link;
                         return TRUE;
                     }
@@ -993,8 +993,8 @@ static BOOL elf_locate_build_id_target(struct image_file_map* fmap, const BYTE* 
     }
 
     TRACE("not found\n");
-    HeapFree(GetProcessHeap(), 0, p);
-    HeapFree(GetProcessHeap(), 0, fmap_link);
+    heap_free(p);
+    heap_free(fmap_link);
     return FALSE;
 }
 
@@ -1252,7 +1252,7 @@ static BOOL elf_load_file_from_fmap(struct process* pcs, const WCHAR* filename,
                                       fmap->u.elf.elf_size, 0, calc_crc32(fmap->u.elf.fd));
         if (!elf_info->module)
         {
-            HeapFree(GetProcessHeap(), 0, modfmt);
+            heap_free(modfmt);
             return FALSE;
         }
         elf_info->module->reloc_delta = elf_info->module->module.BaseOfImage - fmap->u.elf.elf_start;
@@ -1281,7 +1281,7 @@ static BOOL elf_load_file_from_fmap(struct process* pcs, const WCHAR* filename,
     if (elf_info->flags & ELF_INFO_NAME)
     {
         WCHAR*  ptr;
-        ptr = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(filename) + 1) * sizeof(WCHAR));
+        ptr = heap_alloc((lstrlenW(filename) + 1) * sizeof(WCHAR));
         if (ptr)
         {
             strcpyW(ptr, filename);
@@ -1352,7 +1352,7 @@ static BOOL elf_load_file_from_path(HANDLE hProcess,
     if (!path) return FALSE;
 
     len = MultiByteToWideChar(CP_UNIXCP, 0, path, -1, NULL, 0);
-    pathW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    pathW = heap_alloc(len * sizeof(WCHAR));
     if (!pathW) return FALSE;
     MultiByteToWideChar(CP_UNIXCP, 0, path, -1, pathW, len);
 
@@ -1360,17 +1360,17 @@ static BOOL elf_load_file_from_path(HANDLE hProcess,
     {
 	t = strchrW(s, ':');
 	if (t) *t = '\0';
-	fn = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(filename) + 1 + lstrlenW(s) + 1) * sizeof(WCHAR));
+	fn = heap_alloc((lstrlenW(filename) + 1 + lstrlenW(s) + 1) * sizeof(WCHAR));
 	if (!fn) break;
 	strcpyW(fn, s);
 	strcatW(fn, S_SlashW);
 	strcatW(fn, filename);
 	ret = elf_load_file(hProcess, fn, load_offset, dyn_addr, elf_info);
-	HeapFree(GetProcessHeap(), 0, fn);
+	heap_free(fn);
 	if (ret) break;
     }
 
-    HeapFree(GetProcessHeap(), 0, pathW);
+    heap_free(pathW);
     return ret;
 }
 
@@ -1396,7 +1396,7 @@ static BOOL elf_load_file_from_dll_path(HANDLE hProcess,
 
         len = MultiByteToWideChar(CP_UNIXCP, 0, path, -1, NULL, 0);
 
-        name = HeapAlloc( GetProcessHeap(), 0,
+        name = heap_alloc(
                           (len + lstrlenW(filename) + 2) * sizeof(WCHAR) );
 
         if (!name) break;
@@ -1404,7 +1404,7 @@ static BOOL elf_load_file_from_dll_path(HANDLE hProcess,
         strcatW( name, S_SlashW );
         strcatW( name, filename );
         ret = elf_load_file(hProcess, name, load_offset, dyn_addr, elf_info);
-        HeapFree( GetProcessHeap(), 0, name );
+        heap_free( name );
     }
     return ret;
 }
@@ -1628,7 +1628,7 @@ BOOL elf_enum_modules(HANDLE hProc, enum_modules_cb cb, void* user)
     eeu.cb = cb;
     eeu.user = user;
     ret = elf_enum_modules_internal(&pcs, elf_info.module_name, elf_enum_modules_translate, &eeu);
-    HeapFree(GetProcessHeap(), 0, (char*)elf_info.module_name);
+    heap_free((char*)elf_info.module_name);
     return ret;
 }
 

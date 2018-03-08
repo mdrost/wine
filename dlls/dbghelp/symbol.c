@@ -104,13 +104,13 @@ static BOOL symt_grow_sorttab(struct module* module, unsigned sz)
     if (module->addr_sorttab)
     {
         size = module->sorttab_size * 2;
-        new = HeapReAlloc(GetProcessHeap(), 0, module->addr_sorttab,
+        new = heap_realloc(module->addr_sorttab,
                           size * sizeof(struct symt_ht*));
     }
     else
     {
         size = 64;
-        new = HeapAlloc(GetProcessHeap(), 0, size * sizeof(struct symt_ht*));
+        new = heap_alloc(size * sizeof(struct symt_ht*));
     }
     if (!new) return FALSE;
     module->sorttab_size = size;
@@ -141,7 +141,7 @@ static WCHAR* file_regex(const char* srcfile)
 
     if (!srcfile || !*srcfile)
     {
-        if (!(p = mask = HeapAlloc(GetProcessHeap(), 0, 3 * sizeof(WCHAR)))) return NULL;
+        if (!(p = mask = heap_alloc(3 * sizeof(WCHAR)))) return NULL;
         *p++ = '?';
         *p++ = '#';
     }
@@ -151,7 +151,7 @@ static WCHAR* file_regex(const char* srcfile)
         WCHAR* srcfileW;
 
         /* FIXME: we use here the largest conversion for every char... could be optimized */
-        p = mask = HeapAlloc(GetProcessHeap(), 0, (5 * strlen(srcfile) + 1 + sz) * sizeof(WCHAR));
+        p = mask = heap_alloc((5 * strlen(srcfile) + 1 + sz) * sizeof(WCHAR));
         if (!mask) return NULL;
         srcfileW = mask + 5 * strlen(srcfile) + 1;
         MultiByteToWideChar(CP_ACP, 0, srcfile, -1, srcfileW, sz);
@@ -744,7 +744,7 @@ static BOOL symt_enum_module(struct module_pair* pair, const WCHAR* match,
         sym = CONTAINING_RECORD(ptr, struct symt_ht, hash_elt);
         nameW = symt_get_nameW(&sym->symt);
         ret = SymMatchStringW(nameW, match, FALSE);
-        HeapFree(GetProcessHeap(), 0, nameW);
+        heap_free(nameW);
         if (ret)
         {
             se->sym_info->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -803,9 +803,9 @@ static BOOL resort_symbols(struct module* module)
         {
             static struct symt_ht** new;
             if (tmp)
-                new = HeapReAlloc(GetProcessHeap(), 0, tmp, delta * sizeof(struct symt_ht*));
+                new = heap_realloc(tmp, delta * sizeof(struct symt_ht*));
             else
-                new = HeapAlloc(GetProcessHeap(), 0, delta * sizeof(struct symt_ht*));
+                new = heap_alloc(delta * sizeof(struct symt_ht*));
             if (!new)
             {
                 module->num_sorttab = 0;
@@ -933,7 +933,7 @@ static BOOL symt_enum_locals_helper(struct module_pair* pair,
             nameW = symt_get_nameW(lsym);
             ret = SymMatchStringW(nameW, match,
                                   !(dbghelp_options & SYMOPT_CASE_INSENSITIVE));
-            HeapFree(GetProcessHeap(), 0, nameW);
+            heap_free(nameW);
             if (ret)
             {
                 if (send_symbol(se, pair, func, lsym)) return FALSE;
@@ -1023,7 +1023,7 @@ static BOOL sym_enum(HANDLE hProcess, ULONG64 BaseOfDll, PCWSTR Mask,
 
         if (bang == Mask) return FALSE;
 
-        mod = HeapAlloc(GetProcessHeap(), 0, (bang - Mask + 1) * sizeof(WCHAR));
+        mod = heap_alloc((bang - Mask + 1) * sizeof(WCHAR));
         if (!mod) return FALSE;
         memcpy(mod, Mask, (bang - Mask) * sizeof(WCHAR));
         mod[bang - Mask] = 0;
@@ -1053,7 +1053,7 @@ static BOOL sym_enum(HANDLE hProcess, ULONG64 BaseOfDll, PCWSTR Mask,
                 }
             }
         }
-        HeapFree(GetProcessHeap(), 0, mod);
+        heap_free(mod);
         return TRUE;
     }
     pair.requested = module_find_by_addr(pair.pcs, BaseOfDll, DMT_UNKNOWN);
@@ -1113,12 +1113,12 @@ BOOL WINAPI SymEnumSymbols(HANDLE hProcess, ULONG64 BaseOfDll, PCSTR Mask,
     if (Mask)
     {
         DWORD sz = MultiByteToWideChar(CP_ACP, 0, Mask, -1, NULL, 0);
-        if (!(maskW = HeapAlloc(GetProcessHeap(), 0, sz * sizeof(WCHAR))))
+        if (!(maskW = heap_alloc(sz * sizeof(WCHAR))))
             return FALSE;
         MultiByteToWideChar(CP_ACP, 0, Mask, -1, maskW, sz);
     }
     ret = doSymEnumSymbols(hProcess, BaseOfDll, maskW, EnumSymbolsCallback, UserContext);
-    HeapFree(GetProcessHeap(), 0, maskW);
+    heap_free(maskW);
     return ret;
 }
 
@@ -1245,7 +1245,7 @@ BOOL WINAPI SymFromAddrW(HANDLE hProcess, DWORD64 Address,
     BOOL                ret;
 
     len = sizeof(*si) + Symbol->MaxNameLen * sizeof(WCHAR);
-    si = HeapAlloc(GetProcessHeap(), 0, len);
+    si = heap_alloc(len);
     if (!si) return FALSE;
 
     si->SizeOfStruct = sizeof(*si);
@@ -1254,7 +1254,7 @@ BOOL WINAPI SymFromAddrW(HANDLE hProcess, DWORD64 Address,
     {
         copy_symbolW(Symbol, si);
     }
-    HeapFree(GetProcessHeap(), 0, si);
+    heap_free(si);
     return ret;
 }
 
@@ -1749,8 +1749,8 @@ BOOL WINAPI SymUnDName64(PIMAGEHLP_SYMBOL64 sym, PSTR UnDecName, DWORD UnDecName
                                 UNDNAME_COMPLETE) != 0;
 }
 
-static void * CDECL und_alloc(size_t len) { return HeapAlloc(GetProcessHeap(), 0, len); }
-static void   CDECL und_free (void* ptr)  { HeapFree(GetProcessHeap(), 0, ptr); }
+static void * CDECL und_alloc(size_t len) { return heap_alloc(len); }
+static void   CDECL und_free (void* ptr)  { heap_free(ptr); }
 
 static char *und_name(char *buffer, const char *mangled, int buflen, unsigned short flags)
 {
@@ -1801,7 +1801,7 @@ DWORD WINAPI UnDecorateSymbolNameW(const WCHAR *decorated_name, WCHAR *undecorat
         return 0;
 
     len = WideCharToMultiByte(CP_ACP, 0, decorated_name, -1, NULL, 0, NULL, NULL);
-    if ((buf = HeapAlloc(GetProcessHeap(), 0, len)))
+    if ((buf = heap_alloc(len)))
     {
         WideCharToMultiByte(CP_ACP, 0, decorated_name, -1, buf, len, NULL, NULL);
         if ((ptr = und_name(NULL, buf, 0, flags)))
@@ -1811,7 +1811,7 @@ DWORD WINAPI UnDecorateSymbolNameW(const WCHAR *decorated_name, WCHAR *undecorat
             ret = strlenW(undecorated_name);
             und_free(ptr);
         }
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
     }
 
     return ret;
@@ -1962,16 +1962,16 @@ BOOL WINAPI SymMatchStringA(PCSTR string, PCSTR re, BOOL _case)
     TRACE("%s %s %c\n", string, re, _case ? 'Y' : 'N');
 
     sz = MultiByteToWideChar(CP_ACP, 0, string, -1, NULL, 0);
-    if ((strW = HeapAlloc(GetProcessHeap(), 0, sz * sizeof(WCHAR))))
+    if ((strW = heap_alloc(sz * sizeof(WCHAR))))
         MultiByteToWideChar(CP_ACP, 0, string, -1, strW, sz);
     sz = MultiByteToWideChar(CP_ACP, 0, re, -1, NULL, 0);
-    if ((reW = HeapAlloc(GetProcessHeap(), 0, sz * sizeof(WCHAR))))
+    if ((reW = heap_alloc(sz * sizeof(WCHAR))))
         MultiByteToWideChar(CP_ACP, 0, re, -1, reW, sz);
 
     if (strW && reW)
         ret = SymMatchStringW(strW, reW, _case);
-    HeapFree(GetProcessHeap(), 0, strW);
-    HeapFree(GetProcessHeap(), 0, reW);
+    heap_free(strW);
+    heap_free(reW);
     return ret;
 }
 
@@ -2035,13 +2035,13 @@ BOOL WINAPI SymSearch(HANDLE hProcess, ULONG64 BaseOfDll, DWORD Index,
     {
         DWORD sz = MultiByteToWideChar(CP_ACP, 0, Mask, -1, NULL, 0);
 
-        if (!(maskW = HeapAlloc(GetProcessHeap(), 0, sz * sizeof(WCHAR))))
+        if (!(maskW = heap_alloc(sz * sizeof(WCHAR))))
             return FALSE;
         MultiByteToWideChar(CP_ACP, 0, Mask, -1, maskW, sz);
     }
     ret = doSymSearch(hProcess, BaseOfDll, Index, SymTag, maskW, Address,
                       EnumSymbolsCallback, UserContext, Options);
-    HeapFree(GetProcessHeap(), 0, maskW);
+    heap_free(maskW);
     return ret;
 }
 
@@ -2164,13 +2164,13 @@ BOOL WINAPI SymEnumLines(HANDLE hProcess, ULONG64 base, PCSTR compiland,
                     DWORD   sz = MultiByteToWideChar(CP_ACP, 0, file, -1, NULL, 0);
                     WCHAR*  fileW;
 
-                    if ((fileW = HeapAlloc(GetProcessHeap(), 0, sz * sizeof(WCHAR))))
+                    if ((fileW = heap_alloc(sz * sizeof(WCHAR))))
                         MultiByteToWideChar(CP_ACP, 0, file, -1, fileW, sz);
                     if (SymMatchStringW(fileW, srcmask, FALSE))
                         strcpy(sci.FileName, file);
                     else
                         sci.FileName[0] = '\0';
-                    HeapFree(GetProcessHeap(), 0, fileW);
+                    heap_free(fileW);
                 }
             }
             else if (sci.FileName[0])
@@ -2183,7 +2183,7 @@ BOOL WINAPI SymEnumLines(HANDLE hProcess, ULONG64 base, PCSTR compiland,
             }
         }
     }
-    HeapFree(GetProcessHeap(), 0, srcmask);
+    heap_free(srcmask);
     return TRUE;
 }
 

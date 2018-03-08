@@ -632,7 +632,7 @@ static BOOL macho_map_file(const WCHAR* filenameW, BOOL split_segs, struct image
 #endif
 
     len = WideCharToMultiByte(CP_UNIXCP, 0, filenameW, -1, NULL, 0, NULL, NULL);
-    if (!(filename = HeapAlloc(GetProcessHeap(), 0, len)))
+    if (!(filename = heap_alloc(len)))
     {
         WARN("failed to allocate filename buffer\n");
         return FALSE;
@@ -711,7 +711,7 @@ static BOOL macho_map_file(const WCHAR* filenameW, BOOL split_segs, struct image
         goto done;
     TRACE("%d sections\n", fmap->num_sections);
 
-    fmap->sect = HeapAlloc(GetProcessHeap(), 0, fmap->num_sections * sizeof(fmap->sect[0]));
+    fmap->sect = heap_alloc(fmap->num_sections * sizeof(fmap->sect[0]));
     if (!fmap->sect)
         goto done;
 
@@ -744,7 +744,7 @@ static BOOL macho_map_file(const WCHAR* filenameW, BOOL split_segs, struct image
 done:
     if (!ret)
         macho_unmap_file(ifm);
-    HeapFree(GetProcessHeap(), 0, filename);
+    heap_free(filename);
     return ret;
 }
 
@@ -772,7 +772,7 @@ static void macho_unmap_file(struct image_file_map* ifm)
             for (ism.sidx = 0; ism.sidx < ifm->u.macho.num_sections; ism.sidx++)
                 macho_unmap_section(&ism);
 
-            HeapFree(GetProcessHeap(), 0, ifm->u.macho.sect);
+            heap_free(ifm->u.macho.sect);
             macho_unmap_load_commands(&ifm->u.macho);
             close(ifm->u.macho.fd);
             ifm->u.macho.fd = -1;
@@ -780,7 +780,7 @@ static void macho_unmap_file(struct image_file_map* ifm)
 
         next = cursor->u.macho.dsym;
         if (cursor != ifm)
-            HeapFree(GetProcessHeap(), 0, cursor);
+            heap_free(cursor);
         cursor = next;
     }
 }
@@ -1082,7 +1082,7 @@ static BOOL try_dsym(const WCHAR* path, struct macho_file_map* fmap)
         if (dsym_ifm.u.macho.uuid && !memcmp(dsym_ifm.u.macho.uuid->uuid, fmap->uuid->uuid, sizeof(fmap->uuid->uuid)))
         {
             TRACE("found matching debug symbol file at %s\n", debugstr_w(path));
-            fmap->dsym = HeapAlloc(GetProcessHeap(), 0, sizeof(dsym_ifm));
+            fmap->dsym = heap_alloc(sizeof(dsym_ifm));
             *fmap->dsym = dsym_ifm;
             return TRUE;
         }
@@ -1133,7 +1133,7 @@ static void find_and_map_dsym(struct module* module)
     else
         p = module->module.LoadedImageName;
     len = strlenW(module->module.LoadedImageName) + strlenW(dot_dsym) + strlenW(dsym_subpath) + strlenW(p) + 1;
-    path = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    path = heap_alloc(len * sizeof(WCHAR));
     if (!path)
         return;
     strcpyW(path, module->module.LoadedImageName);
@@ -1165,9 +1165,9 @@ static void find_and_map_dsym(struct module* module)
             CFIndex item_path_len = CFStringGetLength(item_path);
             if (item_path_len + strlenW(dsym_subpath) + strlenW(p) >= len)
             {
-                HeapFree(GetProcessHeap(), 0, path);
+                heap_free(path);
                 len = item_path_len + strlenW(dsym_subpath) + strlenW(p) + 1;
-                path = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+                path = heap_alloc(len * sizeof(WCHAR));
             }
             CFStringGetCharacters(item_path, CFRangeMake(0, item_path_len), (UniChar*)path);
             strcpyW(path + item_path_len, dsym_subpath);
@@ -1180,7 +1180,7 @@ static void find_and_map_dsym(struct module* module)
     }
 
 found:
-    HeapFree(GetProcessHeap(), 0, path);
+    heap_free(path);
     if (query) CFRelease(query);
 }
 
@@ -1299,7 +1299,7 @@ BOOL macho_fetch_file_info(HANDLE process, const WCHAR* name, unsigned long load
 static void macho_module_remove(struct process* pcs, struct module_format* modfmt)
 {
     macho_unmap_file(&modfmt->u.macho_info->file_map);
-    HeapFree(GetProcessHeap(), 0, modfmt);
+    heap_free(modfmt);
 }
 
 
@@ -1388,7 +1388,7 @@ static BOOL macho_load_file(struct process* pcs, const WCHAR* filename,
     {
         struct macho_module_info *macho_module_info;
         struct module_format*   modfmt =
-            HeapAlloc(GetProcessHeap(), 0, sizeof(struct module_format) + sizeof(struct macho_module_info));
+            heap_alloc(sizeof(struct module_format) + sizeof(struct macho_module_info));
         if (!modfmt) goto leave;
         if (!load_addr)
             load_addr = fmap.u.macho.segs_start;
@@ -1396,7 +1396,7 @@ static BOOL macho_load_file(struct process* pcs, const WCHAR* filename,
                                         fmap.u.macho.segs_size, 0, calc_crc32(fmap.u.macho.fd));
         if (!macho_info->module)
         {
-            HeapFree(GetProcessHeap(), 0, modfmt);
+            heap_free(modfmt);
             goto leave;
         }
         macho_info->module->reloc_delta = macho_info->module->module.BaseOfImage - fmap.u.macho.segs_start;
@@ -1425,7 +1425,7 @@ static BOOL macho_load_file(struct process* pcs, const WCHAR* filename,
     if (macho_info->flags & MACHO_INFO_NAME)
     {
         WCHAR*  ptr;
-        ptr = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(filename) + 1) * sizeof(WCHAR));
+        ptr = heap_alloc((lstrlenW(filename) + 1) * sizeof(WCHAR));
         if (ptr)
         {
             strcpyW(ptr, filename);
@@ -1462,7 +1462,7 @@ static BOOL macho_load_file_from_path(struct process* pcs,
     if (!path) return FALSE;
 
     len = MultiByteToWideChar(CP_UNIXCP, 0, path, -1, NULL, 0);
-    pathW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    pathW = heap_alloc(len * sizeof(WCHAR));
     if (!pathW) return FALSE;
     MultiByteToWideChar(CP_UNIXCP, 0, path, -1, pathW, len);
 
@@ -1470,19 +1470,19 @@ static BOOL macho_load_file_from_path(struct process* pcs,
     {
         t = strchrW(s, ':');
         if (t) *t = '\0';
-        fn = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(filename) + 1 + lstrlenW(s) + 1) * sizeof(WCHAR));
+        fn = heap_alloc((lstrlenW(filename) + 1 + lstrlenW(s) + 1) * sizeof(WCHAR));
         if (!fn) break;
         strcpyW(fn, s);
         strcatW(fn, S_SlashW);
         strcatW(fn, filename);
         ret = macho_load_file(pcs, fn, load_addr, macho_info);
-        HeapFree(GetProcessHeap(), 0, fn);
+        heap_free(fn);
         if (ret) break;
         s = (t) ? (t+1) : NULL;
     }
 
     TRACE(" => %d\n", ret);
-    HeapFree(GetProcessHeap(), 0, pathW);
+    heap_free(pathW);
     return ret;
 }
 
@@ -1510,7 +1510,7 @@ static BOOL macho_load_file_from_dll_path(struct process* pcs,
 
         len = MultiByteToWideChar(CP_UNIXCP, 0, path, -1, NULL, 0);
 
-        name = HeapAlloc( GetProcessHeap(), 0,
+        name = heap_alloc(
                           (len + lstrlenW(filename) + 2) * sizeof(WCHAR) );
 
         if (!name) break;
@@ -1518,7 +1518,7 @@ static BOOL macho_load_file_from_dll_path(struct process* pcs,
         strcatW( name, S_SlashW );
         strcatW( name, filename );
         ret = macho_load_file(pcs, name, load_addr, macho_info);
-        HeapFree( GetProcessHeap(), 0, name );
+        heap_free( name );
     }
     TRACE(" => %d\n", ret);
     return ret;
@@ -1610,7 +1610,7 @@ static BOOL macho_enum_modules_internal(const struct process* pcs,
     TRACE("Process has %u image infos at %p\n", image_infos.infoArrayCount, image_infos.infoArray);
 
     len = image_infos.infoArrayCount * sizeof(info_array[0]);
-    info_array = HeapAlloc(GetProcessHeap(), 0, len);
+    info_array = heap_alloc(len);
     if (!info_array ||
         !ReadProcessMemory(pcs->handle, image_infos.infoArray,
                            info_array, len, NULL))
@@ -1632,7 +1632,7 @@ static BOOL macho_enum_modules_internal(const struct process* pcs,
 
     ret = TRUE;
 done:
-    HeapFree(GetProcessHeap(), 0, info_array);
+    heap_free(info_array);
     return ret;
 }
 
@@ -1747,12 +1747,12 @@ static BOOL macho_search_loader(struct process* pcs, struct macho_info* macho_in
         WCHAR* pathW;
 
         len = MultiByteToWideChar(CP_UNIXCP, 0, path, -1, NULL, 0);
-        pathW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        pathW = heap_alloc(len * sizeof(WCHAR));
         if (pathW)
         {
             MultiByteToWideChar(CP_UNIXCP, 0, path, -1, pathW, len);
             ret = macho_load_file(pcs, pathW, 0, macho_info);
-            HeapFree(GetProcessHeap(), 0, pathW);
+            heap_free(pathW);
         }
     }
 
@@ -1798,7 +1798,7 @@ BOOL macho_enum_modules(HANDLE hProc, enum_modules_cb cb, void* user)
     if (!macho_search_loader(&pcs, &macho_info)) return FALSE;
     pcs.dbg_hdr_addr = macho_info.dbg_hdr_addr;
     ret = macho_enum_modules_internal(&pcs, macho_info.module_name, cb, user);
-    HeapFree(GetProcessHeap(), 0, (char*)macho_info.module_name);
+    heap_free((char*)macho_info.module_name);
     return ret;
 }
 

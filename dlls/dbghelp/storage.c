@@ -76,12 +76,12 @@ void pool_destroy(struct pool* pool)
     LIST_FOR_EACH_ENTRY_SAFE( arena, next, &pool->arena_list, struct pool_arena, entry )
     {
         list_remove( &arena->entry );
-        HeapFree(GetProcessHeap(), 0, arena);
+        heap_free(arena);
     }
     LIST_FOR_EACH_ENTRY_SAFE( arena, next, &pool->arena_full, struct pool_arena, entry )
     {
         list_remove( &arena->entry );
-        HeapFree(GetProcessHeap(), 0, arena);
+        heap_free(arena);
     }
 }
 
@@ -109,7 +109,7 @@ void* pool_alloc(struct pool* pool, size_t len)
     }
 
     size = max( pool->arena_size, len );
-    arena = HeapAlloc(GetProcessHeap(), 0, size + sizeof(struct pool_arena));
+    arena = heap_alloc(size + sizeof(struct pool_arena));
     if (!arena) return NULL;
 
     ret = arena + 1;

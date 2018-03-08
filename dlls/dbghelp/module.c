@@ -123,12 +123,12 @@ const WCHAR *get_wine_loader_name(void)
         if ((ptr = getenv("WINELOADER")))
         {
             DWORD len = 2 + MultiByteToWideChar( CP_UNIXCP, 0, ptr, -1, NULL, 0 );
-            buffer = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+            buffer = heap_alloc( len * sizeof(WCHAR) );
             MultiByteToWideChar( CP_UNIXCP, 0, ptr, -1, buffer, len );
         }
         else
         {
-            buffer = HeapAlloc( GetProcessHeap(), 0, sizeof(wineW) + 2 * sizeof(WCHAR) );
+            buffer = heap_alloc( sizeof(wineW) + 2 * sizeof(WCHAR) );
             strcpyW( buffer, wineW );
         }
         p = buffer + strlenW( buffer ) - strlenW( suffixW );
@@ -167,7 +167,7 @@ struct module* module_new(struct process* pcs, const WCHAR* name,
     unsigned            i;
 
     assert(type == DMT_ELF || type == DMT_PE || type == DMT_MACHO);
-    if (!(module = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*module))))
+    if (!(module = heap_alloc_zero(sizeof(*module))))
 	return NULL;
 
     module->next = pcs->lmodules;
@@ -542,22 +542,22 @@ DWORD64 WINAPI  SymLoadModuleEx(HANDLE hProcess, HANDLE hFile, PCSTR ImageName,
     if (ImageName)
     {
         len = MultiByteToWideChar(CP_ACP, 0, ImageName, -1, NULL, 0);
-        wImageName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        wImageName = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, ImageName, -1, wImageName, len);
     }
     else wImageName = NULL;
     if (ModuleName)
     {
         len = MultiByteToWideChar(CP_ACP, 0, ModuleName, -1, NULL, 0);
-        wModuleName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        wModuleName = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, ModuleName, -1, wModuleName, len);
     }
     else wModuleName = NULL;
 
     ret = SymLoadModuleExW(hProcess, hFile, wImageName, wModuleName,
                           BaseOfDll, DllSize, Data, Flags);
-    HeapFree(GetProcessHeap(), 0, wImageName);
-    HeapFree(GetProcessHeap(), 0, wModuleName);
+    heap_free(wImageName);
+    heap_free(wModuleName);
     return ret;
 }
 
@@ -681,8 +681,8 @@ BOOL module_remove(struct process* pcs, struct module* module)
     }
     hash_table_destroy(&module->ht_symbols);
     hash_table_destroy(&module->ht_types);
-    HeapFree(GetProcessHeap(), 0, module->sources);
-    HeapFree(GetProcessHeap(), 0, module->addr_sorttab);
+    heap_free(module->sources);
+    heap_free(module->addr_sorttab);
     pool_destroy(&module->pool);
     /* native dbghelp doesn't invoke registered callback(,CBA_SYMBOLS_UNLOADED,) here
      * so do we
@@ -692,7 +692,7 @@ BOOL module_remove(struct process* pcs, struct module* module)
         if (*p == module)
         {
             *p = module->next;
-            HeapFree(GetProcessHeap(), 0, module);
+            heap_free(module);
             return TRUE;
         }
     }
@@ -896,14 +896,14 @@ BOOL  WINAPI EnumerateLoadedModulesW64(HANDLE hProcess,
     DWORD       i, sz;
     MODULEINFO  mi;
 
-    hMods = HeapAlloc(GetProcessHeap(), 0, 256 * sizeof(hMods[0]));
+    hMods = heap_alloc(256 * sizeof(hMods[0]));
     if (!hMods) return FALSE;
 
     if (!EnumProcessModules(hProcess, hMods, 256 * sizeof(hMods[0]), &sz))
     {
         /* hProcess should also be a valid process handle !! */
         FIXME("If this happens, bump the number in mod\n");
-        HeapFree(GetProcessHeap(), 0, hMods);
+        heap_free(hMods);
         return FALSE;
     }
     sz /= sizeof(HMODULE);
@@ -916,7 +916,7 @@ BOOL  WINAPI EnumerateLoadedModulesW64(HANDLE hProcess,
         EnumLoadedModulesCallback(modW, (DWORD_PTR)mi.lpBaseOfDll, mi.SizeOfImage,
                                   UserContext);
     }
-    HeapFree(GetProcessHeap(), 0, hMods);
+    heap_free(hMods);
 
     return sz != 0 && i == sz;
 }

@@ -3369,12 +3369,12 @@ static void dwarf2_location_compute(struct process* pcs,
 #ifdef HAVE_ZLIB
 static void *zalloc(void *priv, uInt items, uInt sz)
 {
-    return HeapAlloc(GetProcessHeap(), 0, items * sz);
+    return heap_alloc(items * sz);
 }
 
 static void zfree(void *priv, void *addr)
 {
-    HeapFree(GetProcessHeap(), 0, addr);
+    heap_free(addr);
 }
 
 static inline BOOL dwarf2_init_zsection(dwarf2_section_t* section,
@@ -3403,7 +3403,7 @@ static inline BOOL dwarf2_init_zsection(dwarf2_section_t* section,
     li.u.LowPart = RtlUlongByteSwap(*(DWORD*)&sect[8]);
 #endif
 
-    addr = HeapAlloc(GetProcessHeap(), 0, li.QuadPart);
+    addr = heap_alloc(li.QuadPart);
     if (!addr)
         goto out;
 
@@ -3442,7 +3442,7 @@ out_end:
     inflateEnd(&z);
 out_free:
     if (!ret)
-        HeapFree(GetProcessHeap(), 0, addr);
+        heap_free(addr);
 out:
     image_unmap_section(ism);
     return ret;
@@ -3486,14 +3486,14 @@ static inline BOOL dwarf2_init_section(dwarf2_section_t* section, struct image_f
 static inline void dwarf2_fini_section(dwarf2_section_t* section)
 {
     if (section->compressed)
-        HeapFree(GetProcessHeap(), 0, (void*)section->address);
+        heap_free((void*)section->address);
 }
 
 static void dwarf2_module_remove(struct process* pcs, struct module_format* modfmt)
 {
     dwarf2_fini_section(&modfmt->u.dwarf2_info->debug_loc);
     dwarf2_fini_section(&modfmt->u.dwarf2_info->debug_frame);
-    HeapFree(GetProcessHeap(), 0, modfmt);
+    heap_free(modfmt);
 }
 
 BOOL dwarf2_parse(struct module* module, unsigned long load_offset,

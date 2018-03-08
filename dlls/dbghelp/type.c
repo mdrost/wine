@@ -110,7 +110,7 @@ WCHAR* symt_get_nameW(const struct symt* sym)
 
     if (!name) return NULL;
     sz = MultiByteToWideChar(CP_ACP, 0, name, -1, NULL, 0);
-    if ((nameW = HeapAlloc(GetProcessHeap(), 0, sz * sizeof(WCHAR))))
+    if ((nameW = heap_alloc(sz * sizeof(WCHAR))))
         MultiByteToWideChar(CP_ACP, 0, name, -1, nameW, sz);
     return nameW;
 }
@@ -765,7 +765,7 @@ BOOL symt_get_info(struct module* module, const struct symt* type,
             const char* name = symt_get_name(type);
             if (!name) return FALSE;
             len = MultiByteToWideChar(CP_ACP, 0, name, -1, NULL, 0);
-            X(WCHAR*) = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+            X(WCHAR*) = heap_alloc(len * sizeof(WCHAR));
             if (!X(WCHAR*)) return FALSE;
             MultiByteToWideChar(CP_ACP, 0, name, -1, X(WCHAR*), len);
         }

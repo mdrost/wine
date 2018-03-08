@@ -189,7 +189,7 @@ static int stabs_new_include(const char* file, unsigned long val)
                                        sizeof(include_defs[0]) * num_alloc_include_def);
         }
     }
-    include_defs[num_include_def].name = strcpy(HeapAlloc(GetProcessHeap(), 0, strlen(file) + 1), file);
+    include_defs[num_include_def].name = strcpy(heap_alloc(strlen(file) + 1), file);
     include_defs[num_include_def].value = val;
     include_defs[num_include_def].vector = NULL;
     include_defs[num_include_def].nrofentries = 0;
@@ -239,14 +239,14 @@ static void stabs_free_includes(void)
     stabs_reset_includes();
     for (i = 0; i < num_include_def; i++)
     {
-        HeapFree(GetProcessHeap(), 0, include_defs[i].name);
-        HeapFree(GetProcessHeap(), 0, include_defs[i].vector);
+        heap_free(include_defs[i].name);
+        heap_free(include_defs[i].vector);
     }
-    HeapFree(GetProcessHeap(), 0, include_defs);
+    heap_free(include_defs);
     include_defs = NULL;
     num_include_def = 0;
     num_alloc_include_def = 0;
-    HeapFree(GetProcessHeap(), 0, cu_vector);
+    heap_free(cu_vector);
     cu_vector = NULL;
     cu_nrofentries = 0;
 }
@@ -1158,7 +1158,7 @@ static inline void pending_make_room(struct pending_list* pending)
         else
         {
             pending->allocated *= 2;
-            pending->objs = HeapReAlloc(GetProcessHeap(), 0, pending->objs,
+            pending->objs = heap_realloc(pending->objs,
                                        pending->allocated * sizeof(pending->objs[0]));
         }
     }
@@ -1258,7 +1258,7 @@ static inline void stabbuf_append(char **buf, unsigned *buf_size, const char *st
 
     if(str_len+buf_len >= *buf_size) {
         *buf_size += buf_len + str_len;
-        *buf = HeapReAlloc(GetProcessHeap(), 0, *buf, *buf_size);
+        *buf = heap_realloc(*buf, *buf_size);
     }
 
     strcpy(*buf+buf_len, str);
@@ -1303,7 +1303,7 @@ BOOL stabs_parse(struct module* module, unsigned long load_offset,
      * where the stab is continued over multiple lines.
      */
     stabbufflen = 65536;
-    stabbuff = HeapAlloc(GetProcessHeap(), 0, stabbufflen);
+    stabbuff = heap_alloc(stabbufflen);
 
     strtabinc = 0;
     stabbuff[0] = '\0';
@@ -1564,7 +1564,7 @@ BOOL stabs_parse(struct module* module, unsigned long load_offset,
             if (*ptr == '\0') /* end of N_SO file */
             {
                 /* Nuke old path. */
-                HeapFree(GetProcessHeap(), 0, srcpath);
+                heap_free(srcpath);
                 srcpath = NULL;
                 stabs_finalize_function(module, curr_func, 0);
                 curr_func = NULL;
@@ -1584,7 +1584,7 @@ BOOL stabs_parse(struct module* module, unsigned long load_offset,
                 }
                 else
                 {
-                    srcpath = HeapAlloc(GetProcessHeap(), 0, len + 1);
+                    srcpath = heap_alloc(len + 1);
                     strcpy(srcpath, ptr);
                 }
             }
@@ -1677,11 +1677,11 @@ BOOL stabs_parse(struct module* module, unsigned long load_offset,
     module->module.SourceIndexed = TRUE;
     module->module.Publics = TRUE;
 done:
-    HeapFree(GetProcessHeap(), 0, stabbuff);
+    heap_free(stabbuff);
     stabs_free_includes();
-    HeapFree(GetProcessHeap(), 0, pending_block.objs);
-    HeapFree(GetProcessHeap(), 0, pending_func.objs);
-    HeapFree(GetProcessHeap(), 0, srcpath);
+    heap_free(pending_block.objs);
+    heap_free(pending_func.objs);
+    heap_free(srcpath);
 
     return ret;
 }

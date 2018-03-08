@@ -613,7 +613,7 @@ static void codeview_clear_type_table(void)
     for (i = 0; i < CV_MAX_MODULES; i++)
     {
         if (cv_zmodules[i].allowed)
-            HeapFree(GetProcessHeap(), 0, cv_zmodules[i].defined_types);
+            heap_free(cv_zmodules[i].defined_types);
         cv_zmodules[i].allowed = FALSE;
         cv_zmodules[i].defined_types = NULL;
         cv_zmodules[i].num_defined_types = 0;
@@ -2177,7 +2177,7 @@ static void* pdb_jg_read(const struct PDB_JG_HEADER* pdb, const WORD* block_list
     if (!size) return NULL;
 
     num_blocks = (size + pdb->block_size - 1) / pdb->block_size;
-    buffer = HeapAlloc(GetProcessHeap(), 0, num_blocks * pdb->block_size);
+    buffer = heap_alloc(num_blocks * pdb->block_size);
 
     for (i = 0; i < num_blocks; i++)
         memcpy(buffer + i * pdb->block_size,
@@ -2195,7 +2195,7 @@ static void* pdb_ds_read(const struct PDB_DS_HEADER* pdb, const DWORD* block_lis
     if (!size) return NULL;
 
     num_blocks = (size + pdb->block_size - 1) / pdb->block_size;
-    buffer = HeapAlloc(GetProcessHeap(), 0, num_blocks * pdb->block_size);
+    buffer = heap_alloc(num_blocks * pdb->block_size);
 
     for (i = 0; i < num_blocks; i++)
         memcpy(buffer + i * pdb->block_size,
@@ -2262,7 +2262,7 @@ static unsigned pdb_get_file_size(const struct pdb_file_info* pdb_file, DWORD fi
 
 static void pdb_free(void* buffer)
 {
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 }
 
 static void pdb_free_file(struct pdb_file_info* pdb_file)
@@ -2278,7 +2278,7 @@ static void pdb_free_file(struct pdb_file_info* pdb_file)
         pdb_file->u.ds.toc = NULL;
         break;
     }
-    HeapFree(GetProcessHeap(), 0, pdb_file->stream_dict);
+    heap_free(pdb_file->stream_dict);
 }
 
 static void pdb_load_stream_name_table(struct pdb_file_info* pdb_file, const char* str, unsigned cb)
@@ -2293,7 +2293,7 @@ static void pdb_load_stream_name_table(struct pdb_file_info* pdb_file, const cha
     numok = *pdw++;
     count = *pdw++;
 
-    pdb_file->stream_dict = HeapAlloc(GetProcessHeap(), 0, (numok + 1) * sizeof(struct pdb_stream_name) + cb);
+    pdb_file->stream_dict = heap_alloc((numok + 1) * sizeof(struct pdb_stream_name) + cb);
     if (!pdb_file->stream_dict) return;
     cpstr = (char*)(pdb_file->stream_dict + numok + 1);
     memcpy(cpstr, str, cb);
@@ -2361,7 +2361,7 @@ static void pdb_module_remove(struct process* pcsn, struct module_format* modfmt
         if (modfmt->u.pdb_info->pdb_files[i].hMap)
             CloseHandle(modfmt->u.pdb_info->pdb_files[i].hMap);
     }
-    HeapFree(GetProcessHeap(), 0, modfmt);
+    heap_free(modfmt);
 }
 
 static void pdb_convert_types_header(PDB_TYPES* types, const BYTE* image)
@@ -2506,7 +2506,7 @@ static void pdb_process_types(const struct msc_debug_info* msc_dbg,
          * FIXME: maybe it's present in the newest PDB_TYPES structures
          */
         total = types.last_index - types.first_index + 1;
-        offset = HeapAlloc(GetProcessHeap(), 0, sizeof(DWORD) * total);
+        offset = heap_alloc(sizeof(DWORD) * total);
         ctp.table = ptr = types_image + types.type_offset;
         ctp.num = 0;
         while (ptr < ctp.table + types.type_size && ctp.num < total)
@@ -2518,7 +2518,7 @@ static void pdb_process_types(const struct msc_debug_info* msc_dbg,
 
         /* Read type table */
         codeview_parse_type_table(&ctp);
-        HeapFree(GetProcessHeap(), 0, offset);
+        heap_free(offset);
         pdb_free(types_image);
     }
 }
@@ -2904,7 +2904,7 @@ static BOOL pdb_process_file(const struct process* pcs,
     else
     {
         msc_dbg->module->format_info[DFI_PDB] = NULL;
-        HeapFree(GetProcessHeap(), 0, modfmt);
+        heap_free(modfmt);
     }
     return ret;
 }

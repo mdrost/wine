@@ -44,13 +44,13 @@ static BOOL fetch_process_info(struct dump_context* dc)
     NTSTATUS    nts;
     void*       pcs_buffer = NULL;
 
-    if (!(pcs_buffer = HeapAlloc(GetProcessHeap(), 0, buf_size))) return FALSE;
+    if (!(pcs_buffer = heap_alloc(buf_size))) return FALSE;
     for (;;)
     {
         nts = NtQuerySystemInformation(SystemProcessInformation,
                                        pcs_buffer, buf_size, NULL);
         if (nts != STATUS_INFO_LENGTH_MISMATCH) break;
-        pcs_buffer = HeapReAlloc(GetProcessHeap(), 0, pcs_buffer, buf_size *= 2);
+        pcs_buffer = heap_realloc(pcs_buffer, buf_size *= 2);
         if (!pcs_buffer) return FALSE;
     }
 
@@ -73,7 +73,7 @@ static BOOL fetch_process_info(struct dump_context* dc)
                     dc->threads[i].prio_class = spi->ti[i].dwBasePriority; /* FIXME */
                     dc->threads[i].curr_prio  = spi->ti[i].dwCurrentPriority;
                 }
-                HeapFree(GetProcessHeap(), 0, pcs_buffer);
+                heap_free(pcs_buffer);
                 return TRUE;
             }
             if (!spi->NextEntryOffset) break;
@@ -81,7 +81,7 @@ static BOOL fetch_process_info(struct dump_context* dc)
         }
     }
 failed:
-    HeapFree(GetProcessHeap(), 0, pcs_buffer);
+    heap_free(pcs_buffer);
     return FALSE;
 }
 
@@ -204,7 +204,7 @@ static BOOL add_module(struct dump_context* dc, const WCHAR* name,
     else if(dc->num_modules >= dc->alloc_modules)
     {
         dc->alloc_modules *= 2;
-        dc->modules = HeapReAlloc(GetProcessHeap(), 0, dc->modules,
+        dc->modules = heap_realloc(dc->modules,
                                   dc->alloc_modules * sizeof(*dc->modules));
     }
     if (!dc->modules)
@@ -314,7 +314,7 @@ static void fetch_module_versioninfo(LPCWSTR filename, VS_FIXEDFILEINFO* ffi)
     memset(ffi, 0, sizeof(*ffi));
     if ((sz = GetFileVersionInfoSizeW(filename, &handle)))
     {
-        void*   info = HeapAlloc(GetProcessHeap(), 0, sz);
+        void*   info = heap_alloc(sz);
         if (info && GetFileVersionInfoW(filename, handle, sz, info))
         {
             VS_FIXEDFILEINFO*   ptr;
@@ -323,7 +323,7 @@ static void fetch_module_versioninfo(LPCWSTR filename, VS_FIXEDFILEINFO* ffi)
             if (VerQueryValueW(info, backslashW, (void*)&ptr, &len))
                 memcpy(ffi, ptr, min(len, sizeof(*ffi)));
         }
-        HeapFree(GetProcessHeap(), 0, info);
+        heap_free(info);
     }
 }
 
@@ -340,12 +340,12 @@ void minidump_add_memory_block(struct dump_context* dc, ULONG64 base, ULONG size
     if (!dc->mem)
     {
         dc->alloc_mem = 32;
-        dc->mem = HeapAlloc(GetProcessHeap(), 0, dc->alloc_mem * sizeof(*dc->mem));
+        dc->mem = heap_alloc(dc->alloc_mem * sizeof(*dc->mem));
     }
     else if (dc->num_mem >= dc->alloc_mem)
     {
         dc->alloc_mem *= 2;
-        dc->mem = HeapReAlloc(GetProcessHeap(), 0, dc->mem,
+        dc->mem = heap_realloc(dc->mem,
                               dc->alloc_mem * sizeof(*dc->mem));
     }
     if (dc->mem)
@@ -980,9 +980,9 @@ BOOL WINAPI MiniDumpWriteDump(HANDLE hProcess, DWORD pid, HANDLE hFile,
     for (i = idx_stream; i < nStreams; i++)
         writeat(&dc, mdHead.StreamDirectoryRva + i * sizeof(emptyDir), &emptyDir, sizeof(emptyDir));
 
-    HeapFree(GetProcessHeap(), 0, dc.mem);
-    HeapFree(GetProcessHeap(), 0, dc.modules);
-    HeapFree(GetProcessHeap(), 0, dc.threads);
+    heap_free(dc.mem);
+    heap_free(dc.modules);
+    heap_free(dc.threads);
 
     return TRUE;
 }

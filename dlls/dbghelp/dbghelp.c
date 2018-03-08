@@ -106,9 +106,9 @@ void* fetch_buffer(struct process* pcs, unsigned size)
     if (size > pcs->buffer_size)
     {
         if (pcs->buffer)
-            pcs->buffer = HeapReAlloc(GetProcessHeap(), 0, pcs->buffer, size);
+            pcs->buffer = heap_realloc(pcs->buffer, size);
         else
-            pcs->buffer = HeapAlloc(GetProcessHeap(), 0, size);
+            pcs->buffer = heap_alloc(size);
         pcs->buffer_size = (pcs->buffer) ? size : 0;
     }
     return pcs->buffer;
@@ -173,8 +173,8 @@ BOOL WINAPI SymSetSearchPathW(HANDLE hProcess, PCWSTR searchPath)
     if (!pcs) return FALSE;
     if (!searchPath) return FALSE;
 
-    HeapFree(GetProcessHeap(), 0, pcs->search_path);
-    pcs->search_path = lstrcpyW(HeapAlloc(GetProcessHeap(), 0, 
+    heap_free(pcs->search_path);
+    pcs->search_path = lstrcpyW(heap_alloc(
                                           (lstrlenW(searchPath) + 1) * sizeof(WCHAR)),
                                 searchPath);
     return TRUE;
@@ -191,12 +191,12 @@ BOOL WINAPI SymSetSearchPath(HANDLE hProcess, PCSTR searchPath)
     WCHAR*      sp;
 
     len = MultiByteToWideChar(CP_ACP, 0, searchPath, -1, NULL, 0);
-    if ((sp = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR))))
+    if ((sp = heap_alloc(len * sizeof(WCHAR))))
     {
         MultiByteToWideChar(CP_ACP, 0, searchPath, -1, sp, len);
 
         ret = SymSetSearchPathW(hProcess, sp);
-        HeapFree(GetProcessHeap(), 0, sp);
+        heap_free(sp);
     }
     return ret;
 }
@@ -220,7 +220,7 @@ BOOL WINAPI SymGetSearchPathW(HANDLE hProcess, PWSTR szSearchPath,
 BOOL WINAPI SymGetSearchPath(HANDLE hProcess, PSTR szSearchPath,
                              DWORD SearchPathLength)
 {
-    WCHAR*      buffer = HeapAlloc(GetProcessHeap(), 0, SearchPathLength * sizeof(WCHAR));
+    WCHAR*      buffer = heap_alloc(SearchPathLength * sizeof(WCHAR));
     BOOL        ret = FALSE;
 
     if (buffer)
@@ -229,7 +229,7 @@ BOOL WINAPI SymGetSearchPath(HANDLE hProcess, PSTR szSearchPath,
         if (ret)
             WideCharToMultiByte(CP_ACP, 0, buffer, SearchPathLength,
                                 szSearchPath, SearchPathLength, NULL, NULL);
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     }
     return ret;
 }
@@ -307,14 +307,14 @@ BOOL WINAPI SymInitializeW(HANDLE hProcess, PCWSTR UserSearchPath, BOOL fInvadeP
         return TRUE;
     }
 
-    pcs = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*pcs));
+    pcs = heap_alloc_zero(sizeof(*pcs));
     if (!pcs) return FALSE;
 
     pcs->handle = hProcess;
 
     if (UserSearchPath)
     {
-        pcs->search_path = lstrcpyW(HeapAlloc(GetProcessHeap(), 0,      
+        pcs->search_path = lstrcpyW(heap_alloc(     
                                               (lstrlenW(UserSearchPath) + 1) * sizeof(WCHAR)),
                                     UserSearchPath);
     }
@@ -325,15 +325,15 @@ BOOL WINAPI SymInitializeW(HANDLE hProcess, PCWSTR UserSearchPath, BOOL fInvadeP
         static const WCHAR      sym_path[] = {'_','N','T','_','S','Y','M','B','O','L','_','P','A','T','H',0};
         static const WCHAR      alt_sym_path[] = {'_','N','T','_','A','L','T','E','R','N','A','T','E','_','S','Y','M','B','O','L','_','P','A','T','H',0};
 
-        pcs->search_path = HeapAlloc(GetProcessHeap(), 0, (len = MAX_PATH) * sizeof(WCHAR));
+        pcs->search_path = heap_alloc((len = MAX_PATH) * sizeof(WCHAR));
         while ((size = GetCurrentDirectoryW(len, pcs->search_path)) >= len)
-            pcs->search_path = HeapReAlloc(GetProcessHeap(), 0, pcs->search_path, (len *= 2) * sizeof(WCHAR));
-        pcs->search_path = HeapReAlloc(GetProcessHeap(), 0, pcs->search_path, (size + 1) * sizeof(WCHAR));
+            pcs->search_path = heap_realloc(pcs->search_path, (len *= 2) * sizeof(WCHAR));
+        pcs->search_path = heap_realloc(pcs->search_path, (size + 1) * sizeof(WCHAR));
 
         len = GetEnvironmentVariableW(sym_path, NULL, 0);
         if (len)
         {
-            pcs->search_path = HeapReAlloc(GetProcessHeap(), 0, pcs->search_path, (size + 1 + len + 1) * sizeof(WCHAR));
+            pcs->search_path = heap_realloc(pcs->search_path, (size + 1 + len + 1) * sizeof(WCHAR));
             pcs->search_path[size] = ';';
             GetEnvironmentVariableW(sym_path, pcs->search_path + size + 1, len);
             size += 1 + len;
@@ -341,7 +341,7 @@ BOOL WINAPI SymInitializeW(HANDLE hProcess, PCWSTR UserSearchPath, BOOL fInvadeP
         len = GetEnvironmentVariableW(alt_sym_path, NULL, 0);
         if (len)
         {
-            pcs->search_path = HeapReAlloc(GetProcessHeap(), 0, pcs->search_path, (size + 1 + len + 1) * sizeof(WCHAR));
+            pcs->search_path = heap_realloc(pcs->search_path, (size + 1 + len + 1) * sizeof(WCHAR));
             pcs->search_path[size] = ';';
             GetEnvironmentVariableW(alt_sym_path, pcs->search_path + size + 1, len);
         }
@@ -384,12 +384,12 @@ BOOL WINAPI SymInitialize(HANDLE hProcess, PCSTR UserSearchPath, BOOL fInvadePro
         unsigned len;
 
         len = MultiByteToWideChar(CP_ACP, 0, UserSearchPath, -1, NULL, 0);
-        sp = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        sp = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, UserSearchPath, -1, sp, len);
     }
 
     ret = SymInitializeW(hProcess, sp, fInvadeProcess);
-    HeapFree(GetProcessHeap(), 0, sp);
+    heap_free(sp);
     return ret;
 }
 
@@ -408,9 +408,9 @@ BOOL WINAPI SymCleanup(HANDLE hProcess)
         {
             while ((*ppcs)->lmodules) module_remove(*ppcs, (*ppcs)->lmodules);
 
-            HeapFree(GetProcessHeap(), 0, (*ppcs)->search_path);
+            heap_free((*ppcs)->search_path);
             next = (*ppcs)->next;
-            HeapFree(GetProcessHeap(), 0, *ppcs);
+            heap_free(*ppcs);
             *ppcs = next;
             return TRUE;
         }

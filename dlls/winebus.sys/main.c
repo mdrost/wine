@@ -106,7 +106,7 @@ static inline WCHAR *strdupW(const WCHAR *src)
 {
     WCHAR *dst;
     if (!src) return NULL;
-    dst = HeapAlloc(GetProcessHeap(), 0, (strlenW(src) + 1)*sizeof(WCHAR));
+    dst = heap_alloc((strlenW(src) + 1)*sizeof(WCHAR));
     if (dst) strcpyW(dst, src);
     return dst;
 }
@@ -141,7 +141,7 @@ static WCHAR *get_instance_id(DEVICE_OBJECT *device)
     DWORD len = strlenW(ext->busid) + strlenW(serial) + 64;
     WCHAR *dst;
 
-    if ((dst = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR))))
+    if ((dst = heap_alloc(len * sizeof(WCHAR))))
         sprintfW(dst, formatW, ext->busid, ext->vid, ext->pid, ext->is_gamepad ? igW : imW,
                  ext->index, ext->version, serial, ext->uid);
 
@@ -155,7 +155,7 @@ static WCHAR *get_device_id(DEVICE_OBJECT *device)
     DWORD len = strlenW(ext->busid) + 19;
     WCHAR *dst;
 
-    if ((dst = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR))))
+    if ((dst = heap_alloc(len * sizeof(WCHAR))))
         sprintfW(dst, formatW, ext->busid, ext->vid, ext->pid);
 
     return dst;
@@ -172,12 +172,12 @@ static WCHAR *get_compatible_ids(DEVICE_OBJECT *device)
 
     if (!(did = get_device_id(device)))
     {
-        HeapFree(GetProcessHeap(), 0, iid);
+        heap_free(iid);
         return NULL;
     }
 
     len = strlenW(iid) + strlenW(did) + strlenW(ext->busid) + 4;
-    if ((dst = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR))))
+    if ((dst = heap_alloc(len * sizeof(WCHAR))))
     {
         ptr = dst;
         strcpyW(ptr, iid);
@@ -189,8 +189,8 @@ static WCHAR *get_compatible_ids(DEVICE_OBJECT *device)
         *ptr = 0;
     }
 
-    HeapFree(GetProcessHeap(), 0, iid);
-    HeapFree(GetProcessHeap(), 0, did);
+    heap_free(iid);
+    heap_free(did);
     return dst;
 }
 
@@ -211,7 +211,7 @@ DEVICE_OBJECT *bus_create_hid_device(DRIVER_OBJECT *driver, const WCHAR *busidW,
     TRACE("(%p, %s, %04x, %04x, %u, %u, %s, %u, %s, %p, %u)\n", driver, debugstr_w(busidW), vid, pid,
           version, uid, debugstr_w(serialW), is_gamepad, debugstr_guid(class), vtbl, platform_data_size);
 
-    if (!(pnp_dev = HeapAlloc(GetProcessHeap(), 0, sizeof(*pnp_dev))))
+    if (!(pnp_dev = heap_alloc(sizeof(*pnp_dev))))
         return NULL;
 
     sprintfW(dev_name, device_name_fmtW, busidW, pnp_dev);
@@ -221,7 +221,7 @@ DEVICE_OBJECT *bus_create_hid_device(DRIVER_OBJECT *driver, const WCHAR *busidW,
     if (status)
     {
         FIXME("failed to create device error %x\n", status);
-        HeapFree(GetProcessHeap(), 0, pnp_dev);
+        heap_free(pnp_dev);
         return NULL;
     }
 
@@ -270,7 +270,7 @@ DEVICE_OBJECT *bus_create_hid_device(DRIVER_OBJECT *driver, const WCHAR *busidW,
         else if (!SetupDiRegisterDeviceInfo(devinfo, &data, 0, NULL, NULL, NULL))
             ERR("failed to register device info: %x\n", GetLastError());
 
-        HeapFree(GetProcessHeap(), 0, instance);
+        heap_free(instance);
         SetupDiDestroyDeviceInfoList(devinfo);
     }
     else
@@ -352,12 +352,12 @@ void bus_remove_hid_device(DEVICE_OBJECT *device)
     ext->report_cs.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection(&ext->report_cs);
 
-    HeapFree(GetProcessHeap(), 0, ext->serial);
-    HeapFree(GetProcessHeap(), 0, ext->last_report);
+    heap_free(ext->serial);
+    heap_free(ext->last_report);
     IoDeleteDevice(device);
 
     /* pnp_device must be released after the device is gone */
-    HeapFree(GetProcessHeap(), 0, pnp_device);
+    heap_free(pnp_device);
 }
 
 static NTSTATUS handle_IRP_MN_QUERY_ID(DEVICE_OBJECT *device, IRP *irp)
@@ -626,8 +626,8 @@ void process_hid_report(DEVICE_OBJECT *device, BYTE *report, DWORD length)
     EnterCriticalSection(&ext->report_cs);
     if (length > ext->buffer_size)
     {
-        HeapFree(GetProcessHeap(), 0, ext->last_report);
-        ext->last_report = HeapAlloc(GetProcessHeap(), 0, length);
+        heap_free(ext->last_report);
+        ext->last_report = heap_alloc(length);
         if (!ext->last_report)
         {
             ERR_(hid_report)("Failed to alloc last report\n");

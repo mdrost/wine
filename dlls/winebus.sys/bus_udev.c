@@ -616,7 +616,7 @@ static inline WCHAR *strdupAtoW(const char *src)
     DWORD len;
     if (!src) return NULL;
     len = MultiByteToWideChar(CP_UNIXCP, 0, src, -1, NULL, 0);
-    if ((dst = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR))))
+    if ((dst = heap_alloc(len * sizeof(WCHAR))))
         MultiByteToWideChar(CP_UNIXCP, 0, src, -1, dst, len);
     return dst;
 }
@@ -732,12 +732,12 @@ static NTSTATUS hidraw_get_string(DEVICE_OBJECT *device, DWORD index, WCHAR *buf
 
     if (length <= strlenW(str))
     {
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
         return STATUS_BUFFER_TOO_SMALL;
     }
 
     strcpyW(buffer, str);
-    HeapFree(GetProcessHeap(), 0, str);
+    heap_free(str);
     return STATUS_SUCCESS;
 }
 
@@ -1218,7 +1218,7 @@ static void try_add_device(struct udev_device *dev)
         close(fd);
     }
 
-    HeapFree(GetProcessHeap(), 0, serial);
+    heap_free(serial);
 }
 
 static void try_remove_device(struct udev_device *dev)

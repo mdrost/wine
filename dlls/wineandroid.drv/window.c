@@ -110,7 +110,7 @@ static struct android_win_data *alloc_win_data( HWND hwnd )
 {
     struct android_win_data *data;
 
-    if ((data = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data))))
+    if ((data = heap_alloc_zero(sizeof(*data))))
     {
         data->hwnd = hwnd;
         data->window = create_ioctl_window( hwnd, FALSE );
@@ -129,7 +129,7 @@ static void free_win_data( struct android_win_data *data )
     win_data_context[context_idx( data->hwnd )] = NULL;
     LeaveCriticalSection( &win_data_section );
     if (data->window) release_ioctl_window( data->window );
-    HeapFree( GetProcessHeap(), 0, data );
+    heap_free( data );
 }
 
 
@@ -393,13 +393,13 @@ static void pull_events(void)
 
     for (;;)
     {
-        if (!(event = HeapAlloc( GetProcessHeap(), 0, sizeof(*event) ))) break;
+        if (!(event = heap_alloc( sizeof(*event) ))) break;
 
         res = read( event_pipe[0], &event->data, sizeof(event->data) );
         if (res != sizeof(event->data)) break;
         list_add_tail( &event_queue, &event->entry );
     }
-    HeapFree( GetProcessHeap(), 0, event );
+    heap_free( event );
 }
 
 
@@ -522,7 +522,7 @@ static int process_events( DWORD mask )
         default:
             FIXME( "got event %u\n", event->data.type );
         }
-        HeapFree( GetProcessHeap(), 0, event );
+        heap_free( event );
         count++;
         /* next may have been removed by a recursive call, so reset it to the beginning of the list */
         next = LIST_ENTRY( event_queue.next, struct java_event, entry );
@@ -793,11 +793,11 @@ static void android_surface_destroy( struct window_surface *window_surface )
 
     surface->crit.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection( &surface->crit );
-    HeapFree( GetProcessHeap(), 0, surface->region_data );
+    heap_free( surface->region_data );
     if (surface->region) DeleteObject( surface->region );
     release_ioctl_window( surface->window );
-    HeapFree( GetProcessHeap(), 0, surface->bits );
-    HeapFree( GetProcessHeap(), 0, surface );
+    heap_free( surface->bits );
+    heap_free( surface );
 }
 
 static const struct window_surface_funcs android_surface_funcs =
@@ -866,17 +866,17 @@ static void set_surface_region( struct window_surface *window_surface, HRGN win_
     if (surface->region) CombineRgn( region, region, surface->region, RGN_AND );
 
     if (!(size = GetRegionData( region, 0, NULL ))) goto done;
-    if (!(data = HeapAlloc( GetProcessHeap(), 0, size ))) goto done;
+    if (!(data = heap_alloc( size ))) goto done;
 
     if (!GetRegionData( region, size, data ))
     {
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
         data = NULL;
     }
 
 done:
     window_surface->funcs->lock( window_surface );
-    HeapFree( GetProcessHeap(), 0, surface->region_data );
+    heap_free( surface->region_data );
     surface->region_data = data;
     *window_surface->funcs->get_bounds( window_surface ) = surface->header.rect;
     window_surface->funcs->unlock( window_surface );
@@ -892,7 +892,7 @@ static struct window_surface *create_surface( HWND hwnd, const RECT *rect,
     struct android_window_surface *surface;
     int width = rect->right - rect->left, height = rect->bottom - rect->top;
 
-    surface = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
+    surface = heap_alloc_zero(
                          FIELD_OFFSET( struct android_window_surface, info.bmiColors[3] ));
     if (!surface) return NULL;
     set_color_info( &surface->info, src_alpha );
@@ -914,7 +914,7 @@ static struct window_surface *create_surface( HWND hwnd, const RECT *rect,
     set_surface_region( &surface->header, (HRGN)1 );
     reset_bounds( &surface->bounds );
 
-    if (!(surface->bits = HeapAlloc( GetProcessHeap(), 0, surface->info.bmiHeader.biSizeImage )))
+    if (!(surface->bits = heap_alloc( surface->info.bmiHeader.biSizeImage )))
         goto failed;
 
     TRACE( "created %p hwnd %p %s bits %p-%p\n", surface, hwnd, wine_dbgstr_rect(rect),

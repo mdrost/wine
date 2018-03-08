@@ -324,7 +324,7 @@ static native_handle_t *unmap_native_handle( const native_handle_t *src )
 
     if (!is_in_desktop_process())
     {
-        dest = HeapAlloc( GetProcessHeap(), 0, size );
+        dest = heap_alloc( size );
         memcpy( dest, src, size );
         /* fetch file descriptors passed from the server process */
         for (i = 0; i < dest->numFds; i++)
@@ -340,7 +340,7 @@ static void close_native_handle( native_handle_t *handle )
     int i;
 
     for (i = 0; i < handle->numFds; i++) close( handle->data[i] );
-    HeapFree( GetProcessHeap(), 0, handle );
+    heap_free( handle );
 }
 
 /* insert a buffer index at the head of the LRU list */
@@ -432,7 +432,7 @@ static void free_native_win_data( struct native_win_data *data )
 
     InterlockedCompareExchangePointer( (void **)&capture_window, 0, data->hwnd );
     release_native_window( data );
-    HeapFree( GetProcessHeap(), 0, data );
+    heap_free( data );
     data_map[idx] = NULL;
 }
 
@@ -446,7 +446,7 @@ static struct native_win_data *create_native_win_data( HWND hwnd, BOOL opengl )
         WARN( "data for %p not freed correctly\n", data->hwnd );
         free_native_win_data( data );
     }
-    if (!(data = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data) ))) return NULL;
+    if (!(data = heap_alloc_zero( sizeof(*data) ))) return NULL;
     data->hwnd = hwnd;
     data->opengl = opengl;
     if (!opengl) data->api = NATIVE_WINDOW_API_CPU;
@@ -1088,7 +1088,7 @@ static void buffer_decRef( struct android_native_base_t *base )
             close_native_handle( (native_handle_t *)buffer->buffer.handle );
         }
         if (buffer->bits) UnmapViewOfFile( buffer->bits );
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
     }
 }
 
@@ -1110,7 +1110,7 @@ static int dequeueBuffer( struct ANativeWindow *window, struct ANativeWindowBuff
     /* if we received the native handle, this is a new buffer */
     if (size > offsetof( struct ioctl_android_dequeueBuffer, native_handle ))
     {
-        struct native_buffer_wrapper *buf = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*buf) );
+        struct native_buffer_wrapper *buf = heap_alloc_zero( sizeof(*buf) );
 
         buf->buffer.common.magic   = ANDROID_NATIVE_BUFFER_MAGIC;
         buf->buffer.common.version = sizeof( buf->buffer );
@@ -1373,7 +1373,7 @@ static int perform( ANativeWindow *window, int operation, ... )
 struct ANativeWindow *create_ioctl_window( HWND hwnd, BOOL opengl )
 {
     struct ioctl_android_create_window req;
-    struct native_win_wrapper *win = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*win) );
+    struct native_win_wrapper *win = heap_alloc_zero( sizeof(*win) );
 
     if (!win) return NULL;
 
@@ -1423,7 +1423,7 @@ void release_ioctl_window( struct ANativeWindow *window )
         if (win->buffers[i]) win->buffers[i]->buffer.common.decRef( &win->buffers[i]->buffer.common );
 
     destroy_ioctl_window( win->hwnd, win->opengl );
-    HeapFree( GetProcessHeap(), 0, win );
+    heap_free( win );
 }
 
 void destroy_ioctl_window( HWND hwnd, BOOL opengl )

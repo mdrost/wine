@@ -73,14 +73,14 @@ DWORD WINAPI PSDRV_DeviceCapabilities16(LPCSTR lpszDevice,
     if (ret <= 0) return ret;
 
     pt16 = (POINT16 *)lpszOutput;
-    pt = HeapAlloc( GetProcessHeap(), 0, ret * sizeof(POINT) );
+    pt = heap_alloc( ret * sizeof(POINT) );
     ret = DeviceCapabilitiesA( lpszDevice, lpszPort, DC_PAPERSIZE, (LPSTR)pt, lpdm );
     for (i = 0; i < ret; i++)
     {
         pt16[i].x = pt[i].x;
         pt16[i].y = pt[i].y;
     }
-    HeapFree( GetProcessHeap(), 0, pt );
+    heap_free( pt );
     return ret;
 }
 

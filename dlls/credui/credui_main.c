@@ -87,11 +87,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
         {
             list_remove(&entry->entry);
 
-            HeapFree(GetProcessHeap(), 0, entry->pszTargetName);
-            HeapFree(GetProcessHeap(), 0, entry->pszUsername);
+            heap_free(entry->pszTargetName);
+            heap_free(entry->pszUsername);
             ZeroMemory(entry->pszPassword, (strlenW(entry->pszPassword) + 1) * sizeof(WCHAR));
-            HeapFree(GetProcessHeap(), 0, entry->pszPassword);
-            HeapFree(GetProcessHeap(), 0, entry);
+            heap_free(entry->pszPassword);
+            heap_free(entry);
         }
         DeleteCriticalSection(&csPendingCredentials);
         break;
@@ -439,12 +439,12 @@ static void CredDialogCommandOk(HWND hwndDlg, struct cred_dialog_params *params)
     INT len2;
 
     len = GetWindowTextLengthW(hwndUsername);
-    user = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+    user = heap_alloc((len + 1) * sizeof(WCHAR));
     GetWindowTextW(hwndUsername, user, len + 1);
 
     if (!user[0])
     {
-        HeapFree(GetProcessHeap(), 0, user);
+        heap_free(user);
         return;
     }
 
@@ -466,7 +466,7 @@ static void CredDialogCommandOk(HWND hwndDlg, struct cred_dialog_params *params)
     if (params->ulUsernameMaxChars)
         params->pszUsername[len2 + min(len, params->ulUsernameMaxChars - len2 - 1)] = '\0';
 
-    HeapFree(GetProcessHeap(), 0, user);
+    heap_free(user);
 
     GetDlgItemTextW(hwndDlg, IDC_PASSWORD, params->pszPassword,
                     params->ulPasswordMaxChars);
@@ -672,25 +672,25 @@ DWORD WINAPI CredUIPromptForCredentialsW(PCREDUI_INFOW pUIInfo,
                 if (!strcmpW(pszTargetName, entry->pszTargetName))
                 {
                     found = TRUE;
-                    HeapFree(GetProcessHeap(), 0, entry->pszUsername);
+                    heap_free(entry->pszUsername);
                     ZeroMemory(entry->pszPassword, (strlenW(entry->pszPassword) + 1) * sizeof(WCHAR));
-                    HeapFree(GetProcessHeap(), 0, entry->pszPassword);
+                    heap_free(entry->pszPassword);
                 }
 
             if (!found)
             {
-                entry = HeapAlloc(GetProcessHeap(), 0, sizeof(*entry));
+                entry = heap_alloc(sizeof(*entry));
                 len = strlenW(pszTargetName);
-                entry->pszTargetName = HeapAlloc(GetProcessHeap(), 0, (len + 1)*sizeof(WCHAR));
+                entry->pszTargetName = heap_alloc((len + 1)*sizeof(WCHAR));
                 memcpy(entry->pszTargetName, pszTargetName, (len + 1)*sizeof(WCHAR));
                 list_add_tail(&pending_credentials_list, &entry->entry);
             }
 
             len = strlenW(params.pszUsername);
-            entry->pszUsername = HeapAlloc(GetProcessHeap(), 0, (len + 1)*sizeof(WCHAR));
+            entry->pszUsername = heap_alloc((len + 1)*sizeof(WCHAR));
             memcpy(entry->pszUsername, params.pszUsername, (len + 1)*sizeof(WCHAR));
             len = strlenW(params.pszPassword);
-            entry->pszPassword = HeapAlloc(GetProcessHeap(), 0, (len + 1)*sizeof(WCHAR));
+            entry->pszPassword = heap_alloc((len + 1)*sizeof(WCHAR));
             memcpy(entry->pszPassword, params.pszPassword, (len + 1)*sizeof(WCHAR));
             entry->generic = (dwFlags & CREDUI_FLAGS_GENERIC_CREDENTIALS) != 0;
 
@@ -731,11 +731,11 @@ DWORD WINAPI CredUIConfirmCredentialsW(PCWSTR pszTargetName, BOOL bConfirm)
 
             list_remove(&entry->entry);
 
-            HeapFree(GetProcessHeap(), 0, entry->pszTargetName);
-            HeapFree(GetProcessHeap(), 0, entry->pszUsername);
+            heap_free(entry->pszTargetName);
+            heap_free(entry->pszUsername);
             ZeroMemory(entry->pszPassword, (strlenW(entry->pszPassword) + 1) * sizeof(WCHAR));
-            HeapFree(GetProcessHeap(), 0, entry->pszPassword);
-            HeapFree(GetProcessHeap(), 0, entry);
+            heap_free(entry->pszPassword);
+            heap_free(entry);
 
             break;
         }
@@ -930,7 +930,7 @@ ULONG SEC_ENTRY SspiPromptForCredentialsW( PCWSTR target, void *info,
         size += (len_username + 1) * sizeof(WCHAR);
         size += (len_domain + 1) * sizeof(WCHAR);
         size += (len_password + 1) * sizeof(WCHAR);
-        if (!(id = HeapAlloc( GetProcessHeap(), 0, size ))) return ERROR_OUTOFMEMORY;
+        if (!(id = heap_alloc( size ))) return ERROR_OUTOFMEMORY;
         ptr = (WCHAR *)(id + 1);
 
         memcpy( ptr, user, (len_username + 1) * sizeof(WCHAR) );

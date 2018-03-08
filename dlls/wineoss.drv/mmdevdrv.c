@@ -247,7 +247,7 @@ BOOL WINAPI DllMain(HINSTANCE dll, DWORD reason, void *reserved)
             DeleteCriticalSection(&g_sessions_lock);
 
             LIST_FOR_EACH_ENTRY_SAFE(iter, iter2, &g_devices, OSSDevice, entry){
-                HeapFree(GetProcessHeap(), 0, iter);
+                heap_free(iter);
             }
         }
         break;
@@ -489,8 +489,8 @@ HRESULT WINAPI AUDDRV_GetEndpointIDs(EDataFlow flow, WCHAR ***ids, GUID **guids,
         return AUDCLNT_E_SERVICE_NOT_RUNNING;
     }
 
-    *ids = HeapAlloc(GetProcessHeap(), 0, sysinfo.numaudios * sizeof(WCHAR *));
-    *guids = HeapAlloc(GetProcessHeap(), 0, sysinfo.numaudios * sizeof(GUID));
+    *ids = heap_alloc(sysinfo.numaudios * sizeof(WCHAR *));
+    *guids = heap_alloc(sysinfo.numaudios * sizeof(GUID));
 
     *num = 0;
     for(i = 0; i < sysinfo.numaudios; ++i){
@@ -532,7 +532,7 @@ HRESULT WINAPI AUDDRV_GetEndpointIDs(EDataFlow flow, WCHAR ***ids, GUID **guids,
             size_t len, prefix_len;
             const WCHAR *prefix;
 
-            dev_item = HeapAlloc(GetProcessHeap(), 0, sizeof(*dev_item));
+            dev_item = heap_alloc(sizeof(*dev_item));
 
             dev_item->flow = flow;
             get_device_guid(flow, devnode, &dev_item->guid);
@@ -554,10 +554,10 @@ HRESULT WINAPI AUDDRV_GetEndpointIDs(EDataFlow flow, WCHAR ***ids, GUID **guids,
                     len * sizeof(WCHAR));
             if(!(*ids)[*num]){
                 for(i = 0; i < *num; ++i)
-                    HeapFree(GetProcessHeap(), 0, (*ids)[i]);
-                HeapFree(GetProcessHeap(), 0, *ids);
-                HeapFree(GetProcessHeap(), 0, *guids);
-                HeapFree(GetProcessHeap(), 0, dev_item);
+                    heap_free((*ids)[i]);
+                heap_free(*ids);
+                heap_free(*guids);
+                heap_free(dev_item);
                 close(mixer_fd);
                 return E_OUTOFMEMORY;
             }
@@ -602,14 +602,14 @@ HRESULT WINAPI AUDDRV_GetAudioEndpoint(GUID *guid, IMMDevice *dev,
         return AUDCLNT_E_DEVICE_INVALIDATED;
     }
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ACImpl));
+    This = heap_alloc_zero(sizeof(ACImpl));
     if(!This)
         return E_OUTOFMEMORY;
 
     hr = CoCreateFreeThreadedMarshaler((IUnknown *)&This->IAudioClient_iface,
         (IUnknown **)&This->pUnkFTMarshal);
     if (FAILED(hr)) {
-         HeapFree(GetProcessHeap(), 0, This);
+         heap_free(This);
          return hr;
     }
 
@@ -618,13 +618,13 @@ HRESULT WINAPI AUDDRV_GetAudioEndpoint(GUID *guid, IMMDevice *dev,
     else if(oss_dev->flow == eCapture)
         This->fd = open(oss_dev->devnode, O_RDONLY | O_NONBLOCK, 0);
     else{
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return E_INVALIDARG;
     }
     if(This->fd < 0){
         WARN("Unable to open device %s: %d (%s)\n", oss_dev->devnode, errno,
                 strerror(errno));
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return AUDCLNT_E_DEVICE_INVALIDATED;
     }
 
@@ -635,7 +635,7 @@ HRESULT WINAPI AUDDRV_GetAudioEndpoint(GUID *guid, IMMDevice *dev,
         WARN("Unable to get audio info for device %s: %d (%s)\n", oss_dev->devnode,
                 errno, strerror(errno));
         close(This->fd);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return E_FAIL;
     }
 
@@ -734,11 +734,11 @@ static ULONG WINAPI AudioClient_Release(IAudioClient *iface)
             list_remove(&This->entry);
             LeaveCriticalSection(&g_sessions_lock);
         }
-        HeapFree(GetProcessHeap(), 0, This->vols);
-        HeapFree(GetProcessHeap(), 0, This->local_buffer);
-        HeapFree(GetProcessHeap(), 0, This->tmp_buffer);
+        heap_free(This->vols);
+        heap_free(This->local_buffer);
+        heap_free(This->tmp_buffer);
         CoTaskMemFree(This->fmt);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -974,7 +974,7 @@ static AudioSession *create_session(const GUID *guid, IMMDevice *device,
 {
     AudioSession *ret;
 
-    ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(AudioSession));
+    ret = heap_alloc_zero(sizeof(AudioSession));
     if(!ret)
         return NULL;
 
@@ -1118,7 +1118,7 @@ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
         return E_OUTOFMEMORY;
     }
 
-    This->vols = HeapAlloc(GetProcessHeap(), 0, fmt->nChannels * sizeof(float));
+    This->vols = heap_alloc(fmt->nChannels * sizeof(float));
     if(!This->vols){
         CoTaskMemFree(This->fmt);
         This->fmt = NULL;
@@ -1139,7 +1139,7 @@ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
             &This->session);
     if(FAILED(hr)){
         LeaveCriticalSection(&g_sessions_lock);
-        HeapFree(GetProcessHeap(), 0, This->vols);
+        heap_free(This->vols);
         This->vols = NULL;
         CoTaskMemFree(This->fmt);
         This->fmt = NULL;
@@ -1852,7 +1852,7 @@ static HRESULT WINAPI AudioRenderClient_GetBuffer(IAudioRenderClient *iface,
         (This->lcl_offs_frames + This->held_frames) % This->bufsize_frames;
     if(write_pos + frames > This->bufsize_frames){
         if(This->tmp_buffer_frames < frames){
-            HeapFree(GetProcessHeap(), 0, This->tmp_buffer);
+            heap_free(This->tmp_buffer);
             This->tmp_buffer = HeapAlloc(GetProcessHeap(), 0,
                     frames * This->fmt->nBlockAlign);
             if(!This->tmp_buffer){
@@ -2016,7 +2016,7 @@ static HRESULT WINAPI AudioCaptureClient_GetBuffer(IAudioCaptureClient *iface,
     if(This->lcl_offs_frames + *frames > This->bufsize_frames){
         UINT32 chunk_bytes, offs_bytes, frames_bytes;
         if(This->tmp_buffer_frames < *frames){
-            HeapFree(GetProcessHeap(), 0, This->tmp_buffer);
+            heap_free(This->tmp_buffer);
             This->tmp_buffer = HeapAlloc(GetProcessHeap(), 0,
                     *frames * This->fmt->nBlockAlign);
             if(!This->tmp_buffer){
@@ -2350,7 +2350,7 @@ static ULONG WINAPI AudioSessionControl_Release(IAudioSessionControl2 *iface)
             LeaveCriticalSection(&This->client->lock);
             AudioClient_Release(&This->client->IAudioClient_iface);
         }
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -3020,7 +3020,7 @@ static ULONG WINAPI AudioSessionManager_Release(IAudioSessionManager2 *iface)
     ref = InterlockedDecrement(&This->ref);
     TRACE("(%p) Refcount now %u\n", This, ref);
     if(!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return ref;
 }
 
@@ -3139,7 +3139,7 @@ HRESULT WINAPI AUDDRV_GetAudioSessionManager(IMMDevice *device,
 {
     SessionMgr *This;
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(SessionMgr));
+    This = heap_alloc_zero(sizeof(SessionMgr));
     if(!This)
         return E_OUTOFMEMORY;
 

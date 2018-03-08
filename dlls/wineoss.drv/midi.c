@@ -1115,13 +1115,13 @@ static DWORD modOpen(WORD wDevID, LPMIDIOPENDESC lpDesc, DWORD dwFlags)
 	    MidiOutDev[wDevID].lpExtra = extra;
 	    if (midiOpenSeq() < 0) {
 		MidiOutDev[wDevID].lpExtra = 0;
-		HeapFree(GetProcessHeap(), 0, extra);
+		heap_free(extra);
 		return MMSYSERR_ERROR;
 	    }
 	    if (modFMLoad(wDevID) < 0) {
 		midiCloseSeq();
 		MidiOutDev[wDevID].lpExtra = 0;
-		HeapFree(GetProcessHeap(), 0, extra);
+		heap_free(extra);
 		return MMSYSERR_ERROR;
 	    }
 	    modFMReset(wDevID);
@@ -1184,7 +1184,7 @@ static DWORD modClose(WORD wDevID)
 	return MMSYSERR_NOTENABLED;
     }
 
-    HeapFree(GetProcessHeap(), 0, MidiOutDev[wDevID].lpExtra);
+    heap_free(MidiOutDev[wDevID].lpExtra);
     MidiOutDev[wDevID].lpExtra = 0;
 
     MidiOutDev[wDevID].bufsize = 0;

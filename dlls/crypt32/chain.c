@@ -2021,8 +2021,7 @@ static PCCERT_CONTEXT CRYPT_FindIssuer(const CertificateChainEngine *engine, con
     if(!res)
         return NULL;
 
-    urls = HeapAlloc(GetProcessHeap(), 0, size);
-    if(!urls)
+    if(!(urls = heap_alloc(size)))
         return NULL;
 
     res = CryptGetObjectUrl(URL_OID_CERTIFICATE_ISSUER, (void*)cert, 0, urls, &size, NULL, NULL, NULL);
@@ -2059,7 +2058,7 @@ static PCCERT_CONTEXT CRYPT_FindIssuer(const CertificateChainEngine *engine, con
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, urls);
+    heap_free(urls);
     return issuer;
 }
 

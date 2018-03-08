@@ -827,7 +827,7 @@ static BOOL CRYPT_AcquirePrivateKeyFromProvInfo(PCCERT_CONTEXT pCert,
          CERT_KEY_PROV_INFO_PROP_ID, 0, &size);
         if (ret)
         {
-            info = HeapAlloc(GetProcessHeap(), 0, size);
+            info = heap_alloc(size);
             if (info)
             {
                 ret = CertGetCertificateContextProperty(pCert,
@@ -863,7 +863,7 @@ static BOOL CRYPT_AcquirePrivateKeyFromProvInfo(PCCERT_CONTEXT pCert,
             SetLastError(CRYPT_E_NO_KEY_PROPERTY);
     }
     if (allocated)
-        HeapFree(GetProcessHeap(), 0, info);
+        heap_free(info);
     return ret;
 }
 
@@ -887,7 +887,7 @@ BOOL WINAPI CryptAcquireCertificatePrivateKey(PCCERT_CONTEXT pCert,
          CERT_KEY_PROV_INFO_PROP_ID, 0, &size);
         if (ret)
         {
-            info = HeapAlloc(GetProcessHeap(), 0, size);
+            info = heap_alloc(size);
             ret = CertGetCertificateContextProperty(pCert,
              CERT_KEY_PROV_INFO_PROP_ID, info, &size);
             if (ret)
@@ -937,7 +937,7 @@ BOOL WINAPI CryptAcquireCertificatePrivateKey(PCCERT_CONTEXT pCert,
             }
         }
     }
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
     return ret;
 }
 

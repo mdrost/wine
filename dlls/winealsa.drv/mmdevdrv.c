@@ -385,7 +385,7 @@ static WCHAR *construct_device_id(EDataFlow flow, const WCHAR *chunk1, const cha
         len_wchars += MultiByteToWideChar(CP_UNIXCP, 0, chunk2, -1, NULL, 0) - 1;
     len_wchars += 1; /* NULL byte */
 
-    ret = HeapAlloc(GetProcessHeap(), 0, len_wchars * sizeof(WCHAR));
+    ret = heap_alloc(len_wchars * sizeof(WCHAR));
 
     memcpy(ret, prefix, prefix_len * sizeof(WCHAR));
     copied += prefix_len;
@@ -414,7 +414,7 @@ static HRESULT alsa_get_card_devices(EDataFlow flow, snd_pcm_stream_t stream,
     int err, device;
     snd_pcm_info_t *info;
 
-    info = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, snd_pcm_info_sizeof());
+    info = heap_alloc_zero(snd_pcm_info_sizeof());
     if(!info)
         return E_OUTOFMEMORY;
 
@@ -444,11 +444,11 @@ static HRESULT alsa_get_card_devices(EDataFlow flow, snd_pcm_stream_t stream,
             continue;
 
         if(*num){
-            *ids = HeapReAlloc(GetProcessHeap(), 0, *ids, sizeof(WCHAR *) * (*num + 1));
-            *guids = HeapReAlloc(GetProcessHeap(), 0, *guids, sizeof(GUID) * (*num + 1));
+            *ids = heap_realloc(*ids, sizeof(WCHAR *) * (*num + 1));
+            *guids = heap_realloc(*guids, sizeof(GUID) * (*num + 1));
         }else{
-            *ids = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR *));
-            *guids = HeapAlloc(GetProcessHeap(), 0, sizeof(GUID));
+            *ids = heap_alloc(sizeof(WCHAR *));
+            *guids = heap_alloc(sizeof(GUID));
         }
 
         devname = snd_pcm_info_get_name(info);
@@ -464,7 +464,7 @@ static HRESULT alsa_get_card_devices(EDataFlow flow, snd_pcm_stream_t stream,
         ++(*num);
     }
 
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
 
     if(err != 0)
         WARN("Got a failure during device enumeration on card %d: %d (%s)\n",
@@ -502,11 +502,11 @@ static void get_reg_devices(EDataFlow flow, snd_pcm_stream_t stream, WCHAR ***id
 
                 if(alsa_try_open(devname, stream)){
                     if(*num){
-                        *ids = HeapReAlloc(GetProcessHeap(), 0, *ids, sizeof(WCHAR *) * (*num + 1));
-                        *guids = HeapReAlloc(GetProcessHeap(), 0, *guids, sizeof(GUID) * (*num + 1));
+                        *ids = heap_realloc(*ids, sizeof(WCHAR *) * (*num + 1));
+                        *guids = heap_realloc(*guids, sizeof(GUID) * (*num + 1));
                     }else{
-                        *ids = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR *));
-                        *guids = HeapAlloc(GetProcessHeap(), 0, sizeof(GUID));
+                        *ids = heap_alloc(sizeof(WCHAR *));
+                        *guids = heap_alloc(sizeof(GUID));
                     }
                     (*ids)[*num] = construct_device_id(flow, p, NULL);
                     get_device_guid(flow, devname, &(*guids)[*num]);
@@ -532,9 +532,9 @@ static HRESULT alsa_enum_devices(EDataFlow flow, WCHAR ***ids, GUID **guids,
     *num = 0;
 
     if(alsa_try_open(defname, stream)){
-        *ids = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR *));
+        *ids = heap_alloc(sizeof(WCHAR *));
         (*ids)[0] = construct_device_id(flow, defaultW, NULL);
-        *guids = HeapAlloc(GetProcessHeap(), 0, sizeof(GUID));
+        *guids = heap_alloc(sizeof(GUID));
         get_device_guid(flow, defname, &(*guids)[0]);
         ++*num;
     }
@@ -565,7 +565,7 @@ static HRESULT alsa_enum_devices(EDataFlow flow, WCHAR ***ids, GUID **guids,
             alsa_get_card_devices(flow, stream, ids, guids, num, ctl, card, nameW);
         }else{
             len = MultiByteToWideChar(CP_UNIXCP, 0, cardname, -1, NULL, 0);
-            cardnameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+            cardnameW = heap_alloc(len * sizeof(WCHAR));
 
             if(!cardnameW){
                 free(cardname);
@@ -576,7 +576,7 @@ static HRESULT alsa_enum_devices(EDataFlow flow, WCHAR ***ids, GUID **guids,
 
             alsa_get_card_devices(flow, stream, ids, guids, num, ctl, card, cardnameW);
 
-            HeapFree(GetProcessHeap(), 0, cardnameW);
+            heap_free(cardnameW);
             free(cardname);
         }
 
@@ -604,18 +604,18 @@ HRESULT WINAPI AUDDRV_GetEndpointIDs(EDataFlow flow, WCHAR ***ids, GUID **guids,
     if(FAILED(hr)){
         UINT i;
         for(i = 0; i < *num; ++i)
-            HeapFree(GetProcessHeap(), 0, (*ids)[i]);
-        HeapFree(GetProcessHeap(), 0, *ids);
-        HeapFree(GetProcessHeap(), 0, *guids);
+            heap_free((*ids)[i]);
+        heap_free(*ids);
+        heap_free(*guids);
         return E_OUTOFMEMORY;
     }
 
     TRACE("Enumerated %u devices\n", *num);
 
     if(*num == 0){
-        HeapFree(GetProcessHeap(), 0, *ids);
+        heap_free(*ids);
         *ids = NULL;
-        HeapFree(GetProcessHeap(), 0, *guids);
+        heap_free(*guids);
         *guids = NULL;
     }
 
@@ -784,7 +784,7 @@ HRESULT WINAPI AUDDRV_GetAudioEndpoint(GUID *guid, IMMDevice *dev, IAudioClient 
     if(!get_alsa_name_by_guid(guid, alsa_name, sizeof(alsa_name), &dataflow))
         return AUDCLNT_E_DEVICE_INVALIDATED;
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ACImpl));
+    This = heap_alloc_zero(sizeof(ACImpl));
     if(!This)
         return E_OUTOFMEMORY;
 
@@ -800,14 +800,14 @@ HRESULT WINAPI AUDDRV_GetAudioEndpoint(GUID *guid, IMMDevice *dev, IAudioClient 
     else if(dataflow == eCapture)
         stream = SND_PCM_STREAM_CAPTURE;
     else{
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return E_UNEXPECTED;
     }
 
     hr = CoCreateFreeThreadedMarshaler((IUnknown *)&This->IAudioClient_iface,
         (IUnknown **)&This->pUnkFTMarshal);
     if (FAILED(hr)) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return hr;
     }
 
@@ -828,7 +828,7 @@ HRESULT WINAPI AUDDRV_GetAudioEndpoint(GUID *guid, IMMDevice *dev, IAudioClient 
         err = snd_pcm_open(&This->pcm_handle, alsa_name, stream, SND_PCM_NONBLOCK);
     }
     if(err < 0){
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         WARN("Unable to open PCM \"%s\": %d (%s)\n", alsa_name, err, snd_strerror(err));
         switch(err){
         case -EBUSY:
@@ -842,7 +842,7 @@ HRESULT WINAPI AUDDRV_GetAudioEndpoint(GUID *guid, IMMDevice *dev, IAudioClient 
             snd_pcm_hw_params_sizeof());
     if(!This->hw_params){
         snd_pcm_close(This->pcm_handle);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return E_OUTOFMEMORY;
     }
 
@@ -920,14 +920,14 @@ static ULONG WINAPI AudioClient_Release(IAudioClient *iface)
             list_remove(&This->entry);
             LeaveCriticalSection(&g_sessions_lock);
         }
-        HeapFree(GetProcessHeap(), 0, This->vols);
-        HeapFree(GetProcessHeap(), 0, This->local_buffer);
-        HeapFree(GetProcessHeap(), 0, This->remapping_buf);
-        HeapFree(GetProcessHeap(), 0, This->silence_buf);
-        HeapFree(GetProcessHeap(), 0, This->tmp_buffer);
-        HeapFree(GetProcessHeap(), 0, This->hw_params);
+        heap_free(This->vols);
+        heap_free(This->local_buffer);
+        heap_free(This->remapping_buf);
+        heap_free(This->silence_buf);
+        heap_free(This->tmp_buffer);
+        heap_free(This->hw_params);
         CoTaskMemFree(This->fmt);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -1052,7 +1052,7 @@ static AudioSession *create_session(const GUID *guid, IMMDevice *device,
 {
     AudioSession *ret;
 
-    ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(AudioSession));
+    ret = heap_alloc_zero(sizeof(AudioSession));
     if(!ret)
         return NULL;
 
@@ -1398,7 +1398,7 @@ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
         goto exit;
     }
 
-    sw_params = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, snd_pcm_sw_params_sizeof());
+    sw_params = heap_alloc_zero(snd_pcm_sw_params_sizeof());
     if(!sw_params){
         hr = E_OUTOFMEMORY;
         goto exit;
@@ -1479,7 +1479,7 @@ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
     }
     silence_buffer(This, This->silence_buf, This->alsa_period_frames);
 
-    This->vols = HeapAlloc(GetProcessHeap(), 0, fmt->nChannels * sizeof(float));
+    This->vols = heap_alloc(fmt->nChannels * sizeof(float));
     if(!This->vols){
         hr = E_OUTOFMEMORY;
         goto exit;
@@ -1512,13 +1512,13 @@ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
     TRACE("MMDevice buffer: %u frames\n", This->bufsize_frames);
 
 exit:
-    HeapFree(GetProcessHeap(), 0, sw_params);
+    heap_free(sw_params);
     if(FAILED(hr)){
-        HeapFree(GetProcessHeap(), 0, This->local_buffer);
+        heap_free(This->local_buffer);
         This->local_buffer = NULL;
         CoTaskMemFree(This->fmt);
         This->fmt = NULL;
-        HeapFree(GetProcessHeap(), 0, This->vols);
+        heap_free(This->vols);
         This->vols = NULL;
     }
 
@@ -1742,7 +1742,7 @@ static HRESULT WINAPI AudioClient_IsFormatSupported(IAudioClient *iface,
 
 exit:
     LeaveCriticalSection(&This->lock);
-    HeapFree(GetProcessHeap(), 0, formats);
+    heap_free(formats);
 
     if(hr == S_FALSE && !out)
         hr = AUDCLNT_E_UNSUPPORTED_FORMAT;
@@ -1782,7 +1782,7 @@ static HRESULT WINAPI AudioClient_GetMixFormat(IAudioClient *iface,
     if(!fmt)
         return E_OUTOFMEMORY;
 
-    formats = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, snd_pcm_format_mask_sizeof());
+    formats = heap_alloc_zero(snd_pcm_format_mask_sizeof());
     if(!formats){
         CoTaskMemFree(fmt);
         return E_OUTOFMEMORY;
@@ -1872,7 +1872,7 @@ exit:
     LeaveCriticalSection(&This->lock);
     if(FAILED(hr))
         CoTaskMemFree(fmt);
-    HeapFree(GetProcessHeap(), 0, formats);
+    heap_free(formats);
 
     return hr;
 }
@@ -1909,7 +1909,7 @@ static BYTE *remap_channels(ACImpl *This, BYTE *buf, snd_pcm_uframes_t frames)
                 bytes_per_sample * This->alsa_channels * frames);
         This->remapping_buf_frames = frames;
     }else if(This->remapping_buf_frames < frames){
-        This->remapping_buf = HeapReAlloc(GetProcessHeap(), 0, This->remapping_buf,
+        This->remapping_buf = heap_realloc(This->remapping_buf,
                 bytes_per_sample * This->alsa_channels * frames);
         This->remapping_buf_frames = frames;
     }
@@ -2604,7 +2604,7 @@ static HRESULT WINAPI AudioRenderClient_GetBuffer(IAudioRenderClient *iface,
     write_pos = This->wri_offs_frames;
     if(write_pos + frames > This->bufsize_frames){
         if(This->tmp_buffer_frames < frames){
-            HeapFree(GetProcessHeap(), 0, This->tmp_buffer);
+            heap_free(This->tmp_buffer);
             This->tmp_buffer = HeapAlloc(GetProcessHeap(), 0,
                     frames * This->fmt->nBlockAlign);
             if(!This->tmp_buffer){
@@ -2767,7 +2767,7 @@ static HRESULT WINAPI AudioCaptureClient_GetBuffer(IAudioCaptureClient *iface,
     if(This->lcl_offs_frames + *frames > This->bufsize_frames){
         UINT32 chunk_bytes, offs_bytes, frames_bytes;
         if(This->tmp_buffer_frames < *frames){
-            HeapFree(GetProcessHeap(), 0, This->tmp_buffer);
+            heap_free(This->tmp_buffer);
             This->tmp_buffer = HeapAlloc(GetProcessHeap(), 0,
                     *frames * This->fmt->nBlockAlign);
             if(!This->tmp_buffer){
@@ -3111,7 +3111,7 @@ static ULONG WINAPI AudioSessionControl_Release(IAudioSessionControl2 *iface)
             LeaveCriticalSection(&This->client->lock);
             AudioClient_Release(&This->client->IAudioClient_iface);
         }
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -3780,7 +3780,7 @@ static ULONG WINAPI AudioSessionManager_Release(IAudioSessionManager2 *iface)
     ref = InterlockedDecrement(&This->ref);
     TRACE("(%p) Refcount now %u\n", This, ref);
     if(!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return ref;
 }
 
@@ -3899,7 +3899,7 @@ HRESULT WINAPI AUDDRV_GetAudioSessionManager(IMMDevice *device,
 {
     SessionMgr *This;
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(SessionMgr));
+    This = heap_alloc_zero(sizeof(SessionMgr));
     if(!This)
         return E_OUTOFMEMORY;
 
@@ -3924,7 +3924,7 @@ static unsigned int alsa_probe_num_speakers(char *name) {
         return 0;
     }
 
-    params = HeapAlloc(GetProcessHeap(), 0, snd_pcm_hw_params_sizeof());
+    params = heap_alloc(snd_pcm_hw_params_sizeof());
     if (!params) {
         WARN("Out of memory.\n");
         snd_pcm_close(handle);
@@ -3944,7 +3944,7 @@ static unsigned int alsa_probe_num_speakers(char *name) {
     }
 
 exit:
-    HeapFree(GetProcessHeap(), 0, params);
+    heap_free(params);
     snd_pcm_close(handle);
 
     return max_channels;

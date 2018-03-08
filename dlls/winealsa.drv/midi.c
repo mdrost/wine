@@ -304,13 +304,13 @@ static DWORD WINAPI midRecThread(LPVOID arg)
 	TRACE("Thread loop\n");
         EnterCriticalSection(&midiSeqLock);
 	npfd = snd_seq_poll_descriptors_count(midiSeq, POLLIN);
-	pfd = HeapAlloc(GetProcessHeap(), 0, npfd * sizeof(struct pollfd));
+	pfd = heap_alloc(npfd * sizeof(struct pollfd));
 	snd_seq_poll_descriptors(midiSeq, pfd, npfd, POLLIN);
         LeaveCriticalSection(&midiSeqLock);
 
 	/* Check if an event is present */
 	if (poll(pfd, npfd, 250) <= 0) {
-	    HeapFree(GetProcessHeap(), 0, pfd);
+	    heap_free(pfd);
 	    continue;
 	}
 
@@ -439,7 +439,7 @@ static DWORD WINAPI midRecThread(LPVOID arg)
             LeaveCriticalSection(&midiSeqLock);
 	} while(ret > 0);
 	
-	HeapFree(GetProcessHeap(), 0, pfd);
+	heap_free(pfd);
     }
     return 0;
 }
@@ -832,7 +832,7 @@ static DWORD modClose(WORD wDevID)
 	return MMSYSERR_NOTENABLED;
     }
 
-    HeapFree(GetProcessHeap(), 0, MidiOutDev[wDevID].lpExtra);
+    heap_free(MidiOutDev[wDevID].lpExtra);
     MidiOutDev[wDevID].lpExtra = 0;
  
     MidiOutDev[wDevID].bufsize = 0;
@@ -1005,7 +1005,7 @@ static DWORD modLongData(WORD wDevID, LPMIDIHDR lpMidiHdr, DWORD dwSize)
      */
     if (lpData[0] != 0xF0 || lpData[lpMidiHdr->dwBufferLength - 1] != 0xF7) {
 	WARN("Alleged system exclusive buffer is not correct\n\tPlease report with MIDI file\n");
-	lpNewData = HeapAlloc(GetProcessHeap(), 0, lpMidiHdr->dwBufferLength + 2);
+	lpNewData = heap_alloc(lpMidiHdr->dwBufferLength + 2);
     }
 
     TRACE("dwBufferLength=%u !\n", lpMidiHdr->dwBufferLength);
@@ -1016,7 +1016,7 @@ static DWORD modLongData(WORD wDevID, LPMIDIHDR lpMidiHdr, DWORD dwSize)
     switch (MidiOutDev[wDevID].caps.wTechnology) {
     case MOD_FMSYNTH:
         /* FIXME: I don't think there is much to do here */
-        HeapFree(GetProcessHeap(), 0, lpNewData);
+        heap_free(lpNewData);
         break;
     case MOD_MIDIPORT:
         if (lpData[0] != 0xF0) {
@@ -1043,12 +1043,12 @@ static DWORD modLongData(WORD wDevID, LPMIDIHDR lpMidiHdr, DWORD dwSize)
         EnterCriticalSection(&midiSeqLock);
 	snd_seq_event_output_direct(midiSeq, &event);
         LeaveCriticalSection(&midiSeqLock);
-        HeapFree(GetProcessHeap(), 0, lpNewData);
+        heap_free(lpNewData);
         break;
     default:
 	WARN("Technology not supported (yet) %d !\n",
 	     MidiOutDev[wDevID].caps.wTechnology);
-	HeapFree(GetProcessHeap(), 0, lpNewData);
+	heap_free(lpNewData);
 	return MMSYSERR_NOTENABLED;
     }
 
@@ -1289,8 +1289,8 @@ static BOOL ALSA_MidiInit(void)
 #if 0 /* Debug purpose */
     snd_lib_error_set_handler(error_handler);
 #endif
-    cinfo = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, snd_seq_client_info_sizeof() );
-    pinfo = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, snd_seq_port_info_sizeof() );
+    cinfo = heap_alloc_zero( snd_seq_client_info_sizeof() );
+    pinfo = heap_alloc_zero( snd_seq_port_info_sizeof() );
 
     /* First, search for all internal midi devices */
     snd_seq_client_info_set_client(cinfo, -1);
@@ -1320,8 +1320,8 @@ static BOOL ALSA_MidiInit(void)
 
     /* close file and exit */
     midiCloseSeq();
-    HeapFree( GetProcessHeap(), 0, cinfo );
-    HeapFree( GetProcessHeap(), 0, pinfo );
+    heap_free( cinfo );
+    heap_free( pinfo );
 
     TRACE("End\n");
     return TRUE;

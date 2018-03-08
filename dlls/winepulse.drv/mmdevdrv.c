@@ -786,8 +786,8 @@ static void pulse_rd_loop(ACImpl *This, size_t bytes)
 
                 if (copy < src_len) {
                     if (src_len > This->peek_buffer_len) {
-                        HeapFree(GetProcessHeap(), 0, This->peek_buffer);
-                        This->peek_buffer = HeapAlloc(GetProcessHeap(), 0, src_len);
+                        heap_free(This->peek_buffer);
+                        This->peek_buffer = heap_alloc(src_len);
                         This->peek_buffer_len = src_len;
                     }
 
@@ -915,17 +915,17 @@ HRESULT WINAPI AUDDRV_GetEndpointIDs(EDataFlow flow, const WCHAR ***ids, GUID **
     *num = 1;
     *def_index = 0;
 
-    *ids = HeapAlloc(GetProcessHeap(), 0, sizeof(**ids));
+    *ids = heap_alloc(sizeof(**ids));
     *keys = NULL;
     if (!*ids)
         return E_OUTOFMEMORY;
 
-    (*ids)[0] = id = HeapAlloc(GetProcessHeap(), 0, sizeof(defaultW));
-    *keys = HeapAlloc(GetProcessHeap(), 0, sizeof(**keys));
+    (*ids)[0] = id = heap_alloc(sizeof(defaultW));
+    *keys = heap_alloc(sizeof(**keys));
     if (!*keys || !id) {
-        HeapFree(GetProcessHeap(), 0, id);
-        HeapFree(GetProcessHeap(), 0, *keys);
-        HeapFree(GetProcessHeap(), 0, *ids);
+        heap_free(id);
+        heap_free(*keys);
+        heap_free(*ids);
         *ids = NULL;
         *keys = NULL;
         return E_OUTOFMEMORY;
@@ -966,7 +966,7 @@ HRESULT WINAPI AUDDRV_GetAudioEndpoint(GUID *guid, IMMDevice *dev, IAudioClient 
 
     *out = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*This));
+    This = heap_alloc_zero(sizeof(*This));
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -983,7 +983,7 @@ HRESULT WINAPI AUDDRV_GetAudioEndpoint(GUID *guid, IMMDevice *dev, IAudioClient 
 
     hr = CoCreateFreeThreadedMarshaler((IUnknown*)&This->IAudioClient_iface, &This->marshal);
     if (hr) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return hr;
     }
     IMMDevice_AddRef(This->parent);
@@ -1049,10 +1049,10 @@ static ULONG WINAPI AudioClient_Release(IAudioClient *iface)
         }
         IUnknown_Release(This->marshal);
         IMMDevice_Release(This->parent);
-        HeapFree(GetProcessHeap(), 0, This->tmp_buffer);
-        HeapFree(GetProcessHeap(), 0, This->peek_buffer);
-        HeapFree(GetProcessHeap(), 0, This->local_buffer);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->tmp_buffer);
+        heap_free(This->peek_buffer);
+        heap_free(This->local_buffer);
+        heap_free(This);
     }
     return ref;
 }
@@ -1164,7 +1164,7 @@ static AudioSession *create_session(const GUID *guid, IMMDevice *device,
 {
     AudioSession *ret;
 
-    ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(AudioSession));
+    ret = heap_alloc_zero(sizeof(AudioSession));
     if (!ret)
         return NULL;
 
@@ -1418,7 +1418,7 @@ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
             if (attr->tlength < This->bufsize_bytes) {
                 TRACE("PulseAudio buffer too small (%u < %u), using tmp buffer\n", attr->tlength, This->bufsize_bytes);
 
-                This->local_buffer = HeapAlloc(GetProcessHeap(), 0, This->bufsize_bytes);
+                This->local_buffer = heap_alloc(This->bufsize_bytes);
                 if(!This->local_buffer)
                     hr = E_OUTOFMEMORY;
             }
@@ -1432,7 +1432,7 @@ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
 
             capture_packets = This->bufsize_bytes / This->capture_period;
 
-            This->local_buffer = HeapAlloc(GetProcessHeap(), 0, This->bufsize_bytes + capture_packets * sizeof(ACPacket));
+            This->local_buffer = heap_alloc(This->bufsize_bytes + capture_packets * sizeof(ACPacket));
             if (!This->local_buffer)
                 hr = E_OUTOFMEMORY;
             else {
@@ -1458,7 +1458,7 @@ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
 
 exit:
     if (FAILED(hr)) {
-        HeapFree(GetProcessHeap(), 0, This->local_buffer);
+        heap_free(This->local_buffer);
         This->local_buffer = NULL;
         if (This->stream) {
             pa_stream_disconnect(This->stream);
@@ -2042,8 +2042,8 @@ static void alloc_tmp_buffer(ACImpl *This, UINT32 bytes)
     if(This->tmp_buffer_bytes >= bytes)
         return;
 
-    HeapFree(GetProcessHeap(), 0, This->tmp_buffer);
-    This->tmp_buffer = HeapAlloc(GetProcessHeap(), 0, bytes);
+    heap_free(This->tmp_buffer);
+    This->tmp_buffer = heap_alloc(bytes);
     This->tmp_buffer_bytes = bytes;
 }
 
@@ -2768,7 +2768,7 @@ static ULONG WINAPI AudioSessionControl_Release(IAudioSessionControl2 *iface)
             This->client->session_wrapper = NULL;
             AudioClient_Release(&This->client->IAudioClient_iface);
         }
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -3010,7 +3010,7 @@ static ULONG WINAPI AudioSessionManager_Release(IAudioSessionManager2 *iface)
     ref = InterlockedDecrement(&This->ref);
     TRACE("(%p) Refcount now %u\n", This, ref);
     if (!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return ref;
 }
 
@@ -3400,7 +3400,7 @@ static const IChannelAudioVolumeVtbl ChannelAudioVolume_Vtbl =
 HRESULT WINAPI AUDDRV_GetAudioSessionManager(IMMDevice *device,
         IAudioSessionManager2 **out)
 {
-    SessionMgr *This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(SessionMgr));
+    SessionMgr *This = heap_alloc_zero(sizeof(SessionMgr));
     *out = NULL;
     if (!This)
         return E_OUTOFMEMORY;

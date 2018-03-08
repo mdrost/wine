@@ -90,7 +90,7 @@ static void encodeAndCompareBase64_A(const BYTE *toEncode, DWORD toEncodeLen,
 
     ret = CryptBinaryToStringA(toEncode, toEncodeLen, format, NULL, &strLen);
     ok(ret, "CryptBinaryToStringA failed: %d\n", GetLastError());
-    str = HeapAlloc(GetProcessHeap(), 0, strLen);
+    str = heap_alloc(strLen);
     if (str)
     {
         DWORD strLen2 = strLen;
@@ -113,7 +113,7 @@ static void encodeAndCompareBase64_A(const BYTE *toEncode, DWORD toEncodeLen,
         if (trailer)
             ok(!strncmp(trailer, ptr, strlen(trailer)),
              "Expected trailer %s, got %s\n", trailer, ptr);
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
     }
 }
 
@@ -137,7 +137,7 @@ static void testBinaryToStringA(void)
         ret = CryptBinaryToStringA(tests[i].toEncode, tests[i].toEncodeLen,
          CRYPT_STRING_BINARY, NULL, &strLen);
         ok(ret, "CryptBinaryToStringA failed: %d\n", GetLastError());
-        str = HeapAlloc(GetProcessHeap(), 0, strLen);
+        str = heap_alloc(strLen);
         if (str)
         {
             DWORD strLen2 = strLen;
@@ -149,7 +149,7 @@ static void testBinaryToStringA(void)
              strLen2);
             ok(!memcmp(str, tests[i].toEncode, tests[i].toEncodeLen),
              "Unexpected value\n");
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
         encodeAndCompareBase64_A(tests[i].toEncode, tests[i].toEncodeLen,
          CRYPT_STRING_BASE64, tests[i].base64, NULL, NULL);
@@ -173,7 +173,7 @@ static void testBinaryToStringA(void)
          testsNoCR[i].toEncodeLen, CRYPT_STRING_BINARY | CRYPT_STRING_NOCR,
          NULL, &strLen);
         ok(ret, "CryptBinaryToStringA failed: %d\n", GetLastError());
-        str = HeapAlloc(GetProcessHeap(), 0, strLen);
+        str = heap_alloc(strLen);
         if (str)
         {
             DWORD strLen2 = strLen;
@@ -186,7 +186,7 @@ static void testBinaryToStringA(void)
              strLen2);
             ok(!memcmp(str, testsNoCR[i].toEncode, testsNoCR[i].toEncodeLen),
              "Unexpected value\n");
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
         encodeAndCompareBase64_A(testsNoCR[i].toEncode,
          testsNoCR[i].toEncodeLen, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCR,
@@ -219,7 +219,7 @@ static void decodeAndCompareBase64_A(LPCSTR toDecode, LPCSTR header,
         len += strlen(header);
     if (trailer)
         len += strlen(trailer);
-    str = HeapAlloc(GetProcessHeap(), 0, len);
+    str = heap_alloc(len);
     if (str)
     {
         LPBYTE buf;
@@ -236,7 +236,7 @@ static void decodeAndCompareBase64_A(LPCSTR toDecode, LPCSTR header,
         ret = CryptStringToBinaryA(str, 0, useFormat, NULL, &bufLen, NULL,
          NULL);
         ok(ret, "CryptStringToBinaryA failed: %d\n", GetLastError());
-        buf = HeapAlloc(GetProcessHeap(), 0, bufLen);
+        buf = heap_alloc(bufLen);
         if (buf)
         {
             DWORD skipped, usedFormat;
@@ -255,7 +255,7 @@ static void decodeAndCompareBase64_A(LPCSTR toDecode, LPCSTR header,
             ok(skipped == 0, "Expected skipped 0, got %d\n", skipped);
             ok(usedFormat == expectedFormat, "Expected format %d, got %d\n",
              expectedFormat, usedFormat);
-            HeapFree(GetProcessHeap(), 0, buf);
+            heap_free(buf);
         }
 
         /* Check again, but with garbage up front */
@@ -275,7 +275,7 @@ static void decodeAndCompareBase64_A(LPCSTR toDecode, LPCSTR header,
              "Expected !ret and last error ERROR_INVALID_DATA, got ret=%d, error=%d\n", ret, GetLastError());
         if (ret)
         {
-            buf = HeapAlloc(GetProcessHeap(), 0, bufLen);
+            buf = heap_alloc(bufLen);
             if (buf)
             {
                 DWORD skipped, usedFormat;
@@ -286,10 +286,10 @@ static void decodeAndCompareBase64_A(LPCSTR toDecode, LPCSTR header,
                 ok(skipped == strlen(garbage),
                  "Expected %d characters of \"%s\" skipped when trying format %08x, got %d (used format is %08x)\n",
                  lstrlenA(garbage), str, useFormat, skipped, usedFormat);
-                HeapFree(GetProcessHeap(), 0, buf);
+                heap_free(buf);
             }
         }
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
     }
 }
 

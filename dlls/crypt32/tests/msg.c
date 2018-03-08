@@ -302,14 +302,14 @@ static void check_param(LPCSTR test, HCRYPTMSG msg, DWORD param,
         win_skip("parameter %d not supported, skipping tests\n", param);
         return;
     }
-    buf = HeapAlloc(GetProcessHeap(), 0, size);
+    buf = heap_alloc(size);
     ret = CryptMsgGetParam(msg, param, 0, buf, &size);
     ok(ret, "%s: CryptMsgGetParam failed: %08x\n", test, GetLastError());
     ok(size == expectedSize, "%s: expected size %d, got %d\n", test,
      expectedSize, size);
     if (size == expectedSize && size)
         ok(!memcmp(buf, expected, size), "%s: unexpected data\n", test);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 }
 
 static void test_data_msg_open(void)

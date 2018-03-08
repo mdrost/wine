@@ -399,7 +399,7 @@ static void test_format_object(void)
             return;
         }
         ok(size == sizeof(WCHAR), "unexpected size %d\n", size);
-        str = HeapAlloc(GetProcessHeap(), 0, size);
+        str = heap_alloc(size);
         SetLastError(0xdeadbeef);
         size = 0;
         ret = pCryptFormatObject(X509_ASN_ENCODING, 0, 0, NULL, NULL, NULL, 0,
@@ -411,31 +411,31 @@ static void test_format_object(void)
          str, &size);
         ok(ret, "CryptFormatObject failed: %d\n", GetLastError());
         ok(!str[0], "expected empty string\n");
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
     }
     ret = pCryptFormatObject(X509_ASN_ENCODING, 0, 0, NULL, NULL, encodedInt,
      sizeof(encodedInt), NULL, &size);
     ok(ret, "CryptFormatObject failed: %d\n", GetLastError());
     if (ret)
     {
-        str = HeapAlloc(GetProcessHeap(), 0, size);
+        str = heap_alloc(size);
         ret = pCryptFormatObject(X509_ASN_ENCODING, 0, 0, NULL, NULL,
          encodedInt, sizeof(encodedInt), str, &size);
         ok(ret, "CryptFormatObject failed: %d\n", GetLastError());
         ok(!lstrcmpW(str, encodedIntStr), "unexpected format string\n");
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
     }
     ret = pCryptFormatObject(X509_ASN_ENCODING, 0, 0, NULL, NULL,
      encodedBigInt, sizeof(encodedBigInt), NULL, &size);
     ok(ret, "CryptFormatObject failed: %d\n", GetLastError());
     if (ret)
     {
-        str = HeapAlloc(GetProcessHeap(), 0, size);
+        str = heap_alloc(size);
         ret = pCryptFormatObject(X509_ASN_ENCODING, 0, 0, NULL, NULL,
          encodedBigInt, sizeof(encodedBigInt), str, &size);
         ok(ret, "CryptFormatObject failed: %d\n", GetLastError());
         ok(!lstrcmpiW(str, encodedBigIntStr), "unexpected format string\n");
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
     }
     /* When called with the default encoding type for any undefined struct
      * type but CRYPT_FORMAT_STR_NO_HEX specified, it fails to find a

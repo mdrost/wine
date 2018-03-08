@@ -937,107 +937,107 @@ static void test_CertGetNameStringA(void)
         len = pCertGetNameStringA(context, CERT_NAME_EMAIL_TYPE, 0, NULL, NULL,
          0);
         ok(len == strlen(aric) + 1, "unexpected length %d\n", len);
-        str = HeapAlloc(GetProcessHeap(), 0, len);
+        str = heap_alloc(len);
         if (str)
         {
             len = pCertGetNameStringA(context, CERT_NAME_EMAIL_TYPE, 0, NULL,
              str, len);
             ok(!strcmp(str, aric), "unexpected value %s\n", str);
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
 
         len = pCertGetNameStringA(context, CERT_NAME_RDN_TYPE, 0, NULL, NULL,
          0);
         ok(len == strlen(issuerStr) + 1, "unexpected length %d\n", len);
-        str = HeapAlloc(GetProcessHeap(), 0, len);
+        str = heap_alloc(len);
         if (str)
         {
             len = pCertGetNameStringA(context, CERT_NAME_RDN_TYPE, 0, NULL,
              str, len);
             ok(!strcmp(str, issuerStr), "unexpected value %s\n", str);
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
         type = 0;
         len = pCertGetNameStringA(context, CERT_NAME_RDN_TYPE, 0, &type, NULL,
          0);
         ok(len == strlen(issuerStr) + 1, "unexpected length %d\n", len);
-        str = HeapAlloc(GetProcessHeap(), 0, len);
+        str = heap_alloc(len);
         if (str)
         {
             len = pCertGetNameStringA(context, CERT_NAME_RDN_TYPE, 0, &type,
              str, len);
             ok(!strcmp(str, issuerStr), "unexpected value %s\n", str);
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
         type = CERT_OID_NAME_STR;
         len = pCertGetNameStringA(context, CERT_NAME_RDN_TYPE, 0, &type, NULL,
          0);
         ok(len == strlen(subjectStr) + 1, "unexpected length %d\n", len);
-        str = HeapAlloc(GetProcessHeap(), 0, len);
+        str = heap_alloc(len);
         if (str)
         {
             len = pCertGetNameStringA(context, CERT_NAME_RDN_TYPE, 0, &type,
              str, len);
             ok(!strcmp(str, subjectStr), "unexpected value %s\n", str);
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
 
         len = pCertGetNameStringA(context, CERT_NAME_ATTR_TYPE, 0, NULL, NULL,
          0);
         ok(len == strlen(aric) + 1, "unexpected length %d\n", len);
-        str = HeapAlloc(GetProcessHeap(), 0, len);
+        str = heap_alloc(len);
         if (str)
         {
             len = pCertGetNameStringA(context, CERT_NAME_ATTR_TYPE, 0, NULL,
              str, len);
             ok(!strcmp(str, aric), "unexpected value %s\n", str);
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
         len = pCertGetNameStringA(context, CERT_NAME_ATTR_TYPE, 0,
          (void *)szOID_RSA_emailAddr, NULL, 0);
         ok(len == strlen(aric) + 1, "unexpected length %d\n", len);
-        str = HeapAlloc(GetProcessHeap(), 0, len);
+        str = heap_alloc(len);
         if (str)
         {
             len = pCertGetNameStringA(context, CERT_NAME_ATTR_TYPE, 0,
              (void *)szOID_RSA_emailAddr, str, len);
             ok(!strcmp(str, aric), "unexpected value %s\n", str);
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
         len = pCertGetNameStringA(context, CERT_NAME_ATTR_TYPE, 0,
          (void *)szOID_COMMON_NAME, NULL, 0);
         ok(len == strlen(localhost) + 1, "unexpected length %d\n", len);
-        str = HeapAlloc(GetProcessHeap(), 0, len);
+        str = heap_alloc(len);
         if (str)
         {
             len = pCertGetNameStringA(context, CERT_NAME_ATTR_TYPE, 0,
              (void *)szOID_COMMON_NAME, str, len);
             ok(!strcmp(str, localhost), "unexpected value %s\n", str);
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
 
         len = pCertGetNameStringA(context, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0,
          NULL, NULL, 0);
         ok(len == strlen(localhost) + 1, "unexpected length %d\n", len);
-        str = HeapAlloc(GetProcessHeap(), 0, len);
+        str = heap_alloc(len);
         if (str)
         {
             len = pCertGetNameStringA(context, CERT_NAME_SIMPLE_DISPLAY_TYPE,
              0, NULL, str, len);
             ok(!strcmp(str, localhost), "unexpected value %s\n", str);
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
 
         len = pCertGetNameStringA(context, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0,
          NULL, NULL, 0);
         ok(len == strlen(localhost) + 1, "unexpected length %d\n", len);
-        str = HeapAlloc(GetProcessHeap(), 0, len);
+        str = heap_alloc(len);
         if (str)
         {
             len = pCertGetNameStringA(context, CERT_NAME_FRIENDLY_DISPLAY_TYPE,
              0, NULL, str, len);
             ok(!strcmp(str, localhost), "unexpected value %s\n", str);
-            HeapFree(GetProcessHeap(), 0, str);
+            heap_free(str);
         }
 
         len = pCertGetNameStringA(context, CERT_NAME_DNS_TYPE, 0, NULL, NULL,
@@ -1046,13 +1046,13 @@ static void test_CertGetNameStringA(void)
          "unexpected length %d\n", len);
         if (len > 1)
         {
-            str = HeapAlloc(GetProcessHeap(), 0, len);
+            str = heap_alloc(len);
             if (str)
             {
                 len = pCertGetNameStringA(context, CERT_NAME_DNS_TYPE, 0, NULL,
                  str, len);
                 ok(!strcmp(str, localhost), "unexpected value %s\n", str);
-                HeapFree(GetProcessHeap(), 0, str);
+                heap_free(str);
             }
         }
 

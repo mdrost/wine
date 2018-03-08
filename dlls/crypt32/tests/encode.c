@@ -2772,13 +2772,13 @@ static void test_decodeExtensions(DWORD dwEncoding)
         ret = pCryptDecodeObjectEx(dwEncoding, X509_EXTENSIONS,
          exts[i].encoded, exts[i].encoded[1] + 2, 0, NULL, NULL, &bufSize);
         ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-        buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, bufSize);
+        buf = heap_alloc_zero(bufSize);
         if (buf)
         {
             ret = pCryptDecodeObjectEx(dwEncoding, X509_EXTENSIONS,
              exts[i].encoded, exts[i].encoded[1] + 2, 0, NULL, buf, &bufSize);
             ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-            HeapFree(GetProcessHeap(), 0, buf);
+            heap_free(buf);
         }
     }
 }
@@ -3756,14 +3756,14 @@ static void test_decodeCRLDistPoints(DWORD dwEncoding)
      distPointWithUrlAndIssuer, distPointWithUrlAndIssuer[1] + 2, 0,
      NULL, NULL, &size);
     ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    buf = heap_alloc_zero(size);
     if (buf)
     {
         ret = pCryptDecodeObjectEx(dwEncoding, X509_CRL_DIST_POINTS,
          distPointWithUrlAndIssuer, distPointWithUrlAndIssuer[1] + 2, 0,
          NULL, buf, &size);
         ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
     }
 }
 
@@ -4909,13 +4909,13 @@ static void test_decodeEnhancedKeyUsage(DWORD dwEncoding)
     ret = pCryptDecodeObjectEx(dwEncoding, X509_ENHANCED_KEY_USAGE,
      encodedUsage, sizeof(encodedUsage), 0, NULL, NULL, &size);
     ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    buf = heap_alloc_zero(size);
     if (buf)
     {
         ret = pCryptDecodeObjectEx(dwEncoding, X509_ENHANCED_KEY_USAGE,
          encodedUsage, sizeof(encodedUsage), 0, NULL, buf, &size);
         ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
     }
 }
 
@@ -5395,14 +5395,14 @@ static void test_decodeAuthorityInfoAccess(DWORD dwEncoding)
      authorityInfoAccessWithUrlAndIPAddr,
      sizeof(authorityInfoAccessWithUrlAndIPAddr), 0, NULL, NULL, &size);
     ok(ret, "CryptDecodeObjectEx failed: %x\n", GetLastError());
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    buf = heap_alloc_zero(size);
     if (buf)
     {
         ret = pCryptDecodeObjectEx(dwEncoding, X509_AUTHORITY_INFO_ACCESS,
          authorityInfoAccessWithUrlAndIPAddr,
          sizeof(authorityInfoAccessWithUrlAndIPAddr), 0, NULL, buf, &size);
         ok(ret, "CryptDecodeObjectEx failed: %x\n", GetLastError());
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
     }
 }
 
@@ -6376,13 +6376,13 @@ static void test_decodePKCSAttributes(DWORD dwEncoding)
     ret = pCryptDecodeObjectEx(dwEncoding, PKCS_ATTRIBUTES,
      doublePKCSAttributes, sizeof(doublePKCSAttributes), 0, NULL, NULL, &size);
     ok(ret, "CryptDecodeObjectEx failed: %x\n", GetLastError());
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    buf = heap_alloc_zero(size);
     if (buf)
     {
         ret = pCryptDecodeObjectEx(dwEncoding, PKCS_ATTRIBUTES,
          doublePKCSAttributes, sizeof(doublePKCSAttributes), 0, NULL, buf, &size);
         ok(ret, "CryptDecodeObjectEx failed: %x\n", GetLastError());
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
     }
 }
 
@@ -6545,14 +6545,14 @@ static void test_decodePKCSSMimeCapabilities(DWORD dwEncoding)
     ret = pCryptDecodeObjectEx(dwEncoding, PKCS_SMIME_CAPABILITIES,
      twoCapabilities, sizeof(twoCapabilities), 0, NULL, NULL, &size);
     ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-    ptr = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    ptr = heap_alloc_zero(size);
     if (ptr)
     {
         SetLastError(0xdeadbeef);
         ret = pCryptDecodeObjectEx(dwEncoding, PKCS_SMIME_CAPABILITIES,
          twoCapabilities, sizeof(twoCapabilities), 0, NULL, ptr, &size);
         ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-        HeapFree(GetProcessHeap(), 0, ptr);
+        heap_free(ptr);
     }
 }
 
@@ -7719,13 +7719,13 @@ static void test_decodeCertPolicies(DWORD dwEncoding)
     ret = pCryptDecodeObjectEx(dwEncoding, X509_CERT_POLICIES,
      twoPolicies, sizeof(twoPolicies), 0, NULL, NULL, &size);
     ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-    info = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    info = heap_alloc_zero(size);
     if (info)
     {
         ret = pCryptDecodeObjectEx(dwEncoding, X509_CERT_POLICIES,
          twoPolicies, sizeof(twoPolicies), 0, NULL, info, &size);
         ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-        HeapFree(GetProcessHeap(), 0, info);
+        heap_free(info);
     }
 }
 
@@ -7874,14 +7874,14 @@ static void test_decodeCertPolicyMappings(DWORD dwEncoding)
          policyMappingWithTwoMappings, sizeof(policyMappingWithTwoMappings), 0,
          NULL, NULL, &size);
         ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-        info = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+        info = heap_alloc_zero(size);
         if (info)
         {
             ret = pCryptDecodeObjectEx(dwEncoding, mappingOids[i],
              policyMappingWithTwoMappings, sizeof(policyMappingWithTwoMappings), 0,
              NULL, info, &size);
             ok(ret, "CryptDecodeObjectEx failed: %08x\n", GetLastError());
-            HeapFree(GetProcessHeap(), 0, info);
+            heap_free(info);
         }
     }
 }
@@ -8360,7 +8360,7 @@ static void testExportPublicKey(HCRYPTPROV csp, PCERT_PUBLIC_KEY_INFO *pInfo)
         ret = CryptExportPublicKeyInfoEx(csp, AT_SIGNATURE, X509_ASN_ENCODING,
          NULL, 0, NULL, NULL, &size);
         ok(ret, "CryptExportPublicKeyInfoEx failed: %08x\n", GetLastError());
-        *pInfo = HeapAlloc(GetProcessHeap(), 0, size);
+        *pInfo = heap_alloc(size);
         if (*pInfo)
         {
             ret = CryptExportPublicKeyInfoEx(csp, AT_SIGNATURE,
@@ -8502,7 +8502,7 @@ static void testPortPublicKeyInfo(void)
     testExportPublicKey(csp, &info);
     testImportPublicKey(csp, info);
 
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
     CryptReleaseContext(csp, 0);
     ret = CryptAcquireContextA(&csp, cspName, MS_DEF_PROV_A, PROV_RSA_FULL,
      CRYPT_DELETEKEYSET);

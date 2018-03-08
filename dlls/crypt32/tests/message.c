@@ -735,14 +735,14 @@ static void test_hash_message(void)
         /* Actually attempting to get the hashed data fails, perhaps because
          * detached is FALSE.
          */
-        hashedBlob = HeapAlloc(GetProcessHeap(), 0, hashedBlobSize);
+        hashedBlob = heap_alloc(hashedBlobSize);
         SetLastError(0xdeadbeef);
         ret = CryptHashMessage(&para, FALSE, 2, toHash, hashSize, hashedBlob,
          &hashedBlobSize, NULL, NULL);
         ok(!ret && GetLastError() == CRYPT_E_MSG_ERROR,
          "expected CRYPT_E_MSG_ERROR, got 0x%08x (%d)\n", GetLastError(),
          GetLastError());
-        HeapFree(GetProcessHeap(), 0, hashedBlob);
+        heap_free(hashedBlob);
     }
     /* Repeating tests with fDetached = TRUE results in success */
     SetLastError(0xdeadbeef);
@@ -751,7 +751,7 @@ static void test_hash_message(void)
     ok(ret, "CryptHashMessage failed: 0x%08x\n", GetLastError());
     if (ret)
     {
-        hashedBlob = HeapAlloc(GetProcessHeap(), 0, hashedBlobSize);
+        hashedBlob = heap_alloc(hashedBlobSize);
         SetLastError(0xdeadbeef);
         ret = CryptHashMessage(&para, TRUE, 2, toHash, hashSize, hashedBlob,
          &hashedBlobSize, NULL, NULL);
@@ -760,7 +760,7 @@ static void test_hash_message(void)
          "unexpected size of detached blob %d\n", hashedBlobSize);
         ok(!memcmp(hashedBlob, detachedHashBlob, hashedBlobSize),
          "unexpected detached blob value\n");
-        HeapFree(GetProcessHeap(), 0, hashedBlob);
+        heap_free(hashedBlob);
     }
     /* Hashing a single item with fDetached = FALSE also succeeds */
     SetLastError(0xdeadbeef);
@@ -769,7 +769,7 @@ static void test_hash_message(void)
     ok(ret, "CryptHashMessage failed: 0x%08x\n", GetLastError());
     if (ret)
     {
-        hashedBlob = HeapAlloc(GetProcessHeap(), 0, hashedBlobSize);
+        hashedBlob = heap_alloc(hashedBlobSize);
         ret = CryptHashMessage(&para, FALSE, 1, toHash, hashSize, hashedBlob,
          &hashedBlobSize, NULL, NULL);
         ok(ret, "CryptHashMessage failed: 0x%08x\n", GetLastError());
@@ -777,7 +777,7 @@ static void test_hash_message(void)
          "unexpected size of detached blob %d\n", hashedBlobSize);
         ok(!memcmp(hashedBlob, hashBlob, hashedBlobSize),
          "unexpected detached blob value\n");
-        HeapFree(GetProcessHeap(), 0, hashedBlob);
+        heap_free(hashedBlob);
     }
     /* Check the computed hash value too.  You don't need to get the encoded
      * blob to get it.
@@ -790,7 +790,7 @@ static void test_hash_message(void)
      computedHashSize);
     if (ret)
     {
-        computedHash = HeapAlloc(GetProcessHeap(), 0, computedHashSize);
+        computedHash = heap_alloc(computedHashSize);
         SetLastError(0xdeadbeef);
         ret = CryptHashMessage(&para, TRUE, 2, toHash, hashSize, NULL,
          &hashedBlobSize, computedHash, &computedHashSize);
@@ -799,7 +799,7 @@ static void test_hash_message(void)
          "unexpected size of hash value %d\n", computedHashSize);
         ok(!memcmp(computedHash, hashVal, computedHashSize),
          "unexpected value\n");
-        HeapFree(GetProcessHeap(), 0, computedHash);
+        heap_free(computedHash);
     }
 }
 

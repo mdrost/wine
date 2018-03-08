@@ -83,7 +83,7 @@ static ULONG WINAPI ResourceManager_Release(IResourceManager *iface)
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -131,7 +131,7 @@ static HRESULT ResourceManager_Create(REFIID riid, void **ppv)
 
     if (!ppv) return E_INVALIDARG;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(ResourceManager));
+    This = heap_alloc(sizeof(ResourceManager));
     if (!This) return E_OUTOFMEMORY;
 
     This->IResourceManager_iface.lpVtbl = &ResourceManager_Vtbl;
@@ -201,7 +201,7 @@ static ULONG WINAPI TransactionOptions_Release(ITransactionOptions *iface)
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -241,7 +241,7 @@ static HRESULT TransactionOptions_Create(ITransactionOptions **ppv)
 
     if (!ppv) return E_INVALIDARG;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(TransactionOptions));
+    This = heap_alloc(sizeof(TransactionOptions));
     if (!This) return E_OUTOFMEMORY;
 
     This->ITransactionOptions_iface.lpVtbl = &TransactionOptions_Vtbl;
@@ -310,7 +310,7 @@ static ULONG WINAPI Transaction_Release(ITransaction *iface)
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -353,7 +353,7 @@ static HRESULT Transaction_Create(ISOLEVEL isoLevel, ULONG isoFlags,
 
     if (!ppv) return E_INVALIDARG;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(Transaction));
+    This = heap_alloc(sizeof(Transaction));
     if (!This) return E_OUTOFMEMORY;
     ZeroMemory(&This->info, sizeof(This->info));
 
@@ -440,7 +440,7 @@ static ULONG WINAPI TransactionDispenser_Release(ITransactionDispenser *iface)
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -615,7 +615,7 @@ static HRESULT TransactionManager_Create(REFIID riid, void **ppv)
     TransactionManager *This;
     HRESULT ret;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(TransactionManager));
+    This = heap_alloc(sizeof(TransactionManager));
     if (!This) return E_OUTOFMEMORY;
 
     This->ITransactionDispenser_iface.lpVtbl = &TransactionDispenser_Vtbl;

@@ -399,7 +399,7 @@ static struct vcomp_thread_data *vcomp_init_thread_data(void)
     } *data;
 
     if (thread_data) return thread_data;
-    if (!(data = HeapAlloc(GetProcessHeap(), 0, sizeof(*data))))
+    if (!(data = heap_alloc(sizeof(*data))))
     {
         ERR("could not create thread data\n");
         ExitProcess(1);
@@ -429,7 +429,7 @@ static void vcomp_free_thread_data(void)
     struct vcomp_thread_data *thread_data = vcomp_get_thread_data();
     if (!thread_data) return;
 
-    HeapFree(GetProcessHeap(), 0, thread_data);
+    heap_free(thread_data);
     vcomp_set_thread_data(NULL);
 }
 
@@ -1440,7 +1440,7 @@ static DWORD WINAPI _vcomp_fork_worker(void *param)
 
     TRACE("terminating worker thread for %p\n", thread_data);
 
-    HeapFree(GetProcessHeap(), 0, thread_data);
+    heap_free(thread_data);
     vcomp_set_thread_data(NULL);
     FreeLibraryAndExitThread(vcomp_module, 0);
     return 0;
@@ -1521,7 +1521,7 @@ void WINAPIV _vcomp_fork(BOOL ifval, int nargs, void *wrapper, ...)
             HMODULE module;
             HANDLE thread;
 
-            data = HeapAlloc(GetProcessHeap(), 0, sizeof(*data));
+            data = heap_alloc(sizeof(*data));
             if (!data) break;
 
             data->team          = &team_data;
@@ -1538,7 +1538,7 @@ void WINAPIV _vcomp_fork(BOOL ifval, int nargs, void *wrapper, ...)
             thread = CreateThread(NULL, 0, _vcomp_fork_worker, data, 0, NULL);
             if (!thread)
             {
-                HeapFree(GetProcessHeap(), 0, data);
+                heap_free(data);
                 break;
             }
 
@@ -1575,7 +1575,7 @@ void WINAPIV _vcomp_fork(BOOL ifval, int nargs, void *wrapper, ...)
 static CRITICAL_SECTION *alloc_critsect(void)
 {
     CRITICAL_SECTION *critsect;
-    if (!(critsect = HeapAlloc(GetProcessHeap(), 0, sizeof(*critsect))))
+    if (!(critsect = heap_alloc(sizeof(*critsect))))
     {
         ERR("could not allocate critical section\n");
         ExitProcess(1);
@@ -1591,7 +1591,7 @@ static void destroy_critsect(CRITICAL_SECTION *critsect)
     if (!critsect) return;
     critsect->DebugInfo->Spare[0] = 0;
     DeleteCriticalSection(critsect);
-    HeapFree(GetProcessHeap(), 0, critsect);
+    heap_free(critsect);
 }
 
 void CDECL omp_init_lock(omp_lock_t *lock)

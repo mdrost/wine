@@ -70,7 +70,7 @@ void destroy_handle_table(struct handle_table *lpTable)
 {
     TRACE("(lpTable=%p)\n", lpTable);
         
-    HeapFree(GetProcessHeap(), 0, lpTable->paEntries);
+    heap_free(lpTable->paEntries);
     lpTable->mutex.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection(&lpTable->mutex);
 }
@@ -139,14 +139,14 @@ static BOOL grow_handle_table(struct handle_table *lpTable)
 
     newIEntries = lpTable->iEntries + TABLE_SIZE_INCREMENT;
 
-    newEntries = HeapAlloc(GetProcessHeap(), 0, sizeof(struct handle_table_entry)*newIEntries);
+    newEntries = heap_alloc(sizeof(struct handle_table_entry)*newIEntries);
     if (!newEntries)
         return FALSE;
 
     if (lpTable->paEntries)
     {
         memcpy(newEntries, lpTable->paEntries, sizeof(struct handle_table_entry)*lpTable->iEntries);
-        HeapFree(GetProcessHeap(), 0, lpTable->paEntries);
+        heap_free(lpTable->paEntries);
     }
 
     for (i=lpTable->iEntries; i<newIEntries; i++)
@@ -356,7 +356,7 @@ HCRYPTKEY new_object(struct handle_table *lpTable, size_t cbSize, DWORD dwType, 
     if (ppObject)
         *ppObject = NULL;
 
-    pObject = HeapAlloc(GetProcessHeap(), 0, cbSize);
+    pObject = heap_alloc(cbSize);
     if (!pObject)
         return (HCRYPTKEY)INVALID_HANDLE_VALUE;
 
@@ -365,7 +365,7 @@ HCRYPTKEY new_object(struct handle_table *lpTable, size_t cbSize, DWORD dwType, 
     pObject->destructor = destructor;
 
     if (!alloc_handle(lpTable, pObject, &hObject))
-        HeapFree(GetProcessHeap(), 0, pObject);
+        heap_free(pObject);
     else
         if (ppObject)
             *ppObject = pObject;

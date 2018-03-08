@@ -387,8 +387,7 @@ BOOL WINAPI CertViewPropertiesA(CERT_VIEWPROPERTIES_STRUCT_A *info)
     {
         int len = MultiByteToWideChar(CP_ACP, 0, info->szTitle, -1, NULL, 0);
 
-        title = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
-        if (title)
+        if ((title = heap_alloc(len * sizeof(WCHAR))))
         {
             MultiByteToWideChar(CP_ACP, 0, info->szTitle, -1, title, len);
             infoW.szTitle = title;
@@ -400,7 +399,7 @@ BOOL WINAPI CertViewPropertiesA(CERT_VIEWPROPERTIES_STRUCT_A *info)
         }
     }
     ret = CertViewPropertiesW(&infoW);
-    HeapFree(GetProcessHeap(), 0, title);
+    heap_free(title);
 error:
     return ret;
 }

@@ -264,7 +264,7 @@ DWORD Gstreamer_init(void)
     if (!inited) {
         char argv0[] = "wine";
         char argv1[] = "--gst-disable-registry-fork";
-        char **argv = HeapAlloc(GetProcessHeap(), 0, sizeof(char *)*3);
+        char **argv = heap_alloc(sizeof(char *)*3);
         int argc = 2;
         GError *err = NULL;
 
@@ -274,7 +274,7 @@ DWORD Gstreamer_init(void)
         argv[1] = argv1;
         argv[2] = NULL;
         inited = gst_init_check(&argc, &argv, &err);
-        HeapFree(GetProcessHeap(), 0, argv);
+        heap_free(argv);
         if (err) {
             ERR("Failed to initialize gstreamer: %s\n", err->message);
             g_error_free(err);
@@ -324,7 +324,7 @@ static HRESULT register_server(BOOL do_register)
     INF_SET_ID(WINESUBTYPE_Gstreamer);
 
     for(i=0; i < sizeof(pse)/sizeof(pse[0]); i++) {
-        pse[i].pszValue = HeapAlloc(GetProcessHeap(),0,39);
+        pse[i].pszValue = heap_alloc(39);
         sprintf(pse[i].pszValue, "{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
                 clsids[i]->Data1, clsids[i]->Data2, clsids[i]->Data3, clsids[i]->Data4[0],
                 clsids[i]->Data4[1], clsids[i]->Data4[2], clsids[i]->Data4[3], clsids[i]->Data4[4],
@@ -340,7 +340,7 @@ static HRESULT register_server(BOOL do_register)
     hres = pRegInstall(hInst, do_register ? "RegisterDll" : "UnregisterDll", &strtable);
 
     for(i=0; i < sizeof(pse)/sizeof(pse[0]); i++)
-        HeapFree(GetProcessHeap(),0,pse[i].pszValue);
+        heap_free(pse[i].pszValue);
 
     if(FAILED(hres)) {
         ERR("RegInstall failed: %08x\n", hres);

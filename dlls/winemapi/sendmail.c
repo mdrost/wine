@@ -53,7 +53,7 @@ static char *escape_string(char *in, char *empty_string)
 
     if (res == E_POINTER)
     {
-        escaped = HeapAlloc(GetProcessHeap(), 0, size);
+        escaped = heap_alloc(size);
 
         if (!escaped)
             return in;
@@ -61,7 +61,7 @@ static char *escape_string(char *in, char *empty_string)
         /* If for some reason UrlEscape fails, just send the original text */
         if (UrlEscapeA(in, escaped, &size, URL_ESCAPE_PERCENT | URL_ESCAPE_SEGMENT_ONLY) != S_OK)
         {
-            HeapFree(GetProcessHeap(), 0, escaped);
+            heap_free(escaped);
             escaped = in;
         }
     }
@@ -176,7 +176,7 @@ ULONG WINAPI MAPISendMail(LHANDLE session, ULONG_PTR uiparam,
 
     if (to_size)
     {
-        to = HeapAlloc(GetProcessHeap(), 0, to_size);
+        to = heap_alloc(to_size);
 
         if (!to)
             goto exit;
@@ -186,7 +186,7 @@ ULONG WINAPI MAPISendMail(LHANDLE session, ULONG_PTR uiparam,
 
     if (cc_size)
     {
-        cc = HeapAlloc(GetProcessHeap(), 0, cc_size);
+        cc = heap_alloc(cc_size);
 
         if (!cc)
             goto exit;
@@ -196,7 +196,7 @@ ULONG WINAPI MAPISendMail(LHANDLE session, ULONG_PTR uiparam,
 
     if (bcc_size)
     {
-        bcc = HeapAlloc(GetProcessHeap(), 0, bcc_size);
+        bcc = heap_alloc(bcc_size);
 
         if (!bcc)
             goto exit;
@@ -247,7 +247,7 @@ ULONG WINAPI MAPISendMail(LHANDLE session, ULONG_PTR uiparam,
     ret = MAPI_E_FAILURE;
     size = sizeof(format) + to_size + cc_size + bcc_size + subj_size + body_size;
 
-    mailto = HeapAlloc(GetProcessHeap(), 0, size);
+    mailto = heap_alloc(size);
 
     if (!mailto)
         goto exit;
@@ -260,7 +260,7 @@ ULONG WINAPI MAPISendMail(LHANDLE session, ULONG_PTR uiparam,
     if (res != E_POINTER)
         goto exit;
 
-    escape = HeapAlloc(GetProcessHeap(), 0, size);
+    escape = heap_alloc(size);
 
     if (!escape)
         goto exit;
@@ -276,17 +276,17 @@ ULONG WINAPI MAPISendMail(LHANDLE session, ULONG_PTR uiparam,
         ret = SUCCESS_SUCCESS;
 
 exit:
-    HeapFree(GetProcessHeap(), 0, to);
-    HeapFree(GetProcessHeap(), 0, cc);
-    HeapFree(GetProcessHeap(), 0, bcc);
-    HeapFree(GetProcessHeap(), 0, mailto);
-    HeapFree(GetProcessHeap(), 0, escape);
+    heap_free(to);
+    heap_free(cc);
+    heap_free(bcc);
+    heap_free(mailto);
+    heap_free(escape);
 
     if (subject != empty_string)
-        HeapFree(GetProcessHeap(), 0, subject);
+        heap_free(subject);
 
     if (body != empty_string)
-        HeapFree(GetProcessHeap(), 0, body);
+        heap_free(body);
 
     return ret;
 }

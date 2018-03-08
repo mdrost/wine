@@ -209,7 +209,7 @@ static void test_getObjectUrl(void)
         ret = CryptGetObjectUrl(URL_OID_CERTIFICATE_CRL_DIST_POINT,
          (void *)cert, 0, NULL, &urlArraySize, NULL, NULL, NULL);
         ok(ret, "CryptGetObjectUrl failed: %08x\n", GetLastError());
-        urlArray = HeapAlloc(GetProcessHeap(), 0, urlArraySize);
+        urlArray = heap_alloc(urlArraySize);
         if (urlArray)
         {
             ret = CryptGetObjectUrl(URL_OID_CERTIFICATE_CRL_DIST_POINT,
@@ -222,14 +222,14 @@ static void test_getObjectUrl(void)
 
                 compareUrlArray(&expectedUrl, urlArray);
             }
-            HeapFree(GetProcessHeap(), 0, urlArray);
+            heap_free(urlArray);
         }
         /* or by specifying it's an extension: */
         ret = CryptGetObjectUrl(URL_OID_CERTIFICATE_CRL_DIST_POINT,
          (void *)cert, CRYPT_GET_URL_FROM_EXTENSION, NULL, &urlArraySize, NULL,
          NULL, NULL);
         ok(ret, "CryptGetObjectUrl failed: %08x\n", GetLastError());
-        urlArray = HeapAlloc(GetProcessHeap(), 0, urlArraySize);
+        urlArray = heap_alloc(urlArraySize);
         if (urlArray)
         {
             ret = CryptGetObjectUrl(URL_OID_CERTIFICATE_CRL_DIST_POINT,
@@ -243,7 +243,7 @@ static void test_getObjectUrl(void)
 
                 compareUrlArray(&expectedUrl, urlArray);
             }
-            HeapFree(GetProcessHeap(), 0, urlArray);
+            heap_free(urlArray);
         }
         /* but it isn't contained in a property: */
         SetLastError(0xdeadbeef);
@@ -268,7 +268,7 @@ static void test_getObjectUrl(void)
         ok(ret, "CryptGetObjectUrl failed: %08x\n", GetLastError());
         if (ret)
         {
-            urlArray = HeapAlloc(GetProcessHeap(), 0, urlArraySize);
+            urlArray = heap_alloc(urlArraySize);
             if (urlArray)
             {
                 ret = CryptGetObjectUrl(URL_OID_CERTIFICATE_ISSUER,
@@ -282,7 +282,7 @@ static void test_getObjectUrl(void)
 
                     compareUrlArray(&expectedUrl, urlArray);
                 }
-                HeapFree(GetProcessHeap(), 0, urlArray);
+                heap_free(urlArray);
             }
         }
         /* It doesn't have a CRL dist points extension, so this should fail */

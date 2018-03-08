@@ -92,7 +92,7 @@ static ULONG WINAPI dddo_Release(IDataObject* iface)
 
     TRACE("-- destroying DragDropDataObject (%p)\n", This);
     CFRelease(This->pasteboard);
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
     return 0;
 }
 
@@ -199,7 +199,7 @@ static HRESULT WINAPI dddo_EnumFormatEtc(IDataObject* iface, DWORD direction,
     formats = macdrv_get_pasteboard_formats(This->pasteboard, &count);
     if (formats)
     {
-        FORMATETC *formatEtcs = HeapAlloc(GetProcessHeap(), 0, count * sizeof(FORMATETC));
+        FORMATETC *formatEtcs = heap_alloc(count * sizeof(FORMATETC));
         if (formatEtcs)
         {
             INT i;
@@ -214,12 +214,12 @@ static HRESULT WINAPI dddo_EnumFormatEtc(IDataObject* iface, DWORD direction,
             }
 
             hr = SHCreateStdEnumFmtEtc(count, formatEtcs, enumFormatEtc);
-            HeapFree(GetProcessHeap(), 0, formatEtcs);
+            heap_free(formatEtcs);
         }
         else
             hr = E_OUTOFMEMORY;
 
-        HeapFree(GetProcessHeap(), 0, formats);
+        heap_free(formats);
     }
     else
         hr = SHCreateStdEnumFmtEtc(0, NULL, enumFormatEtc);
@@ -273,7 +273,7 @@ static IDataObject *create_data_object_for_pasteboard(CFTypeRef pasteboard)
 {
     DragDropDataObject *dddo;
 
-    dddo = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*dddo));
+    dddo = heap_alloc_zero(sizeof(*dddo));
     if (!dddo)
         return NULL;
 

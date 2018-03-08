@@ -80,7 +80,7 @@ static struct macdrv_window_surface *get_mac_surface(struct window_surface *surf
  */
 static void update_blit_data(struct macdrv_window_surface *surface)
 {
-    HeapFree(GetProcessHeap(), 0, surface->blit_data);
+    heap_free(surface->blit_data);
     surface->blit_data = NULL;
 
     if (surface->drawn)
@@ -208,9 +208,9 @@ static void macdrv_surface_destroy(struct window_surface *window_surface)
     struct macdrv_window_surface *surface = get_mac_surface(window_surface);
 
     TRACE("freeing %p bits %p\n", surface, surface->bits);
-    HeapFree(GetProcessHeap(), 0, surface->bits);
+    heap_free(surface->bits);
     pthread_mutex_destroy(&surface->mutex);
-    HeapFree(GetProcessHeap(), 0, surface);
+    heap_free(surface);
 }
 
 static const struct window_surface_funcs macdrv_surface_funcs =
@@ -252,7 +252,7 @@ struct window_surface *create_surface(macdrv_window window, const RECT *rect,
     }
     if (err)
     {
-        HeapFree(GetProcessHeap(), 0, surface);
+        heap_free(surface);
         return NULL;
     }
 
@@ -287,7 +287,7 @@ struct window_surface *create_surface(macdrv_window window, const RECT *rect,
     }
     update_blit_data(surface);
     surface->use_alpha = use_alpha;
-    surface->bits = HeapAlloc(GetProcessHeap(), 0, surface->info.bmiHeader.biSizeImage);
+    surface->bits = heap_alloc(surface->info.bmiHeader.biSizeImage);
     if (!surface->bits) goto failed;
     window_background = macdrv_window_background_color();
     memset_pattern4(surface->bits, &window_background, surface->info.bmiHeader.biSizeImage);

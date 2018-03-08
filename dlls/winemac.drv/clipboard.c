@@ -261,7 +261,7 @@ static WINE_CLIPFORMAT *insert_clipboard_format(UINT id, CFStringRef type)
 {
     WINE_CLIPFORMAT *format;
 
-    format = HeapAlloc(GetProcessHeap(), 0, sizeof(*format));
+    format = heap_alloc(sizeof(*format));
 
     if (format == NULL)
     {
@@ -283,7 +283,7 @@ static WINE_CLIPFORMAT *insert_clipboard_format(UINT id, CFStringRef type)
         if (!GetClipboardFormatNameW(format->format_id, buffer, sizeof(buffer) / sizeof(buffer[0])))
         {
             WARN("failed to get name for format %s; error 0x%08x\n", debugstr_format(format->format_id), GetLastError());
-            HeapFree(GetProcessHeap(), 0, format);
+            heap_free(format);
             return NULL;
         }
 
@@ -349,7 +349,7 @@ static void register_builtin_formats(void)
     /* Register built-in formats */
     for (i = 0; i < sizeof(builtin_format_ids)/sizeof(builtin_format_ids[0]); i++)
     {
-        if (!(format = HeapAlloc(GetProcessHeap(), 0, sizeof(*format)))) break;
+        if (!(format = heap_alloc(sizeof(*format)))) break;
         format->format_id       = builtin_format_ids[i].id;
         format->type            = CFRetain(builtin_format_ids[i].type);
         format->import_func     = builtin_format_ids[i].import;
@@ -362,7 +362,7 @@ static void register_builtin_formats(void)
     /* Register known mappings between Windows formats and Mac types */
     for (i = 0; i < sizeof(builtin_format_names)/sizeof(builtin_format_names[0]); i++)
     {
-        if (!(format = HeapAlloc(GetProcessHeap(), 0, sizeof(*format)))) break;
+        if (!(format = heap_alloc(sizeof(*format)))) break;
         format->format_id       = RegisterClipboardFormatW(builtin_format_names[i].name);
         format->import_func     = builtin_format_names[i].import;
         format->export_func     = builtin_format_names[i].export;
@@ -416,7 +416,7 @@ static WINE_CLIPFORMAT* format_for_type(CFStringRef type)
         LPWSTR name;
         int len = CFStringGetLength(type) - CFStringGetLength(registered_name_type_prefix);
 
-        name = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+        name = heap_alloc((len + 1) * sizeof(WCHAR));
         CFStringGetCharacters(type, CFRangeMake(CFStringGetLength(registered_name_type_prefix), len),
                               (UniChar*)name);
         name[len] = 0;
@@ -425,7 +425,7 @@ static WINE_CLIPFORMAT* format_for_type(CFStringRef type)
         if (!format)
             ERR("Failed to register format for type %s name %s\n", debugstr_cf(type), debugstr_w(name));
 
-        HeapFree(GetProcessHeap(), 0, name);
+        heap_free(name);
     }
 
 done:
@@ -755,14 +755,14 @@ static HANDLE import_nsfilenames_to_hdrop(CFDataRef data)
             len = this_len;
     }
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, len);
+    buffer = heap_alloc(len);
     if (!buffer)
     {
         WARN("failed to allocate buffer for file-system representations\n");
         goto done;
     }
 
-    paths = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, count * sizeof(paths[0]));
+    paths = heap_alloc_zero(count * sizeof(paths[0]));
     if (!paths)
     {
         WARN("failed to allocate array of DOS paths\n");
@@ -818,10 +818,10 @@ done:
     if (paths)
     {
         for (i = 0; i < count; i++)
-            HeapFree(GetProcessHeap(), 0, paths[i]);
-        HeapFree(GetProcessHeap(), 0, paths);
+            heap_free(paths[i]);
+        heap_free(paths);
     }
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
     if (names) CFRelease(names);
     return hdrop;
 }
@@ -888,7 +888,7 @@ static HANDLE import_utf8_to_unicodetext(CFDataRef data)
             new_lines++;
     }
 
-    if ((dst = HeapAlloc(GetProcessHeap(), 0, src_len + new_lines + 1)))
+    if ((dst = heap_alloc(src_len + new_lines + 1)))
     {
         UINT count;
 
@@ -911,7 +911,7 @@ static HANDLE import_utf8_to_unicodetext(CFDataRef data)
             GlobalUnlock(unicode_handle);
         }
 
-        HeapFree(GetProcessHeap(), 0, dst);
+        heap_free(dst);
     }
 
     return unicode_handle;
@@ -1117,9 +1117,9 @@ static CFDataRef export_hdrop_to_filenames(HANDLE data)
             {
                 if (len > buffer_len)
                 {
-                    HeapFree(GetProcessHeap(), 0, buffer);
+                    heap_free(buffer);
                     buffer_len = len * 2;
-                    buffer = HeapAlloc(GetProcessHeap(), 0, buffer_len * sizeof(*buffer));
+                    buffer = heap_alloc(buffer_len * sizeof(*buffer));
                 }
 
                 MultiByteToWideChar(CP_ACP, 0, p, -1, buffer, buffer_len);
@@ -1141,7 +1141,7 @@ static CFDataRef export_hdrop_to_filenames(HANDLE data)
             p = (char*)p + strlen(p) + 1;
 
         filename = CFStringCreateWithFileSystemRepresentation(NULL, unixname);
-        HeapFree(GetProcessHeap(), 0, unixname);
+        heap_free(unixname);
         if (!filename)
         {
             WARN("failed to create CFString from Unix path %s\n", debugstr_a(unixname));
@@ -1155,7 +1155,7 @@ static CFDataRef export_hdrop_to_filenames(HANDLE data)
     ret = CFPropertyListCreateData(NULL, filenames, kCFPropertyListXMLFormat_v1_0, 0, NULL);
 
 done:
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
     GlobalUnlock(data);
     if (filenames) CFRelease(filenames);
     TRACE(" -> %s\n", debugstr_cf(ret));
@@ -1253,7 +1253,7 @@ static CFDataRef export_text_to_utf8(HANDLE data)
 
         wstr_len = MultiByteToWideChar(CP_ACP, 0, str, str_len, NULL, 0);
         if (!str_len || str[str_len - 1]) wstr_len += 1;
-        wstr = HeapAlloc(GetProcessHeap(), 0, wstr_len * sizeof(WCHAR));
+        wstr = heap_alloc(wstr_len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, str, str_len, wstr, wstr_len);
         wstr[wstr_len - 1] = 0;
 
@@ -1491,7 +1491,7 @@ static WINE_CLIPFORMAT** get_formats_for_pasteboard_types(CFArrayRef types, UINT
         return NULL;
     }
 
-    formats = HeapAlloc(GetProcessHeap(), 0, count * sizeof(*formats));
+    formats = heap_alloc(count * sizeof(*formats));
     if (!formats)
     {
         WARN("Failed to allocate formats array\n");
@@ -1557,7 +1557,7 @@ static WINE_CLIPFORMAT** get_formats_for_pasteboard_types(CFArrayRef types, UINT
 
     if (!pos)
     {
-        HeapFree(GetProcessHeap(), 0, formats);
+        heap_free(formats);
         formats = NULL;
     }
 
@@ -1602,18 +1602,18 @@ UINT* macdrv_get_pasteboard_formats(CFTypeRef pasteboard, UINT* num_formats)
     if (!formats)
         return NULL;
 
-    format_ids = HeapAlloc(GetProcessHeap(), 0, count);
+    format_ids = heap_alloc(count);
     if (!format_ids)
     {
         WARN("Failed to allocate formats IDs array\n");
-        HeapFree(GetProcessHeap(), 0, formats);
+        heap_free(formats);
         return NULL;
     }
 
     for (i = 0; i < count; i++)
         format_ids[i] = formats[i]->format_id;
 
-    HeapFree(GetProcessHeap(), 0, formats);
+    heap_free(formats);
 
     *num_formats = count;
     return format_ids;
@@ -1649,9 +1649,9 @@ static UINT *get_clipboard_formats(UINT *size)
     *size = 256;
     for (;;)
     {
-        if (!(ids = HeapAlloc(GetProcessHeap(), 0, *size * sizeof(*ids)))) return NULL;
+        if (!(ids = heap_alloc(*size * sizeof(*ids)))) return NULL;
         if (GetUpdatedClipboardFormats(ids, *size, size)) break;
-        HeapFree(GetProcessHeap(), 0, ids);
+        heap_free(ids);
         if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) return NULL;
     }
     register_win32_formats(ids, *size);
@@ -1681,7 +1681,7 @@ static void set_mac_pasteboard_types_from_win32_clipboard(void)
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, formats);
+    heap_free(formats);
     return;
 }
 
@@ -1704,7 +1704,7 @@ static void set_win32_clipboard_formats_from_mac_pasteboard(CFArrayRef types)
         SetClipboardData(formats[i]->format_id, 0);
     }
 
-    HeapFree(GetProcessHeap(), 0, current_mac_formats);
+    heap_free(current_mac_formats);
     current_mac_formats = formats;
     nb_current_mac_formats = count;
 }

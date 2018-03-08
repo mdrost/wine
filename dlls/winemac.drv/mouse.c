@@ -295,7 +295,7 @@ CFArrayRef create_monochrome_cursor(HDC hdc, const ICONINFOEXW *icon, int width,
     info->bmiHeader.biClrUsed = 0;
     info->bmiHeader.biClrImportant = 0;
 
-    and_bits = HeapAlloc(GetProcessHeap(), 0, info->bmiHeader.biSizeImage);
+    and_bits = heap_alloc(info->bmiHeader.biSizeImage);
     if (!and_bits)
     {
         WARN("failed to allocate and_bits\n");
@@ -306,7 +306,7 @@ CFArrayRef create_monochrome_cursor(HDC hdc, const ICONINFOEXW *icon, int width,
     if (!GetDIBits(hdc, icon->hbmMask, 0, height * 2, and_bits, info, DIB_RGB_COLORS))
     {
         WARN("GetDIBits failed\n");
-        HeapFree(GetProcessHeap(), 0, and_bits);
+        heap_free(and_bits);
         return NULL;
     }
 
@@ -345,7 +345,7 @@ CFArrayRef create_monochrome_cursor(HDC hdc, const ICONINFOEXW *icon, int width,
     if (!data)
     {
         WARN("failed to create data\n");
-        HeapFree(GetProcessHeap(), 0, and_bits);
+        heap_free(and_bits);
         return NULL;
     }
 
@@ -362,7 +362,7 @@ CFArrayRef create_monochrome_cursor(HDC hdc, const ICONINFOEXW *icon, int width,
     {
         WARN("failed to create colorspace\n");
         CFRelease(data);
-        HeapFree(GetProcessHeap(), 0, and_bits);
+        heap_free(and_bits);
         return NULL;
     }
 
@@ -372,7 +372,7 @@ CFArrayRef create_monochrome_cursor(HDC hdc, const ICONINFOEXW *icon, int width,
     {
         WARN("failed to create data provider\n");
         CGColorSpaceRelease(colorspace);
-        HeapFree(GetProcessHeap(), 0, and_bits);
+        heap_free(and_bits);
         return NULL;
     }
 
@@ -384,7 +384,7 @@ CFArrayRef create_monochrome_cursor(HDC hdc, const ICONINFOEXW *icon, int width,
     if (!cgimage)
     {
         WARN("failed to create image\n");
-        HeapFree(GetProcessHeap(), 0, and_bits);
+        heap_free(and_bits);
         return NULL;
     }
 
@@ -394,7 +394,7 @@ CFArrayRef create_monochrome_cursor(HDC hdc, const ICONINFOEXW *icon, int width,
     {
         WARN("failed to create data\n");
         CGImageRelease(cgimage);
-        HeapFree(GetProcessHeap(), 0, and_bits);
+        heap_free(and_bits);
         return NULL;
     }
 
@@ -404,7 +404,7 @@ CFArrayRef create_monochrome_cursor(HDC hdc, const ICONINFOEXW *icon, int width,
     data_bits = (unsigned long*)CFDataGetMutableBytePtr(data);
     for (i = 0; i < count; i++)
         data_bits[i] &= ~xor_bits[i];
-    HeapFree(GetProcessHeap(), 0, and_bits);
+    heap_free(and_bits);
 
     provider = CGDataProviderCreateWithCFData(data);
     CFRelease(data);
@@ -579,7 +579,7 @@ static CFArrayRef create_color_cursor(HDC hdc, const ICONINFOEXW *iinfo, HANDLE 
     }
 
     /* Allocate all of the resources necessary to obtain a cursor frame */
-    if (!(info = HeapAlloc(GetProcessHeap(), 0, FIELD_OFFSET(BITMAPINFO, bmiColors[256])))) goto cleanup;
+    if (!(info = heap_alloc(FIELD_OFFSET(BITMAPINFO, bmiColors[256])))) goto cleanup;
     info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     info->bmiHeader.biWidth = width;
     info->bmiHeader.biHeight = -height;
@@ -640,7 +640,7 @@ cleanup:
     /* Cleanup all of the resources used to obtain the frame data */
     if (hbmColor) DeleteObject(hbmColor);
     if (hbmMask) DeleteObject(hbmMask);
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
     return frames;
 }
 

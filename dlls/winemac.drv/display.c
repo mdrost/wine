@@ -224,7 +224,7 @@ static BOOL write_display_settings(HKEY parent_hkey, CGDirectDisplayID displayID
 
     pixel_encoding = CGDisplayModeCopyPixelEncoding(display_mode);
     len = CFStringGetLength(pixel_encoding);
-    buf = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+    buf = heap_alloc((len + 1) * sizeof(WCHAR));
     CFStringGetCharacters(pixel_encoding, CFRangeMake(0, len), (UniChar*)buf);
     buf[len] = 0;
     CFRelease(pixel_encoding);
@@ -234,7 +234,7 @@ static BOOL write_display_settings(HKEY parent_hkey, CGDirectDisplayID displayID
     ret = TRUE;
 
 fail:
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     if (display_mode) CGDisplayModeRelease(display_mode);
     RegCloseKey(display_hkey);
     if (!ret)
@@ -310,7 +310,7 @@ static void free_display_mode_descriptor(struct display_mode_descriptor* desc)
     {
         if (desc->pixel_encoding)
             CFRelease(desc->pixel_encoding);
-        HeapFree(GetProcessHeap(), 0, desc);
+        heap_free(desc);
     }
 }
 
@@ -333,7 +333,7 @@ static struct display_mode_descriptor* create_original_display_mode_descriptor(C
     if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, display_key, 0, KEY_READ, &hkey))
         return NULL;
 
-    desc = HeapAlloc(GetProcessHeap(), 0, sizeof(*desc));
+    desc = heap_alloc(sizeof(*desc));
     desc->pixel_encoding = NULL;
 
     if (!read_dword(hkey, "Width", &desc->width) ||
@@ -356,7 +356,7 @@ static struct display_mode_descriptor* create_original_display_mode_descriptor(C
     size = 0;
     if (RegQueryValueExW(hkey, pixelencodingW, 0, &type, NULL, &size) || type != REG_SZ)
         goto done;
-    pixel_encoding = HeapAlloc(GetProcessHeap(), 0, size * sizeof(WCHAR));
+    pixel_encoding = heap_alloc(size * sizeof(WCHAR));
     if (RegQueryValueExW(hkey, pixelencodingW, 0, &type, (BYTE*)pixel_encoding, &size) || type != REG_SZ)
         goto done;
     if ((end = memchrW(pixel_encoding, 0, size)))
@@ -368,7 +368,7 @@ static struct display_mode_descriptor* create_original_display_mode_descriptor(C
 done:
     if (!ret)
         free_display_mode_descriptor(desc);
-    HeapFree(GetProcessHeap(), 0, pixel_encoding);
+    heap_free(pixel_encoding);
     RegCloseKey(hkey);
     return ret;
 }
@@ -659,10 +659,10 @@ static CFArrayRef copy_display_modes(CGDirectDisplayID display)
         CFRelease(modes);
 
         count = CFDictionaryGetCount(modes_by_size);
-        mode_array = HeapAlloc(GetProcessHeap(), 0, count * sizeof(mode_array[0]));
+        mode_array = heap_alloc(count * sizeof(mode_array[0]));
         CFDictionaryGetKeysAndValues(modes_by_size, NULL, (const void **)mode_array);
         modes = CFArrayCreate(NULL, (const void **)mode_array, count, &kCFTypeArrayCallBacks);
-        HeapFree(GetProcessHeap(), 0, mode_array);
+        heap_free(mode_array);
         CFRelease(modes_by_size);
     }
     else
@@ -1196,7 +1196,7 @@ BOOL macdrv_GetDeviceGammaRamp(PHYSDEV dev, LPVOID ramp)
     }
 
     mac_entries = CGDisplayGammaTableCapacity(displays[0].displayID);
-    red = HeapAlloc(GetProcessHeap(), 0, mac_entries * sizeof(red[0]) * 3);
+    red = heap_alloc(mac_entries * sizeof(red[0]) * 3);
     if (!red)
         goto done;
     green = red + mac_entries;
@@ -1251,7 +1251,7 @@ BOOL macdrv_GetDeviceGammaRamp(PHYSDEV dev, LPVOID ramp)
     ret = TRUE;
 
 done:
-    HeapFree(GetProcessHeap(), 0, red);
+    heap_free(red);
     macdrv_free_displays(displays);
     return ret;
 }
@@ -1335,7 +1335,7 @@ BOOL macdrv_SetDeviceGammaRamp(PHYSDEV dev, LPVOID ramp)
         return FALSE;
     }
 
-    red = HeapAlloc(GetProcessHeap(), 0, win_entries * sizeof(red[0]) * 3);
+    red = heap_alloc(win_entries * sizeof(red[0]) * 3);
     if (!red)
         goto done;
     green = red + win_entries;
@@ -1353,7 +1353,7 @@ BOOL macdrv_SetDeviceGammaRamp(PHYSDEV dev, LPVOID ramp)
         WARN("failed to set display gamma table: %d\n", err);
 
 done:
-    HeapFree(GetProcessHeap(), 0, red);
+    heap_free(red);
     macdrv_free_displays(displays);
     return (err == kCGErrorSuccess);
 }

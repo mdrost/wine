@@ -195,7 +195,7 @@ static BOOL add_icon(NOTIFYICONDATAW *nid)
         return FALSE;
     }
 
-    if (!(icon = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*icon))))
+    if (!(icon = heap_alloc_zero(sizeof(*icon))))
     {
         ERR("out of memory\n");
         return FALSE;
@@ -235,7 +235,7 @@ static BOOL delete_icon(struct tray_icon *icon)
     }
     list_remove(&icon->entry);
     DestroyIcon(icon->image);
-    HeapFree(GetProcessHeap(), 0, icon);
+    heap_free(icon);
     return TRUE;
 }
 

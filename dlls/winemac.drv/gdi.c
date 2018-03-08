@@ -186,7 +186,7 @@ static MACDRV_PDEVICE *create_mac_physdev(void)
     if (!device_data_valid) device_init();
     LeaveCriticalSection(&device_data_section);
 
-    if (!(physDev = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*physDev)))) return NULL;
+    if (!(physDev = heap_alloc_zero(sizeof(*physDev)))) return NULL;
 
     return physDev;
 }
@@ -237,7 +237,7 @@ static BOOL macdrv_DeleteDC(PHYSDEV dev)
 
     TRACE("hdc %p\n", dev->hdc);
 
-    HeapFree(GetProcessHeap(), 0, physDev);
+    heap_free(physDev);
     return TRUE;
 }
 

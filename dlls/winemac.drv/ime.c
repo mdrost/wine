@@ -497,9 +497,9 @@ static void IME_AddToSelected(HIMC hIMC)
 {
     hSelectedCount++;
     if (hSelectedFrom)
-        hSelectedFrom = HeapReAlloc(GetProcessHeap(), 0, hSelectedFrom, hSelectedCount * sizeof(HIMC));
+        hSelectedFrom = heap_realloc(hSelectedFrom, hSelectedCount * sizeof(HIMC));
     else
-        hSelectedFrom = HeapAlloc(GetProcessHeap(), 0, sizeof(HIMC));
+        hSelectedFrom = heap_alloc(sizeof(HIMC));
     hSelectedFrom[hSelectedCount - 1] = hIMC;
 }
 
@@ -550,7 +550,7 @@ DWORD WINAPI ImeConversionList(HIMC hIMC, LPCWSTR lpSource, LPCANDIDATELIST lpCa
 BOOL WINAPI ImeDestroy(UINT uForce)
 {
     TRACE("\n");
-    HeapFree(GetProcessHeap(), 0, hSelectedFrom);
+    heap_free(hSelectedFrom);
     hSelectedFrom = NULL;
     hSelectedCount = 0;
     return TRUE;
@@ -1399,7 +1399,7 @@ void macdrv_im_set_text(const macdrv_event *event)
 
         if (!chars)
         {
-            buffer = HeapAlloc(GetProcessHeap(), 0, length * sizeof(*buffer));
+            buffer = heap_alloc(length * sizeof(*buffer));
             CFStringGetCharacters(event->im_set_text.text, CFRangeMake(0, length), buffer);
             chars = buffer;
         }
@@ -1428,7 +1428,7 @@ void macdrv_im_set_text(const macdrv_event *event)
             }
         }
 
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     }
 
     if (event->im_set_text.complete)

@@ -99,7 +99,7 @@ TYPE1 *T1_download_header(PHYSDEV dev, char *ps_name, RECT *bbox, UINT emsize)
       " end\n"
       "currentdict end dup /FontName get exch definefont pop\n";
 
-    t1 = HeapAlloc(GetProcessHeap(), 0, sizeof(*t1));
+    t1 = heap_alloc(sizeof(*t1));
     t1->emsize = emsize;
 
     t1->glyph_sent_size = GLYPH_SENT_INC;
@@ -107,7 +107,7 @@ TYPE1 *T1_download_header(PHYSDEV dev, char *ps_name, RECT *bbox, UINT emsize)
 			       t1->glyph_sent_size *
 			       sizeof(*(t1->glyph_sent)));
 
-    buf = HeapAlloc(GetProcessHeap(), 0, sizeof(dict) + strlen(ps_name) +
+    buf = heap_alloc(sizeof(dict) + strlen(ps_name) +
 		    100);
 
     sprintf(buf, dict, ps_name, t1->emsize, t1->emsize,
@@ -115,7 +115,7 @@ TYPE1 *T1_download_header(PHYSDEV dev, char *ps_name, RECT *bbox, UINT emsize)
 
     PSDRV_WriteSpool(dev, buf, strlen(buf));
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     return t1;
 }
 
@@ -127,24 +127,24 @@ typedef struct {
 
 static STR *str_init(int sz)
 {
-  STR *str = HeapAlloc(GetProcessHeap(), 0, sizeof(*str));
+  STR *str = heap_alloc(sizeof(*str));
   str->max_len = sz;
-  str->str = HeapAlloc(GetProcessHeap(), 0, str->max_len);
+  str->str = heap_alloc(str->max_len);
   str->len = 0;
   return str;
 }
 
 static void str_free(STR *str)
 {
-  HeapFree(GetProcessHeap(), 0, str->str);
-  HeapFree(GetProcessHeap(), 0, str);
+  heap_free(str->str);
+  heap_free(str);
 }
 
 static void str_add_byte(STR *str, BYTE b)
 {
     if(str->len == str->max_len) {
         str->max_len *= 2;
-	str->str = HeapReAlloc(GetProcessHeap(), 0, str->str, str->max_len);
+	str->str = heap_realloc(str->str, str->max_len);
     }
     str->str[str->len++] = b;
 }
@@ -227,7 +227,7 @@ static BOOL get_glyf_pos(HDC hdc, DWORD index, DWORD *start, DWORD *end)
 
     len = GetFontData(hdc, MS_MAKE_TAG('h','e','a','d'), 0, NULL, 0);
     if (len == GDI_ERROR) return FALSE;
-    head = HeapAlloc(GetProcessHeap(), 0, len);
+    head = heap_alloc(len);
     GetFontData(hdc, MS_MAKE_TAG('h','e','a','d'), 0, head, len);
     loca_format = get_be_word(head + 50);
 
@@ -237,10 +237,10 @@ static BOOL get_glyf_pos(HDC hdc, DWORD index, DWORD *start, DWORD *end)
         len = GetFontData(hdc, MS_MAKE_TAG('C','F','F',' '), 0, NULL, 0);
         if (len != GDI_ERROR) FIXME( "CFF tables not supported yet\n" );
         else ERR( "loca table not found\n" );
-        HeapFree(GetProcessHeap(), 0, head);
+        heap_free(head);
         return FALSE;
     }
-    loca = HeapAlloc(GetProcessHeap(), 0, len);
+    loca = heap_alloc(len);
     GetFontData(hdc, MS_MAKE_TAG('l','o','c','a'), 0, loca, len);
 
     switch(loca_format) {
@@ -260,8 +260,8 @@ static BOOL get_glyf_pos(HDC hdc, DWORD index, DWORD *start, DWORD *end)
         ERR("Unknown loca_format %d\n", loca_format);
     }
 
-    HeapFree(GetProcessHeap(), 0, loca);
-    HeapFree(GetProcessHeap(), 0, head);
+    heap_free(loca);
+    heap_free(head);
     return ret;
 }
 
@@ -277,12 +277,12 @@ static BYTE *get_glyph_data(HDC hdc, DWORD index)
     len = end - start;
     if(!len) return NULL;
 
-    data = HeapAlloc(GetProcessHeap(), 0, len);
+    data = heap_alloc(len);
     if(!data) return NULL;
 
     if(GetFontData(hdc, MS_MAKE_TAG('g','l','y','f'), start, data, len) != len)
     {
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return NULL;
     }
     return data;
@@ -332,15 +332,15 @@ static BOOL append_simple_glyph(BYTE *data, glyph_outline *outline)
 
     if(outline->num_conts)
     {
-        outline->end_pts = HeapReAlloc(GetProcessHeap(), 0, outline->end_pts, (start_cont + num_conts) * sizeof(*outline->end_pts));
-        outline->flags   = HeapReAlloc(GetProcessHeap(), 0, outline->flags, start_pt + num_pts);
-        outline->pts     = HeapReAlloc(GetProcessHeap(), 0, outline->pts,  (start_pt + num_pts) * sizeof(*outline->pts));
+        outline->end_pts = heap_realloc(outline->end_pts, (start_cont + num_conts) * sizeof(*outline->end_pts));
+        outline->flags   = heap_realloc(outline->flags, start_pt + num_pts);
+        outline->pts     = heap_realloc(outline->pts,  (start_pt + num_pts) * sizeof(*outline->pts));
     }
     else
     {
-        outline->end_pts = HeapAlloc(GetProcessHeap(), 0, num_conts * sizeof(*outline->end_pts));
-        outline->flags   = HeapAlloc(GetProcessHeap(), 0, num_pts);
-        outline->pts     = HeapAlloc(GetProcessHeap(), 0, num_pts * sizeof(*outline->pts));
+        outline->end_pts = heap_alloc(num_conts * sizeof(*outline->end_pts));
+        outline->flags   = heap_alloc(num_pts);
+        outline->pts     = heap_alloc(num_pts * sizeof(*outline->pts));
     }
 
     outline->num_conts += num_conts;
@@ -524,7 +524,7 @@ static BOOL append_glyph_outline(HDC hdc, DWORD index, glyph_outline *outline)
     else if(num_conts > 0)
         append_simple_glyph(glyph_data, outline);
 
-    HeapFree(GetProcessHeap(), 0, glyph_data);
+    heap_free(glyph_data);
     return TRUE;
 }
 
@@ -645,11 +645,11 @@ BOOL T1_download_glyph(PHYSDEV dev, DOWNLOAD *pdl, DWORD index, char *glyph_name
     }
     str_add_cmd(charstring, endchar);
 
-    HeapFree(GetProcessHeap(), 0, outline.pts);
-    HeapFree(GetProcessHeap(), 0, outline.end_pts);
-    HeapFree(GetProcessHeap(), 0, outline.flags);
+    heap_free(outline.pts);
+    heap_free(outline.end_pts);
+    heap_free(outline.flags);
 
-    buf = HeapAlloc(GetProcessHeap(), 0, sizeof(glyph_def_begin) +
+    buf = heap_alloc(sizeof(glyph_def_begin) +
 		    strlen(pdl->ps_name) + strlen(glyph_name) + 100);
 
     sprintf(buf, "%%%%glyph %04x\n", index);
@@ -664,13 +664,13 @@ BOOL T1_download_glyph(PHYSDEV dev, DOWNLOAD *pdl, DWORD index, char *glyph_name
     str_free(charstring);
 
     t1->glyph_sent[index] = TRUE;
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     return TRUE;
 }
 
 void T1_free(TYPE1 *t1)
 {
-    HeapFree(GetProcessHeap(), 0, t1->glyph_sent);
-    HeapFree(GetProcessHeap(), 0, t1);
+    heap_free(t1->glyph_sent);
+    heap_free(t1);
     return;
 }

@@ -60,7 +60,7 @@ static void get_download_name(PHYSDEV dev, LPOUTLINETEXTMETRICA potm, char **str
     size = GetFontData(dev->hdc, MS_MAKE_TAG('n','a','m','e'), 0, NULL, 0);
     if(size != 0 && size != GDI_ERROR)
     {
-        BYTE *name = HeapAlloc(GetProcessHeap(), 0, size);
+        BYTE *name = heap_alloc(size);
         if(name)
         {
             USHORT count, i;
@@ -92,16 +92,16 @@ static void get_download_name(PHYSDEV dev, LPOUTLINETEXTMETRICA potm, char **str
                    name_record->language_id == 0 && name_record->name_id == 6)
                 {
                     TRACE("Got Mac PS name %s\n", debugstr_an((char*)strings + name_record->offset, name_record->length));
-                    *str = HeapAlloc(GetProcessHeap(), 0, name_record->length + sizeof(vertical_suffix));
+                    *str = heap_alloc(name_record->length + sizeof(vertical_suffix));
                     memcpy(*str, strings + name_record->offset, name_record->length);
                     *(*str + name_record->length) = '\0';
-                    HeapFree(GetProcessHeap(), 0, name);
+                    heap_free(name);
                     goto done;
                 }
                 if(name_record->platform_id == 3 && name_record->encoding_id == 1 &&
                    name_record->language_id == 0x409 && name_record->name_id == 6)
                 {
-                    WCHAR *unicode = HeapAlloc(GetProcessHeap(), 0, name_record->length + 2);
+                    WCHAR *unicode = heap_alloc(name_record->length + 2);
                     DWORD len;
                     int c;
 
@@ -110,20 +110,20 @@ static void get_download_name(PHYSDEV dev, LPOUTLINETEXTMETRICA potm, char **str
                     unicode[c] = 0;
                     TRACE("Got Windows PS name %s\n", debugstr_w(unicode));
                     len = WideCharToMultiByte(1252, 0, unicode, -1, NULL, 0, NULL, NULL);
-                    *str = HeapAlloc(GetProcessHeap(), 0, len + sizeof(vertical_suffix) - 1);
+                    *str = heap_alloc(len + sizeof(vertical_suffix) - 1);
                     WideCharToMultiByte(1252, 0, unicode, -1, *str, len, NULL, NULL);
-                    HeapFree(GetProcessHeap(), 0, unicode);
-                    HeapFree(GetProcessHeap(), 0, name);
+                    heap_free(unicode);
+                    heap_free(name);
                     goto done;
                 }
             }
             TRACE("Unable to find PostScript name\n");
-            HeapFree(GetProcessHeap(), 0, name);
+            heap_free(name);
         }
     }
 
     len = strlen((char*)potm + (ptrdiff_t)potm->otmpFaceName) + 1;
-    *str = HeapAlloc(GetProcessHeap(),0,len + sizeof(vertical_suffix) - 1);
+    *str = heap_alloc(len + sizeof(vertical_suffix) - 1);
     strcpy(*str, (char*)potm + (ptrdiff_t)potm->otmpFaceName);
 
 done:
@@ -282,7 +282,7 @@ BOOL PSDRV_WriteSetDownloadFont(PHYSDEV dev, BOOL vertical)
     if (!GetObjectW( GetCurrentObject(dev->hdc, OBJ_FONT), sizeof(lf), &lf ))
         return FALSE;
 
-    potm = HeapAlloc(GetProcessHeap(), 0, len);
+    potm = heap_alloc(len);
     if (!potm)
         return FALSE;
 
@@ -318,15 +318,15 @@ BOOL PSDRV_WriteSetDownloadFont(PHYSDEV dev, BOOL vertical)
         UINT emsize = get_bbox(dev->hdc, &bbox);
 
         if (!emsize) {
-            HeapFree(GetProcessHeap(), 0, ps_name);
-            HeapFree(GetProcessHeap(), 0, potm);
+            heap_free(ps_name);
+            heap_free(potm);
             return FALSE;
         }
         if(!is_room_for_font(physDev))
             PSDRV_EmptyDownloadList(dev, TRUE);
 
-        pdl = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*pdl));
-	pdl->ps_name = HeapAlloc(GetProcessHeap(), 0, strlen(ps_name)+1);
+        pdl = heap_alloc_zero(sizeof(*pdl));
+	pdl->ps_name = heap_alloc(strlen(ps_name)+1);
 	strcpy(pdl->ps_name, ps_name);
 	pdl->next = NULL;
 
@@ -356,8 +356,8 @@ BOOL PSDRV_WriteSetDownloadFont(PHYSDEV dev, BOOL vertical)
     PSDRV_WriteSetFont(dev, ps_name, physDev->font.size, escapement,
                         is_fake_italic( dev->hdc ));
 
-    HeapFree(GetProcessHeap(), 0, ps_name);
-    HeapFree(GetProcessHeap(), 0, potm);
+    heap_free(ps_name);
+    heap_free(potm);
     return TRUE;
 }
 
@@ -697,7 +697,7 @@ void get_glyph_name(HDC hdc, WORD index, char *name)
     size = GetFontData(hdc, MS_MAKE_TAG('p','o','s','t'), 0, NULL, 0);
     if(size < sizeof(*post_header) || size == GDI_ERROR)
         return;
-    post = HeapAlloc(GetProcessHeap(), 0, size);
+    post = heap_alloc(size);
     if(!post)
         return;
     size = GetFontData(hdc, MS_MAKE_TAG('p','o','s','t'), 0, post, size);
@@ -739,7 +739,7 @@ void get_glyph_name(HDC hdc, WORD index, char *name)
               HIWORD(post_header->format), LOWORD(post_header->format));
 
 cleanup:
-    HeapFree(GetProcessHeap(), 0, post);
+    heap_free(post);
 }
 
 /****************************************************************************
@@ -822,10 +822,10 @@ BOOL PSDRV_EmptyDownloadList(PHYSDEV dev, BOOL write_undef)
 	    assert(0);
 	}
 
-	HeapFree(GetProcessHeap(), 0, pdl->ps_name);
+	heap_free(pdl->ps_name);
 	old = pdl;
 	pdl = pdl->next;
-	HeapFree(GetProcessHeap(), 0, old);
+	heap_free(old);
     }
     return TRUE;
 }

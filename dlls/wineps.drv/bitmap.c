@@ -150,7 +150,7 @@ static inline DWORD max_ascii85_size(DWORD size)
 
 static void free_heap_bits( struct gdi_image_bits *bits )
 {
-    HeapFree( GetProcessHeap(), 0, bits->ptr );
+    heap_free( bits->ptr );
 }
 
 /***************************************************************************
@@ -171,14 +171,14 @@ static void PSDRV_WriteImageBits( PHYSDEV dev, const BITMAPINFO *info, BOOL gray
 	PSDRV_WriteImageHeader(dev, info, grayscale, xDst, yDst, widthDst, heightDst,
 			       widthSrc, heightSrc);
 
-    rle = HeapAlloc(GetProcessHeap(), 0, max_rle_size(size));
+    rle = heap_alloc(max_rle_size(size));
     rle_len = RLE_encode(bits, size, rle);
-    ascii85 = HeapAlloc(GetProcessHeap(), 0, max_ascii85_size(rle_len));
+    ascii85 = heap_alloc(max_ascii85_size(rle_len));
     ascii85_len = ASCII85_encode(rle, rle_len, ascii85);
-    HeapFree(GetProcessHeap(), 0, rle);
+    heap_free(rle);
     PSDRV_WriteData(dev, ascii85, ascii85_len);
     PSDRV_WriteSpool(dev, "~>\n", 3);
-    HeapFree(GetProcessHeap(), 0, ascii85);
+    heap_free(ascii85);
 }
 
 /***********************************************************************
@@ -222,7 +222,7 @@ DWORD PSDRV_PutImage( PHYSDEV dev, HRGN clip, BITMAPINFO *info,
 
     if (src_stride != dst_stride || (info->bmiHeader.biBitCount == 24 && !bits->is_copy))
     {
-        if (!(dst_bits.ptr = HeapAlloc( GetProcessHeap(), 0, size ))) return ERROR_OUTOFMEMORY;
+        if (!(dst_bits.ptr = heap_alloc( size ))) return ERROR_OUTOFMEMORY;
         dst_bits.is_copy = TRUE;
         dst_bits.free = free_heap_bits;
     }

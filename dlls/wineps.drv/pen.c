@@ -50,7 +50,7 @@ HPEN PSDRV_SelectPen( PHYSDEV dev, HPEN hpen, const struct brush_pattern *patter
 
         if (!size) return 0;
 
-        elp = HeapAlloc( GetProcessHeap(), 0, size );
+        elp = heap_alloc( size );
 
         GetObjectW( hpen, size, elp );
         /* FIXME: add support for user style pens */
@@ -132,7 +132,7 @@ HPEN PSDRV_SelectPen( PHYSDEV dev, HPEN hpen, const struct brush_pattern *patter
         physDev->pen.dash_len = 0;
     }
 
-    HeapFree( GetProcessHeap(), 0, elp );
+    heap_free( elp );
     physDev->pen.set = FALSE;
     return hpen;
 }

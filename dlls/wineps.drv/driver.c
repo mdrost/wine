@@ -442,12 +442,12 @@ static int (WINAPI *pPropertySheet) (LPCPROPSHEETHEADERW);
 static PRINTERINFO *PSDRV_FindPrinterInfoA(LPCSTR name)
 {
     int len = MultiByteToWideChar( CP_ACP, 0, name, -1, NULL, 0 );
-    WCHAR *nameW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+    WCHAR *nameW = heap_alloc( len * sizeof(WCHAR) );
     PRINTERINFO *pi;
 
     MultiByteToWideChar( CP_ACP, 0, name, -1, nameW, len );
     pi = PSDRV_FindPrinterInfo( nameW );
-    HeapFree( GetProcessHeap(), 0, nameW );
+    heap_free( nameW );
 
     return pi;
 }
@@ -470,7 +470,7 @@ static DEVMODEA *DEVMODEdupWtoA( const DEVMODEW *dmW )
     if (!dmW) return NULL;
     formname = (dmW->dmSize > off_formname);
     size = dmW->dmSize - CCHDEVICENAME - (formname ? CCHFORMNAME : 0);
-    dmA = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size + dmW->dmDriverExtra );
+    dmA = heap_alloc_zero( size + dmW->dmDriverExtra );
     WideCharToMultiByte( CP_ACP, 0, dmW->dmDeviceName, -1, (LPSTR)dmA->dmDeviceName,
                          CCHDEVICENAME, NULL, NULL );
     if (!formname)
@@ -543,7 +543,7 @@ INT PSDRV_ExtDeviceMode(LPSTR lpszDriver, HWND hwnd, LPDEVMODEA lpdmOutput,
     DEVMODEW *dmW = GdiConvertToDevmodeW( lpdmInput );
     TRACE("DM_MODIFY set. devIn->dmFields = %08x\n", lpdmInput->dmFields);
     if (dmW) PSDRV_MergeDevmodes(pi->Devmode, (PSDRV_DEVMODE *)dmW, pi);
-    HeapFree( GetProcessHeap(), 0, dmW );
+    heap_free( dmW );
   }
 
   /* If DM_PROMPT is set, present modal dialog box */
@@ -595,7 +595,7 @@ INT PSDRV_ExtDeviceMode(LPSTR lpszDriver, HWND hwnd, LPDEVMODEA lpdmOutput,
     {
         DEVMODEA *dmA = DEVMODEdupWtoA( &pi->Devmode->dmPublic );
         if (dmA) memcpy( lpdmOutput, dmA, dmA->dmSize + dmA->dmDriverExtra );
-        HeapFree( GetProcessHeap(), 0, dmA );
+        heap_free( dmA );
     }
     else
         FIXME("lpdmOutput is NULL what should we do??\n");
@@ -946,7 +946,7 @@ DWORD PSDRV_DeviceCapabilities(LPSTR lpszDriver, LPCSTR lpszDevice, LPCSTR lpszP
     ret = -1;
   }
 
-  if (lpDevMode) HeapFree( GetProcessHeap(), 0, lpdm );
+  if (lpDevMode) heap_free( lpdm );
   return ret;
 }
 

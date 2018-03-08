@@ -351,13 +351,13 @@ static PSDRV_PDEVICE *create_psdrv_physdev( PRINTERINFO *pi )
 {
     PSDRV_PDEVICE *physDev;
 
-    physDev = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*physDev) );
+    physDev = heap_alloc_zero( sizeof(*physDev) );
     if (!physDev) return NULL;
 
-    physDev->Devmode = HeapAlloc( GetProcessHeap(), 0, sizeof(PSDRV_DEVMODE) );
+    physDev->Devmode = heap_alloc( sizeof(PSDRV_DEVMODE) );
     if (!physDev->Devmode)
     {
-        HeapFree( GetProcessHeap(), 0, physDev );
+        heap_free( physDev );
 	return NULL;
     }
 
@@ -441,9 +441,9 @@ static BOOL PSDRV_DeleteDC( PHYSDEV dev )
 
     TRACE("\n");
 
-    HeapFree( GetProcessHeap(), 0, physDev->Devmode );
-    HeapFree( GetProcessHeap(), 0, physDev->job.output );
-    HeapFree( GetProcessHeap(), 0, physDev );
+    heap_free( physDev->Devmode );
+    heap_free( physDev->job.output );
+    heap_free( physDev );
 
     return TRUE;
 }
@@ -646,7 +646,7 @@ static WCHAR *get_ppd_filename( HANDLE printer )
 
     GetPrinterDriverW( printer, NULL, 2, NULL, 0, &needed );
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) return NULL;
-    info = HeapAlloc( GetProcessHeap(), 0, needed );
+    info = heap_alloc( needed );
     if (!info) return NULL;
     GetPrinterDriverW( printer, NULL, 2, (BYTE*)info, needed, &needed );
     name = (WCHAR *)info;
@@ -690,7 +690,7 @@ PRINTERINFO *PSDRV_FindPrinterInfo(LPCWSTR name)
     }
 
     len = WideCharToMultiByte( CP_ACP, 0, name, -1, NULL, 0, NULL, NULL );
-    nameA = HeapAlloc( GetProcessHeap(), 0, len );
+    nameA = heap_alloc( len );
     WideCharToMultiByte( CP_ACP, 0, name, -1, nameA, len, NULL, NULL );
 
     pi->Devmode = get_devmode( hPrinter, name, &using_default_devmode );
@@ -762,8 +762,8 @@ PRINTERINFO *PSDRV_FindPrinterInfo(LPCWSTR name)
 
     }
     ClosePrinter( hPrinter );
-    HeapFree( GetProcessHeap(), 0, nameA );
-    HeapFree( GetProcessHeap(), 0, ppd_filename );
+    heap_free( nameA );
+    heap_free( ppd_filename );
     list_add_head( &printer_list, &pi->entry );
     return pi;
 
@@ -773,8 +773,8 @@ fail:
     HeapFree(PSDRV_Heap, 0, pi->friendly_name);
     HeapFree(PSDRV_Heap, 0, pi->Devmode);
     HeapFree(PSDRV_Heap, 0, pi);
-    HeapFree( GetProcessHeap(), 0, nameA );
-    HeapFree( GetProcessHeap(), 0, ppd_filename );
+    heap_free( nameA );
+    heap_free( ppd_filename );
     return NULL;
 }
 

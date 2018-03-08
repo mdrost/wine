@@ -61,7 +61,7 @@ static Run* build_vertical_runs(PHYSDEV dev, UINT flags, LPCWSTR str, UINT count
     BOOL last_vert;
     INT start, end;
     INT array_size = 5;
-    Run *run = HeapAlloc(GetProcessHeap(),0,sizeof(Run)*array_size);
+    Run *run = heap_alloc(sizeof(Run)*array_size);
     int index = 0;
     LOGFONTW lf;
 
@@ -107,7 +107,7 @@ static Run* build_vertical_runs(PHYSDEV dev, UINT flags, LPCWSTR str, UINT count
             if (index >= array_size)
             {
                 array_size *=2;
-                run = HeapReAlloc(GetProcessHeap(), 0, run, sizeof(Run)*array_size);
+                run = heap_realloc(run, sizeof(Run)*array_size);
             }
             start = end;
             if (start < count)
@@ -198,7 +198,7 @@ BOOL PSDRV_ExtTextOut( PHYSDEV dev, INT x, INT y, UINT flags, const RECT *lprect
         PSDRV_ResetClip(dev);
     }
 
-    HeapFree(GetProcessHeap(),0,runs);
+    heap_free(runs);
     return bResult;
 }
 
@@ -216,7 +216,7 @@ static BOOL PSDRV_Text(PHYSDEV dev, INT x, INT y, UINT flags, LPCWSTR str,
 
     if(physDev->font.fontloc == Download && !(flags & ETO_GLYPH_INDEX))
     {
-        glyphs = HeapAlloc( GetProcessHeap(), 0, count * sizeof(WORD) );
+        glyphs = heap_alloc( count * sizeof(WORD) );
         GetGlyphIndicesW( dev->hdc, str, count, glyphs, 0 );
         str = glyphs;
     }
@@ -253,6 +253,6 @@ static BOOL PSDRV_Text(PHYSDEV dev, INT x, INT y, UINT flags, LPCWSTR str,
 	    PSDRV_WriteBuiltinGlyphShow(dev, str + i, 1);
     }
 
-    HeapFree( GetProcessHeap(), 0, glyphs );
+    heap_free( glyphs );
     return TRUE;
 }

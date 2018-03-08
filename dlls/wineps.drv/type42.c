@@ -103,7 +103,7 @@ static BOOL LoadTable(HDC hdc, OTTable *table)
 
     if(table->MS_tag == MS_MAKE_TAG('g','d','i','r')) return TRUE;
     table->len = GetFontData(hdc, table->MS_tag, 0, NULL, 0);
-    table->data = HeapAlloc(GetProcessHeap(), 0, (table->len + 3) & ~3 );
+    table->data = heap_alloc((table->len + 3) & ~3 );
     memset(table->data + ((table->len - 1) & ~3), 0, sizeof(DWORD));
     GetFontData(hdc, table->MS_tag, 0, table->data, table->len);
     table->check = 0;
@@ -166,7 +166,7 @@ TYPE42 *T42_download_header(PHYSDEV dev, char *ps_name,
       "currentdict end dup /FontName get exch definefont pop\n";
 
 
-    t42 = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*t42));
+    t42 = heap_alloc_zero(sizeof(*t42));
     memcpy(t42->tables, tables_templ, sizeof(tables_templ));
     t42->loca_tab = t42->glyf_tab = t42->head_tab = t42->hmtx_tab = -1;
     t42->emsize = emsize;
@@ -198,7 +198,7 @@ TYPE42 *T42_download_header(PHYSDEV dev, char *ps_name,
 				t42->glyph_sent_size *
 				sizeof(*(t42->glyph_sent)));
 
-    buf = HeapAlloc(GetProcessHeap(), 0, sizeof(start) + strlen(ps_name) +
+    buf = heap_alloc(sizeof(start) + strlen(ps_name) +
 		    100);
 
     push_lc_numeric("C");
@@ -248,7 +248,7 @@ TYPE42 *T42_download_header(PHYSDEV dev, char *ps_name,
     /* glyf_blocks is a 0 terminated list, holding the start offset of each block.  For simplicity
        glyf_blocks[0] is 0 */
     nb_blocks = 2;
-    t42->glyf_blocks = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (nb_blocks + 1) * sizeof(DWORD));
+    t42->glyf_blocks = heap_alloc_zero((nb_blocks + 1) * sizeof(DWORD));
     for(i = 0; i < GET_BE_WORD(t42->tables[t42->maxp_tab].data + 4); i++) {
         DWORD start, end, size;
         get_glyf_pos(t42, i, &start, &end);
@@ -272,7 +272,7 @@ TYPE42 *T42_download_header(PHYSDEV dev, char *ps_name,
     PSDRV_WriteSpool(dev, storage, sizeof(storage) - 1);
     sprintf(buf, end, loca_off, glyf_off);
     PSDRV_WriteSpool(dev, buf, strlen(buf));
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     return t42;
 }
 
@@ -345,7 +345,7 @@ BOOL T42_download_glyph(PHYSDEV dev, DOWNLOAD *pdl, DWORD index,
     for(i = 1; t42->glyf_blocks[i]; i++)
         if(start < t42->glyf_blocks[i]) break;
 
-    buf = HeapAlloc(GetProcessHeap(), 0, sizeof(glyph_def) +
+    buf = heap_alloc(sizeof(glyph_def) +
 		    strlen(pdl->ps_name) + 100);
 
     /* we don't have a string for the gdir and glyf tables, but we do have a 
@@ -365,7 +365,7 @@ BOOL T42_download_glyph(PHYSDEV dev, DOWNLOAD *pdl, DWORD index,
     PSDRV_WriteSpool(dev, buf, strlen(buf));
 
     t42->glyph_sent[index] = TRUE;
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     return TRUE;
 }
 
@@ -373,9 +373,9 @@ void T42_free(TYPE42 *t42)
 {
     OTTable *table;
     for(table = t42->tables; table->MS_tag; table++)
-        HeapFree(GetProcessHeap(), 0, table->data);
-    HeapFree(GetProcessHeap(), 0, t42->glyph_sent);
-    HeapFree(GetProcessHeap(), 0, t42->glyf_blocks);
-    HeapFree(GetProcessHeap(), 0, t42);
+        heap_free(table->data);
+    heap_free(t42->glyph_sent);
+    heap_free(t42->glyf_blocks);
+    heap_free(t42);
     return;
 }

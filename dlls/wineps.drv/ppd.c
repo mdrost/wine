@@ -426,7 +426,7 @@ static BOOL PSDRV_PPDGetNextTuple(struct map_context *ctx, PPDTuple *tuple)
         cp = strpbrk(opt, ":/");
 	if(!cp) {
 	    ERR("Error in line '%s'?\n", line);
-            HeapFree(GetProcessHeap(), 0, tuple->key);
+            heap_free(tuple->key);
 	    goto start;
 	}
 	tuple->option = HeapAlloc( PSDRV_Heap, 0, cp - opt + 1 );
@@ -439,8 +439,8 @@ static BOOL PSDRV_PPDGetNextTuple(struct map_context *ctx, PPDTuple *tuple)
 	    cp = strchr(trans, ':');
 	    if(!cp) {
 	        ERR("Error in line '%s'?\n", line);
-                HeapFree(GetProcessHeap(), 0, tuple->option);
-                HeapFree(GetProcessHeap(), 0, tuple->key);
+                heap_free(tuple->option);
+                heap_free(tuple->key);
 		goto start;
 	    }
 	    buf = HeapAlloc( PSDRV_Heap, 0, cp - trans + 1 );
@@ -776,7 +776,7 @@ PPD *PSDRV_ParsePPD( const WCHAR *fname, HANDLE printer )
 
                 TRACE("Resolution %dx%d, invocation %s\n", sz.cx, sz.cy, tuple.value);
 
-                res = HeapAlloc( GetProcessHeap(), 0, sizeof(*res) );
+                res = heap_alloc( sizeof(*res) );
                 res->resx = sz.cx;
                 res->resy = sz.cy;
                 res->InvocationString = tuple.value;
@@ -984,7 +984,7 @@ PPD *PSDRV_ParsePPD( const WCHAR *fname, HANDLE printer )
 
         else if(!strcmp("*Duplex", tuple.key))
         {
-            DUPLEX *duplex = HeapAlloc( GetProcessHeap(), 0, sizeof(*duplex) );
+            DUPLEX *duplex = heap_alloc( sizeof(*duplex) );
             duplex->Name = tuple.option;
             duplex->FullName = tuple.opttrans;
             duplex->InvocationString = tuple.value;

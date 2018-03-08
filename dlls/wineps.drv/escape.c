@@ -483,7 +483,7 @@ INT PSDRV_EndDoc( PHYSDEV dev )
     ClosePrinter(physDev->job.hprinter);
     physDev->job.hprinter = NULL;
     physDev->job.id = 0;
-    HeapFree( GetProcessHeap(), 0, physDev->job.doc_name );
+    heap_free( physDev->job.doc_name );
     physDev->job.doc_name = NULL;
 
     return ret;

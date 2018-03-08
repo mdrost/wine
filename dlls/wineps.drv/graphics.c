@@ -315,7 +315,7 @@ BOOL PSDRV_PolyPolyline( PHYSDEV dev, const POINT* pts, const DWORD* counts, DWO
     TRACE("\n");
 
     for (polyline = total = 0; polyline < polylines; polyline++) total += counts[polyline];
-    if (!(dev_pts = HeapAlloc( GetProcessHeap(), 0, total * sizeof(*dev_pts) ))) return FALSE;
+    if (!(dev_pts = heap_alloc( total * sizeof(*dev_pts) ))) return FALSE;
     memcpy( dev_pts, pts, total * sizeof(*dev_pts) );
     LPtoDP( dev->hdc, dev_pts, total );
 
@@ -331,7 +331,7 @@ BOOL PSDRV_PolyPolyline( PHYSDEV dev, const POINT* pts, const DWORD* counts, DWO
         for(line = 1; line < counts[polyline]; line++, pt++)
             PSDRV_WriteLineTo(dev, pt->x, pt->y);
     }
-    HeapFree( GetProcessHeap(), 0, dev_pts );
+    heap_free( dev_pts );
 
     PSDRV_DrawLine(dev);
     PSDRV_ResetClip(dev);
@@ -351,7 +351,7 @@ BOOL PSDRV_PolyPolygon( PHYSDEV dev, const POINT* pts, const INT* counts, UINT p
     TRACE("\n");
 
     for (polygon = total = 0; polygon < polygons; polygon++) total += counts[polygon];
-    if (!(dev_pts = HeapAlloc( GetProcessHeap(), 0, total * sizeof(*dev_pts) ))) return FALSE;
+    if (!(dev_pts = heap_alloc( total * sizeof(*dev_pts) ))) return FALSE;
     memcpy( dev_pts, pts, total * sizeof(*dev_pts) );
     LPtoDP( dev->hdc, dev_pts, total );
 
@@ -368,7 +368,7 @@ BOOL PSDRV_PolyPolygon( PHYSDEV dev, const POINT* pts, const INT* counts, UINT p
             PSDRV_WriteLineTo(dev, pt->x, pt->y);
 	PSDRV_WriteClosePath(dev);
     }
-    HeapFree( GetProcessHeap(), 0, dev_pts );
+    heap_free( dev_pts );
 
     if(GetPolyFillMode( dev->hdc ) == ALTERNATE)
         PSDRV_Brush(dev, 1);
@@ -391,7 +391,7 @@ BOOL PSDRV_PolyBezier( PHYSDEV dev, const POINT *pts, DWORD count )
 
     TRACE("\n");
 
-    if (!(dev_pts = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*dev_pts) ))) return FALSE;
+    if (!(dev_pts = heap_alloc( count * sizeof(*dev_pts) ))) return FALSE;
     memcpy( dev_pts, pts, count * sizeof(*dev_pts) );
     LPtoDP( dev->hdc, dev_pts, count );
 
@@ -402,7 +402,7 @@ BOOL PSDRV_PolyBezier( PHYSDEV dev, const POINT *pts, DWORD count )
     for (i = 1; i < count; i += 3) PSDRV_WriteCurveTo( dev, dev_pts + i );
     PSDRV_DrawLine(dev);
     PSDRV_ResetClip(dev);
-    HeapFree( GetProcessHeap(), 0, dev_pts );
+    heap_free( dev_pts );
     return TRUE;
 }
 
@@ -418,7 +418,7 @@ BOOL PSDRV_PolyBezierTo( PHYSDEV dev, const POINT *pts, DWORD count )
     TRACE("\n");
 
     count++;  /* add initial position */
-    if (!(dev_pts = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*dev_pts) ))) return FALSE;
+    if (!(dev_pts = heap_alloc( count * sizeof(*dev_pts) ))) return FALSE;
     GetCurrentPositionEx( dev->hdc, dev_pts );
     memcpy( dev_pts + 1, pts, (count - 1) * sizeof(*dev_pts) );
     LPtoDP( dev->hdc, dev_pts, count );
@@ -430,7 +430,7 @@ BOOL PSDRV_PolyBezierTo( PHYSDEV dev, const POINT *pts, DWORD count )
     for (i = 1; i < count; i += 3) PSDRV_WriteCurveTo( dev, dev_pts + i );
     PSDRV_DrawLine(dev);
     PSDRV_ResetClip(dev);
-    HeapFree( GetProcessHeap(), 0, dev_pts );
+    heap_free( dev_pts );
     return TRUE;
 }
 
@@ -472,7 +472,7 @@ BOOL PSDRV_PaintRgn( PHYSDEV dev, HRGN hrgn )
     TRACE("hdc=%p\n", dev->hdc);
 
     size = GetRegionData(hrgn, 0, NULL);
-    rgndata = HeapAlloc( GetProcessHeap(), 0, size );
+    rgndata = heap_alloc( size );
     if(!rgndata) {
         ERR("Can't allocate buffer\n");
         return FALSE;
@@ -493,7 +493,7 @@ BOOL PSDRV_PaintRgn( PHYSDEV dev, HRGN hrgn )
     PSDRV_ResetClip(dev);
 
  end:
-    HeapFree(GetProcessHeap(), 0, rgndata);
+    heap_free(rgndata);
     return TRUE;
 }
 
@@ -510,8 +510,8 @@ static BOOL paint_path( PHYSDEV dev, BOOL stroke, BOOL fill )
         AbortPath( dev->hdc );
         return TRUE;
     }
-    points = HeapAlloc( GetProcessHeap(), 0, size * sizeof(*points) );
-    types = HeapAlloc( GetProcessHeap(), 0, size * sizeof(*types) );
+    points = heap_alloc( size * sizeof(*points) );
+    types = heap_alloc( size * sizeof(*types) );
     if (!points || !types) goto done;
     if (GetPath( dev->hdc, points, types, size ) == -1) goto done;
     LPtoDP( dev->hdc, points, size );
@@ -545,8 +545,8 @@ static BOOL paint_path( PHYSDEV dev, BOOL stroke, BOOL fill )
     AbortPath( dev->hdc );
 
 done:
-    HeapFree( GetProcessHeap(), 0, points );
-    HeapFree( GetProcessHeap(), 0, types );
+    heap_free( points );
+    heap_free( types );
     return ret;
 }
 

@@ -35,7 +35,7 @@ void PSDRV_AddClip( PHYSDEV dev, HRGN hrgn )
     DWORD i, size = GetRegionData(hrgn, 0, NULL);
 
     if (!size) return;
-    if (!(data = HeapAlloc( GetProcessHeap(), 0, size ))) return;
+    if (!(data = heap_alloc( size ))) return;
     GetRegionData( hrgn, size, data );
     rect = (RECT *)data->Buffer;
 
@@ -62,7 +62,7 @@ void PSDRV_AddClip( PHYSDEV dev, HRGN hrgn )
         PSDRV_WriteRectClip2(dev, szArrayName);
         break;
     }
-    HeapFree( GetProcessHeap(), 0, data );
+    heap_free( data );
 }
 
 /***********************************************************************

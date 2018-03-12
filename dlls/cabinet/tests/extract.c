@@ -125,12 +125,12 @@ static void delete_test_files(void)
 
 static void * CDECL mem_alloc(ULONG cb)
 {
-    return HeapAlloc(GetProcessHeap(), 0, cb);
+    return heap_alloc(cb);
 }
 
 static void CDECL mem_free(void *memory)
 {
-    HeapFree(GetProcessHeap(), 0, memory);
+    heap_free(memory);
 }
 
 static BOOL CDECL get_next_cabinet(PCCAB pccab, ULONG  cbPrevCab, void *pv)
@@ -228,17 +228,17 @@ static BOOL CDECL get_temp_file(char *pszTempName, int cbTempName, void *pv)
 {
     LPSTR tempname;
 
-    tempname = HeapAlloc(GetProcessHeap(), 0, MAX_PATH);
+    tempname = heap_alloc(MAX_PATH);
     GetTempFileNameA(".", "xx", 0, tempname);
 
     if (tempname && (strlen(tempname) < (unsigned)cbTempName))
     {
         lstrcpyA(pszTempName, tempname);
-        HeapFree(GetProcessHeap(), 0, tempname);
+        heap_free(tempname);
         return TRUE;
     }
 
-    HeapFree(GetProcessHeap(), 0, tempname);
+    heap_free(tempname);
 
     return FALSE;
 }
@@ -343,8 +343,8 @@ static BOOL check_list(struct FILELIST **node, const char *filename, BOOL do_ext
 
 static void free_file_node(struct FILELIST *node)
 {
-    HeapFree(GetProcessHeap(), 0, node->FileName);
-    HeapFree(GetProcessHeap(), 0, node);
+    heap_free(node->FileName);
+    heap_free(node);
 }
 
 static void free_file_list(SESSION* session)

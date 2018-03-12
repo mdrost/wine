@@ -134,7 +134,7 @@ struct mem_data
 
 static void * CDECL fdi_alloc(ULONG cb)
 {
-    return HeapAlloc(GetProcessHeap(), 0, cb);
+    return heap_alloc(cb);
 }
 
 static void * CDECL fdi_alloc_bad(ULONG cb)
@@ -144,7 +144,7 @@ static void * CDECL fdi_alloc_bad(ULONG cb)
 
 static void CDECL fdi_free(void *pv)
 {
-    HeapFree(GetProcessHeap(), 0, pv);
+    heap_free(pv);
 }
 
 static INT_PTR CDECL fdi_open(char *pszFile, int oflag, int pmode)
@@ -446,12 +446,12 @@ static void delete_test_files(void)
 
 static void * CDECL mem_alloc(ULONG cb)
 {
-    return HeapAlloc(GetProcessHeap(), 0, cb);
+    return heap_alloc(cb);
 }
 
 static void CDECL mem_free(void *memory)
 {
-    HeapFree(GetProcessHeap(), 0, memory);
+    heap_free(memory);
 }
 
 static BOOL CDECL get_next_cabinet(PCCAB pccab, ULONG  cbPrevCab, void *pv)
@@ -549,17 +549,17 @@ static BOOL CDECL get_temp_file(char *pszTempName, int cbTempName, void *pv)
 {
     LPSTR tempname;
 
-    tempname = HeapAlloc(GetProcessHeap(), 0, MAX_PATH);
+    tempname = heap_alloc(MAX_PATH);
     GetTempFileNameA(".", "xx", 0, tempname);
 
     if (tempname && (strlen(tempname) < (unsigned)cbTempName))
     {
         lstrcpyA(pszTempName, tempname);
-        HeapFree(GetProcessHeap(), 0, tempname);
+        heap_free(tempname);
         return TRUE;
     }
 
-    HeapFree(GetProcessHeap(), 0, tempname);
+    heap_free(tempname);
 
     return FALSE;
 }
@@ -756,7 +756,7 @@ static INT_PTR CDECL fdi_mem_open(char *name, int oflag, int pmode)
     ok(oflag == _O_BINARY, "expected _O_BINARY, got %x\n", oflag);
     ok(pmode == (_S_IREAD | _S_IWRITE), "expected _S_IREAD | _S_IWRITE, got %x\n", pmode);
 
-    data = HeapAlloc(GetProcessHeap(), 0, sizeof(*data));
+    data = heap_alloc(sizeof(*data));
     if (!data) return -1;
 
     data->base = (const char *)&cab_data;
@@ -797,7 +797,7 @@ static UINT CDECL fdi_mem_write(INT_PTR hf, void *pv, UINT cb)
 
 static int CDECL fdi_mem_close(INT_PTR hf)
 {
-    HeapFree(GetProcessHeap(), 0, (void *)hf);
+    heap_free((void *)hf);
     return 0;
 }
 

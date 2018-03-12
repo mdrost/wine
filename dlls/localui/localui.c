@@ -90,7 +90,7 @@ static LPWSTR strdupWW(LPCWSTR pPrefix, LPCWSTR pSuffix)
     DWORD   len;
 
     len = lstrlenW(pPrefix) + (pSuffix ? lstrlenW(pSuffix) : 0) + 1;
-    ptr = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    ptr = heap_alloc(len * sizeof(WCHAR));
     if (ptr) {
         lstrcpyW(ptr, pPrefix);
         if (pSuffix) lstrcatW(ptr, pSuffix);
@@ -114,7 +114,7 @@ static BOOL dlg_configure_com(HANDLE hXcv, HWND hWnd, PCWSTR pPortName)
 
     /* strip the colon (pPortName is never empty here) */
     len = lstrlenW(pPortName);
-    shortname = HeapAlloc(GetProcessHeap(), 0, len  * sizeof(WCHAR));
+    shortname = heap_alloc(len  * sizeof(WCHAR));
     if (shortname) {
         memcpy(shortname, pPortName, (len -1) * sizeof(WCHAR));
         shortname[len-1] = '\0';
@@ -138,7 +138,7 @@ static BOOL dlg_configure_com(HANDLE hXcv, HWND hWnd, PCWSTR pPortName)
                                (PBYTE) &dummy, 0, &len, &status);
             }
         }
-        HeapFree(GetProcessHeap(), 0, shortname);
+        heap_free(shortname);
         return res;
     }
     return FALSE;
@@ -184,12 +184,12 @@ static void dlg_port_already_exists(HWND hWnd, LPCWSTR portname)
     LoadStringW(LOCALUI_hInstance, IDS_PORTEXISTS, res_PortExistsW, IDS_PORTEXISTS_MAXLEN);
 
     len = lstrlenW(portname) + IDS_PORTEXISTS_MAXLEN + 1;
-    message = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    message = heap_alloc(len * sizeof(WCHAR));
     if (message) {
         message[0] = '\0';
         snprintfW(message, len, res_PortExistsW, portname);
         MessageBoxW(hWnd, message, res_PortW, MB_OK | MB_ICONERROR);
-        HeapFree(GetProcessHeap(), 0, message);
+        heap_free(message);
     }
 }
 
@@ -210,12 +210,12 @@ static void dlg_invalid_portname(HWND hWnd, LPCWSTR portname)
     LoadStringW(LOCALUI_hInstance, IDS_INVALIDNAME, res_InvalidNameW, IDS_INVALIDNAME_MAXLEN);
 
     len = lstrlenW(portname) + IDS_INVALIDNAME_MAXLEN;
-    message = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    message = heap_alloc(len * sizeof(WCHAR));
     if (message) {
         message[0] = '\0';
         snprintfW(message, len, res_InvalidNameW, portname);
         MessageBoxW(hWnd, message, res_PortW, MB_OK | MB_ICONERROR);
-        HeapFree(GetProcessHeap(), 0, message);
+        heap_free(message);
     }
 }
 
@@ -284,7 +284,7 @@ static INT_PTR CALLBACK dlgproc_addport(HWND hwnd, UINT msg, WPARAM wparam, LPAR
             data = (addportui_t *) GetWindowLongPtrW(hwnd, DWLP_USER);
             /* length in WCHAR, without the '\0' */
             len = SendDlgItemMessageW(hwnd, ADDPORT_EDIT, WM_GETTEXTLENGTH, 0, 0);
-            data->portname = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+            data->portname = heap_alloc((len + 1) * sizeof(WCHAR));
 
             if (!data->portname) {
                 EndDialog(hwnd, FALSE);
@@ -306,13 +306,13 @@ static INT_PTR CALLBACK dlgproc_addport(HWND hwnd, UINT msg, WPARAM wparam, LPAR
 
             if (res && (status == ERROR_INVALID_NAME)) {
                 dlg_invalid_portname(hwnd, data->portname);
-                HeapFree(GetProcessHeap(), 0, data->portname);
+                heap_free(data->portname);
                 data->portname = NULL;
                 return TRUE;
             }
 
             dlg_win32error(hwnd, status);
-            HeapFree(GetProcessHeap(), 0, data->portname);
+            heap_free(data->portname);
             data->portname = NULL;
             return TRUE;
         }
@@ -472,7 +472,7 @@ static BOOL open_monitor_by_name(LPCWSTR pPrefix, LPCWSTR pPort, HANDLE * phandl
     pd.DesiredAccess = SERVER_ACCESS_ADMINISTER;
 
     res = OpenPrinterW(fullname, phandle, &pd);
-    HeapFree(GetProcessHeap(), 0, fullname);
+    heap_free(fullname);
     return res;
 }
 
@@ -538,7 +538,7 @@ static BOOL WINAPI localui_AddPortUI(PCWSTR pName, HWND hWnd, PCWSTR pMonitorNam
                 /* Native localui also return "TRUE" from AddPortUI in this case */
             }
 
-            HeapFree(GetProcessHeap(), 0, data.portname);
+            heap_free(data.portname);
         }
         else
         {

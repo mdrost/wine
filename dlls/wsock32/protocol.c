@@ -120,7 +120,7 @@ INT WINAPI EnumProtocolsA(LPINT protocols, LPVOID buffer, LPDWORD buflen)
             unsigned int string_offset;
             INT i;
 
-            if (!(wsabuf = HeapAlloc(GetProcessHeap(), 0, size))) return SOCKET_ERROR;
+            if (!(wsabuf = heap_alloc(size))) return SOCKET_ERROR;
 
             ret = WSAEnumProtocolsA(protocols, wsabuf, &size);
             string_offset = ret * sizeof(PROTOCOL_INFOA);
@@ -139,7 +139,7 @@ INT WINAPI EnumProtocolsA(LPINT protocols, LPVOID buffer, LPDWORD buflen)
                 pi[i].lpProtocol = (char *)buffer + string_offset;
                 string_offset += string_size;
             }
-            HeapFree(GetProcessHeap(), 0, wsabuf);
+            heap_free(wsabuf);
         }
     }
     return ret;
@@ -175,7 +175,7 @@ INT WINAPI EnumProtocolsW(LPINT protocols, LPVOID buffer, LPDWORD buflen)
             unsigned int string_offset;
             INT i;
 
-            if (!(wsabuf = HeapAlloc(GetProcessHeap(), 0, size))) return SOCKET_ERROR;
+            if (!(wsabuf = heap_alloc(size))) return SOCKET_ERROR;
 
             ret = WSAEnumProtocolsW(protocols, wsabuf, &size);
             string_offset = ret * sizeof(PROTOCOL_INFOW);
@@ -194,7 +194,7 @@ INT WINAPI EnumProtocolsW(LPINT protocols, LPVOID buffer, LPDWORD buflen)
                 pi[i].lpProtocol = (WCHAR *)((char *)buffer + string_offset);
                 string_offset += string_size;
             }
-            HeapFree(GetProcessHeap(), 0, wsabuf);
+            heap_free(wsabuf);
         }
     }
     return ret;

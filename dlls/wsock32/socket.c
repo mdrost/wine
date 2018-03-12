@@ -170,7 +170,7 @@ DWORD WINAPI WsControl(DWORD protocol,
 
             ifTable = 0;
             GetIfTable(NULL, &ifTable, FALSE);
-            table = HeapAlloc( GetProcessHeap(), 0, ifTable );
+            table = heap_alloc( ifTable );
             if (!table)
                return ERROR_NOT_ENOUGH_MEMORY;
             GetIfTable(table, &ifTable, FALSE);
@@ -178,7 +178,7 @@ DWORD WINAPI WsControl(DWORD protocol,
             spaceNeeded = sizeof(TDIEntityID) * (table->dwNumEntries + 4);
             if (*pcbResponseInfoLen < spaceNeeded)
             {
-               HeapFree( GetProcessHeap(), 0, table );
+               heap_free( table );
                return ERROR_LOCK_VIOLATION;
             }
 
@@ -212,7 +212,7 @@ DWORD WINAPI WsControl(DWORD protocol,
             }
 
             *pcbResponseInfoLen = spaceNeeded;
-            HeapFree( GetProcessHeap(), 0, table );
+            heap_free( table );
             break;
          }
 
@@ -287,7 +287,7 @@ DWORD WINAPI WsControl(DWORD protocol,
                   if (*pcbResponseInfoLen < sizeof(ULONG) * 2)
                      return (ERROR_LOCK_VIOLATION);
                   GetIpNetTable(NULL, &size, FALSE);
-                  table = HeapAlloc( GetProcessHeap(), 0, size );
+                  table = heap_alloc( size );
                   if (!table)
                      return ERROR_NOT_ENOUGH_MEMORY;
                   GetIpNetTable(table, &size, FALSE);
@@ -301,7 +301,7 @@ DWORD WINAPI WsControl(DWORD protocol,
                    */
                   *(output++) = table->dwNumEntries;
                   *output = table->table[0].dwIndex;
-                  HeapFree( GetProcessHeap(), 0, table );
+                  heap_free( table );
                   *pcbResponseInfoLen = sizeof(ULONG) * 2;
                }
                break;
@@ -399,7 +399,7 @@ DWORD WINAPI WsControl(DWORD protocol,
                gets just one entry. */
             tableSize = 0;
             GetIpAddrTable(NULL, &tableSize, FALSE);
-            table = HeapAlloc( GetProcessHeap(), 0, tableSize );
+            table = heap_alloc( tableSize );
             if (!table)
                return ERROR_NOT_ENOUGH_MEMORY;
             GetIpAddrTable(table, &tableSize, FALSE);
@@ -414,7 +414,7 @@ DWORD WINAPI WsControl(DWORD protocol,
                   break;
                }
             }
-            HeapFree( GetProcessHeap(), 0, table );
+            heap_free( table );
 
             *pcbResponseInfoLen = sizeof(MIB_IPADDRROW);
             break;
@@ -448,12 +448,12 @@ DWORD WINAPI WsControl(DWORD protocol,
                    / sizeof(MIB_IPFORWARDROW) + 1;
                   if (*pcbResponseInfoLen < sizeof(IPRouteEntry) * numRoutes)
                      return (ERROR_LOCK_VIOLATION);
-                  table = HeapAlloc( GetProcessHeap(), 0, routeTableSize );
+                  table = heap_alloc( routeTableSize );
                   if (!table)
                      return ERROR_NOT_ENOUGH_MEMORY;
                   ret = GetIpForwardTable(table, &routeTableSize, FALSE);
                   if (ret != NO_ERROR) {
-                     HeapFree( GetProcessHeap(), 0, table );
+                     heap_free( table );
                      return ret;
                   }
 
@@ -481,7 +481,7 @@ DWORD WINAPI WsControl(DWORD protocol,
                   *pcbResponseInfoLen = sizeof(IPRouteEntry) *
                    table->dwNumEntries;
 
-                  HeapFree( GetProcessHeap(), 0, table );
+                  heap_free( table );
                }
                break;
 
@@ -499,18 +499,18 @@ DWORD WINAPI WsControl(DWORD protocol,
                    / sizeof(MIB_IPNETROW) + 1;
                   if (*pcbResponseInfoLen < sizeof(MIB_IPNETROW) * numEntries)
                      return (ERROR_LOCK_VIOLATION);
-                  table = HeapAlloc( GetProcessHeap(), 0, arpTableSize );
+                  table = heap_alloc( arpTableSize );
                   if (!table)
                      return ERROR_NOT_ENOUGH_MEMORY;
                   ret = GetIpNetTable(table, &arpTableSize, FALSE);
                   if (ret != NO_ERROR) {
-                     HeapFree( GetProcessHeap(), 0, table );
+                     heap_free( table );
                      return ret;
                   }
                   if (*pcbResponseInfoLen < sizeof(MIB_IPNETROW) *
                    table->dwNumEntries)
                   {
-                     HeapFree( GetProcessHeap(), 0, table );
+                     heap_free( table );
                      return ERROR_LOCK_VIOLATION;
                   }
                   memcpy(pResponseInfo, table->table, sizeof(MIB_IPNETROW) *
@@ -520,7 +520,7 @@ DWORD WINAPI WsControl(DWORD protocol,
                   *pcbResponseInfoLen = sizeof(MIB_IPNETROW) *
                    table->dwNumEntries;
 
-                  HeapFree( GetProcessHeap(), 0, table );
+                  heap_free( table );
                }
                break;
 
@@ -539,18 +539,18 @@ DWORD WINAPI WsControl(DWORD protocol,
                    / sizeof(MIB_TCPROW) + 1;
                   if (*pcbResponseInfoLen < sizeof(MIB_TCPROW) * numEntries)
                      return (ERROR_LOCK_VIOLATION);
-                  table = HeapAlloc( GetProcessHeap(), 0, tcpTableSize );
+                  table = heap_alloc( tcpTableSize );
                   if (!table)
                      return ERROR_NOT_ENOUGH_MEMORY;
                   ret = GetTcpTable(table, &tcpTableSize, FALSE);
                   if (ret != NO_ERROR) {
-                     HeapFree( GetProcessHeap(), 0, table );
+                     heap_free( table );
                      return ret;
                   }
                   if (*pcbResponseInfoLen < sizeof(MIB_TCPROW) *
                    table->dwNumEntries)
                   {
-                     HeapFree( GetProcessHeap(), 0, table );
+                     heap_free( table );
                      return ERROR_LOCK_VIOLATION;
                   }
                   for (i = 0; i < table->dwNumEntries; i++)
@@ -569,7 +569,7 @@ DWORD WINAPI WsControl(DWORD protocol,
                   *pcbResponseInfoLen = sizeof(MIB_TCPROW) *
                    table->dwNumEntries;
 
-                  HeapFree( GetProcessHeap(), 0, table );
+                  heap_free( table );
                }
                break;
 

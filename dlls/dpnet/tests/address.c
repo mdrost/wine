@@ -227,8 +227,8 @@ static void address_addcomponents(void)
             hr = IDirectPlay8Address_GetComponentByIndex(localaddr, i, NULL, &namelen, NULL, &bufflen, &type);
             ok(hr == DPNERR_BUFFERTOOSMALL, "got 0x%08x\n", hr);
 
-            name =  HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, namelen * sizeof(WCHAR));
-            buffer =  HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, bufflen);
+            name =  heap_alloc_zero(namelen * sizeof(WCHAR));
+            buffer =  heap_alloc_zero(bufflen);
 
             hr = IDirectPlay8Address_GetComponentByIndex(localaddr, i, name, &namelen, buffer, &bufflen, &type);
             ok(hr == S_OK, "got 0x%08x\n", hr);
@@ -254,8 +254,8 @@ static void address_addcomponents(void)
                 }
             }
 
-            HeapFree(GetProcessHeap(), 0, name);
-            HeapFree(GetProcessHeap(), 0, buffer);
+            heap_free(name);
+            heap_free(buffer);
         }
 
         IDirectPlay8Address_Release(localaddr);
@@ -292,14 +292,14 @@ static void address_setsp(void)
         hr = IDirectPlay8Address_GetComponentByIndex(localaddr, 0, NULL, &namelen, NULL, &bufflen, &type);
         ok(hr == DPNERR_BUFFERTOOSMALL, "got 0x%08x\n", hr);
 
-        name =  HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, namelen * sizeof(WCHAR));
+        name =  heap_alloc_zero(namelen * sizeof(WCHAR));
 
         hr = IDirectPlay8Address_GetComponentByIndex(localaddr, 0, name, &namelen, (void*)&guid, &bufflen, &type);
         ok(hr == S_OK, "got 0x%08x\n", hr);
         ok(type == DPNA_DATATYPE_GUID, "wrong datatype: %d\n", type);
         ok(IsEqualGUID(&guid, &CLSID_DP8SP_TCPIP), "wrong guid\n");
 
-        HeapFree(GetProcessHeap(), 0, name);
+        heap_free(name);
 
         IDirectPlay8Address_Release(localaddr);
     }

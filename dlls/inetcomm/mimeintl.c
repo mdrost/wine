@@ -102,11 +102,11 @@ static ULONG WINAPI MimeInternat_Release( IMimeInternational *iface )
         LIST_FOR_EACH_ENTRY_SAFE(charset, cursor2, &This->charsets, charset_entry, entry)
         {
             list_remove(&charset->entry);
-            HeapFree(GetProcessHeap(), 0, charset);
+            heap_free(charset);
         }
         This->cs.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->cs);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return refs;
@@ -193,10 +193,10 @@ static HRESULT WINAPI MimeInternat_GetCodePageCharset(IMimeInternational *iface,
             return MIME_E_INVALID_CHARSET_TYPE;
         }
         len = WideCharToMultiByte(CP_ACP, 0, charset_nameW, -1, NULL, 0, NULL, NULL);
-        charset_name = HeapAlloc(GetProcessHeap(), 0, len);
+        charset_name = heap_alloc(len);
         WideCharToMultiByte(CP_ACP, 0, charset_nameW, -1, charset_name, len, NULL, NULL);
         hr = IMimeInternational_FindCharset(iface, charset_name, phCharset);
-        HeapFree(GetProcessHeap(), 0, charset_name);
+        heap_free(charset_name);
     }
     return hr;
 }
@@ -224,7 +224,7 @@ static HRESULT mlang_getcsetinfo(const char *charset, MIMECSETINFO *mlang_info)
 
 static HCHARSET add_charset(struct list *list, MIMECSETINFO *mlang_info, HCHARSET handle)
 {
-    charset_entry *charset = HeapAlloc(GetProcessHeap(), 0, sizeof(*charset));
+    charset_entry *charset = heap_alloc(sizeof(*charset));
 
     WideCharToMultiByte(CP_ACP, 0, mlang_info->wszCharset, -1,
                         charset->cs_info.szName, sizeof(charset->cs_info.szName), NULL, NULL);
@@ -525,7 +525,7 @@ static internat_impl *global_internat;
 
 HRESULT MimeInternational_Construct(IMimeInternational **internat)
 {
-    global_internat = HeapAlloc(GetProcessHeap(), 0, sizeof(*global_internat));
+    global_internat = heap_alloc(sizeof(*global_internat));
     global_internat->IMimeInternational_iface.lpVtbl = &mime_internat_vtbl;
     global_internat->refs = 0;
     InitializeCriticalSection(&global_internat->cs);

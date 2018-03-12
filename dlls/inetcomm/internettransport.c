@@ -210,7 +210,7 @@ HRESULT InternetTransport_ReadLine(InternetTransport *This,
     This->fnCompletion = fnCompletion;
 
     This->cbBuffer = 1024;
-    This->pBuffer = HeapAlloc(GetProcessHeap(), 0, This->cbBuffer);
+    This->pBuffer = heap_alloc(This->cbBuffer);
     This->iCurrentBufferOffset = 0;
 
     if (WSAAsyncSelect(This->Socket, This->hwnd, IX_READLINE, FD_READ) == SOCKET_ERROR)
@@ -295,7 +295,7 @@ static LRESULT CALLBACK InternetTransport_WndProc(HWND hwnd, UINT uMsg, WPARAM w
             This->pBuffer = NULL;
             fnCompletion((IInternetTransport *)&This->u.vtbl, pBuffer,
                 This->iCurrentBufferOffset);
-            HeapFree(GetProcessHeap(), 0, pBuffer);
+            heap_free(pBuffer);
             return 0;
         }
 
@@ -341,7 +341,7 @@ static LRESULT CALLBACK InternetTransport_WndProc(HWND hwnd, UINT uMsg, WPARAM w
                 fnCompletion((IInternetTransport *)&This->u.vtbl, pBuffer,
                     This->iCurrentBufferOffset);
 
-                HeapFree(GetProcessHeap(), 0, pBuffer);
+                heap_free(pBuffer);
                 return 0;
             }
             if (This->pBuffer[This->iCurrentBufferOffset] != '\r')

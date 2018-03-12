@@ -74,7 +74,7 @@ static ULONG WINAPI IMAPTransport_Release(IIMAPTransport *iface)
         if (This->InetTransport.Status != IXP_DISCONNECTED)
             InternetTransport_DropConnection(&This->InetTransport);
         if (This->InetTransport.pCallback) ITransportCallback_Release(This->InetTransport.pCallback);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return refs;
 }
@@ -424,7 +424,7 @@ static const IIMAPTransportVtbl IMAPTransportVtbl =
 HRESULT WINAPI CreateIMAPTransport(IIMAPTransport **ppTransport)
 {
     HRESULT hr;
-    IMAPTransport *This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    IMAPTransport *This = heap_alloc(sizeof(*This));
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -433,7 +433,7 @@ HRESULT WINAPI CreateIMAPTransport(IIMAPTransport **ppTransport)
     hr = InternetTransport_Init(&This->InetTransport);
     if (FAILED(hr))
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return hr;
     }
 

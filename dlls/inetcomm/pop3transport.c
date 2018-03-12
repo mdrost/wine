@@ -652,7 +652,7 @@ static void POP3Transport_CallbackProcessUSERResp(IInternetTransport *iface, cha
     IPOP3Callback_OnResponse((IPOP3Callback *)This->InetTransport.pCallback, &response);
 
     len = sizeof(pass) + strlen(This->InetTransport.ServerInfo.szPassword) + 2; /* "\r\n" */
-    command = HeapAlloc(GetProcessHeap(), 0, len);
+    command = heap_alloc(len);
 
     strcpy(command, pass);
     strcat(command, This->InetTransport.ServerInfo.szPassword);
@@ -661,7 +661,7 @@ static void POP3Transport_CallbackProcessUSERResp(IInternetTransport *iface, cha
     init_parser(This, POP3_PASS);
 
     InternetTransport_DoCommand(&This->InetTransport, command, POP3Transport_CallbackRecvPASSResp);
-    HeapFree(GetProcessHeap(), 0, command);
+    heap_free(command);
 }
 
 static void POP3Transport_CallbackRecvUSERResp(IInternetTransport *iface, char *pBuffer, int cbBuffer)
@@ -682,14 +682,14 @@ static void POP3Transport_CallbackSendUSERCmd(IInternetTransport *iface, char *p
     TRACE("\n");
 
     len = sizeof(user) + strlen(This->InetTransport.ServerInfo.szUserName) + 2; /* "\r\n" */
-    command = HeapAlloc(GetProcessHeap(), 0, len);
+    command = heap_alloc(len);
 
     strcpy(command, user);
     strcat(command, This->InetTransport.ServerInfo.szUserName);
     strcat(command, "\r\n");
     InternetTransport_DoCommand(&This->InetTransport, command, POP3Transport_CallbackRecvUSERResp);
 
-    HeapFree(GetProcessHeap(), 0, command);
+    heap_free(command);
 }
 
 static void POP3Transport_CallbackProcessQUITResponse(IInternetTransport *iface, char *pBuffer, int cbBuffer)
@@ -752,7 +752,7 @@ static ULONG WINAPI POP3Transport_Release(IPOP3Transport *iface)
         if (This->InetTransport.Status != IXP_DISCONNECTED)
             InternetTransport_DropConnection(&This->InetTransport);
         if (This->InetTransport.pCallback) ITransportCallback_Release(This->InetTransport.pCallback);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return refs;
 }
@@ -878,7 +878,7 @@ static HRESULT WINAPI POP3Transport_CommandUSER(IPOP3Transport *iface, LPSTR use
     TRACE("(%s)\n", username);
 
     len = sizeof(user) + strlen(username) + 2; /* "\r\n" */
-    if (!(command = HeapAlloc(GetProcessHeap(), 0, len))) return S_FALSE;
+    if (!(command = heap_alloc(len))) return S_FALSE;
 
     strcpy(command, user);
     strcat(command, username);
@@ -887,7 +887,7 @@ static HRESULT WINAPI POP3Transport_CommandUSER(IPOP3Transport *iface, LPSTR use
     init_parser(This, POP3_USER);
     InternetTransport_DoCommand(&This->InetTransport, command, POP3Transport_CallbackRecvUSERResp);
 
-    HeapFree(GetProcessHeap(), 0, command);
+    heap_free(command);
     return S_OK;
 }
 
@@ -901,7 +901,7 @@ static HRESULT WINAPI POP3Transport_CommandPASS(IPOP3Transport *iface, LPSTR pas
     TRACE("(%p)\n", password);
 
     len = sizeof(pass) + strlen(password) + 2; /* "\r\n" */
-    if (!(command = HeapAlloc(GetProcessHeap(), 0, len))) return S_FALSE;
+    if (!(command = heap_alloc(len))) return S_FALSE;
 
     strcpy(command, pass);
     strcat(command, password);
@@ -910,7 +910,7 @@ static HRESULT WINAPI POP3Transport_CommandPASS(IPOP3Transport *iface, LPSTR pas
     init_parser(This, POP3_PASS);
     InternetTransport_DoCommand(&This->InetTransport, command, POP3Transport_CallbackRecvPASSResp);
 
-    HeapFree(GetProcessHeap(), 0, command);
+    heap_free(command);
     return S_OK;
 }
 
@@ -928,7 +928,7 @@ static HRESULT WINAPI POP3Transport_CommandLIST(
     if (dwPopId)
     {
         len = sizeof(list) + 10 + 2; /* "4294967296" + "\r\n" */
-        if (!(command = HeapAlloc(GetProcessHeap(), 0, len))) return S_FALSE;
+        if (!(command = heap_alloc(len))) return S_FALSE;
         sprintf(command, list, dwPopId);
     }
     else command = list_all;
@@ -937,7 +937,7 @@ static HRESULT WINAPI POP3Transport_CommandLIST(
     This->type = cmdtype;
     InternetTransport_DoCommand(&This->InetTransport, command, POP3Transport_CallbackRecvLISTResp);
 
-    if (dwPopId) HeapFree(GetProcessHeap(), 0, command);
+    if (dwPopId) heap_free(command);
     return S_OK;
 }
 
@@ -952,7 +952,7 @@ static HRESULT WINAPI POP3Transport_CommandTOP(
     TRACE("(%u, %u, %u)\n", cmdtype, dwPopId, cPreviewLines);
 
     len = sizeof(top) + 20 + 2; /* 2 * "4294967296" + "\r\n" */
-    if (!(command = HeapAlloc(GetProcessHeap(), 0, len))) return S_FALSE;
+    if (!(command = heap_alloc(len))) return S_FALSE;
     sprintf(command, top, dwPopId, cPreviewLines);
 
     This->preview_lines = cPreviewLines;
@@ -960,7 +960,7 @@ static HRESULT WINAPI POP3Transport_CommandTOP(
     This->type = cmdtype;
     InternetTransport_DoCommand(&This->InetTransport, command, POP3Transport_CallbackRecvTOPResp);
 
-    HeapFree(GetProcessHeap(), 0, command);
+    heap_free(command);
     return S_OK;
 }
 
@@ -1027,7 +1027,7 @@ static HRESULT WINAPI POP3Transport_CommandUIDL(
     if (dwPopId)
     {
         len = sizeof(uidl) + 10 + 2; /* "4294967296" + "\r\n" */
-        if (!(command = HeapAlloc(GetProcessHeap(), 0, len))) return S_FALSE;
+        if (!(command = heap_alloc(len))) return S_FALSE;
         sprintf(command, uidl, dwPopId);
     }
     else command = uidl_all;
@@ -1036,7 +1036,7 @@ static HRESULT WINAPI POP3Transport_CommandUIDL(
     This->type = cmdtype;
     InternetTransport_DoCommand(&This->InetTransport, command, POP3Transport_CallbackRecvUIDLResp);
 
-    if (dwPopId) HeapFree(GetProcessHeap(), 0, command);
+    if (dwPopId) heap_free(command);
     return S_OK;
 }
 
@@ -1051,14 +1051,14 @@ static HRESULT WINAPI POP3Transport_CommandDELE(
     TRACE("(%u, %u)\n", cmdtype, dwPopId);
 
     len = sizeof(dele) + 10 + 2; /* "4294967296" + "\r\n" */
-    if (!(command = HeapAlloc(GetProcessHeap(), 0, len))) return S_FALSE;
+    if (!(command = heap_alloc(len))) return S_FALSE;
     sprintf(command, dele, dwPopId);
 
     init_parser(This, POP3_DELE);
     This->type = cmdtype;
     InternetTransport_DoCommand(&This->InetTransport, command, POP3Transport_CallbackRecvDELEResp);
 
-    HeapFree(GetProcessHeap(), 0, command);
+    heap_free(command);
     return S_OK;
 }
 
@@ -1073,14 +1073,14 @@ static HRESULT WINAPI POP3Transport_CommandRETR(
     TRACE("(%u, %u)\n", cmdtype, dwPopId);
 
     len = sizeof(retr) + 10 + 2; /* "4294967296" + "\r\n" */
-    if (!(command = HeapAlloc(GetProcessHeap(), 0, len))) return S_FALSE;
+    if (!(command = heap_alloc(len))) return S_FALSE;
     sprintf(command, retr, dwPopId);
 
     init_parser(This, POP3_RETR);
     This->type = cmdtype;
     InternetTransport_DoCommand(&This->InetTransport, command, POP3Transport_CallbackRecvRETRResp);
 
-    HeapFree(GetProcessHeap(), 0, command);
+    heap_free(command);
     return S_OK;
 }
 
@@ -1117,7 +1117,7 @@ static const IPOP3TransportVtbl POP3TransportVtbl =
 HRESULT WINAPI CreatePOP3Transport(IPOP3Transport **ppTransport)
 {
     HRESULT hr;
-    POP3Transport *This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    POP3Transport *This = heap_alloc(sizeof(*This));
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -1126,7 +1126,7 @@ HRESULT WINAPI CreatePOP3Transport(IPOP3Transport **ppTransport)
     hr = InternetTransport_Init(&This->InetTransport);
     if (FAILED(hr))
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return hr;
     }
 

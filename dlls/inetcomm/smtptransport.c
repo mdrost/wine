@@ -193,7 +193,7 @@ static void SMTPTransport_CallbackProcessRCPTResponse(IInternetTransport *iface,
 
     TRACE("\n");
 
-    HeapFree(GetProcessHeap(), 0, This->addrlist);
+    heap_free(This->addrlist);
     This->addrlist = NULL;
 
     hr = SMTPTransport_ParseResponse(This, pBuffer, &response);
@@ -312,7 +312,7 @@ static void SMTPTransport_CallbackSendHello(IInternetTransport *iface, char *pBu
     else
         pszHello = "HELO ";
 
-    pszCommand = HeapAlloc(GetProcessHeap(), 0, strlen(pszHello) + strlen(szHostName) + 2);
+    pszCommand = heap_alloc(strlen(pszHello) + strlen(szHostName) + 2);
     strcpy(pszCommand, pszHello);
     strcat(pszCommand, szHostName);
     pszCommand[strlen(pszCommand)+1] = '\0';
@@ -321,7 +321,7 @@ static void SMTPTransport_CallbackSendHello(IInternetTransport *iface, char *pBu
     InternetTransport_DoCommand(&This->InetTransport, pszCommand,
         SMTPTransport_CallbackRecvHelloResp);
 
-    HeapFree(GetProcessHeap(), 0, pszCommand);
+    heap_free(pszCommand);
 }
 
 static void SMTPTransport_CallbackDisconnect(IInternetTransport *iface, char *pBuffer, int cbBuffer)
@@ -417,7 +417,7 @@ static void SMTPTransport_CallbackMessageSendDataStream(IInternetTransport *ifac
         return;
     }
 
-    pszBuffer = HeapAlloc(GetProcessHeap(), 0, This->pending_message.cbSize);
+    pszBuffer = heap_alloc(This->pending_message.cbSize);
     hr = IStream_Read(This->pending_message.pstmMsg, pszBuffer, This->pending_message.cbSize, NULL);
     if (FAILED(hr))
     {
@@ -433,7 +433,7 @@ static void SMTPTransport_CallbackMessageSendDataStream(IInternetTransport *ifac
     hr = InternetTransport_Write(&This->InetTransport, pszBuffer, cbSize,
         SMTPTransport_CallbackMessageSendDOT);
 
-    HeapFree(GetProcessHeap(), 0, pszBuffer);
+    heap_free(pszBuffer);
 }
 
 static void SMTPTransport_CallbackMessageReadDataResponse(IInternetTransport *iface, char *pBuffer, int cbBuffer)
@@ -488,7 +488,7 @@ static void SMTPTransport_CallbackMessageSendTo(IInternetTransport *iface, char 
             int len = sizeof(szCommandFormat) - 2 /* "%s" */ +
                 strlen(This->pending_message.rAddressList.prgAddress[This->ulCurrentAddressIndex].szEmail);
 
-            szCommand = HeapAlloc(GetProcessHeap(), 0, len);
+            szCommand = heap_alloc(len);
             if (!szCommand)
                 return;
 
@@ -499,7 +499,7 @@ static void SMTPTransport_CallbackMessageSendTo(IInternetTransport *iface, char 
             hr = InternetTransport_DoCommand(&This->InetTransport, szCommand,
                 SMTPTransport_CallbackMessageReadToResponse);
 
-            HeapFree(GetProcessHeap(), 0, szCommand);
+            heap_free(szCommand);
             return;
         }
     }
@@ -551,8 +551,8 @@ static ULONG WINAPI SMTPTransport_Release(ISMTPTransport2 *iface)
             InternetTransport_DropConnection(&This->InetTransport);
 
         if (This->InetTransport.pCallback) ITransportCallback_Release(This->InetTransport.pCallback);
-        HeapFree(GetProcessHeap(), 0, This->addrlist);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->addrlist);
+        heap_free(This);
     }
     return refs;
 }
@@ -673,7 +673,7 @@ static HRESULT WINAPI SMTPTransport_SendMessage(ISMTPTransport2 *iface,
     IStream_AddRef(pMessage->pstmMsg);
 
     size = pMessage->rAddressList.cAddress * sizeof(INETADDR);
-    This->addrlist = HeapAlloc(GetProcessHeap(), 0, size);
+    This->addrlist = heap_alloc(size);
     if (!This->addrlist)
         return E_OUTOFMEMORY;
 
@@ -709,7 +709,7 @@ static HRESULT WINAPI SMTPTransport_SendMessage(ISMTPTransport2 *iface,
     }
     len = sizeof(szCommandFormat) - 2 /* "%s" */ + strlen(pszFromAddress);
 
-    szCommand = HeapAlloc(GetProcessHeap(), 0, len);
+    szCommand = heap_alloc(len);
     if (!szCommand)
         return E_OUTOFMEMORY;
 
@@ -735,7 +735,7 @@ static HRESULT WINAPI SMTPTransport_CommandMAIL(ISMTPTransport2 *iface, LPSTR ps
         return E_INVALIDARG;
 
     len = sizeof(szCommandFormat) - 2 /* "%s" */ + strlen(pszEmailFrom);
-    szCommand = HeapAlloc(GetProcessHeap(), 0, len);
+    szCommand = heap_alloc(len);
     if (!szCommand)
         return E_OUTOFMEMORY;
 
@@ -744,7 +744,7 @@ static HRESULT WINAPI SMTPTransport_CommandMAIL(ISMTPTransport2 *iface, LPSTR ps
     hr = InternetTransport_DoCommand(&This->InetTransport, szCommand,
         SMTPTransport_CallbackReadMAILResponse);
 
-    HeapFree(GetProcessHeap(), 0, szCommand);
+    heap_free(szCommand);
     return hr;
 }
 
@@ -762,7 +762,7 @@ static HRESULT WINAPI SMTPTransport_CommandRCPT(ISMTPTransport2 *iface, LPSTR ps
         return E_INVALIDARG;
 
     len = sizeof(szCommandFormat) - 2 /* "%s" */ + strlen(pszEmailTo);
-    szCommand = HeapAlloc(GetProcessHeap(), 0, len);
+    szCommand = heap_alloc(len);
     if (!szCommand)
         return E_OUTOFMEMORY;
 
@@ -771,7 +771,7 @@ static HRESULT WINAPI SMTPTransport_CommandRCPT(ISMTPTransport2 *iface, LPSTR ps
     hr = InternetTransport_DoCommand(&This->InetTransport, szCommand,
         SMTPTransport_CallbackReadRCPTResponse);
 
-    HeapFree(GetProcessHeap(), 0, szCommand);
+    heap_free(szCommand);
     return hr;
 }
 
@@ -786,7 +786,7 @@ static HRESULT WINAPI SMTPTransport_CommandEHLO(ISMTPTransport2 *iface)
 
     TRACE("\n");
 
-    szCommand = HeapAlloc(GetProcessHeap(), 0, len);
+    szCommand = heap_alloc(len);
     if (!szCommand)
         return E_OUTOFMEMORY;
 
@@ -795,7 +795,7 @@ static HRESULT WINAPI SMTPTransport_CommandEHLO(ISMTPTransport2 *iface)
     hr = InternetTransport_DoCommand(&This->InetTransport, szCommand,
         SMTPTransport_CallbackReadResponseDoNothing);
 
-    HeapFree(GetProcessHeap(), 0, szCommand);
+    heap_free(szCommand);
     return hr;
 }
 
@@ -810,7 +810,7 @@ static HRESULT WINAPI SMTPTransport_CommandHELO(ISMTPTransport2 *iface)
 
     TRACE("()\n");
 
-    szCommand = HeapAlloc(GetProcessHeap(), 0, len);
+    szCommand = heap_alloc(len);
     if (!szCommand)
         return E_OUTOFMEMORY;
 
@@ -819,7 +819,7 @@ static HRESULT WINAPI SMTPTransport_CommandHELO(ISMTPTransport2 *iface)
     hr = InternetTransport_DoCommand(&This->InetTransport, szCommand,
         SMTPTransport_CallbackReadResponseDoNothing);
 
-    HeapFree(GetProcessHeap(), 0, szCommand);
+    heap_free(szCommand);
     return hr;
 }
 
@@ -838,7 +838,7 @@ static HRESULT WINAPI SMTPTransport_CommandAUTH(ISMTPTransport2 *iface,
         return E_INVALIDARG;
 
     len = sizeof(szCommandFormat) - 2 /* "%s" */ + strlen(pszAuthType);
-    szCommand = HeapAlloc(GetProcessHeap(), 0, len);
+    szCommand = heap_alloc(len);
     if (!szCommand)
         return E_OUTOFMEMORY;
 
@@ -847,7 +847,7 @@ static HRESULT WINAPI SMTPTransport_CommandAUTH(ISMTPTransport2 *iface,
     hr = InternetTransport_DoCommand(&This->InetTransport, szCommand,
         SMTPTransport_CallbackReadResponseDoNothing);
 
-    HeapFree(GetProcessHeap(), 0, szCommand);
+    heap_free(szCommand);
     return hr;
 }
 
@@ -955,7 +955,7 @@ static const ISMTPTransport2Vtbl SMTPTransport2Vtbl =
 HRESULT WINAPI CreateSMTPTransport(ISMTPTransport **ppTransport)
 {
     HRESULT hr;
-    SMTPTransport *This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    SMTPTransport *This = heap_alloc(sizeof(*This));
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -965,7 +965,7 @@ HRESULT WINAPI CreateSMTPTransport(ISMTPTransport **ppTransport)
     hr = InternetTransport_Init(&This->InetTransport);
     if (FAILED(hr))
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return hr;
     }
 

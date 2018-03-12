@@ -55,7 +55,7 @@ static inline WCHAR *strdupAW( const char *src )
     if (src)
     {
         int len = MultiByteToWideChar( CP_ACP, 0, src, -1, NULL, 0 );
-        if ((dst = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+        if ((dst = heap_alloc( len * sizeof(WCHAR) )))
             MultiByteToWideChar( CP_ACP, 0, src, -1, dst, len );
     }
     return dst;
@@ -72,19 +72,19 @@ BOOL WINAPI ApplyPatchToFileA(LPCSTR patch_file, LPCSTR old_file, LPCSTR new_fil
     if (!(patch_fileW = strdupAW( patch_file ))) return FALSE;
     if (old_file && !(old_fileW = strdupAW( old_file )))
     {
-        HeapFree( GetProcessHeap(), 0, patch_fileW );
+        heap_free( patch_fileW );
         return FALSE;
     }
     if (!(new_fileW = strdupAW( new_file )))
     {
-        HeapFree( GetProcessHeap(), 0, patch_fileW );
-        HeapFree( GetProcessHeap(), 0, old_fileW );
+        heap_free( patch_fileW );
+        heap_free( old_fileW );
         return FALSE;
     }
     ret = ApplyPatchToFileW( patch_fileW, old_fileW, new_fileW, apply_flags );
-    HeapFree( GetProcessHeap(), 0, patch_fileW );
-    HeapFree( GetProcessHeap(), 0, old_fileW );
-    HeapFree( GetProcessHeap(), 0, new_fileW );
+    heap_free( patch_fileW );
+    heap_free( old_fileW );
+    heap_free( new_fileW );
     return ret;
 }
 

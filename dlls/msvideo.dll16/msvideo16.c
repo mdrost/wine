@@ -163,7 +163,7 @@ LRESULT VFWAPIV ICMessage16( HIC16 hic, UINT16 msg, UINT16 cb, VA_LIST16 valist 
     LRESULT ret;
     UINT16 i;
 
-    lpData = HeapAlloc(GetProcessHeap(), 0, cb);
+    lpData = heap_alloc(cb);
 
     TRACE("0x%08x, %u, %u, ...)\n", (DWORD) hic, msg, cb);
 
@@ -175,7 +175,7 @@ LRESULT VFWAPIV ICMessage16( HIC16 hic, UINT16 msg, UINT16 cb, VA_LIST16 valist 
     segData = MapLS(lpData);
     ret = ICSendMessage16(hic, msg, segData, (DWORD) cb);
     UnMapLS(segData);
-    HeapFree(GetProcessHeap(), 0, lpData);
+    heap_free(lpData);
     return ret;
 }
 
@@ -365,7 +365,7 @@ static LPVOID MSVIDEO_MapICDEX16To32(LPDWORD lParam)
 {
     LPVOID ret;
 
-    ICDECOMPRESSEX *icdx = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDECOMPRESSEX));
+    ICDECOMPRESSEX *icdx = heap_alloc(sizeof(ICDECOMPRESSEX));
     ICDECOMPRESSEX16 *icdx16 = MapSL(*lParam);
     ret = icdx16;
 
@@ -427,7 +427,7 @@ static LPVOID MSVIDEO_MapMsg16To32(UINT msg, LPDWORD lParam1, LPDWORD lParam2)
         break;
     case ICM_GETINFO:
         {
-            ICINFO *ici = HeapAlloc(GetProcessHeap(), 0, sizeof(ICINFO));
+            ICINFO *ici = heap_alloc(sizeof(ICINFO));
             ICINFO16 *ici16;
 
             ici16 = MapSL(*lParam1);
@@ -448,7 +448,7 @@ static LPVOID MSVIDEO_MapMsg16To32(UINT msg, LPDWORD lParam1, LPDWORD lParam2)
         break;
     case ICM_COMPRESS:
         {
-            ICCOMPRESS *icc = HeapAlloc(GetProcessHeap(), 0, sizeof(ICCOMPRESS));
+            ICCOMPRESS *icc = heap_alloc(sizeof(ICCOMPRESS));
             ICCOMPRESS *icc16;
 
             icc16 = MapSL(*lParam1);
@@ -473,7 +473,7 @@ static LPVOID MSVIDEO_MapMsg16To32(UINT msg, LPDWORD lParam1, LPDWORD lParam2)
         break;
     case ICM_DECOMPRESS:
         {
-            ICDECOMPRESS *icd = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDECOMPRESS));
+            ICDECOMPRESS *icd = heap_alloc(sizeof(ICDECOMPRESS));
             ICDECOMPRESS *icd16; /* Same structure except for the pointers */
 
             icd16 = MapSL(*lParam1);
@@ -508,7 +508,7 @@ static LPVOID MSVIDEO_MapMsg16To32(UINT msg, LPDWORD lParam1, LPDWORD lParam2)
         /* FIXME: *lParm2 is meant to be 0 or an ICDECOMPRESSEX16*, but is sizeof(ICDECOMRPESSEX16)
          * This is because of ICMessage(). Special case it?
          {
-         LPVOID* addr = HeapAlloc(GetProcessHeap(), 0, 2*sizeof(LPVOID));
+         LPVOID* addr = heap_alloc(2*sizeof(LPVOID));
          addr[0] = MSVIDEO_MapICDEX16To32(lParam1);
          if (*lParam2)
          addr[1] = MSVIDEO_MapICDEX16To32(lParam2);
@@ -525,7 +525,7 @@ static LPVOID MSVIDEO_MapMsg16To32(UINT msg, LPDWORD lParam1, LPDWORD lParam2)
         break;
     case ICM_DRAW_BEGIN:
         {
-            ICDRAWBEGIN *icdb = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAWBEGIN));
+            ICDRAWBEGIN *icdb = heap_alloc(sizeof(ICDRAWBEGIN));
             ICDRAWBEGIN16 *icdb16 = MapSL(*lParam1);
             ret = icdb16;
 
@@ -551,7 +551,7 @@ static LPVOID MSVIDEO_MapMsg16To32(UINT msg, LPDWORD lParam1, LPDWORD lParam2)
         break;
     case ICM_DRAW_SUGGESTFORMAT:
         {
-            ICDRAWSUGGEST *icds = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAWSUGGEST));
+            ICDRAWSUGGEST *icds = heap_alloc(sizeof(ICDRAWSUGGEST));
             ICDRAWSUGGEST16 *icds16 = MapSL(*lParam1);
 
             ret = icds16;
@@ -571,7 +571,7 @@ static LPVOID MSVIDEO_MapMsg16To32(UINT msg, LPDWORD lParam1, LPDWORD lParam2)
         break;
     case ICM_DRAW:
         {
-            ICDRAW *icd = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAW));
+            ICDRAW *icd = heap_alloc(sizeof(ICDRAW));
             ICDRAW *icd16 = MapSL(*lParam1);
             ret = icd16;
 
@@ -629,15 +629,15 @@ static void MSVIDEO_UnmapMsg16To32(UINT msg, LPVOID data16, LPDWORD lParam1, LPD
             /* This just gives garbage for some reason - BB
                lstrcpynWtoA(ici16->szDriver, ici->szDriver, 128);*/
 
-            HeapFree(GetProcessHeap(), 0, ici);
+            heap_free(ici);
         }
         break;
     case ICM_DECOMPRESS_QUERY:
         /*{
           LPVOID* x = data16;
-          HeapFree(GetProcessHeap(), 0, x[0]);
+          heap_free(x[0]);
           if (x[1])
-          HeapFree(GetProcessHeap(), 0, x[1]);
+          heap_free(x[1]);
           }
           break;*/
     case ICM_COMPRESS:
@@ -648,7 +648,7 @@ static void MSVIDEO_UnmapMsg16To32(UINT msg, LPVOID data16, LPDWORD lParam1, LPD
     case ICM_DRAW_BEGIN:
     case ICM_DRAW_SUGGESTFORMAT:
     case ICM_DRAW:
-        HeapFree(GetProcessHeap(), 0, data16);
+        heap_free(data16);
         break;
     default:
         ERR("Unmapping unmapped msg %d\n", msg);
@@ -926,7 +926,7 @@ DWORD WINAPI VideoCapDriverDescAndVer16(WORD nr, LPSTR buf1, WORD buf1len,
         TRACE("%s has no fileversioninfo.\n", fn);
         return 18;
     }
-    infobuf = HeapAlloc(GetProcessHeap(), 0, infosize);
+    infobuf = heap_alloc(infosize);
     if (GetFileVersionInfoA(fn, verhandle, infosize, infobuf))
     {
         /* Yes, two space behind : */
@@ -961,7 +961,7 @@ DWORD WINAPI VideoCapDriverDescAndVer16(WORD nr, LPSTR buf1, WORD buf1len,
         TRACE("VQA did not return on query \\StringFileInfo\\040904E4\\FileDescription?\n");
         lstrcpynA(buf1, fn, buf1len); /* msvideo.dll appears to copy fn*/
     }
-    HeapFree(GetProcessHeap(), 0, infobuf);
+    heap_free(infobuf);
     return 0;
 }
 

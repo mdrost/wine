@@ -76,8 +76,8 @@ static ULONG WINAPI EnumBackgroundCopyFiles_Release(IEnumBackgroundCopyFiles *if
     {
         for(i = 0; i < This->numFiles; i++)
             IBackgroundCopyFile2_Release(This->files[i]);
-        HeapFree(GetProcessHeap(), 0, This->files);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->files);
+        heap_free(This);
     }
 
     return ref;
@@ -188,7 +188,7 @@ HRESULT EnumBackgroundCopyFilesConstructor(BackgroundCopyJobImpl *job, IEnumBack
 
     TRACE("%p, %p)\n", job, enum_files);
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof *This);
+    This = heap_alloc(sizeof *This);
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -207,7 +207,7 @@ HRESULT EnumBackgroundCopyFilesConstructor(BackgroundCopyJobImpl *job, IEnumBack
         if (!This->files)
         {
             LeaveCriticalSection(&job->cs);
-            HeapFree(GetProcessHeap(), 0, This);
+            heap_free(This);
             return E_OUTOFMEMORY;
         }
     }

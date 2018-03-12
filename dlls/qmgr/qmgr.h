@@ -118,7 +118,7 @@ BOOL transitionJobState(BackgroundCopyJobImpl *job, BG_JOB_STATE from, BG_JOB_ST
 /* Little helper functions */
 static inline WCHAR *strdupW(const WCHAR *src)
 {
-    WCHAR *dst = HeapAlloc(GetProcessHeap(), 0, (strlenW(src) + 1) * sizeof(WCHAR));
+    WCHAR *dst = heap_alloc((strlenW(src) + 1) * sizeof(WCHAR));
     if (dst) strcpyW(dst, src);
     return dst;
 }

@@ -82,9 +82,9 @@ static ULONG WINAPI BackgroundCopyFile_Release(
     if (ref == 0)
     {
         IBackgroundCopyJob3_Release(&file->owner->IBackgroundCopyJob3_iface);
-        HeapFree(GetProcessHeap(), 0, file->info.LocalName);
-        HeapFree(GetProcessHeap(), 0, file->info.RemoteName);
-        HeapFree(GetProcessHeap(), 0, file);
+        heap_free(file->info.LocalName);
+        heap_free(file->info.RemoteName);
+        heap_free(file);
     }
 
     return ref;
@@ -167,22 +167,22 @@ HRESULT BackgroundCopyFileConstructor(BackgroundCopyJobImpl *owner,
 
     TRACE("(%s, %s, %p)\n", debugstr_w(remoteName), debugstr_w(localName), file);
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof *This);
+    This = heap_alloc(sizeof *This);
     if (!This)
         return E_OUTOFMEMORY;
 
     This->info.RemoteName = strdupW(remoteName);
     if (!This->info.RemoteName)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return E_OUTOFMEMORY;
     }
 
     This->info.LocalName = strdupW(localName);
     if (!This->info.LocalName)
     {
-        HeapFree(GetProcessHeap(), 0, This->info.RemoteName);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->info.RemoteName);
+        heap_free(This);
         return E_OUTOFMEMORY;
     }
 

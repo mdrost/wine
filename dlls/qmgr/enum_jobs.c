@@ -76,8 +76,8 @@ static ULONG WINAPI EnumBackgroundCopyJobs_Release(IEnumBackgroundCopyJobs *ifac
     if (ref == 0) {
         for(i = 0; i < This->numJobs; i++)
             IBackgroundCopyJob3_Release(This->jobs[i]);
-        HeapFree(GetProcessHeap(), 0, This->jobs);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->jobs);
+        heap_free(This);
     }
 
     return ref;
@@ -184,7 +184,7 @@ HRESULT enum_copy_job_create(BackgroundCopyManagerImpl *qmgr, IEnumBackgroundCop
 
     TRACE("%p, %p)\n", qmgr, enumjob);
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof *This);
+    This = heap_alloc(sizeof *This);
     if (!This)
         return E_OUTOFMEMORY;
     This->IEnumBackgroundCopyJobs_iface.lpVtbl = &EnumBackgroundCopyJobsVtbl;
@@ -203,7 +203,7 @@ HRESULT enum_copy_job_create(BackgroundCopyManagerImpl *qmgr, IEnumBackgroundCop
         if (!This->jobs)
         {
             LeaveCriticalSection(&qmgr->cs);
-            HeapFree(GetProcessHeap(), 0, This);
+            heap_free(This);
             return E_OUTOFMEMORY;
         }
     }

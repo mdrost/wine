@@ -3633,7 +3633,7 @@ static void test_tiff_properties(void)
        broken(prop_count == sizeof(td)/sizeof(td[0]) - 1) /* Win7 SP0 */,
        "expected property count %u, got %u\n", (UINT)(sizeof(td)/sizeof(td[0])), prop_count);
 
-    prop_id = HeapAlloc(GetProcessHeap(), 0, prop_count * sizeof(*prop_id));
+    prop_id = heap_alloc(prop_count * sizeof(*prop_id));
 
     status = GdipGetPropertyIdList(image, prop_count, prop_id);
     expect(Ok, status);
@@ -3645,7 +3645,7 @@ static void test_tiff_properties(void)
         if (status != Ok) break;
         ok(prop_size > sizeof(*prop_item), "%u: too small item length %u\n", i, prop_size);
 
-        prop_item = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, prop_size);
+        prop_item = heap_alloc_zero(prop_size);
         status = GdipGetPropertyItem(image, prop_id[i], prop_size, prop_item);
         expect(Ok, status);
         ok(prop_item->value == prop_item + 1, "expected item->value %p, got %p\n", prop_item + 1, prop_item->value);
@@ -3676,10 +3676,10 @@ static void test_tiff_properties(void)
                 trace("\n");
             }
         }
-        HeapFree(GetProcessHeap(), 0, prop_item);
+        heap_free(prop_item);
     }
 
-    HeapFree(GetProcessHeap(), 0, prop_id);
+    heap_free(prop_id);
 
     GdipDisposeImage(image);
 }
@@ -3742,7 +3742,7 @@ static void test_GdipGetAllPropertyItems(void)
     ok(prop_count == sizeof(td)/sizeof(td[0]),
        "expected property count %u, got %u\n", (UINT)(sizeof(td)/sizeof(td[0])), prop_count);
 
-    prop_id = HeapAlloc(GetProcessHeap(), 0, prop_count * sizeof(*prop_id));
+    prop_id = heap_alloc(prop_count * sizeof(*prop_id));
 
     status = GdipGetPropertyIdList(image, prop_count, prop_id);
     expect(Ok, status);
@@ -3758,7 +3758,7 @@ static void test_GdipGetAllPropertyItems(void)
 
         prop_size += size;
 
-        prop_item = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+        prop_item = heap_alloc_zero(size);
         status = GdipGetPropertyItem(image, prop_id[i], size, prop_item);
         expect(Ok, status);
         ok(prop_item->value == prop_item + 1, "expected item->value %p, got %p\n", prop_item + 1, prop_item->value);
@@ -3782,10 +3782,10 @@ static void test_GdipGetAllPropertyItems(void)
                 trace("\n");
             }
         }
-        HeapFree(GetProcessHeap(), 0, prop_item);
+        heap_free(prop_item);
     }
 
-    HeapFree(GetProcessHeap(), 0, prop_id);
+    heap_free(prop_id);
 
     status = GdipGetPropertySize(NULL, &total_size, &total_count);
     expect(InvalidParameter, status);
@@ -3804,7 +3804,7 @@ static void test_GdipGetAllPropertyItems(void)
     ok(prop_size == total_size,
        "expected total property size %u, got %u\n", prop_size, total_size);
 
-    prop_item = HeapAlloc(GetProcessHeap(), 0, prop_size);
+    prop_item = heap_alloc(prop_size);
 
     status = GdipGetAllPropertyItems(image, 0, prop_count, prop_item);
     expect(InvalidParameter, status);
@@ -3847,7 +3847,7 @@ static void test_GdipGetAllPropertyItems(void)
         item_data += prop_item[i].length;
     }
 
-    HeapFree(GetProcessHeap(), 0, prop_item);
+    heap_free(prop_item);
 
     GdipDisposeImage(image);
 }
@@ -4550,7 +4550,7 @@ static void test_gif_properties(void)
         return;
     }
 
-    prop_id = HeapAlloc(GetProcessHeap(), 0, prop_count * sizeof(*prop_id));
+    prop_id = heap_alloc(prop_count * sizeof(*prop_id));
 
     status = GdipGetPropertyIdList(image, prop_count, prop_id);
     expect(Ok, status);
@@ -4566,7 +4566,7 @@ static void test_gif_properties(void)
 
         prop_size += size;
 
-        prop_item = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+        prop_item = heap_alloc_zero(size);
         status = GdipGetPropertyItem(image, prop_id[i], size, prop_item);
         expect(Ok, status);
         ok(prop_item->value == prop_item + 1, "expected item->value %p, got %p\n", prop_item + 1, prop_item->value);
@@ -4590,10 +4590,10 @@ static void test_gif_properties(void)
                 trace("\n");
             }
         }
-        HeapFree(GetProcessHeap(), 0, prop_item);
+        heap_free(prop_item);
     }
 
-    HeapFree(GetProcessHeap(), 0, prop_id);
+    heap_free(prop_id);
 
     status = GdipGetPropertySize(NULL, &total_size, &total_count);
     expect(InvalidParameter, status);
@@ -4612,7 +4612,7 @@ static void test_gif_properties(void)
     ok(prop_size == total_size,
        "expected total property size %u, got %u\n", prop_size, total_size);
 
-    prop_item = HeapAlloc(GetProcessHeap(), 0, prop_size);
+    prop_item = heap_alloc(prop_size);
 
     status = GdipGetAllPropertyItems(image, 0, prop_count, prop_item);
     expect(InvalidParameter, status);
@@ -4655,7 +4655,7 @@ static void test_gif_properties(void)
         item_data += prop_item[i].length;
     }
 
-    HeapFree(GetProcessHeap(), 0, prop_item);
+    heap_free(prop_item);
 
     GdipDisposeImage(image);
 }

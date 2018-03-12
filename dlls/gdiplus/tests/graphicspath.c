@@ -91,8 +91,8 @@ static void ok_path(GpPath* path, const path_test_t *expected, INT expected_size
         ok(size == expected_size, "Path size %d does not match expected size %d\n",
             size, expected_size);
 
-    points = HeapAlloc(GetProcessHeap(), 0, size * sizeof(GpPointF));
-    types = HeapAlloc(GetProcessHeap(), 0, size);
+    points = heap_alloc(size * sizeof(GpPointF));
+    types = heap_alloc(size);
 
     if(GdipGetPathPoints(path, points, size) != Ok || GdipGetPathTypes(path, types, size) != Ok){
         skip("Cannot perform path comparisons due to failure to retrieve path.\n");
@@ -122,8 +122,8 @@ static void ok_path(GpPath* path, const path_test_t *expected, INT expected_size
     }
 
 end:
-    HeapFree(GetProcessHeap(), 0, types);
-    HeapFree(GetProcessHeap(), 0, points);
+    heap_free(types);
+    heap_free(points);
 }
 
 static void test_constructor_destructor(void)

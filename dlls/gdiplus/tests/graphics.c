@@ -175,7 +175,7 @@ typedef struct node{
 /* Linked list prepend function. */
 static void log_state(GraphicsState data, node ** log)
 {
-    node * new_entry = HeapAlloc(GetProcessHeap(), 0, sizeof(node));
+    node * new_entry = heap_alloc(sizeof(node));
 
     new_entry->data = data;
     new_entry->next = *log;
@@ -208,7 +208,7 @@ static void check_no_duplicates(node * log)
     temp = orig;
     do{
         temp2 = temp->next;
-        HeapFree(GetProcessHeap(), 0, temp);
+        heap_free(temp);
         temp = temp2;
     }while(temp);
 

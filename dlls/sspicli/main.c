@@ -53,7 +53,7 @@ SECURITY_STATUS SEC_ENTRY SspiEncodeStringsAsAuthIdentity(
     if (username) size += (len_username + 1) * sizeof(WCHAR);
     if (domainname) size += (len_domainname + 1) * sizeof(WCHAR);
     if (creds) size += (len_password + 1) * sizeof(WCHAR);
-    if (!(id = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size ))) return ERROR_OUTOFMEMORY;
+    if (!(id = heap_alloc_zero( size ))) return ERROR_OUTOFMEMORY;
     ptr = (WCHAR *)(id + 1);
 
     if (username)
@@ -101,7 +101,7 @@ static inline WCHAR *strdupW( const WCHAR *src )
 {
     WCHAR *dst;
     if (!src) return NULL;
-    if ((dst = HeapAlloc( GetProcessHeap(), 0, (strlenW( src ) + 1) * sizeof(WCHAR) )))
+    if ((dst = heap_alloc( (strlenW( src ) + 1) * sizeof(WCHAR) )))
         strcpyW( dst, src );
     return dst;
 }
@@ -130,7 +130,7 @@ SECURITY_STATUS SEC_ENTRY SspiEncodeAuthIdentityAsStrings(
 void SEC_ENTRY SspiFreeAuthIdentity( PSEC_WINNT_AUTH_IDENTITY_OPAQUE opaque_id )
 {
     TRACE( "%p\n", opaque_id );
-    HeapFree( GetProcessHeap(), 0, opaque_id );
+    heap_free( opaque_id );
 }
 
 /***********************************************************************
@@ -139,7 +139,7 @@ void SEC_ENTRY SspiFreeAuthIdentity( PSEC_WINNT_AUTH_IDENTITY_OPAQUE opaque_id )
 void SEC_ENTRY SspiLocalFree( void *ptr )
 {
     TRACE( "%p\n", ptr );
-    HeapFree( GetProcessHeap(), 0, ptr );
+    heap_free( ptr );
 }
 
 /***********************************************************************
@@ -176,15 +176,15 @@ SECURITY_STATUS SEC_ENTRY SspiPrepareForCredWrite( PSEC_WINNT_AUTH_IDENTITY_OPAQ
     str2 = target ? strdupW( target ) : strdupW( str );
     if (!str2)
     {
-        HeapFree( GetProcessHeap(), 0, str );
+        heap_free( str );
         return SEC_E_INSUFFICIENT_MEMORY;
     }
 
     len = id->PasswordLength * sizeof(WCHAR);
     if (!(password = HeapAlloc(GetProcessHeap(), 0 , len )))
     {
-        HeapFree( GetProcessHeap(), 0, str );
-        HeapFree( GetProcessHeap(), 0, str2 );
+        heap_free( str );
+        heap_free( str2 );
         return SEC_E_INSUFFICIENT_MEMORY;
     }
     memcpy( password, id->Password, len );

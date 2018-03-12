@@ -1189,7 +1189,7 @@ static	LRESULT	PCM_StreamOpen(PACMDRVSTREAMINSTANCE adsi)
 
     if (adsi->pwfxDst->nChannels      == 1)  idx += 1;
 
-    apd = HeapAlloc(GetProcessHeap(), 0, sizeof(AcmPcmData));
+    apd = heap_alloc(sizeof(AcmPcmData));
     if (!apd)
         return MMSYSERR_NOMEM;
 
@@ -1205,7 +1205,7 @@ static	LRESULT	PCM_StreamOpen(PACMDRVSTREAMINSTANCE adsi)
         FIXME("Unimplemented conversion from %u -> %u bps\n",
             adsi->pwfxSrc->wBitsPerSample,
             adsi->pwfxDst->wBitsPerSample);
-        HeapFree(GetProcessHeap(), 0, apd);
+        heap_free(apd);
         return MMSYSERR_NOTSUPPORTED;
     }
 
@@ -1223,7 +1223,7 @@ static	LRESULT	PCM_StreamClose(PACMDRVSTREAMINSTANCE adsi)
 {
     TRACE("(%p)\n", adsi);
 
-    HeapFree(GetProcessHeap(), 0, (void*)adsi->dwDriver);
+    heap_free((void*)adsi->dwDriver);
     return MMSYSERR_NOERROR;
 }
 

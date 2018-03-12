@@ -315,7 +315,7 @@ MMRESULT WINAPI acmFormatChooseA(PACMFORMATCHOOSEA pafmtc)
     if (pafmtc->pszTitle)
     {
         sz = MultiByteToWideChar(CP_ACP, 0, pafmtc->pszTitle, -1, NULL, 0);
-        if (!(title = HeapAlloc(GetProcessHeap(), 0, sz * sizeof(WCHAR))))
+        if (!(title = heap_alloc(sz * sizeof(WCHAR))))
         {
             ret = MMSYSERR_NOMEM;
             goto done;
@@ -326,7 +326,7 @@ MMRESULT WINAPI acmFormatChooseA(PACMFORMATCHOOSEA pafmtc)
     if (pafmtc->pszName)
     {
         sz = MultiByteToWideChar(CP_ACP, 0, pafmtc->pszName, -1, NULL, 0);
-        if (!(name = HeapAlloc(GetProcessHeap(), 0, sz * sizeof(WCHAR))))
+        if (!(name = heap_alloc(sz * sizeof(WCHAR))))
         {
             ret = MMSYSERR_NOMEM;
             goto done;
@@ -341,7 +341,7 @@ MMRESULT WINAPI acmFormatChooseA(PACMFORMATCHOOSEA pafmtc)
     if (pafmtc->pszTemplateName)
     {
         sz = MultiByteToWideChar(CP_ACP, 0, pafmtc->pszTemplateName, -1, NULL, 0);
-        if (!(templ = HeapAlloc(GetProcessHeap(), 0, sz * sizeof(WCHAR))))
+        if (!(templ = heap_alloc(sz * sizeof(WCHAR))))
         {
             ret = MMSYSERR_NOMEM;
             goto done;
@@ -367,9 +367,9 @@ MMRESULT WINAPI acmFormatChooseA(PACMFORMATCHOOSEA pafmtc)
             WideCharToMultiByte(CP_ACP, 0, afcw.pszName, -1, pafmtc->pszName, pafmtc->cchName, NULL, NULL);
     }
 done:
-    HeapFree(GetProcessHeap(), 0, title);
-    HeapFree(GetProcessHeap(), 0, name);
-    HeapFree(GetProcessHeap(), 0, templ);
+    heap_free(title);
+    heap_free(name);
+    heap_free(templ);
     return ret;
 }
 

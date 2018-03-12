@@ -81,7 +81,7 @@ static ULONG WINAPI IDirectMusicTrack8Impl_Release(IDirectMusicTrack8 *iface)
     TRACE("(%p) ref=%d\n", This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMBAND_UnlockModule();
     }
 
@@ -603,7 +603,7 @@ HRESULT WINAPI create_dmbandtrack(REFIID lpcGUID, void **ppobj)
     IDirectMusicBandTrack *track;
     HRESULT hr;
 
-    track = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*track));
+    track = heap_alloc_zero(sizeof(*track));
     if (!track) {
         *ppobj = NULL;
         return E_OUTOFMEMORY;

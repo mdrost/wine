@@ -82,7 +82,7 @@ static ULONG WINAPI IDirectMusicBandImpl_Release(IDirectMusicBand *iface)
     TRACE("(%p) ref=%d\n", This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMBAND_UnlockModule();
     }
 
@@ -376,7 +376,7 @@ static HRESULT parse_instrument(IDirectMusicBandImpl *This, DMUS_PRIVATE_CHUNK *
     hr = IDirectMusicObject_QueryInterface (pObject, &IID_IDirectMusicCollection, (void**) &pCol);
     if (FAILED(hr)) {
       ERR(": failed to get IDirectMusicCollection Interface from DMObject\n");
-      HeapFree(GetProcessHeap(), 0, pNewInstrument);
+      heap_free(pNewInstrument);
 
       return hr;
     }
@@ -601,7 +601,7 @@ HRESULT WINAPI create_dmband(REFIID lpcGUID, void **ppobj)
   IDirectMusicBandImpl* obj;
   HRESULT hr;
 
-  obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicBandImpl));
+  obj = heap_alloc_zero(sizeof(IDirectMusicBandImpl));
   if (NULL == obj) {
     *ppobj = NULL;
     return E_OUTOFMEMORY;

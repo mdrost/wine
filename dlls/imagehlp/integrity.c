@@ -919,7 +919,7 @@ BOOL WINAPI ImageRemoveCertificate(HANDLE FileHandle, DWORD Index)
     }
     else
     {
-        cert_data = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, data_size);
+        cert_data = heap_alloc_zero(data_size);
 
         if (!cert_data)
             return FALSE;
@@ -943,7 +943,7 @@ BOOL WINAPI ImageRemoveCertificate(HANDLE FileHandle, DWORD Index)
         if ((!r) || (count != data_size))
             goto error;
 
-        HeapFree(GetProcessHeap(), 0, cert_data);
+        heap_free(cert_data);
     }
 
     /* If security directory is at end of file, trim the file */
@@ -964,6 +964,6 @@ BOOL WINAPI ImageRemoveCertificate(HANDLE FileHandle, DWORD Index)
     return TRUE;
 
 error:
-    HeapFree(GetProcessHeap(), 0, cert_data);
+    heap_free(cert_data);
     return FALSE;
 }

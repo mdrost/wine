@@ -224,7 +224,7 @@ BOOL WINAPI SetImageConfigInformation(
  */
 BOOL WINAPI UnMapAndLoad(PLOADED_IMAGE pLoadedImage)
 {
-    HeapFree(GetProcessHeap(), 0, pLoadedImage->ModuleName);
+    heap_free(pLoadedImage->ModuleName);
     /* FIXME: MSDN states that a new checksum is computed and stored into the file */
     if (pLoadedImage->MappedAddress) UnmapViewOfFile(pLoadedImage->MappedAddress);
     if (pLoadedImage->hFile != INVALID_HANDLE_VALUE) CloseHandle(pLoadedImage->hFile);

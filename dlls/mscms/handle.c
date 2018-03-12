@@ -53,11 +53,11 @@ WINE_DEFAULT_DEBUG_CHANNEL(mscms);
 
 void free_handle_tables( void )
 {
-    HeapFree( GetProcessHeap(), 0, profiletable );
+    heap_free( profiletable );
     profiletable = NULL;
     num_profile_handles = 0;
 
-    HeapFree( GetProcessHeap(), 0, transformtable );
+    heap_free( transformtable );
     transformtable = NULL;
     num_transform_handles = 0;
 
@@ -116,7 +116,7 @@ static HPROFILE alloc_profile_handle( void )
     }
     if (!profiletable)
     {
-        p = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, count * sizeof(struct profile) );
+        p = heap_alloc_zero( count * sizeof(struct profile) );
     }
     else
     {
@@ -177,7 +177,7 @@ BOOL close_profile( HPROFILE handle )
         CloseHandle( profile->file );
     }
     cmsCloseProfile( profile->cmsprofile );
-    HeapFree( GetProcessHeap(), 0, profile->data );
+    heap_free( profile->data );
 
     memset( profile, 0, sizeof(struct profile) );
 
@@ -197,7 +197,7 @@ static HTRANSFORM alloc_transform_handle( void )
     }
     if (!transformtable)
     {
-        p = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, count * sizeof(struct transform) );
+        p = heap_alloc_zero( count * sizeof(struct transform) );
     }
     else
     {

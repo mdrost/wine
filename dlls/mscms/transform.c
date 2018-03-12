@@ -221,14 +221,14 @@ HTRANSFORM WINAPI CreateMultiProfileTransform( PHPROFILE profiles, DWORD nprofil
         return NULL;
     }
 
-    if ((cmsprofiles = HeapAlloc( GetProcessHeap(), 0, (nprofiles + 1) * sizeof(cmsHPROFILE) )))
+    if ((cmsprofiles = heap_alloc( (nprofiles + 1) * sizeof(cmsHPROFILE) )))
     {
         cmsprofiles[0] = profile0->cmsprofile;
         cmsprofiles[1] = profile1->cmsprofile;
 
         transform.cmstransform = cmsCreateMultiprofileTransform( cmsprofiles, nprofiles, 0,
                                                                  0, *intents, 0 );
-        HeapFree( GetProcessHeap(), 0, cmsprofiles );
+        heap_free( cmsprofiles );
         if (!transform.cmstransform)
         {
             release_profile( profile0 );

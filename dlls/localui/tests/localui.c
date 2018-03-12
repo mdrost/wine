@@ -76,7 +76,7 @@ static PORT_INFO_2W * find_portinfo2(LPCWSTR pPort)
             return NULL;
         }
         ok(!res, "EnumPorts succeeded: got %d\n", res);
-        pi_buffer = HeapAlloc(GetProcessHeap(), 0, pi_needed);
+        pi_buffer = heap_alloc(pi_needed);
         res = EnumPortsW(NULL, 2, pi_buffer, pi_needed, &pi_needed, &pi_numports);
         ok(res == 1, "EnumPorts failed: got %d\n", res);
     }
@@ -120,7 +120,7 @@ static LPWSTR strdupW(LPCWSTR strW)
 {
     LPWSTR  ptr;
 
-    ptr = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(strW) + 1) * sizeof(WCHAR));
+    ptr = heap_alloc((lstrlenW(strW) + 1) * sizeof(WCHAR));
     if (ptr) {
         lstrcpyW(ptr, strW);
     }
@@ -331,7 +331,7 @@ START_TEST(localui)
     test_ConfigurePortUI();
 
     /* cleanup */
-    HeapFree(GetProcessHeap(), 0, lpt_absent);
-    HeapFree(GetProcessHeap(), 0, com_absent);
-    HeapFree(GetProcessHeap(), 0, pi_buffer);
+    heap_free(lpt_absent);
+    heap_free(com_absent);
+    heap_free(pi_buffer);
 }

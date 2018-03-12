@@ -71,12 +71,12 @@ HRESULT WINAPI DllGetVersion (DLLVERSIONINFO *pdvi)
 
 static void * CDECL mem_alloc(ULONG cb)
 {
-    return HeapAlloc(GetProcessHeap(), 0, cb);
+    return heap_alloc(cb);
 }
 
 static void CDECL mem_free(void *memory)
 {
-    HeapFree(GetProcessHeap(), 0, memory);
+    heap_free(memory);
 }
 
 static INT_PTR CDECL fdi_open(char *pszFile, int oflag, int pmode)
@@ -159,7 +159,7 @@ static void fill_file_node(struct FILELIST *pNode, LPCSTR szFilename)
     pNode->next = NULL;
     pNode->DoExtract = FALSE;
 
-    pNode->FileName = HeapAlloc(GetProcessHeap(), 0, strlen(szFilename) + 1);
+    pNode->FileName = heap_alloc(strlen(szFilename) + 1);
     lstrcpyA(pNode->FileName, szFilename);
 }
 
@@ -196,7 +196,7 @@ static INT_PTR CDECL fdi_notify_extract(FDINOTIFICATIONTYPE fdint, PFDINOTIFICAT
 
             dwSize = lstrlenA(pDestination->Destination) +
                     lstrlenA("\\") + lstrlenA(pfdin->psz1) + 1;
-            szFullPath = HeapAlloc(GetProcessHeap(), 0, dwSize);
+            szFullPath = heap_alloc(dwSize);
 
             lstrcpyA(szFullPath, pDestination->Destination);
             lstrcatA(szFullPath, "\\");
@@ -204,7 +204,7 @@ static INT_PTR CDECL fdi_notify_extract(FDINOTIFICATIONTYPE fdint, PFDINOTIFICAT
 
             /* pull out the destination directory string from the full path */
             dwSize = strrchr(szFullPath, '\\') - szFullPath + 1;
-            szDirectory = HeapAlloc(GetProcessHeap(), 0, dwSize);
+            szDirectory = heap_alloc(dwSize);
             lstrcpynA(szDirectory, szFullPath, dwSize);
 
             pDestination->FileSize += pfdin->cb;
@@ -230,8 +230,8 @@ static INT_PTR CDECL fdi_notify_extract(FDINOTIFICATIONTYPE fdint, PFDINOTIFICAT
 
                 if (node && !node->DoExtract)
                 {
-                    HeapFree(GetProcessHeap(), 0, szFullPath);
-                    HeapFree(GetProcessHeap(), 0, szDirectory);
+                    heap_free(szFullPath);
+                    heap_free(szDirectory);
                     return 0;
                 }
 
@@ -257,8 +257,8 @@ static INT_PTR CDECL fdi_notify_extract(FDINOTIFICATIONTYPE fdint, PFDINOTIFICAT
                     node->DoExtract = FALSE;
             }
 
-            HeapFree(GetProcessHeap(), 0, szFullPath);
-            HeapFree(GetProcessHeap(), 0, szDirectory);
+            heap_free(szFullPath);
+            heap_free(szDirectory);
 
             return (INT_PTR) hFile;
         }
@@ -353,7 +353,7 @@ HRESULT WINAPI Extract(SESSION *dest, LPCSTR szCabName)
     }
 
     /* split the cabinet name into path + name */
-    str = HeapAlloc(GetProcessHeap(), 0, lstrlenA(szCabName)+1);
+    str = heap_alloc(lstrlenA(szCabName)+1);
     if (!str)
     {
         res = E_OUTOFMEMORY;
@@ -365,7 +365,7 @@ HRESULT WINAPI Extract(SESSION *dest, LPCSTR szCabName)
     {
         path = str;
         end++;
-        name = HeapAlloc( GetProcessHeap(), 0, strlen(end) + 1 );
+        name = heap_alloc( strlen(end) + 1 );
         if (!name)
         {
             res = E_OUTOFMEMORY;
@@ -387,8 +387,8 @@ HRESULT WINAPI Extract(SESSION *dest, LPCSTR szCabName)
         res = HRESULT_FROM_WIN32(GetLastError());
 
 end:
-    HeapFree(GetProcessHeap(), 0, path);
-    HeapFree(GetProcessHeap(), 0, name);
+    heap_free(path);
+    heap_free(name);
     FDIDestroy(hfdi);
     return res;
 }

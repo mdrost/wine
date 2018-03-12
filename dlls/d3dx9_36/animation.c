@@ -77,7 +77,7 @@ static ULONG WINAPI d3dx9_animation_controller_Release(ID3DXAnimationController 
 
     if (!refcount)
     {
-        HeapFree(GetProcessHeap(), 0, animation);
+        heap_free(animation);
     }
 
     return refcount;
@@ -454,7 +454,7 @@ HRESULT WINAPI D3DXCreateAnimationController(UINT max_outputs, UINT max_sets,
     if (!max_outputs || !max_sets || !max_tracks || !max_events || !controller)
         return D3D_OK;
 
-    object = HeapAlloc(GetProcessHeap(), 0, sizeof(*object));
+    object = heap_alloc(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 

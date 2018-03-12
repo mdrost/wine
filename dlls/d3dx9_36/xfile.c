@@ -131,9 +131,9 @@ static ULONG WINAPI d3dx9_file_data_Release(ID3DXFileData *iface)
             ID3DXFileData *child = file_data->children[i];
             child->lpVtbl->Release(child);
         }
-        HeapFree(GetProcessHeap(), 0, file_data->children);
+        heap_free(file_data->children);
         IDirectXFileData_Release(file_data->dxfile_data);
-        HeapFree(GetProcessHeap(), 0, file_data);
+        heap_free(file_data);
     }
 
     return refcount;
@@ -305,7 +305,7 @@ static HRESULT d3dx9_file_data_create(IDirectXFileObject *dxfile_object, ID3DXFi
 
     *ret_iface = NULL;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
@@ -324,7 +324,7 @@ static HRESULT d3dx9_file_data_create(IDirectXFileObject *dxfile_object, ID3DXFi
             IUnknown_Release(reference);
             if (FAILED(ret))
             {
-                HeapFree(GetProcessHeap(), 0, object);
+                heap_free(object);
                 return E_FAIL;
             }
             object->reference = TRUE;
@@ -332,7 +332,7 @@ static HRESULT d3dx9_file_data_create(IDirectXFileObject *dxfile_object, ID3DXFi
         else
         {
             FIXME("Don't know what to do with binary object\n");
-            HeapFree(GetProcessHeap(), 0, object);
+            heap_free(object);
             return E_FAIL;
         }
     }
@@ -346,13 +346,13 @@ static HRESULT d3dx9_file_data_create(IDirectXFileObject *dxfile_object, ID3DXFi
             if (object->children)
             {
                 children_array_size *= 2;
-                new_children = HeapReAlloc(GetProcessHeap(), 0, object->children,
+                new_children = heap_realloc(object->children,
                         sizeof(*object->children) * children_array_size);
             }
             else
             {
                 children_array_size = 4;
-                new_children = HeapAlloc(GetProcessHeap(), 0, sizeof(*object->children) * children_array_size);
+                new_children = heap_alloc(sizeof(*object->children) * children_array_size);
             }
             if (!new_children)
             {
@@ -376,7 +376,7 @@ static HRESULT d3dx9_file_data_create(IDirectXFileObject *dxfile_object, ID3DXFi
     {
         ID3DXFileData **new_children;
 
-        new_children = HeapReAlloc(GetProcessHeap(), 0, object->children,
+        new_children = heap_realloc(object->children,
                 sizeof(*object->children) * object->nb_children);
         if (new_children)
             object->children = new_children;
@@ -433,8 +433,8 @@ static ULONG WINAPI d3dx9_file_enum_object_Release(ID3DXFileEnumObject *iface)
             ID3DXFileData *child = file_enum->children[i];
             child->lpVtbl->Release(child);
         }
-        HeapFree(GetProcessHeap(), 0, file_enum->children);
-        HeapFree(GetProcessHeap(), 0, file_enum);
+        heap_free(file_enum->children);
+        heap_free(file_enum);
     }
 
     return refcount;
@@ -542,7 +542,7 @@ static ULONG WINAPI d3dx9_file_Release(ID3DXFile *iface)
     if (!refcount)
     {
         IDirectXFile_Release(file->dxfile);
-        HeapFree(GetProcessHeap(), 0, file);
+        heap_free(file);
     }
 
     return refcount;
@@ -599,7 +599,7 @@ static HRESULT WINAPI d3dx9_file_CreateEnumObject(ID3DXFile *iface, const void *
         return E_NOTIMPL;
     }
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
@@ -610,7 +610,7 @@ static HRESULT WINAPI d3dx9_file_CreateEnumObject(ID3DXFile *iface, const void *
 
     if (ret != S_OK)
     {
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         return ret;
     }
 
@@ -624,13 +624,13 @@ static HRESULT WINAPI d3dx9_file_CreateEnumObject(ID3DXFile *iface, const void *
             if (object->children)
             {
                 children_array_size *= 2;
-                new_children = HeapReAlloc(GetProcessHeap(), 0, object->children,
+                new_children = heap_realloc(object->children,
                         sizeof(*object->children) * children_array_size);
             }
             else
             {
                 children_array_size = 4;
-                new_children = HeapAlloc(GetProcessHeap(), 0, sizeof(*object->children) * children_array_size);
+                new_children = heap_alloc(sizeof(*object->children) * children_array_size);
             }
             if (!new_children)
             {
@@ -650,7 +650,7 @@ static HRESULT WINAPI d3dx9_file_CreateEnumObject(ID3DXFile *iface, const void *
     {
         ID3DXFileData **new_children;
 
-        new_children = HeapReAlloc(GetProcessHeap(), 0, object->children,
+        new_children = heap_realloc(object->children,
                 sizeof(*object->children) * object->nb_children);
         if (new_children)
             object->children = new_children;
@@ -724,14 +724,14 @@ HRESULT WINAPI D3DXFileCreate(ID3DXFile **d3dxfile)
 
     *d3dxfile = NULL;
 
-    object = HeapAlloc(GetProcessHeap(), 0, sizeof(*object));
+    object = heap_alloc(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
     ret = DirectXFileCreate(&object->dxfile);
     if (ret != S_OK)
     {
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         if (ret == E_OUTOFMEMORY)
             return ret;
         return E_FAIL;

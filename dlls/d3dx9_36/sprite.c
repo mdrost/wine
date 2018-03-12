@@ -120,7 +120,7 @@ static ULONG WINAPI d3dx9_sprite_Release(ID3DXSprite *iface)
                     IDirect3DTexture9_Release(sprite->sprites[i].texture);
             }
 
-            HeapFree(GetProcessHeap(), 0, sprite->sprites);
+            heap_free(sprite->sprites);
         }
 
         if (sprite->stateblock)
@@ -129,7 +129,7 @@ static ULONG WINAPI d3dx9_sprite_Release(ID3DXSprite *iface)
             IDirect3DVertexDeclaration9_Release(sprite->vdecl);
         if (sprite->device)
             IDirect3DDevice9_Release(sprite->device);
-        HeapFree(GetProcessHeap(), 0, sprite);
+        heap_free(sprite);
     }
 
     return refcount;
@@ -351,7 +351,7 @@ static HRESULT WINAPI d3dx9_sprite_Draw(ID3DXSprite *iface, IDirect3DTexture9 *t
 
     if (!This->allocated_sprites)
     {
-        This->sprites = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 32 * sizeof(*This->sprites));
+        This->sprites = heap_alloc_zero(32 * sizeof(*This->sprites));
         This->allocated_sprites = 32;
     }
     else if (This->allocated_sprites <= This->sprite_count)
@@ -413,7 +413,7 @@ static HRESULT WINAPI d3dx9_sprite_Flush(ID3DXSprite *iface)
     if(!This->sprite_count) return D3D_OK;
 
 /* TODO: use of a vertex buffer here */
-    vertices = HeapAlloc(GetProcessHeap(), 0, sizeof(*vertices) * 6 * This->sprite_count);
+    vertices = heap_alloc(sizeof(*vertices) * 6 * This->sprite_count);
 
     for(start=0;start<This->sprite_count;start+=count,count=0) {
         i=start;
@@ -462,7 +462,7 @@ static HRESULT WINAPI d3dx9_sprite_Flush(ID3DXSprite *iface)
         IDirect3DDevice9_DrawPrimitiveUP(This->device, D3DPT_TRIANGLELIST,
                 2 * count, vertices + 6 * start, sizeof(*vertices));
     }
-    HeapFree(GetProcessHeap(), 0, vertices);
+    heap_free(vertices);
 
     if(!(This->flags & D3DXSPRITE_DO_NOT_ADDREF_TEXTURE))
         for(i=0;i<This->sprite_count;i++)
@@ -563,7 +563,7 @@ HRESULT WINAPI D3DXCreateSprite(struct IDirect3DDevice9 *device, struct ID3DXSpr
 
     if(device==NULL || sprite==NULL) return D3DERR_INVALIDCALL;
 
-    if (!(object=HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object))))
+    if (!(object=heap_alloc_zero(sizeof(*object))))
     {
         *sprite = NULL;
         return E_OUTOFMEMORY;

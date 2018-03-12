@@ -256,7 +256,7 @@ static HRESULT WINAPI d3dincludefromfile_open(ID3DXInclude *iface, D3DXINCLUDE_T
         ++p;
     else
         p = parent_name;
-    pathname = HeapAlloc(GetProcessHeap(), 0, (p - parent_name) + strlen(filename) + 1);
+    pathname = heap_alloc((p - parent_name) + strlen(filename) + 1);
     if(!pathname)
         return HRESULT_FROM_WIN32(GetLastError());
 
@@ -280,7 +280,7 @@ static HRESULT WINAPI d3dincludefromfile_open(ID3DXInclude *iface, D3DXINCLUDE_T
     if(size == INVALID_FILE_SIZE)
         goto error;
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, size + sizeof(char *));
+    buffer = heap_alloc(size + sizeof(char *));
     if(!buffer)
         goto error;
     *buffer = pathname;
@@ -296,15 +296,15 @@ static HRESULT WINAPI d3dincludefromfile_open(ID3DXInclude *iface, D3DXINCLUDE_T
 
 error:
     CloseHandle(file);
-    HeapFree(GetProcessHeap(), 0, pathname);
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(pathname);
+    heap_free(buffer);
     return HRESULT_FROM_WIN32(GetLastError());
 }
 
 static HRESULT WINAPI d3dincludefromfile_close(ID3DXInclude *iface, const void *data)
 {
-    HeapFree(GetProcessHeap(), 0, *((char **)data - 1));
-    HeapFree(GetProcessHeap(), 0, (char **)data - 1);
+    heap_free(*((char **)data - 1));
+    heap_free((char **)data - 1);
     if (main_file_data == data)
         main_file_data = NULL;
     return S_OK;
@@ -332,13 +332,13 @@ HRESULT WINAPI D3DXAssembleShaderFromFileA(const char *filename, const D3DXMACRO
     if (!filename) return D3DXERR_INVALIDDATA;
 
     len = MultiByteToWideChar(CP_ACP, 0, filename, -1, NULL, 0);
-    filename_w = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    filename_w = heap_alloc(len * sizeof(WCHAR));
     if (!filename_w) return E_OUTOFMEMORY;
     MultiByteToWideChar(CP_ACP, 0, filename, -1, filename_w, len);
 
     ret = D3DXAssembleShaderFromFileW(filename_w, defines, include, flags, shader, error_messages);
 
-    HeapFree(GetProcessHeap(), 0, filename_w);
+    heap_free(filename_w);
     return ret;
 }
 
@@ -361,7 +361,7 @@ HRESULT WINAPI D3DXAssembleShaderFromFileW(const WCHAR *filename, const D3DXMACR
     }
 
     len = WideCharToMultiByte(CP_ACP, 0, filename, -1, NULL, 0, NULL, NULL);
-    filename_a = HeapAlloc(GetProcessHeap(), 0, len * sizeof(char));
+    filename_a = heap_alloc(len * sizeof(char));
     if (!filename_a)
         return E_OUTOFMEMORY;
     WideCharToMultiByte(CP_ACP, 0, filename, -1, filename_a, len, NULL, NULL);
@@ -371,7 +371,7 @@ HRESULT WINAPI D3DXAssembleShaderFromFileW(const WCHAR *filename, const D3DXMACR
     if (FAILED(hr))
     {
         LeaveCriticalSection(&from_file_mutex);
-        HeapFree(GetProcessHeap(), 0, filename_a);
+        heap_free(filename_a);
         return D3DXERR_INVALIDDATA;
     }
 
@@ -379,7 +379,7 @@ HRESULT WINAPI D3DXAssembleShaderFromFileW(const WCHAR *filename, const D3DXMACR
 
     ID3DXInclude_Close(include, buffer);
     LeaveCriticalSection(&from_file_mutex);
-    HeapFree(GetProcessHeap(), 0, filename_a);
+    heap_free(filename_a);
     return hr;
 }
 
@@ -462,7 +462,7 @@ HRESULT WINAPI D3DXCompileShaderFromFileA(const char *filename, const D3DXMACRO 
     if (!filename) return D3DXERR_INVALIDDATA;
 
     len = MultiByteToWideChar(CP_ACP, 0, filename, -1, NULL, 0);
-    filename_w = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    filename_w = heap_alloc(len * sizeof(WCHAR));
     if (!filename_w) return E_OUTOFMEMORY;
     MultiByteToWideChar(CP_ACP, 0, filename, -1, filename_w, len);
 
@@ -470,7 +470,7 @@ HRESULT WINAPI D3DXCompileShaderFromFileA(const char *filename, const D3DXMACRO 
                                      entrypoint, profile, flags,
                                      shader, error_messages, constant_table);
 
-    HeapFree(GetProcessHeap(), 0, filename_w);
+    heap_free(filename_w);
     return ret;
 }
 
@@ -496,7 +496,7 @@ HRESULT WINAPI D3DXCompileShaderFromFileW(const WCHAR *filename, const D3DXMACRO
     }
 
     filename_len = WideCharToMultiByte(CP_ACP, 0, filename, -1, NULL, 0, NULL, NULL);
-    filename_a = HeapAlloc(GetProcessHeap(), 0, filename_len * sizeof(char));
+    filename_a = heap_alloc(filename_len * sizeof(char));
     if (!filename_a)
         return E_OUTOFMEMORY;
     WideCharToMultiByte(CP_ACP, 0, filename, -1, filename_a, filename_len, NULL, NULL);
@@ -506,7 +506,7 @@ HRESULT WINAPI D3DXCompileShaderFromFileW(const WCHAR *filename, const D3DXMACRO
     if (FAILED(hr))
     {
         LeaveCriticalSection(&from_file_mutex);
-        HeapFree(GetProcessHeap(), 0, filename_a);
+        heap_free(filename_a);
         return D3DXERR_INVALIDDATA;
     }
 
@@ -520,7 +520,7 @@ HRESULT WINAPI D3DXCompileShaderFromFileW(const WCHAR *filename, const D3DXMACRO
 
     ID3DXInclude_Close(include, buffer);
     LeaveCriticalSection(&from_file_mutex);
-    HeapFree(GetProcessHeap(), 0, filename_a);
+    heap_free(filename_a);
     return hr;
 }
 
@@ -590,13 +590,13 @@ HRESULT WINAPI D3DXPreprocessShaderFromFileA(const char *filename, const D3DXMAC
     if (!filename) return D3DXERR_INVALIDDATA;
 
     len = MultiByteToWideChar(CP_ACP, 0, filename, -1, NULL, 0);
-    filename_w = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    filename_w = heap_alloc(len * sizeof(WCHAR));
     if (!filename_w) return E_OUTOFMEMORY;
     MultiByteToWideChar(CP_ACP, 0, filename, -1, filename_w, len);
 
     ret = D3DXPreprocessShaderFromFileW(filename_w, defines, include, shader, error_messages);
 
-    HeapFree(GetProcessHeap(), 0, filename_w);
+    heap_free(filename_w);
     return ret;
 }
 
@@ -619,7 +619,7 @@ HRESULT WINAPI D3DXPreprocessShaderFromFileW(const WCHAR *filename, const D3DXMA
     }
 
     len = WideCharToMultiByte(CP_ACP, 0, filename, -1, NULL, 0, NULL, NULL);
-    filename_a = HeapAlloc(GetProcessHeap(), 0, len * sizeof(char));
+    filename_a = heap_alloc(len * sizeof(char));
     if (!filename_a)
         return E_OUTOFMEMORY;
     WideCharToMultiByte(CP_ACP, 0, filename, -1, filename_a, len, NULL, NULL);
@@ -629,7 +629,7 @@ HRESULT WINAPI D3DXPreprocessShaderFromFileW(const WCHAR *filename, const D3DXMA
     if (FAILED(hr))
     {
         LeaveCriticalSection(&from_file_mutex);
-        HeapFree(GetProcessHeap(), 0, filename_a);
+        heap_free(filename_a);
         return D3DXERR_INVALIDDATA;
     }
 
@@ -640,7 +640,7 @@ HRESULT WINAPI D3DXPreprocessShaderFromFileW(const WCHAR *filename, const D3DXMA
 
     ID3DXInclude_Close(include, buffer);
     LeaveCriticalSection(&from_file_mutex);
-    HeapFree(GetProcessHeap(), 0, filename_a);
+    heap_free(filename_a);
     return hr;
 }
 
@@ -700,7 +700,7 @@ static void free_constant(struct ctab_constant *constant)
         {
             free_constant(&constant->constants[i]);
         }
-        HeapFree(GetProcessHeap(), 0, constant->constants);
+        heap_free(constant->constants);
     }
 }
 
@@ -714,9 +714,9 @@ static void free_constant_table(struct ID3DXConstantTableImpl *table)
         {
             free_constant(&table->constants[i]);
         }
-        HeapFree(GetProcessHeap(), 0, table->constants);
+        heap_free(table->constants);
     }
-    HeapFree(GetProcessHeap(), 0, table->ctab);
+    heap_free(table->ctab);
 }
 
 static inline struct ID3DXConstantTableImpl *impl_from_ID3DXConstantTable(ID3DXConstantTable *iface)
@@ -901,7 +901,7 @@ static ULONG WINAPI ID3DXConstantTableImpl_Release(ID3DXConstantTable *iface)
     if (!ref)
     {
         free_constant_table(This);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1851,7 +1851,7 @@ static HRESULT parse_ctab_constant_type(const char *ctab, DWORD typeoffset, stru
 
     if (count)
     {
-        constant->constants = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*constant->constants) * count);
+        constant->constants = heap_alloc_zero(sizeof(*constant->constants) * count);
         if (!constant->constants)
         {
              ERR("Out of memory\n");
@@ -1943,7 +1943,7 @@ error:
         {
             free_constant(&constant->constants[i]);
         }
-        HeapFree(GetProcessHeap(), 0, constant->constants);
+        heap_free(constant->constants);
         constant->constants = NULL;
     }
 
@@ -1998,18 +1998,18 @@ HRESULT WINAPI D3DXGetShaderConstantTableEx(const DWORD *byte_code, DWORD flags,
         return D3DXERR_INVALIDDATA;
     }
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
     object->ID3DXConstantTable_iface.lpVtbl = &ID3DXConstantTable_Vtbl;
     object->ref = 1;
 
-    object->ctab = HeapAlloc(GetProcessHeap(), 0, size);
+    object->ctab = heap_alloc(size);
     if (!object->ctab)
     {
         ERR("Out of memory\n");
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         return E_OUTOFMEMORY;
     }
     object->size = size;
@@ -2063,7 +2063,7 @@ HRESULT WINAPI D3DXGetShaderConstantTableEx(const DWORD *byte_code, DWORD flags,
 
 error:
     free_constant_table(object);
-    HeapFree(GetProcessHeap(), 0, object);
+    heap_free(object);
 
     return hr;
 }
@@ -2197,7 +2197,7 @@ static ULONG WINAPI d3dx9_texture_shader_Release(ID3DXTextureShader *iface)
 
     if (!refcount)
     {
-        HeapFree(GetProcessHeap(), 0, texture_shader);
+        heap_free(texture_shader);
     }
 
     return refcount;
@@ -2405,7 +2405,7 @@ HRESULT WINAPI D3DXCreateTextureShader(const DWORD *function, ID3DXTextureShader
     if (!function || !texture_shader)
         return D3DERR_INVALIDCALL;
 
-    object = HeapAlloc(GetProcessHeap(), 0, sizeof(*object));
+    object = heap_alloc(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 

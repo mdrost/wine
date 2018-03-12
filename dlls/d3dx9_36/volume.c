@@ -43,12 +43,12 @@ HRESULT WINAPI D3DXLoadVolumeFromFileA(IDirect3DVolume9 *dst_volume,
     if (!dst_volume || !filename) return D3DERR_INVALIDCALL;
 
     length = MultiByteToWideChar(CP_ACP, 0, filename, -1, NULL, 0);
-    filenameW = HeapAlloc(GetProcessHeap(), 0, length * sizeof(*filenameW));
+    filenameW = heap_alloc(length * sizeof(*filenameW));
     if (!filenameW) return E_OUTOFMEMORY;
 
     hr = D3DXLoadVolumeFromFileW(dst_volume, dst_palette, dst_box, filenameW,
             src_box, filter, color_key, info);
-    HeapFree(GetProcessHeap(), 0, filenameW);
+    heap_free(filenameW);
 
     return hr;
 }

@@ -79,7 +79,7 @@ static ULONG WINAPI ID3DXFontImpl_Release(ID3DXFont *iface)
         DeleteObject(This->hfont);
         DeleteDC(This->hdc);
         IDirect3DDevice9_Release(This->device);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -315,7 +315,7 @@ HRESULT WINAPI D3DXCreateFontIndirectW(IDirect3DDevice9 *device, const D3DXFONT_
     }
     IDirect3D9_Release(d3d);
 
-    object = HeapAlloc(GetProcessHeap(), 0, sizeof(struct d3dx_font));
+    object = heap_alloc(sizeof(struct d3dx_font));
     if(object==NULL) {
         *font=NULL;
         return E_OUTOFMEMORY;
@@ -327,7 +327,7 @@ HRESULT WINAPI D3DXCreateFontIndirectW(IDirect3DDevice9 *device, const D3DXFONT_
 
     object->hdc = CreateCompatibleDC(NULL);
     if( !object->hdc ) {
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         return D3DXERR_INVALIDDATA;
     }
 
@@ -335,7 +335,7 @@ HRESULT WINAPI D3DXCreateFontIndirectW(IDirect3DDevice9 *device, const D3DXFONT_
                                 desc->OutputPrecision, CLIP_DEFAULT_PRECIS, desc->Quality, desc->PitchAndFamily, desc->FaceName);
     if( !object->hfont ) {
         DeleteDC(object->hdc);
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         return D3DXERR_INVALIDDATA;
     }
     SelectObject(object->hdc, object->hfont);

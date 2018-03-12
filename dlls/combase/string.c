@@ -56,7 +56,7 @@ static inline struct hstring_private *impl_from_HSTRING_BUFFER(HSTRING_BUFFER bu
 static BOOL alloc_string(UINT32 len, HSTRING *out)
 {
     struct hstring_private *priv;
-    priv = HeapAlloc(GetProcessHeap(), 0, sizeof(*priv) + (len + 1) * sizeof(*priv->buffer));
+    priv = heap_alloc(sizeof(*priv) + (len + 1) * sizeof(*priv->buffer));
     if (!priv)
         return FALSE;
     priv->buffer = (LPWSTR)(priv + 1);
@@ -136,7 +136,7 @@ HRESULT WINAPI WindowsDeleteString(HSTRING str)
     if (priv->reference)
         return S_OK;
     if (InterlockedDecrement(&priv->refcount) == 0)
-        HeapFree(GetProcessHeap(), 0, priv);
+        heap_free(priv);
     return S_OK;
 }
 

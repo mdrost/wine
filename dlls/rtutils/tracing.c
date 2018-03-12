@@ -51,7 +51,7 @@ DWORD WINAPI TraceRegisterExA(LPCSTR name, DWORD flags)
 {
     DWORD id;
     int lenW = MultiByteToWideChar(CP_ACP, 0, name, -1, NULL, 0);
-    WCHAR* nameW = HeapAlloc(GetProcessHeap(), 0, lenW * sizeof(WCHAR));
+    WCHAR* nameW = heap_alloc(lenW * sizeof(WCHAR));
     if (!nameW)
     {
         SetLastError(ERROR_OUTOFMEMORY);
@@ -59,6 +59,6 @@ DWORD WINAPI TraceRegisterExA(LPCSTR name, DWORD flags)
     }
     MultiByteToWideChar(CP_ACP, 0, name, -1, nameW, lenW);
     id = TraceRegisterExW(nameW, flags);
-    HeapFree(GetProcessHeap(), 0, nameW);
+    heap_free(nameW);
     return id;
 }

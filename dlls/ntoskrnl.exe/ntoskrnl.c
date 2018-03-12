@@ -199,13 +199,13 @@ static NTSTATUS WINAPI dispatch_irp_completion( DEVICE_OBJECT *device, IRP *irp,
 
     if (irp->Flags & IRP_CLOSE_OPERATION)
     {
-        HeapFree( GetProcessHeap(), 0, file );
+        heap_free( file );
         irp->Tail.Overlay.OriginalFileObject = NULL;
     }
 
     if (irp->UserBuffer != irp->AssociatedIrp.SystemBuffer)
     {
-        HeapFree( GetProcessHeap(), 0, irp->UserBuffer );
+        heap_free( irp->UserBuffer );
         irp->UserBuffer = NULL;
     }
     return STATUS_SUCCESS;
@@ -232,7 +232,7 @@ static NTSTATUS dispatch_create( const irp_params_t *params, void *in_buff, ULON
     FILE_OBJECT *file;
     DEVICE_OBJECT *device = wine_server_get_ptr( params->create.device );
 
-    if (!(file = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*file) ))) return STATUS_NO_MEMORY;
+    if (!(file = heap_alloc_zero( sizeof(*file) ))) return STATUS_NO_MEMORY;
 
     TRACE( "device %p -> file %p\n", device, file );
 
@@ -242,7 +242,7 @@ static NTSTATUS dispatch_create( const irp_params_t *params, void *in_buff, ULON
 
     if (!(irp = IoAllocateIrp( device->StackSize, FALSE )))
     {
-        HeapFree( GetProcessHeap(), 0, file );
+        heap_free( file );
         return STATUS_NO_MEMORY;
     }
 
@@ -265,7 +265,7 @@ static NTSTATUS dispatch_create( const irp_params_t *params, void *in_buff, ULON
     irp->Flags |= IRP_CREATE_OPERATION;
     dispatch_irp( device, irp, irp_handle );
 
-    HeapFree( GetProcessHeap(), 0, in_buff );
+    heap_free( in_buff );
     return STATUS_SUCCESS;
 }
 
@@ -286,7 +286,7 @@ static NTSTATUS dispatch_close( const irp_params_t *params, void *in_buff, ULONG
 
     if (!(irp = IoAllocateIrp( device->StackSize, FALSE )))
     {
-        HeapFree( GetProcessHeap(), 0, file );
+        heap_free( file );
         return STATUS_NO_MEMORY;
     }
 
@@ -304,7 +304,7 @@ static NTSTATUS dispatch_close( const irp_params_t *params, void *in_buff, ULONG
     irp->Flags |= IRP_CLOSE_OPERATION;
     dispatch_irp( device, irp, irp_handle );
 
-    HeapFree( GetProcessHeap(), 0, in_buff );
+    heap_free( in_buff );
     return STATUS_SUCCESS;
 }
 
@@ -325,14 +325,14 @@ static NTSTATUS dispatch_read( const irp_params_t *params, void *in_buff, ULONG 
 
     TRACE( "device %p file %p size %u\n", device, file, out_size );
 
-    if (!(out_buff = HeapAlloc( GetProcessHeap(), 0, out_size ))) return STATUS_NO_MEMORY;
+    if (!(out_buff = heap_alloc( out_size ))) return STATUS_NO_MEMORY;
 
     offset.QuadPart = params->read.pos;
 
     if (!(irp = IoBuildSynchronousFsdRequest( IRP_MJ_READ, device, out_buff, out_size,
                                               &offset, NULL, NULL )))
     {
-        HeapFree( GetProcessHeap(), 0, out_buff );
+        heap_free( out_buff );
         return STATUS_NO_MEMORY;
     }
 
@@ -346,7 +346,7 @@ static NTSTATUS dispatch_read( const irp_params_t *params, void *in_buff, ULONG 
     irp->Flags |= IRP_DEALLOCATE_BUFFER;  /* deallocate out_buff */
     dispatch_irp( device, irp, irp_handle );
 
-    HeapFree( GetProcessHeap(), 0, in_buff );
+    heap_free( in_buff );
     return STATUS_SUCCESS;
 }
 
@@ -408,7 +408,7 @@ static NTSTATUS dispatch_flush( const irp_params_t *params, void *in_buff, ULONG
 
     dispatch_irp( device, irp, irp_handle );
 
-    HeapFree( GetProcessHeap(), 0, in_buff );
+    heap_free( in_buff );
     return STATUS_SUCCESS;
 }
 
@@ -435,12 +435,12 @@ static NTSTATUS dispatch_ioctl( const irp_params_t *params, void *in_buff, ULONG
         {
             if (in_size < out_size) return STATUS_INVALID_DEVICE_REQUEST;
             in_size -= out_size;
-            if (!(out_buff = HeapAlloc( GetProcessHeap(), 0, out_size ))) return STATUS_NO_MEMORY;
+            if (!(out_buff = heap_alloc( out_size ))) return STATUS_NO_MEMORY;
             memcpy( out_buff, (char *)in_buff + in_size, out_size );
         }
         else if (out_size > in_size)
         {
-            if (!(out_buff = HeapAlloc( GetProcessHeap(), 0, out_size ))) return STATUS_NO_MEMORY;
+            if (!(out_buff = heap_alloc( out_size ))) return STATUS_NO_MEMORY;
             memcpy( out_buff, in_buff, in_size );
             to_free = in_buff;
             in_buff = out_buff;
@@ -456,7 +456,7 @@ static NTSTATUS dispatch_ioctl( const irp_params_t *params, void *in_buff, ULONG
                                          FALSE, NULL, NULL );
     if (!irp)
     {
-        HeapFree( GetProcessHeap(), 0, out_buff );
+        heap_free( out_buff );
         return STATUS_NO_MEMORY;
     }
 
@@ -470,7 +470,7 @@ static NTSTATUS dispatch_ioctl( const irp_params_t *params, void *in_buff, ULONG
     irp->Flags |= IRP_DEALLOCATE_BUFFER;  /* deallocate in_buff */
     dispatch_irp( device, irp, irp_handle );
 
-    HeapFree( GetProcessHeap(), 0, to_free );
+    heap_free( to_free );
     return STATUS_SUCCESS;
 }
 
@@ -530,7 +530,7 @@ NTSTATUS CDECL wine_ntoskrnl_main_loop( HANDLE stop_event )
 
     for (;;)
     {
-        if (!in_buff && !(in_buff = HeapAlloc( GetProcessHeap(), 0, in_size )))
+        if (!in_buff && !(in_buff = heap_alloc( in_size )))
         {
             ERR( "failed to allocate buffer\n" );
             return STATUS_NO_MEMORY;
@@ -578,7 +578,7 @@ NTSTATUS CDECL wine_ntoskrnl_main_loop( HANDLE stop_event )
             }
             break;
         case STATUS_BUFFER_OVERFLOW:
-            HeapFree( GetProcessHeap(), 0, in_buff );
+            heap_free( in_buff );
             in_buff = NULL;
             /* restart with larger buffer */
             break;
@@ -588,7 +588,7 @@ NTSTATUS CDECL wine_ntoskrnl_main_loop( HANDLE stop_event )
                 DWORD ret = WaitForMultipleObjectsEx( 2, handles, FALSE, INFINITE, TRUE );
                 if (ret == WAIT_OBJECT_0)
                 {
-                    HeapFree( GetProcessHeap(), 0, in_buff );
+                    heap_free( in_buff );
                     return STATUS_SUCCESS;
                 }
                 if (ret != WAIT_IO_COMPLETION) break;
@@ -763,7 +763,7 @@ PMDL WINAPI IoAllocateMdl( PVOID va, ULONG length, BOOLEAN secondary, BOOLEAN ch
         FIXME("Charge quota is not yet supported\n");
 
     mdl_size = sizeof(MDL) + sizeof(PFN_NUMBER) * ADDRESS_AND_SIZE_TO_SPAN_PAGES(va, length);
-    mdl = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, mdl_size );
+    mdl = heap_alloc_zero( mdl_size );
     if (!mdl)
         return NULL;
 
@@ -792,7 +792,7 @@ PMDL WINAPI IoAllocateMdl( PVOID va, ULONG length, BOOLEAN secondary, BOOLEAN ch
 void WINAPI IoFreeMdl(PMDL mdl)
 {
     TRACE("%p\n", mdl);
-    HeapFree(GetProcessHeap(), 0, mdl);
+    heap_free(mdl);
 }
 
 
@@ -951,7 +951,7 @@ static void build_driver_keypath( const WCHAR *name, UNICODE_STRING *keypath )
     else
         FIXME( "Driver name %s does not properly begin with \\Driver\\\n", debugstr_w(name) );
 
-    str = HeapAlloc( GetProcessHeap(), 0, sizeof(servicesW) + strlenW(name)*sizeof(WCHAR));
+    str = heap_alloc( sizeof(servicesW) + strlenW(name)*sizeof(WCHAR));
     lstrcpyW( str, servicesW );
     lstrcatW( str, name );
     RtlInitUnicodeString( keypath, str );
@@ -978,13 +978,13 @@ NTSTATUS WINAPI IoCreateDriver( UNICODE_STRING *name, PDRIVER_INITIALIZE init )
 
     TRACE("(%s, %p)\n", debugstr_us(name), init);
 
-    if (!(driver = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY,
+    if (!(driver = calloc( 1, 
                                     sizeof(*driver) )))
         return STATUS_NO_MEMORY;
 
     if ((status = RtlDuplicateUnicodeString( 1, name, &driver->driver_obj.DriverName )))
     {
-        RtlFreeHeap( GetProcessHeap(), 0, driver );
+        free( driver );
         return status;
     }
 
@@ -1001,7 +1001,7 @@ NTSTATUS WINAPI IoCreateDriver( UNICODE_STRING *name, PDRIVER_INITIALIZE init )
     {
         RtlFreeUnicodeString( &driver->driver_obj.DriverName );
         RtlFreeUnicodeString( &driver->driver_extension.ServiceKeyName );
-        RtlFreeHeap( GetProcessHeap(), 0, driver );
+        free( driver );
         return status;
     }
 
@@ -1032,7 +1032,7 @@ void WINAPI IoDeleteDriver( DRIVER_OBJECT *driver_object )
 
     RtlFreeUnicodeString( &driver_object->DriverName );
     RtlFreeUnicodeString( &driver_object->DriverExtension->ServiceKeyName );
-    RtlFreeHeap( GetProcessHeap(), 0, CONTAINING_RECORD( driver_object, struct wine_driver, driver_obj ) );
+    free( CONTAINING_RECORD( driver_object, struct wine_driver, driver_obj ) );
 }
 
 
@@ -1052,7 +1052,7 @@ NTSTATUS WINAPI IoCreateDevice( DRIVER_OBJECT *driver, ULONG ext_size,
     TRACE( "(%p, %u, %s, %u, %x, %u, %p)\n",
            driver, ext_size, debugstr_us(name), type, characteristics, exclusive, ret_device );
 
-    if (!(device = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*device) + ext_size )))
+    if (!(device = heap_alloc_zero( sizeof(*device) + ext_size )))
         return STATUS_NO_MEMORY;
 
     SERVER_START_REQ( create_device )
@@ -1080,7 +1080,7 @@ NTSTATUS WINAPI IoCreateDevice( DRIVER_OBJECT *driver, ULONG ext_size,
 
         *ret_device = device;
     }
-    else HeapFree( GetProcessHeap(), 0, device );
+    else heap_free( device );
 
     return status;
 }
@@ -1108,7 +1108,7 @@ void WINAPI IoDeleteDevice( DEVICE_OBJECT *device )
         while (*prev && *prev != device) prev = &(*prev)->NextDevice;
         if (*prev) *prev = (*prev)->NextDevice;
         NtClose( device->Reserved );
-        HeapFree( GetProcessHeap(), 0, device );
+        heap_free( device );
     }
 }
 
@@ -1244,13 +1244,13 @@ NTSTATUS WINAPI IoGetDeviceProperty( DEVICE_OBJECT *device, DEVICE_REGISTRY_PROP
             else
                 status = STATUS_BUFFER_TOO_SMALL;
 
-            HeapFree( GetProcessHeap(), 0, id );
+            heap_free( id );
             break;
         }
         case DevicePropertyPhysicalDeviceObjectName:
         {
             ULONG used_len, len = buffer_length + sizeof(OBJECT_NAME_INFORMATION);
-            OBJECT_NAME_INFORMATION *name = HeapAlloc(GetProcessHeap(), 0, len);
+            OBJECT_NAME_INFORMATION *name = heap_alloc(len);
 
             status = NtQueryObject(device->Reserved, ObjectNameInformation, name, len, &used_len);
             if (status == STATUS_SUCCESS)
@@ -1273,7 +1273,7 @@ NTSTATUS WINAPI IoGetDeviceProperty( DEVICE_OBJECT *device, DEVICE_REGISTRY_PROP
                 else
                     *result_length = 0;
             }
-            HeapFree(GetProcessHeap(), 0, name);
+            heap_free(name);
             break;
         }
         default:
@@ -1518,7 +1518,7 @@ VOID WINAPI IoCompleteRequest( IRP *irp, UCHAR priority_boost )
     }
 
     if (irp->Flags & IRP_DEALLOCATE_BUFFER)
-        HeapFree( GetProcessHeap(), 0, irp->AssociatedIrp.SystemBuffer );
+        heap_free( irp->AssociatedIrp.SystemBuffer );
 
     IoFreeIrp( irp );
 }
@@ -1662,7 +1662,7 @@ PVOID WINAPI ExAllocatePoolWithQuota( POOL_TYPE type, SIZE_T size )
 PVOID WINAPI ExAllocatePoolWithTag( POOL_TYPE type, SIZE_T size, ULONG tag )
 {
     /* FIXME: handle page alignment constraints */
-    void *ret = HeapAlloc( GetProcessHeap(), 0, size );
+    void *ret = heap_alloc( size );
     TRACE( "%lu pool %u -> %p\n", size, type, ret );
     return ret;
 }
@@ -1722,7 +1722,7 @@ void WINAPI ExFreePool( void *ptr )
 void WINAPI ExFreePoolWithTag( void *ptr, ULONG tag )
 {
     TRACE( "%p\n", ptr );
-    HeapFree( GetProcessHeap(), 0, ptr );
+    heap_free( ptr );
 }
 
 
@@ -2800,7 +2800,7 @@ static NTSTATUS open_driver( const UNICODE_STRING *service_name, SC_HANDLE *serv
     DWORD config_size = 0;
     WCHAR *name;
 
-    if (!(name = RtlAllocateHeap( GetProcessHeap(), 0, service_name->Length + sizeof(WCHAR) )))
+    if (!(name = malloc( service_name->Length + sizeof(WCHAR) )))
         return STATUS_NO_MEMORY;
 
     memcpy( name, service_name->Buffer, service_name->Length );
@@ -2809,19 +2809,19 @@ static NTSTATUS open_driver( const UNICODE_STRING *service_name, SC_HANDLE *serv
     if (strncmpW( name, servicesW, strlenW(servicesW) ))
     {
         FIXME( "service name %s is not a keypath\n", debugstr_us(service_name) );
-        RtlFreeHeap( GetProcessHeap(), 0, name );
+        free( name );
         return STATUS_NOT_IMPLEMENTED;
     }
 
     if (!(manager_handle = OpenSCManagerW( NULL, NULL, SC_MANAGER_CONNECT )))
     {
         WARN( "failed to connect to service manager\n" );
-        RtlFreeHeap( GetProcessHeap(), 0, name );
+        free( name );
         return STATUS_NOT_SUPPORTED;
     }
 
     *service = OpenServiceW( manager_handle, name + strlenW(servicesW), SERVICE_ALL_ACCESS );
-    RtlFreeHeap( GetProcessHeap(), 0, name );
+    free( name );
     CloseServiceHandle( manager_handle );
 
     if (!*service)
@@ -2837,7 +2837,7 @@ static NTSTATUS open_driver( const UNICODE_STRING *service_name, SC_HANDLE *serv
         goto error;
     }
 
-    if (!(service_config = RtlAllocateHeap( GetProcessHeap(), 0, config_size )))
+    if (!(service_config = malloc( config_size )))
         goto error;
 
     if (!QueryServiceConfigW( *service, service_config, config_size, &config_size ))
@@ -2854,12 +2854,12 @@ static NTSTATUS open_driver( const UNICODE_STRING *service_name, SC_HANDLE *serv
     }
 
     TRACE( "opened service for driver %s\n", debugstr_us(service_name) );
-    RtlFreeHeap( GetProcessHeap(), 0, service_config );
+    free( service_config );
     return STATUS_SUCCESS;
 
 error:
     CloseServiceHandle( *service );
-    RtlFreeHeap( GetProcessHeap(), 0, service_config );
+    free( service_config );
     return STATUS_UNSUCCESSFUL;
 }
 
@@ -3037,7 +3037,7 @@ static BOOL get_driver_for_id( const WCHAR *id, WCHAR *driver )
     WCHAR *keyW;
     DWORD len;
 
-    if (!(keyW = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(critical_fmtW) + strlenW(id) * sizeof(WCHAR) )))
+    if (!(keyW = malloc( sizeof(critical_fmtW) + strlenW(id) * sizeof(WCHAR) )))
         return STATUS_NO_MEMORY;
 
     sprintfW( keyW, critical_fmtW, id );
@@ -3134,7 +3134,7 @@ static void handle_bus_relations( DEVICE_OBJECT *device )
         if (get_driver_for_id( ptr, driver ))
             break;
     }
-    RtlFreeHeap( GetProcessHeap(), 0, ids );
+    free( ids );
 
     if (!driver[0])
     {

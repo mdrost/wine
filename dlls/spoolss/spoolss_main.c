@@ -85,7 +85,7 @@ LPWSTR WINAPI AllocSplStr(LPCWSTR pwstr)
     if (!pwstr) return NULL;
 
     len = (lstrlenW(pwstr) + 1) * sizeof(WCHAR);
-    res = HeapAlloc(GetProcessHeap(), 0, len);
+    res = heap_alloc(len);
     if (res) lstrcpyW(res, pwstr);
         
     TRACE("returning %p\n", res);
@@ -124,7 +124,7 @@ LPVOID WINAPI DllAllocSplMem(DWORD size)
 {
     LPVOID  res;
 
-    res = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    res = heap_alloc_zero(size);
     TRACE("(%d) => %p\n", size, res);
     return res;
 }
@@ -149,7 +149,7 @@ LPVOID WINAPI DllAllocSplMem(DWORD size)
 BOOL WINAPI DllFreeSplMem(LPBYTE memory)
 {
     TRACE("(%p)\n", memory);
-    return HeapFree(GetProcessHeap(), 0, memory);
+    return heap_free(memory);
 }
 
 /******************************************************************
@@ -169,7 +169,7 @@ BOOL WINAPI DllFreeSplMem(LPBYTE memory)
 BOOL WINAPI DllFreeSplStr(LPWSTR pwstr)
 {
     TRACE("(%s) PTR: %p\n", debugstr_w(pwstr), pwstr);
-    return HeapFree(GetProcessHeap(), 0, pwstr);
+    return heap_free(pwstr);
 }
 
 

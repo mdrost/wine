@@ -83,7 +83,7 @@ static ULONG WINAPI mftopology_Release(IMFTopology *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -510,7 +510,7 @@ HRESULT WINAPI MFCreateTopology(IMFTopology **topology)
     if (!topology)
         return E_POINTER;
 
-    object = HeapAlloc(GetProcessHeap(), 0, sizeof(*object));
+    object = heap_alloc(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 

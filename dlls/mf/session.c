@@ -82,7 +82,7 @@ static ULONG WINAPI mfsession_Release(IMFMediaSession *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -251,7 +251,7 @@ HRESULT WINAPI MFCreateMediaSession(IMFAttributes *config, IMFMediaSession **ses
     if (config)
         FIXME("session configuration ignored\n");
 
-    object = HeapAlloc(GetProcessHeap(), 0, sizeof(*object));
+    object = heap_alloc(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 

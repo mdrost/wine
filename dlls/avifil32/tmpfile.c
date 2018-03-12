@@ -93,7 +93,8 @@ static ULONG   WINAPI ITmpFile_fnRelease(IAVIFile *iface)
       }
     }
 
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
+    return 0;
   }
 
   return ref;
@@ -222,7 +223,7 @@ PAVIFILE AVIFILE_CreateAVITempFile(int nStreams, const PAVISTREAM *ppStreams)
   ITmpFileImpl *tmpFile;
   int           i;
 
-  tmpFile = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ITmpFileImpl));
+  tmpFile = heap_alloc_zero(sizeof(ITmpFileImpl));
   if (tmpFile == NULL)
     return NULL;
 
@@ -231,9 +232,9 @@ PAVIFILE AVIFILE_CreateAVITempFile(int nStreams, const PAVISTREAM *ppStreams)
   memset(&tmpFile->fInfo, 0, sizeof(tmpFile->fInfo));
 
   tmpFile->fInfo.dwStreams = nStreams;
-  tmpFile->ppStreams = HeapAlloc(GetProcessHeap(), 0, nStreams * sizeof(PAVISTREAM));
+  tmpFile->ppStreams = heap_alloc(nStreams * sizeof(PAVISTREAM));
   if (tmpFile->ppStreams == NULL) {
-    HeapFree(GetProcessHeap(), 0, tmpFile);
+    heap_free(tmpFile);
     return NULL;
   }
 

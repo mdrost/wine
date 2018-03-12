@@ -79,7 +79,7 @@ HRESULT WriteExtraChunk(LPEXTRACHUNKS extra,FOURCC ckid,LPCVOID lpData, LONG siz
   if (extra->lp)
     lp = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, extra->lp, extra->cb + size + 2 * sizeof(DWORD));
   else
-    lp = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size + 2 * sizeof(DWORD));
+    lp = heap_alloc_zero(size + 2 * sizeof(DWORD));
 
   if (lp == NULL)
     return AVIERR_MEMORY;
@@ -115,7 +115,7 @@ HRESULT ReadChunkIntoExtra(LPEXTRACHUNKS extra,HMMIO hmmio,const MMCKINFO *lpck)
   if (extra->lp != NULL)
     lp = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, extra->lp, extra->cb + cb);
   else
-    lp = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, cb);
+    lp = heap_alloc_zero(cb);
 
   if (lp == NULL)
     return AVIERR_MEMORY;

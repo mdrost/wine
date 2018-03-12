@@ -209,19 +209,19 @@ static BOOL AVIFILE_FormatsEqual(PAVISTREAM avi1, PAVISTREAM avi2)
     return FALSE;
 
   /* sizes match, now get formats and compare them */
-  fmt1 = HeapAlloc(GetProcessHeap(), 0, size1);
+  fmt1 = heap_alloc(size1);
   if (fmt1 == NULL)
     return FALSE;
   if (SUCCEEDED(AVIStreamReadFormat(avi1, start1, fmt1, &size1))) {
-    fmt2 = HeapAlloc(GetProcessHeap(), 0, size1);
+    fmt2 = heap_alloc(size1);
     if (fmt2 != NULL) {
       if (SUCCEEDED(AVIStreamReadFormat(avi2, start2, fmt2, &size1)))
         status = (memcmp(fmt1, fmt2, size1) == 0);
     }
   }
 
-  HeapFree(GetProcessHeap(), 0, fmt2);
-  HeapFree(GetProcessHeap(), 0, fmt1);
+  heap_free(fmt2);
+  heap_free(fmt1);
 
   return status;
 }
@@ -278,10 +278,11 @@ static ULONG   WINAPI IAVIEditStream_fnRelease(IAVIEditStream*iface)
         if (This->pStreams[i].pStream != NULL)
           IAVIStream_Release(This->pStreams[i].pStream);
       }
-      HeapFree(GetProcessHeap(), 0, This->pStreams);
+      heap_free(This->pStreams);
     }
 
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
+    return 0;
   }
   return ref;
 }
@@ -702,7 +703,7 @@ static HRESULT WINAPI IEditAVIStream_fnCreate(IAVIStream*iface,
     return AVIERR_ERROR;
 
   if (This->pStreams == NULL) {
-    This->pStreams = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 256 * sizeof(EditStreamTable));
+    This->pStreams = heap_alloc_zero(256 * sizeof(EditStreamTable));
     if (This->pStreams == NULL)
       return AVIERR_MEMORY;
     This->nTableSize = 256;
@@ -1010,7 +1011,7 @@ static IAVIEditStreamImpl *AVIFILE_CreateEditStream(IAVIStream *pstream)
 {
   IAVIEditStreamImpl *pedit = NULL;
 
-  pedit = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IAVIEditStreamImpl));
+  pedit = heap_alloc_zero(sizeof(IAVIEditStreamImpl));
   if (pedit == NULL)
     return NULL;
 

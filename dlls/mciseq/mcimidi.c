@@ -113,7 +113,7 @@ static	DWORD	MIDI_drvOpen(LPCWSTR str, LPMCI_OPEN_DRIVER_PARMSW modp)
 
     if (!modp) return 0xFFFFFFFF;
 
-    wmm = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WINE_MCIMIDI));
+    wmm = heap_alloc_zero(sizeof(WINE_MCIMIDI));
 
     if (!wmm)
 	return 0;
@@ -133,7 +133,7 @@ static	DWORD	MIDI_drvClose(DWORD dwDevID)
     WINE_MCIMIDI*  wmm = (WINE_MCIMIDI*)mciGetDriverData(dwDevID);
 
     if (wmm) {
-	HeapFree(GetProcessHeap(), 0, wmm);
+	heap_free(wmm);
 	mciSetDriverData(dwDevID, 0);
 	return 1;
     }
@@ -358,19 +358,19 @@ static DWORD MIDI_mciReadMTrk(WINE_MCIMIDI* wmm, MCI_MIDITRACK* mmt)
 		case 0x02:
 		    if (wmm->lpstrCopyright) {
 			WARN("Two copyright notices (%s|%s)\n", debugstr_w(wmm->lpstrCopyright), buf);
-			HeapFree(GetProcessHeap(), 0, wmm->lpstrCopyright);
+			heap_free(wmm->lpstrCopyright);
 		    }
 		    len = MultiByteToWideChar( CP_ACP, 0, buf, -1, NULL, 0 );
-		    wmm->lpstrCopyright = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+		    wmm->lpstrCopyright = heap_alloc( len * sizeof(WCHAR) );
 		    MultiByteToWideChar( CP_ACP, 0, buf, -1, wmm->lpstrCopyright, len );
 		    break;
 		case 0x03:
 		    if (wmm->lpstrName) {
 			WARN("Two names (%s|%s)\n", debugstr_w(wmm->lpstrName), buf);
-			HeapFree(GetProcessHeap(), 0, wmm->lpstrName);
+			heap_free(wmm->lpstrName);
 		    } /* last name or name from last track wins */
 		    len = MultiByteToWideChar( CP_ACP, 0, buf, -1, NULL, 0 );
-		    wmm->lpstrName = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+		    wmm->lpstrName = heap_alloc( len * sizeof(WCHAR) );
 		    MultiByteToWideChar( CP_ACP, 0, buf, -1, wmm->lpstrName, len );
 		    break;
 		}
@@ -494,7 +494,7 @@ static DWORD MIDI_mciReadMThd(WINE_MCIMIDI* wmm, DWORD dwOffset)
 	wmm->nTracks = 0x80;
     }
 
-    if ((wmm->tracks = HeapAlloc(GetProcessHeap(), 0, sizeof(MCI_MIDITRACK) * wmm->nTracks)) == NULL) {
+    if ((wmm->tracks = heap_alloc(sizeof(MCI_MIDITRACK) * wmm->nTracks)) == NULL) {
 	return MCIERR_OUT_OF_MEMORY;
     }
 
@@ -691,7 +691,7 @@ static DWORD MIDI_mciOpen(WINE_MCIMIDI* wmm, DWORD dwFlags, LPMCI_OPEN_PARMSW lp
 		wmm->nUseCount--;
 		return MCIERR_FILE_NOT_FOUND;
 	    }
-            wmm->lpstrElementName = HeapAlloc(GetProcessHeap(), 0, 
+            wmm->lpstrElementName = heap_alloc(
                                               (strlenW(lpParms->lpstrElementName) + 1) * sizeof(WCHAR));
             strcpyW(wmm->lpstrElementName, lpParms->lpstrElementName);
 	}
@@ -742,10 +742,10 @@ static DWORD MIDI_mciOpen(WINE_MCIMIDI* wmm, DWORD dwFlags, LPMCI_OPEN_PARMSW lp
 	if (wmm->hFile != 0)
 	    mmioClose(wmm->hFile, 0);
 	wmm->hFile = 0;
-	HeapFree(GetProcessHeap(), 0, wmm->tracks);
-	HeapFree(GetProcessHeap(), 0, wmm->lpstrElementName);
-	HeapFree(GetProcessHeap(), 0, wmm->lpstrCopyright);
-	HeapFree(GetProcessHeap(), 0, wmm->lpstrName);
+	heap_free(wmm->tracks);
+	heap_free(wmm->lpstrElementName);
+	heap_free(wmm->lpstrCopyright);
+	heap_free(wmm->lpstrName);
     } else {
 	wmm->dwPositionMS = 0;
 	wmm->dwStatus = MCI_MODE_STOP;
@@ -812,10 +812,10 @@ static DWORD MIDI_mciClose(WINE_MCIMIDI* wmm, DWORD dwFlags, LPMCI_GENERIC_PARMS
 	    CloseHandle(wmm->hThread);
 	    wmm->hThread = 0;
 	}
-	HeapFree(GetProcessHeap(), 0, wmm->tracks);
-	HeapFree(GetProcessHeap(), 0, wmm->lpstrElementName);
-	HeapFree(GetProcessHeap(), 0, wmm->lpstrCopyright);
-	HeapFree(GetProcessHeap(), 0, wmm->lpstrName);
+	heap_free(wmm->tracks);
+	heap_free(wmm->lpstrElementName);
+	heap_free(wmm->lpstrCopyright);
+	heap_free(wmm->lpstrName);
     } else {
 	TRACE("Shouldn't happen... nUseCount=%d\n", wmm->nUseCount);
 	return MCIERR_INTERNAL;

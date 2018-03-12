@@ -256,7 +256,7 @@ static BOOL match_type(const WCHAR *clsid_str, const WCHAR *type_str, MFT_REGIST
     if (!size || size % (sizeof(MFT_REGISTER_TYPE_INFO)) != 0)
         goto out;
 
-    info = HeapAlloc(GetProcessHeap(), 0, size);
+    info = heap_alloc(size);
     if (!info)
         goto out;
 
@@ -274,7 +274,7 @@ static BOOL match_type(const WCHAR *clsid_str, const WCHAR *type_str, MFT_REGIST
     }
 
 out:
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
     RegCloseKey(hfilter);
     RegCloseKey(htransform);
     return ret;
@@ -563,7 +563,7 @@ static ULONG WINAPI mfattributes_Release(IMFAttributes *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -892,7 +892,7 @@ HRESULT WINAPI MFCreateAttributes(IMFAttributes **attributes, UINT32 size)
 
     TRACE("%p, %d\n", attributes, size);
 
-    object = HeapAlloc( GetProcessHeap(), 0, sizeof(*object) );
+    object = heap_alloc( sizeof(*object) );
     if(!object)
         return E_OUTOFMEMORY;
 
@@ -954,7 +954,7 @@ static ULONG WINAPI mfsourceresolver_Release(IMFSourceResolver *iface)
     TRACE("(%p)->(%u)\n", This, ref);
 
     if (!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -1057,7 +1057,7 @@ HRESULT WINAPI MFCreateSourceResolver(IMFSourceResolver **resolver)
     if (!resolver)
         return E_POINTER;
 
-    object = HeapAlloc( GetProcessHeap(), 0, sizeof(*object) );
+    object = heap_alloc( sizeof(*object) );
     if (!object)
         return E_OUTOFMEMORY;
 
@@ -1121,7 +1121,7 @@ static ULONG WINAPI mediatype_Release(IMFMediaType *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1503,7 +1503,7 @@ HRESULT WINAPI MFCreateMediaType(IMFMediaType **type)
     if(!type)
         return E_INVALIDARG;
 
-    object = HeapAlloc( GetProcessHeap(), 0, sizeof(*object) );
+    object = heap_alloc( sizeof(*object) );
     if(!object)
         return E_OUTOFMEMORY;
 
@@ -1566,7 +1566,7 @@ static ULONG WINAPI mfeventqueue_Release(IMFMediaEventQueue *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1660,7 +1660,7 @@ HRESULT WINAPI MFCreateEventQueue(IMFMediaEventQueue **queue)
 
     TRACE("%p\n", queue);
 
-    object = HeapAlloc( GetProcessHeap(), 0, sizeof(*object) );
+    object = heap_alloc( sizeof(*object) );
     if(!object)
         return E_OUTOFMEMORY;
 
@@ -1725,7 +1725,7 @@ static ULONG WINAPI mfdescriptor_Release(IMFStreamDescriptor *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -2072,7 +2072,7 @@ HRESULT WINAPI MFCreateStreamDescriptor(DWORD identifier, DWORD count,
 
     TRACE("%d, %d, %p, %p\n", identifier, count, types, descriptor);
 
-    object = HeapAlloc( GetProcessHeap(), 0, sizeof(*object) );
+    object = heap_alloc( sizeof(*object) );
     if(!object)
         return E_OUTOFMEMORY;
 

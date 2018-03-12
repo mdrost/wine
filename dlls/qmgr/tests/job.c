@@ -409,8 +409,8 @@ static void test_CompleteLocalURL(void)
     if (!urlA || !urlB)
     {
         skip("Unable to allocate memory for URLs\n");
-        HeapFree(GetProcessHeap(), 0, urlA);
-        HeapFree(GetProcessHeap(), 0, urlB);
+        heap_free(urlA);
+        heap_free(urlB);
         return;
     }
 
@@ -455,8 +455,8 @@ static void test_CompleteLocalURL(void)
     DeleteFileW(test_localPathA);
     DeleteFileW(test_localPathB);
 
-    HeapFree(GetProcessHeap(), 0, urlA);
-    HeapFree(GetProcessHeap(), 0, urlB);
+    heap_free(urlA);
+    heap_free(urlB);
 }
 
 static void test_NotifyFlags(void)

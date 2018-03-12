@@ -173,7 +173,7 @@ static void test_Next_walkList_2(void)
     ULONG fetched;
     ULONG i;
 
-    jobs = HeapAlloc(GetProcessHeap(), 0, test_jobCountB * sizeof *jobs);
+    jobs = heap_alloc(test_jobCountB * sizeof *jobs);
     for (i = 0; i < test_jobCountB; i++)
         jobs[i] = NULL;
 
@@ -189,7 +189,7 @@ static void test_Next_walkList_2(void)
             IBackgroundCopyJob_Release(jobs[i]);
     }
 
-    HeapFree(GetProcessHeap(), 0, jobs);
+    heap_free(jobs);
 }
 
 /* Test Next Error conditions */

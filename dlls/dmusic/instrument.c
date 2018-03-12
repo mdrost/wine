@@ -76,11 +76,11 @@ static ULONG WINAPI IDirectMusicInstrumentImpl_Release(LPDIRECTMUSICINSTRUMENT i
     {
         ULONG i;
 
-        HeapFree(GetProcessHeap(), 0, This->regions);
+        heap_free(This->regions);
         for (i = 0; i < This->nb_articulations; i++)
-            HeapFree(GetProcessHeap(), 0, This->articulations->connections);
-        HeapFree(GetProcessHeap(), 0, This->articulations);
-        HeapFree(GetProcessHeap(), 0, This);
+            heap_free(This->articulations->connections);
+        heap_free(This->articulations);
+        heap_free(This);
         DMUSIC_UnlockModule();
     }
 
@@ -124,7 +124,7 @@ HRESULT DMUSIC_CreateDirectMusicInstrumentImpl (LPCGUID lpcGUID, LPVOID* ppobj, 
 	IDirectMusicInstrumentImpl* dminst;
         HRESULT hr;
 
-	dminst = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicInstrumentImpl));
+	dminst = heap_alloc_zero(sizeof(IDirectMusicInstrumentImpl));
 	if (NULL == dminst) {
 		*ppobj = NULL;
 		return E_OUTOFMEMORY;
@@ -257,9 +257,9 @@ static HRESULT load_articulation(IDirectMusicInstrumentImpl *This, IStream *stre
     instrument_articulation *articulation;
 
     if (!This->articulations)
-        This->articulations = HeapAlloc(GetProcessHeap(), 0, sizeof(*This->articulations));
+        This->articulations = heap_alloc(sizeof(*This->articulations));
     else
-        This->articulations = HeapReAlloc(GetProcessHeap(), 0, This->articulations, sizeof(*This->articulations) * (This->nb_articulations + 1));
+        This->articulations = heap_realloc(This->articulations, sizeof(*This->articulations) * (This->nb_articulations + 1));
     if (!This->articulations)
         return E_OUTOFMEMORY;
 
@@ -269,14 +269,14 @@ static HRESULT load_articulation(IDirectMusicInstrumentImpl *This, IStream *stre
     if (FAILED(ret))
         return ret;
 
-    articulation->connections = HeapAlloc(GetProcessHeap(), 0, sizeof(CONNECTION) * articulation->connections_list.cConnections);
+    articulation->connections = heap_alloc(sizeof(CONNECTION) * articulation->connections_list.cConnections);
     if (!articulation->connections)
         return E_OUTOFMEMORY;
 
     ret = read_from_stream(stream, articulation->connections, sizeof(CONNECTION) * articulation->connections_list.cConnections);
     if (FAILED(ret))
     {
-        HeapFree(GetProcessHeap(), 0, articulation->connections);
+        heap_free(articulation->connections);
         return ret;
     }
 
@@ -308,7 +308,7 @@ HRESULT IDirectMusicInstrumentImpl_CustomLoad(IDirectMusicInstrument *iface, ISt
         return DMUS_E_UNSUPPORTED_STREAM;
     }
 
-    This->regions = HeapAlloc(GetProcessHeap(), 0, sizeof(*This->regions) * This->header.cRegions);
+    This->regions = heap_alloc(sizeof(*This->regions) * This->header.cRegions);
     if (!This->regions)
         return E_OUTOFMEMORY;
 
@@ -437,7 +437,7 @@ HRESULT IDirectMusicInstrumentImpl_CustomLoad(IDirectMusicInstrument *iface, ISt
     return S_OK;
 
 error:
-    HeapFree(GetProcessHeap(), 0, This->regions);
+    heap_free(This->regions);
     This->regions = NULL;
 
     return DMUS_E_UNSUPPORTED_STREAM;

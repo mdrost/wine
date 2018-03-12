@@ -104,8 +104,8 @@ static ULONG WINAPI IDirectMusicDownloadedInstrumentImpl_Release(LPDIRECTMUSICDO
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This->data);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->data);
+        heap_free(This);
         DMUSIC_UnlockModule();
     }
 
@@ -131,7 +131,7 @@ static HRESULT DMUSIC_CreateDirectMusicDownloadedInstrumentImpl(IDirectMusicDown
 {
     IDirectMusicDownloadedInstrumentImpl *object;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
     {
         *instrument = NULL;
@@ -204,7 +204,7 @@ static ULONG WINAPI SynthPortImpl_IDirectMusicPort_Release(LPDIRECTMUSICPORT ifa
            IDirectSoundBuffer_Release(This->dsbuffer);
         if (This->dsound)
            IDirectSound_Release(This->dsound);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     DMUSIC_UnlockModule();
@@ -284,7 +284,7 @@ static HRESULT WINAPI SynthPortImpl_IDirectMusicPort_DownloadInstrument(LPDIRECT
     nb_regions = instrument_object->header.cRegions;
     size = sizeof(DMUS_DOWNLOADINFO) + sizeof(ULONG) * (1 + nb_regions) + sizeof(DMUS_INSTRUMENT) + sizeof(DMUS_REGION) * nb_regions;
 
-    data = HeapAlloc(GetProcessHeap(), 0, size);
+    data = heap_alloc(size);
     if (!data)
         return E_OUTOFMEMORY;
 
@@ -339,7 +339,7 @@ static HRESULT WINAPI SynthPortImpl_IDirectMusicPort_DownloadInstrument(LPDIRECT
     }
 
     *downloaded_instrument = NULL;
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     return E_FAIL;
 }
@@ -357,7 +357,7 @@ static HRESULT WINAPI SynthPortImpl_IDirectMusicPort_UnloadInstrument(LPDIRECTMU
     if (!downloaded_object->downloaded)
         return DMUS_E_NOT_DOWNLOADED_TO_PORT;
 
-    HeapFree(GetProcessHeap(), 0, downloaded_object->data);
+    heap_free(downloaded_object->data);
     downloaded_object->data = NULL;
     downloaded_object->downloaded = FALSE;
 
@@ -821,7 +821,7 @@ HRESULT synth_port_create(IDirectMusic8Impl *parent, DMUS_PORTPARAMS *port_param
 
     *port = NULL;
 
-    obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(SynthPortImpl));
+    obj = heap_alloc_zero(sizeof(SynthPortImpl));
     if (!obj)
         return E_OUTOFMEMORY;
 
@@ -838,7 +838,7 @@ HRESULT synth_port_create(IDirectMusic8Impl *parent, DMUS_PORTPARAMS *port_param
     hr = DMUSIC_CreateReferenceClockImpl(&IID_IReferenceClock, (LPVOID*)&obj->pLatencyClock, NULL);
     if (hr != S_OK)
     {
-        HeapFree(GetProcessHeap(), 0, obj);
+        heap_free(obj);
         return hr;
     }
 
@@ -898,7 +898,7 @@ HRESULT synth_port_create(IDirectMusic8Impl *parent, DMUS_PORTPARAMS *port_param
         IDirectMusicSynthSink_Release(obj->synth_sink);
     if (obj->pLatencyClock)
         IReferenceClock_Release(obj->pLatencyClock);
-    HeapFree(GetProcessHeap(), 0, obj);
+    heap_free(obj);
 
     return hr;
 }

@@ -103,7 +103,7 @@ static ULONG WINAPI IDirectMusicCollectionImpl_Release(IDirectMusicCollection *i
     TRACE("(%p/%p)->(): new ref = %u\n", iface, This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMUSIC_UnlockModule();
     }
 
@@ -438,7 +438,7 @@ static HRESULT WINAPI IPersistStreamImpl_Load(IPersistStream *iface,
         switch (chunk.fccID) {
             case FOURCC_COLH: {
                 TRACE_(dmfile)(": collection header chunk\n");
-                This->pHeader = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, chunk.dwSize);
+                This->pHeader = heap_alloc_zero(chunk.dwSize);
                 IStream_Read(stream, This->pHeader, chunk.dwSize, NULL);
                 break;
             }
@@ -456,10 +456,10 @@ static HRESULT WINAPI IPersistStreamImpl_Load(IPersistStream *iface,
             }
             case FOURCC_PTBL: {
                 TRACE_(dmfile)(": pool table chunk\n");
-                This->pPoolTable = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(POOLTABLE));
+                This->pPoolTable = heap_alloc_zero(sizeof(POOLTABLE));
                 IStream_Read(stream, This->pPoolTable, sizeof(POOLTABLE), NULL);
                 chunk.dwSize -= sizeof(POOLTABLE);
-                This->pPoolCues = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, This->pPoolTable->cCues * sizeof(POOLCUE));
+                This->pPoolCues = heap_alloc_zero(This->pPoolTable->cCues * sizeof(POOLCUE));
                 IStream_Read(stream, This->pPoolCues, chunk.dwSize, NULL);
                 break;
             }
@@ -501,7 +501,7 @@ static HRESULT WINAPI IPersistStreamImpl_Load(IPersistStream *iface,
                                 }
                                 case mmioFOURCC('I','C','O','P'): {
                                     TRACE_(dmfile)(": copyright chunk\n");
-                                    This->szCopyright = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, chunk.dwSize);
+                                    This->szCopyright = heap_alloc_zero(chunk.dwSize);
                                     IStream_Read(stream, This->szCopyright, chunk.dwSize, NULL);
                                     if (even_or_odd(chunk.dwSize)) {
                                         ListCount[0]++;
@@ -568,7 +568,7 @@ static HRESULT WINAPI IPersistStreamImpl_Load(IPersistStream *iface,
                                     ListCount[1] = 0;
                                     switch (chunk.fccID) {
                                         case FOURCC_INS: {
-                                            LPDMUS_PRIVATE_INSTRUMENTENTRY new_instrument = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DMUS_PRIVATE_INSTRUMENTENTRY));
+                                            LPDMUS_PRIVATE_INSTRUMENTENTRY new_instrument = heap_alloc_zero(sizeof(DMUS_PRIVATE_INSTRUMENTENTRY));
                                             TRACE_(dmfile)(": instrument list\n");
                                             /* Only way to create this one... even M$ does it discretely */
                                             DMUSIC_CreateDirectMusicInstrumentImpl(&IID_IDirectMusicInstrument, (void**)&new_instrument->pInstrument, NULL);
@@ -718,7 +718,7 @@ HRESULT WINAPI DMUSIC_CreateDirectMusicCollectionImpl(LPCGUID lpcGUID, LPVOID* p
         if (pUnkOuter)
                 return CLASS_E_NOAGGREGATION;
 
-	obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicCollectionImpl));
+	obj = heap_alloc_zero(sizeof(IDirectMusicCollectionImpl));
         if (!obj)
                 return E_OUTOFMEMORY;
 

@@ -61,7 +61,7 @@ static ULONG WINAPI IReferenceClockImpl_Release(IReferenceClock *iface)
     TRACE("(%p)->(): new ref = %u\n", This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMUSIC_UnlockModule();
     }
 
@@ -125,7 +125,7 @@ HRESULT DMUSIC_CreateReferenceClockImpl(LPCGUID riid, LPVOID* ret_iface, LPUNKNO
 
     TRACE("(%s, %p, %p)\n", debugstr_guid(riid), ret_iface, unkouter);
 
-    clock = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IReferenceClockImpl));
+    clock = heap_alloc_zero(sizeof(IReferenceClockImpl));
     if (!clock) {
         *ret_iface = NULL;
         return E_OUTOFMEMORY;

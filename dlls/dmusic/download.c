@@ -63,7 +63,7 @@ static ULONG WINAPI IDirectMusicDownloadImpl_Release(IDirectMusicDownload *iface
     TRACE("(%p)->(): new ref = %u\n", iface, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMUSIC_UnlockModule();
     }
 
@@ -90,7 +90,7 @@ HRESULT DMUSIC_CreateDirectMusicDownloadImpl(const GUID *guid, void **ret_iface,
 {
     IDirectMusicDownloadImpl *download;
 
-    download = HeapAlloc(GetProcessHeap(), 0, sizeof(*download));
+    download = heap_alloc(sizeof(*download));
     if (!download)
     {
         *ret_iface = NULL;

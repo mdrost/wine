@@ -75,7 +75,7 @@ static HRESULT WINAPI memorydataloader_Destroy(ID3DX11DataLoader *iface)
 
     TRACE("iface %p.\n", iface);
 
-    HeapFree(GetProcessHeap(), 0, loader);
+    heap_free(loader);
     return S_OK;
 }
 
@@ -103,7 +103,7 @@ static HRESULT WINAPI filedataloader_Load(ID3DX11DataLoader *iface)
         return D3D11_ERROR_FILE_NOT_FOUND;
 
     size = GetFileSize(file, NULL);
-    data = HeapAlloc(GetProcessHeap(), 0, size);
+    data = heap_alloc(size);
     if (!data)
     {
         CloseHandle(file);
@@ -115,11 +115,11 @@ static HRESULT WINAPI filedataloader_Load(ID3DX11DataLoader *iface)
     if (!ret)
     {
         ERR("Failed to read file contents.\n");
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return E_FAIL;
     }
 
-    HeapFree(GetProcessHeap(), 0, loader->data);
+    heap_free(loader->data);
     loader->data = data;
     loader->size = size;
 
@@ -147,9 +147,9 @@ static HRESULT WINAPI filedataloader_Destroy(ID3DX11DataLoader *iface)
 
     TRACE("iface %p.\n", iface);
 
-    HeapFree(GetProcessHeap(), 0, loader->u.file.path);
-    HeapFree(GetProcessHeap(), 0, loader->data);
-    HeapFree(GetProcessHeap(), 0, loader);
+    heap_free(loader->u.file.path);
+    heap_free(loader->data);
+    heap_free(loader);
 
     return S_OK;
 }
@@ -205,7 +205,7 @@ static HRESULT WINAPI resourcedataloader_Destroy(ID3DX11DataLoader *iface)
 
     TRACE("iface %p.\n", iface);
 
-    HeapFree(GetProcessHeap(), 0, loader);
+    heap_free(loader);
 
     return S_OK;
 }
@@ -268,7 +268,7 @@ HRESULT WINAPI D3DX11CreateAsyncMemoryLoader(const void *data, SIZE_T data_size,
     if (!data || !loader)
         return E_FAIL;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
@@ -293,12 +293,12 @@ HRESULT WINAPI D3DX11CreateAsyncFileLoaderA(const char *filename, ID3DX11DataLoa
         return E_FAIL;
 
     len = MultiByteToWideChar(CP_ACP, 0, filename, -1, NULL, 0);
-    filename_w = HeapAlloc(GetProcessHeap(), 0, len * sizeof(*filename_w));
+    filename_w = heap_alloc(len * sizeof(*filename_w));
     MultiByteToWideChar(CP_ACP, 0, filename, -1, filename_w, len);
 
     hr = D3DX11CreateAsyncFileLoaderW(filename_w, loader);
 
-    HeapFree(GetProcessHeap(), 0, filename_w);
+    heap_free(filename_w);
 
     return hr;
 }
@@ -312,15 +312,15 @@ HRESULT WINAPI D3DX11CreateAsyncFileLoaderW(const WCHAR *filename, ID3DX11DataLo
     if (!filename || !loader)
         return E_FAIL;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
     object->ID3DX11DataLoader_iface.lpVtbl = &filedataloadervtbl;
-    object->u.file.path = HeapAlloc(GetProcessHeap(), 0, (strlenW(filename) + 1) * sizeof(WCHAR));
+    object->u.file.path = heap_alloc((strlenW(filename) + 1) * sizeof(WCHAR));
     if (!object->u.file.path)
     {
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         return E_OUTOFMEMORY;
     }
     strcpyW(object->u.file.path, filename);
@@ -342,14 +342,14 @@ HRESULT WINAPI D3DX11CreateAsyncResourceLoaderA(HMODULE module, const char *reso
     if (!loader)
         return E_FAIL;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
     if (!(rsrc = FindResourceA(module, resource, (const char *)RT_RCDATA)))
     {
         ERR("Failed to find resource.\n");
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         return D3DX11_ERR_INVALID_DATA;
     }
 
@@ -374,14 +374,14 @@ HRESULT WINAPI D3DX11CreateAsyncResourceLoaderW(HMODULE module, const WCHAR *res
     if (!loader)
         return E_FAIL;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
     if (!(rsrc = FindResourceW(module, resource, (const WCHAR *)RT_RCDATA)))
     {
         ERR("Failed to find resource.\n");
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         return D3DX11_ERR_INVALID_DATA;
     }
 

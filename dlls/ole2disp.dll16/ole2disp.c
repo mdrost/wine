@@ -298,7 +298,7 @@ HRESULT WINAPI SafeArrayDestroyData16(SAFEARRAY16 *sa)
  */
 static BSTR16 BSTR_AllocBytes(int n)
 {
-    void *ptr = HeapAlloc( GetProcessHeap(), 0, n );
+    void *ptr = heap_alloc( n );
     return (BSTR16)MapLS(ptr);
 }
 
@@ -309,7 +309,7 @@ static void BSTR_Free(BSTR16 in)
 {
     void *ptr = MapSL( (SEGPTR)in );
     UnMapLS( (SEGPTR)in );
-    HeapFree( GetProcessHeap(), 0, ptr );
+    heap_free( ptr );
 }
 
 /******************************************************************************

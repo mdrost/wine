@@ -505,7 +505,7 @@ static void test_BCryptGenerateSymmetricKey(void)
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
 
     key = NULL;
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+    buf = heap_alloc_zero(len);
     ret = pBCryptGenerateSymmetricKey(aes, &key, buf, len, secret, sizeof(secret), 0);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
     ok(key != NULL, "key not set\n");
@@ -556,7 +556,7 @@ static void test_BCryptGenerateSymmetricKey(void)
 
     ret = pBCryptDestroyKey(key);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     ret = pBCryptCloseAlgorithmProvider(aes, 0);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
@@ -596,7 +596,7 @@ static void test_BCryptEncrypt(void)
     ret = pBCryptGetProperty(aes, BCRYPT_OBJECT_LENGTH, (UCHAR *)&len, sizeof(len), &size, 0);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
 
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+    buf = heap_alloc_zero(len);
     ret = pBCryptGenerateSymmetricKey(aes, &key, buf, len, secret, sizeof(secret), 0);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
 
@@ -675,7 +675,7 @@ static void test_BCryptEncrypt(void)
 
     ret = pBCryptDestroyKey(key);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     ret = pBCryptCloseAlgorithmProvider(aes, 0);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
@@ -728,7 +728,7 @@ static void test_BCryptDecrypt(void)
     ret = pBCryptGetProperty(aes, BCRYPT_OBJECT_LENGTH, (UCHAR *)&len, sizeof(len), &size, 0);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
 
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+    buf = heap_alloc_zero(len);
     ret = pBCryptGenerateSymmetricKey(aes, &key, buf, len, secret, sizeof(secret), 0);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
 
@@ -818,7 +818,7 @@ static void test_BCryptDecrypt(void)
 
     ret = pBCryptDestroyKey(key);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     ret = pBCryptCloseAlgorithmProvider(aes, 0);
     ok(ret == STATUS_SUCCESS, "got %08x\n", ret);

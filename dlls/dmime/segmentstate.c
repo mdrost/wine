@@ -75,7 +75,7 @@ static ULONG WINAPI DirectMusicSegmentState8_Release(IDirectMusicSegmentState8 *
     TRACE("(%p): %d\n", This, ref);
 
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     DMIME_UnlockModule();
 
@@ -150,7 +150,7 @@ HRESULT WINAPI create_dmsegmentstate(REFIID riid, void **ret_iface)
 
     *ret_iface = NULL;
 
-    obj = HeapAlloc (GetProcessHeap(), 0, sizeof(IDirectMusicSegmentState8Impl));
+    obj = heap_alloc(sizeof(IDirectMusicSegmentState8Impl));
     if (!obj)
         return E_OUTOFMEMORY;
 

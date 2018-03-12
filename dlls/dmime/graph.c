@@ -92,7 +92,7 @@ static ULONG WINAPI DirectMusicGraph_Release(IDirectMusicGraph *iface)
     TRACE("(%p): %d\n", This, ref);
 
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     DMIME_UnlockModule();
     return ref;
@@ -263,7 +263,7 @@ HRESULT WINAPI create_dmgraph(REFIID riid, void **ret_iface)
 
     *ret_iface = NULL;
   
-    obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicGraphImpl));
+    obj = heap_alloc_zero(sizeof(IDirectMusicGraphImpl));
     if (!obj)
         return E_OUTOFMEMORY;
 

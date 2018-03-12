@@ -85,7 +85,7 @@ static ULONG WINAPI IDirectMusicSegment8Impl_Release(IDirectMusicSegment8 *iface
     TRACE("(%p) ref=%d\n", This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMIME_UnlockModule();
     }
 
@@ -286,7 +286,7 @@ static HRESULT WINAPI IDirectMusicSegment8Impl_RemoveTrack(IDirectMusicSegment8 
       list_remove(&pIt->entry);
       IDirectMusicTrack_Init(pIt->pTrack, NULL);
       IDirectMusicTrack_Release(pIt->pTrack);
-      HeapFree(GetProcessHeap(), 0, pIt);   
+      heap_free(pIt);
 
       return S_OK;
     }
@@ -1123,8 +1123,7 @@ HRESULT WINAPI create_dmsegment(REFIID lpcGUID, void **ppobj)
   IDirectMusicSegment8Impl* obj;
   HRESULT hr;
 
-  obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicSegment8Impl));
-  if (NULL == obj) {
+  if (!(obj = heap_alloc_zero(sizeof(IDirectMusicSegment8Impl)))) {
     *ppobj = NULL;
     return E_OUTOFMEMORY;
   }

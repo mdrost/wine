@@ -82,7 +82,7 @@ static ULONG WINAPI IDirectMusicTrack8Impl_Release(IDirectMusicTrack8 *iface)
     TRACE("(%p) ref=%d\n", This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMIME_UnlockModule();
     }
 
@@ -107,7 +107,7 @@ static HRESULT WINAPI IDirectMusicTrack8Impl_InitPlay(IDirectMusicTrack8 *iface,
 
   FIXME("(%p, %p, %p, %p, %d, %d): semi-stub\n", This, pSegmentState, pPerformance, ppStateData, dwVirtualTrack8ID, dwFlags);
 
-  pState = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DMUS_PRIVATE_TEMPO_PLAY_STATE));
+  pState = heap_alloc_zero(sizeof(DMUS_PRIVATE_TEMPO_PLAY_STATE));
   if (NULL == pState)
     return E_OUTOFMEMORY;
 
@@ -129,7 +129,7 @@ static HRESULT WINAPI IDirectMusicTrack8Impl_EndPlay(IDirectMusicTrack8 *iface, 
     return E_POINTER;
   }
   /** TODO real clean up */
-  HeapFree(GetProcessHeap(), 0, pState);
+  heap_free(pState);
   return S_OK;
 }
 
@@ -386,7 +386,7 @@ HRESULT WINAPI create_dmtempotrack(REFIID lpcGUID, void **ppobj)
     IDirectMusicTempoTrack *track;
     HRESULT hr;
 
-    track = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*track));
+    track = heap_alloc_zero(sizeof(*track));
     if (!track) {
         *ppobj = NULL;
         return E_OUTOFMEMORY;

@@ -121,14 +121,14 @@ static DWORD WINAPI ProcessMsgThread(LPVOID lpParam) {
     for (it = This->imm_head; NULL != it; ) {
       it_next = it->next;
       cur = ProceedMsg(This, it);  
-      HeapFree(GetProcessHeap(), 0, cur); 
+      heap_free(cur); 
       it = it_next;
     }
 
     for (it = This->head; NULL != it && it->rtItemTime < rtCurTime + dwDec; ) {
       it_next = it->next;
       cur = ProceedMsg(This, it);
-      HeapFree(GetProcessHeap(), 0, cur);
+      heap_free(cur);
       it = it_next;
     }
     if (NULL != it) {
@@ -237,7 +237,7 @@ static ULONG WINAPI IDirectMusicPerformance8Impl_Release(IDirectMusicPerformance
   if (ref == 0) {
     This->safe.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection(&This->safe);
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
   }
 
   DMIME_UnlockModule();
@@ -448,7 +448,7 @@ static HRESULT WINAPI IDirectMusicPerformance8Impl_AllocPMsg(IDirectMusicPerform
   if (NULL == ppPMSG) {
     return E_POINTER;
   }
-  pItem = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, cb - sizeof(DMUS_PMSG)  + sizeof(DMUS_PMSGItem));
+  pItem = heap_alloc_zero(cb - sizeof(DMUS_PMSG)  + sizeof(DMUS_PMSGItem));
   if (NULL == pItem) {
     return E_OUTOFMEMORY;
   }
@@ -479,7 +479,7 @@ static HRESULT WINAPI IDirectMusicPerformance8Impl_FreePMsg(IDirectMusicPerforma
   LeaveCriticalSection(&This->safe);
 
   /** TODO: see if we should Release the pItem->pMsg->punkUser and others Interfaces */
-  HeapFree(GetProcessHeap(), 0, pItem);  
+  heap_free(pItem);  
   return S_OK;
 }
 
@@ -1195,7 +1195,7 @@ HRESULT WINAPI create_dmperformance(REFIID lpcGUID, void **ppobj)
 
         TRACE("(%s, %p)\n", debugstr_guid(lpcGUID), ppobj);
 
-	obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicPerformance8Impl));
+	obj = heap_alloc_zero(sizeof(IDirectMusicPerformance8Impl));
         if (NULL == obj) {
 		*ppobj = NULL;
 		return E_OUTOFMEMORY;

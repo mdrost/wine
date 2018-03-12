@@ -77,7 +77,7 @@ static ULONG WINAPI IDirectMusicTrackImpl_Release(IDirectMusicTrack *iface)
     TRACE("(%p) ref=%d\n", This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMIME_UnlockModule();
     }
 
@@ -211,7 +211,7 @@ HRESULT WINAPI create_dmmarkertrack(REFIID lpcGUID, void **ppobj)
     IDirectMusicMarkerTrack *track;
     HRESULT hr;
 
-    track = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*track));
+    track = heap_alloc_zero(sizeof(*track));
     if (!track) {
         *ppobj = NULL;
         return E_OUTOFMEMORY;

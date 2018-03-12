@@ -59,7 +59,7 @@ static void test_PageSetupDlgA(void)
     LPPAGESETUPDLGA pDlg;
     DWORD res;
 
-    pDlg = HeapAlloc(GetProcessHeap(), 0, (sizeof(PAGESETUPDLGA)) * 2);
+    pDlg = heap_alloc((sizeof(PAGESETUPDLGA)) * 2);
     if (!pDlg) return;
 
     SetLastError(0xdeadbeef);
@@ -97,7 +97,7 @@ static void test_PageSetupDlgA(void)
 
     if (!res && (CommDlgExtendedError() == PDERR_NODEFAULTPRN)) {
         skip("No printer configured.\n");
-        HeapFree(GetProcessHeap(), 0, pDlg);
+        heap_free(pDlg);
         return;
     }
 
@@ -108,7 +108,7 @@ static void test_PageSetupDlgA(void)
     GlobalFree(pDlg->hDevMode);
     GlobalFree(pDlg->hDevNames);
 
-    HeapFree(GetProcessHeap(), 0, pDlg);
+    heap_free(pDlg);
 
 }
 
@@ -138,7 +138,7 @@ static void test_PrintDlgA(void)
     LPSTR  ptr;
     DEVMODEA *dm;
 
-    pDlg = HeapAlloc(GetProcessHeap(), 0, (sizeof(PRINTDLGA)) * 2);
+    pDlg = heap_alloc((sizeof(PRINTDLGA)) * 2);
     if (!pDlg) return;
 
 
@@ -178,7 +178,7 @@ static void test_PrintDlgA(void)
 
     if (!res && (CommDlgExtendedError() == PDERR_NODEFAULTPRN)) {
         skip("No printer configured.\n");
-        HeapFree(GetProcessHeap(), 0, pDlg);
+        heap_free(pDlg);
         return;
     }
 
@@ -269,7 +269,7 @@ static void test_PrintDlgA(void)
         GlobalFree(pDlg->hDevNames);
     }
 
-    HeapFree(GetProcessHeap(), 0, pDlg);
+    heap_free(pDlg);
 }
 
 /* ########################### */
@@ -390,7 +390,7 @@ static void test_PrintDlgExW(void)
             res, GetLastError(), CommDlgExtendedError() );
     }
 
-    pDlg = HeapAlloc(GetProcessHeap(), 0, (sizeof(PRINTDLGEXW)) + 8);
+    pDlg = heap_alloc((sizeof(PRINTDLGEXW)) + 8);
     if (!pDlg) return;
 
     /* lStructSize must be exact */
@@ -471,7 +471,7 @@ static void test_PrintDlgExW(void)
     if (res == E_FAIL)
     {
         skip("No printer configured.\n");
-        HeapFree(GetProcessHeap(), 0, pDlg);
+        heap_free(pDlg);
         return;
     }
 
@@ -533,7 +533,7 @@ static void test_PrintDlgExW(void)
     if (!winetest_interactive)
     {
         skip("interactive PrintDlgEx tests (set WINETEST_INTERACTIVE=1)\n");
-        HeapFree(GetProcessHeap(), 0, pDlg);
+        heap_free(pDlg);
         return;
     }
 
@@ -552,7 +552,7 @@ static void test_PrintDlgExW(void)
     GlobalFree(pDlg->hDevNames);
     DeleteDC(pDlg->hDC);
 
-    HeapFree(GetProcessHeap(), 0, pDlg);
+    heap_free(pDlg);
 }
 
 static BOOL abort_proc_called = FALSE;

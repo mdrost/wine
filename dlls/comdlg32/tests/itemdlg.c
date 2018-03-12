@@ -148,7 +148,7 @@ static ULONG WINAPI IFileDialogEvents_fnRelease(IFileDialogEvents *iface)
     LONG ref = InterlockedDecrement(&This->ref);
 
     if(!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -311,7 +311,7 @@ static IFileDialogEvents *IFileDialogEvents_Constructor(void)
 {
     IFileDialogEventsImpl *This;
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IFileDialogEventsImpl));
+    This = heap_alloc_zero(sizeof(IFileDialogEventsImpl));
     This->IFileDialogEvents_iface.lpVtbl = &vt_IFileDialogEvents;
     This->ref = 1;
 

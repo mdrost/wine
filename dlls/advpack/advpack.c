@@ -142,7 +142,7 @@ void set_ldids(HINF hInf, LPCWSTR pszInstallSection, LPCWSTR pszWorkingDir)
         if (!(value = strchrW(line, '=')))
         {
             SetupGetStringFieldW(&context, 0, NULL, 0, &size);
-            key = HeapAlloc(GetProcessHeap(), 0, size * sizeof(WCHAR));
+            key = heap_alloc(size * sizeof(WCHAR));
             key_copy = key;
             SetupGetStringFieldW(&context, 0, key, size, &size);
             value = line;
@@ -180,7 +180,7 @@ void set_ldids(HINF hInf, LPCWSTR pszInstallSection, LPCWSTR pszWorkingDir)
             ldid = atolW(ptr);
             SetupSetDirectoryIdW(hInf, ldid, dest);
         }
-        HeapFree(GetProcessHeap(), 0, key_copy);
+        heap_free(key_copy);
     } while (SetupFindNextLine(&context, &context));
 }
 
@@ -242,7 +242,7 @@ BOOL WINAPI IsNTAdmin(DWORD reserved, LPDWORD pReserved)
         }
     }
 
-    pTokenGroups = HeapAlloc(GetProcessHeap(), 0, dwSize);
+    pTokenGroups = heap_alloc(dwSize);
     if (!pTokenGroups)
     {
         CloseHandle(hToken);
@@ -251,7 +251,7 @@ BOOL WINAPI IsNTAdmin(DWORD reserved, LPDWORD pReserved)
 
     if (!GetTokenInformation(hToken, TokenGroups, pTokenGroups, dwSize, &dwSize))
     {
-        HeapFree(GetProcessHeap(), 0, pTokenGroups);
+        heap_free(pTokenGroups);
         CloseHandle(hToken);
         return FALSE;
     }
@@ -261,7 +261,7 @@ BOOL WINAPI IsNTAdmin(DWORD reserved, LPDWORD pReserved)
     if (!AllocateAndInitializeSid(&SidAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID,
                                   DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &pSid))
     {
-        HeapFree(GetProcessHeap(), 0, pTokenGroups);
+        heap_free(pTokenGroups);
         return FALSE;
     }
 
@@ -274,7 +274,7 @@ BOOL WINAPI IsNTAdmin(DWORD reserved, LPDWORD pReserved)
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, pTokenGroups);
+    heap_free(pTokenGroups);
     FreeSid(pSid);
 
     return bSidFound;
@@ -491,7 +491,7 @@ HRESULT WINAPI RegisterOCX(HWND hWnd, HINSTANCE hInst, LPCSTR cmdline, INT show)
     RtlCreateUnicodeStringFromAsciiz(&cmdlineW, cmdline);
 
     size = (lstrlenW(cmdlineW.Buffer) + 1) * sizeof(WCHAR);
-    cmdline_copy = HeapAlloc(GetProcessHeap(), 0, size);
+    cmdline_copy = heap_alloc(size);
     cmdline_ptr = cmdline_copy;
     lstrcpyW(cmdline_copy, cmdlineW.Buffer);
 
@@ -510,7 +510,7 @@ HRESULT WINAPI RegisterOCX(HWND hWnd, HINSTANCE hInst, LPCSTR cmdline, INT show)
 
 done:
     FreeLibrary(hm);
-    HeapFree(GetProcessHeap(), 0, cmdline_copy);
+    heap_free(cmdline_copy);
     RtlFreeUnicodeString(&cmdlineW);
 
     return hr;
@@ -663,7 +663,7 @@ HRESULT WINAPI TranslateInfStringA(LPCSTR pszInfFilename, LPCSTR pszInstallSecti
 
     if (res == S_OK)
     {
-        bufferW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        bufferW = heap_alloc(len * sizeof(WCHAR));
 
         res = TranslateInfStringW(filenameW.Buffer, installW.Buffer,
                                   translateW.Buffer, keyW.Buffer, bufferW,
@@ -682,7 +682,7 @@ HRESULT WINAPI TranslateInfStringA(LPCSTR pszInfFilename, LPCSTR pszInstallSecti
                 res = E_NOT_SUFFICIENT_BUFFER;
         }
         
-        HeapFree(GetProcessHeap(), 0, bufferW);
+        heap_free(bufferW);
     }
 
     RtlFreeUnicodeString(&filenameW);
@@ -780,7 +780,7 @@ HRESULT WINAPI TranslateInfStringExA(HINF hInf, LPCSTR pszInfFilename,
 
     if (res == S_OK)
     {
-        bufferW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        bufferW = heap_alloc(len * sizeof(WCHAR));
 
         res = TranslateInfStringExW(hInf, filenameW.Buffer, sectionW.Buffer,
                                 keyW.Buffer, bufferW, len, &len, NULL);
@@ -799,7 +799,7 @@ HRESULT WINAPI TranslateInfStringExA(HINF hInf, LPCSTR pszInfFilename,
                 res = E_NOT_SUFFICIENT_BUFFER;
         }
         
-        HeapFree(GetProcessHeap(), 0, bufferW);
+        heap_free(bufferW);
     }
 
     RtlFreeUnicodeString(&filenameW);

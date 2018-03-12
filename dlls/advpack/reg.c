@@ -104,8 +104,8 @@ static void strentry_atow(const STRENTRYA *aentry, STRENTRYW *wentry)
     name_len = MultiByteToWideChar(CP_ACP, 0, aentry->pszName, -1, NULL, 0);
     val_len = MultiByteToWideChar(CP_ACP, 0, aentry->pszValue, -1, NULL, 0);
 
-    wentry->pszName = HeapAlloc(GetProcessHeap(), 0, name_len * sizeof(WCHAR));
-    wentry->pszValue = HeapAlloc(GetProcessHeap(), 0, val_len * sizeof(WCHAR));
+    wentry->pszName = heap_alloc(name_len * sizeof(WCHAR));
+    wentry->pszValue = heap_alloc(val_len * sizeof(WCHAR));
 
     MultiByteToWideChar(CP_ACP, 0, aentry->pszName, -1, wentry->pszName, name_len);
     MultiByteToWideChar(CP_ACP, 0, aentry->pszValue, -1, wentry->pszValue, val_len);
@@ -116,8 +116,8 @@ static STRTABLEW *strtable_atow(const STRTABLEA *atable)
     STRTABLEW *wtable;
     DWORD j;
 
-    wtable = HeapAlloc(GetProcessHeap(), 0, sizeof(STRTABLEW));
-    wtable->pse = HeapAlloc(GetProcessHeap(), 0, atable->cEntries * sizeof(STRENTRYW));
+    wtable = heap_alloc(sizeof(STRTABLEW));
+    wtable->pse = heap_alloc(atable->cEntries * sizeof(STRENTRYW));
     wtable->cEntries = atable->cEntries;
 
     for (j = 0; j < wtable->cEntries; j++)
@@ -132,12 +132,12 @@ static void free_strtable(STRTABLEW *wtable)
 
     for (j = 0; j < wtable->cEntries; j++)
     {
-        HeapFree(GetProcessHeap(), 0, wtable->pse[j].pszName);
-        HeapFree(GetProcessHeap(), 0, wtable->pse[j].pszValue);
+        heap_free(wtable->pse[j].pszName);
+        heap_free(wtable->pse[j].pszValue);
     }
 
-    HeapFree(GetProcessHeap(), 0, wtable->pse);
-    HeapFree(GetProcessHeap(), 0, wtable);
+    heap_free(wtable->pse);
+    heap_free(wtable);
 }
 
 /***********************************************************************

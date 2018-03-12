@@ -257,13 +257,13 @@ static WCHAR *get_field_string(INFCONTEXT *context, DWORD index, WCHAR *buffer,
     if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
     {
         /* now grow the buffer */
-        if (buffer != static_buffer) HeapFree(GetProcessHeap(), 0, buffer);
-        if (!(buffer = HeapAlloc(GetProcessHeap(), 0, required*sizeof(WCHAR)))) return NULL;
+        if (buffer != static_buffer) heap_free(buffer);
+        if (!(buffer = heap_alloc(required*sizeof(WCHAR)))) return NULL;
         *size = required;
         if (SetupGetStringFieldW(context, index, buffer, *size, &required)) return buffer;
     }
 
-    if (buffer != static_buffer) HeapFree(GetProcessHeap(), 0, buffer);
+    if (buffer != static_buffer) heap_free(buffer);
     return NULL;
 }
 
@@ -297,7 +297,7 @@ static HRESULT iterate_section_fields(HINF hinf, PCWSTR section, PCWSTR key,
     hr = S_OK;
 
  done:
-    if (buffer != static_buffer) HeapFree(GetProcessHeap(), 0, buffer);
+    if (buffer != static_buffer) heap_free(buffer);
     return hr;
 }
 
@@ -436,7 +436,7 @@ static HRESULT get_working_dir(ADVInfo *info, LPCWSTR inf_filename, LPCWSTR work
         ptr = path;
     }
 
-    info->working_dir = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    info->working_dir = heap_alloc(len * sizeof(WCHAR));
     if (!info->working_dir)
         return E_OUTOFMEMORY;
 
@@ -463,7 +463,7 @@ static HRESULT install_init(LPCWSTR inf_filename, LPCWSTR install_sec,
 
     len = lstrlenW(ptr);
 
-    info->inf_filename = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+    info->inf_filename = heap_alloc((len + 1) * sizeof(WCHAR));
     if (!info->inf_filename)
         return E_OUTOFMEMORY;
 
@@ -481,7 +481,7 @@ static HRESULT install_init(LPCWSTR inf_filename, LPCWSTR install_sec,
         ptr = install_sec;
     }
 
-    info->install_sec = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+    info->install_sec = heap_alloc((len + 1) * sizeof(WCHAR));
     if (!info->install_sec)
         return E_OUTOFMEMORY;
 
@@ -492,7 +492,7 @@ static HRESULT install_init(LPCWSTR inf_filename, LPCWSTR install_sec,
         return hr;
 
     len = lstrlenW(info->working_dir) + lstrlenW(info->inf_filename) + 2;
-    info->inf_path = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    info->inf_path = heap_alloc(len * sizeof(WCHAR));
     if (!info->inf_path)
         return E_OUTOFMEMORY;
 
@@ -525,10 +525,10 @@ static void install_release(const ADVInfo *info)
 {
     SetupCloseInfFile(info->hinf);
 
-    HeapFree(GetProcessHeap(), 0, info->inf_path);
-    HeapFree(GetProcessHeap(), 0, info->inf_filename);
-    HeapFree(GetProcessHeap(), 0, info->install_sec);
-    HeapFree(GetProcessHeap(), 0, info->working_dir);
+    heap_free(info->inf_path);
+    heap_free(info->inf_filename);
+    heap_free(info->install_sec);
+    heap_free(info->working_dir);
 }
 
 /* this structure very closely resembles parameters of RunSetupCommand() */
@@ -767,7 +767,7 @@ INT WINAPI LaunchINFSectionW(HWND hWnd, HINSTANCE hInst, LPWSTR cmdline, INT sho
     if (!cmdline)
         return ADV_FAILURE;
 
-    cmdline_copy = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(cmdline) + 1) * sizeof(WCHAR));
+    cmdline_copy = heap_alloc((lstrlenW(cmdline) + 1) * sizeof(WCHAR));
     cmdline_ptr = cmdline_copy;
     lstrcpyW(cmdline_copy, cmdline);
 
@@ -796,7 +796,7 @@ INT WINAPI LaunchINFSectionW(HWND hWnd, HINSTANCE hInst, LPWSTR cmdline, INT sho
 
 done:
     install_release(&info);
-    HeapFree(GetProcessHeap(), 0, cmdline_copy);
+    heap_free(cmdline_copy);
 
     return SUCCEEDED(hr) ? ADV_SUCCESS : ADV_FAILURE;
 }
@@ -864,7 +864,7 @@ HRESULT WINAPI LaunchINFSectionExW(HWND hWnd, HINSTANCE hInst, LPWSTR cmdline, I
     if (!cmdline)
         return ADV_FAILURE;
 
-    cmdline_copy = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(cmdline) + 1) * sizeof(WCHAR));
+    cmdline_copy = heap_alloc((lstrlenW(cmdline) + 1) * sizeof(WCHAR));
     cmdline_ptr = cmdline_copy;
     lstrcpyW(cmdline_copy, cmdline);
 
@@ -879,7 +879,7 @@ HRESULT WINAPI LaunchINFSectionExW(HWND hWnd, HINSTANCE hInst, LPWSTR cmdline, I
 
     if (!is_full_path(cabinfo.pszCab) && !is_full_path(cabinfo.pszInf))
     {
-        HeapFree(GetProcessHeap(), 0, cmdline_copy);
+        heap_free(cmdline_copy);
         return E_INVALIDARG;
     }
 
@@ -896,7 +896,7 @@ HRESULT WINAPI LaunchINFSectionExW(HWND hWnd, HINSTANCE hInst, LPWSTR cmdline, I
     }
 
     hr = ExecuteCabW(hWnd, &cabinfo, NULL);
-    HeapFree(GetProcessHeap(), 0, cmdline_copy);
+    heap_free(cmdline_copy);
     return SUCCEEDED(hr) ? ADV_SUCCESS : ADV_FAILURE;
 }
 

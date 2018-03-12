@@ -104,18 +104,18 @@ static void mib2IfNumberInit(void)
 
     if (ret == ERROR_INSUFFICIENT_BUFFER)
     {
-        MIB_IFTABLE *table = HeapAlloc(GetProcessHeap(), 0, size);
+        MIB_IFTABLE *table = heap_alloc(size);
         if (table)
         {
             if (!GetIfTable(table, &size, FALSE)) ifTable = table;
-            else HeapFree(GetProcessHeap(), 0, table );
+            else heap_free(table );
         }
     }
 }
 
 static void mib2IfNumberCleanup(void)
 {
-    HeapFree(GetProcessHeap(), 0, ifTable);
+    heap_free(ifTable);
 }
 
 static BOOL mib2IfNumberQuery(BYTE bPduType, SnmpVarBind *pVarBind,
@@ -346,13 +346,13 @@ static UINT findOidInTable(AsnObjectIdentifier *oid,
     compareFunc compare)
 {
     UINT index = 0;
-    void *key = HeapAlloc(GetProcessHeap(), 0, tableEntrySize);
+    void *key = heap_alloc(tableEntrySize);
 
     if (key)
     {
         makeKey(oid, key);
         index = findValueInTable(key, table, tableEntrySize, compare);
-        HeapFree(GetProcessHeap(), 0, key);
+        heap_free(key);
     }
     return index;
 }
@@ -368,7 +368,7 @@ static UINT findNextOidInTable(AsnObjectIdentifier *oid,
     compareFunc compare)
 {
     UINT index = 0;
-    void *key = HeapAlloc(GetProcessHeap(), 0, tableEntrySize);
+    void *key = heap_alloc(tableEntrySize);
 
     if (key)
     {
@@ -394,7 +394,7 @@ static UINT findNextOidInTable(AsnObjectIdentifier *oid,
                 &table->entries[tableEntrySize * (index - 1)]) == 0; ++index)
                 ;
         }
-        HeapFree(GetProcessHeap(), 0, key);
+        heap_free(key);
     }
     return index;
 }
@@ -749,18 +749,18 @@ static void mib2IpAddrInit(void)
 
     if (ret == ERROR_INSUFFICIENT_BUFFER)
     {
-        MIB_IPADDRTABLE *table = HeapAlloc(GetProcessHeap(), 0, size);
+        MIB_IPADDRTABLE *table = heap_alloc(size);
         if (table)
         {
             if (!GetIpAddrTable(table, &size, TRUE)) ipAddrTable = table;
-            else HeapFree(GetProcessHeap(), 0, table );
+            else heap_free(table );
         }
     }
 }
 
 static void mib2IpAddrCleanup(void)
 {
-    HeapFree(GetProcessHeap(), 0, ipAddrTable);
+    heap_free(ipAddrTable);
 }
 
 static void oidToIpAddrRow(AsnObjectIdentifier *oid, void *dst)
@@ -842,18 +842,18 @@ static void mib2IpRouteInit(void)
 
     if (ret == ERROR_INSUFFICIENT_BUFFER)
     {
-        MIB_IPFORWARDTABLE *table = HeapAlloc(GetProcessHeap(), 0, size);
+        MIB_IPFORWARDTABLE *table = heap_alloc(size);
         if (table)
         {
             if (!GetIpForwardTable(table, &size, TRUE)) ipRouteTable = table;
-            else HeapFree(GetProcessHeap(), 0, table );
+            else heap_free(table );
         }
     }
 }
 
 static void mib2IpRouteCleanup(void)
 {
-    HeapFree(GetProcessHeap(), 0, ipRouteTable);
+    heap_free(ipRouteTable);
 }
 
 static void oidToIpForwardRow(AsnObjectIdentifier *oid, void *dst)
@@ -936,18 +936,18 @@ static void mib2IpNetInit(void)
 
     if (ret == ERROR_INSUFFICIENT_BUFFER)
     {
-        MIB_IPNETTABLE *table = HeapAlloc(GetProcessHeap(), 0, size);
+        MIB_IPNETTABLE *table = heap_alloc(size);
         if (table)
         {
             if (!GetIpNetTable(table, &size, FALSE)) ipNetTable = table;
-            else HeapFree(GetProcessHeap(), 0, table );
+            else heap_free(table );
         }
     }
 }
 
 static void mib2IpNetCleanup(void)
 {
-    HeapFree(GetProcessHeap(), 0, ipNetTable);
+    heap_free(ipNetTable);
 }
 
 static BOOL mib2IpNetQuery(BYTE bPduType, SnmpVarBind *pVarBind,
@@ -1193,18 +1193,18 @@ static void mib2UdpEntryInit(void)
 
     if (ret == ERROR_INSUFFICIENT_BUFFER)
     {
-        MIB_UDPTABLE *table = HeapAlloc(GetProcessHeap(), 0, size);
+        MIB_UDPTABLE *table = heap_alloc(size);
         if (table)
         {
             if (!GetUdpTable(table, &size, TRUE)) udpTable = table;
-            else HeapFree(GetProcessHeap(), 0, table);
+            else heap_free(table);
         }
     }
 }
 
 static void mib2UdpEntryCleanup(void)
 {
-    HeapFree(GetProcessHeap(), 0, udpTable);
+    heap_free(udpTable);
 }
 
 static struct structToAsnValue mib2UdpEntryMap[] = {

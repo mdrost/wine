@@ -160,13 +160,13 @@ static void find_installed_ports(void)
 
     res = pEnumPorts(NULL, 1, NULL, 0, &needed, &returned);
     if (!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        pi = HeapAlloc(GetProcessHeap(), 0, needed);
+        pi = heap_alloc(needed);
     }
     res = pEnumPorts(NULL, 1, (LPBYTE) pi, needed, &needed, &returned);
 
     if (!res) {
         skip("no ports found\n");
-        HeapFree(GetProcessHeap(), 0, pi);
+        heap_free(pi);
         return;
     }
 
@@ -194,7 +194,7 @@ static void find_installed_ports(void)
         id++;
     }
 
-    HeapFree(GetProcessHeap(), 0, pi);
+    heap_free(pi);
 }
 
 /* ########################### */
@@ -544,7 +544,7 @@ static void test_EnumPorts(void)
             "ERROR_INSUFFICIENT_BUFFER)\n",
             level, res, GetLastError(), cbBuf, pcReturned);
 
-        buffer = HeapAlloc(GetProcessHeap(), 0, cbBuf * 2);
+        buffer = heap_alloc(cbBuf * 2);
         if (buffer == NULL) continue;
 
         pcbNeeded = 0xdeadbeef;
@@ -594,7 +594,7 @@ static void test_EnumPorts(void)
         ok( res, "(%d) returned %d with %u and %d, %d (expected '!= 0')\n",
             level, res, GetLastError(), pcbNeeded, pcReturned);
 
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     }
 }
 

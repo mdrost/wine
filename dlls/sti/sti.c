@@ -158,7 +158,7 @@ static HRESULT WINAPI stillimagew_RegisterLaunchApplication(IStillImageW *iface,
                 REG_SZ, (BYTE*)value, (lstrlenW(value)+1)*sizeof(WCHAR));
             if (ret != ERROR_SUCCESS)
                 hr = HRESULT_FROM_WIN32(ret);
-            HeapFree(GetProcessHeap(), 0, value);
+            heap_free(value);
         }
         else
             hr = E_OUTOFMEMORY;
@@ -301,7 +301,7 @@ static ULONG WINAPI Internal_Release(IUnknown *iface)
 
     ref = InterlockedDecrement(&This->ref);
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return ref;
 }
 
@@ -331,7 +331,7 @@ HRESULT WINAPI StiCreateInstanceW(HINSTANCE hinst, DWORD dwVer, PSTIW *ppSti, LP
 
     TRACE("(%p, %u, %p, %p)\n", hinst, dwVer, ppSti, pUnkOuter);
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(stillimage));
+    This = heap_alloc_zero(sizeof(stillimage));
     if (This)
     {
         This->IStillImageW_iface.lpVtbl = &stillimagew_vtbl;

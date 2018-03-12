@@ -130,7 +130,7 @@ static ULONG WINAPI server_Release(IWineRowServer *iface)
     {
         IMarshal_Release(This->marshal);
         if(This->inner_unk) IUnknown_Release(This->inner_unk);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -581,7 +581,7 @@ static HRESULT create_server(IUnknown *outer, const CLSID *class, void **obj)
 
     *obj = NULL;
 
-    server = HeapAlloc(GetProcessHeap(), 0, sizeof(*server));
+    server = heap_alloc(sizeof(*server));
     if(!server) return E_OUTOFMEMORY;
 
     server->IWineRowServer_iface.lpVtbl = &server_vtbl;
@@ -672,7 +672,7 @@ static ULONG WINAPI row_Release(IRow *iface)
     if(ref == 0)
     {
         if(This->server) IWineRowServer_Release(This->server);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -826,7 +826,7 @@ static HRESULT create_row_proxy(IWineRowServer *server, IUnknown **obj)
     TRACE("(%p, %p)\n", server, obj);
     *obj = NULL;
 
-    proxy = HeapAlloc(GetProcessHeap(), 0, sizeof(*proxy));
+    proxy = heap_alloc(sizeof(*proxy));
     if(!proxy) return E_OUTOFMEMORY;
 
     proxy->IRow_iface.lpVtbl = &row_vtbl;
@@ -916,7 +916,7 @@ static ULONG WINAPI rowsetlocate_Release(IRowsetLocate *iface)
     if(ref == 0)
     {
         if(This->server) IWineRowServer_Release(This->server);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1253,7 +1253,7 @@ static HRESULT create_rowset_proxy(IWineRowServer *server, IUnknown **obj)
     TRACE("(%p, %p)\n", server, obj);
     *obj = NULL;
 
-    proxy = HeapAlloc(GetProcessHeap(), 0, sizeof(*proxy));
+    proxy = heap_alloc(sizeof(*proxy));
     if(!proxy) return E_OUTOFMEMORY;
 
     proxy->IRowsetLocate_iface.lpVtbl = &rowsetlocate_vtbl;
@@ -1335,7 +1335,7 @@ static ULONG WINAPI marshal_Release(IMarshal *iface)
     ref = InterlockedDecrement(&This->ref);
     if(ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1438,7 +1438,7 @@ static HRESULT create_marshal(IUnknown *outer, const CLSID *class, void **obj)
     TRACE("(%p, %p)\n", outer, obj);
     *obj = NULL;
 
-    marshal = HeapAlloc(GetProcessHeap(), 0, sizeof(*marshal));
+    marshal = heap_alloc(sizeof(*marshal));
     if(!marshal) return E_OUTOFMEMORY;
 
     marshal->unmarshal_class = *class;

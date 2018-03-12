@@ -250,7 +250,7 @@ static TW_BOOL GPHOTO2_EnumGet16 (pTW_CAPABILITY pCapability, int *nrofvalues, T
     if (!pVal)
 	return FALSE;
     *nrofvalues = pVal->NumItems;
-    *values = HeapAlloc( GetProcessHeap(), 0, sizeof(TW_UINT16)*pVal->NumItems);
+    *values = heap_alloc( sizeof(TW_UINT16)*pVal->NumItems);
     memcpy (*values, pVal->ItemList, sizeof(TW_UINT16)*(*nrofvalues));
     FIXME("Current Index %d, Default Index %d\n", pVal->CurrentIndex, pVal->DefaultIndex);
     GlobalUnlock (pCapability->hContainer);
@@ -365,7 +365,7 @@ static TW_UINT16 GPHOTO2_ICAPPixelType (pTW_CAPABILITY pCapability, TW_UINT16 ac
 		    return TWCC_LOWMEMORY;
 		for (i=0;i<nrofvalues;i++)
 		    FIXME("SET PixelType %d:%d\n", i, values[i]);
-		HeapFree (GetProcessHeap(), 0, values);
+		heap_free(values);
 	    }
             break;
         case MSG_GETCURRENT:
@@ -474,7 +474,7 @@ static TW_UINT16 GPHOTO2_ICAPBitDepth (pTW_CAPABILITY pCapability, TW_UINT16 act
                     return TWCC_LOWMEMORY;
 		for (i=0;i<nrofvalues;i++)
 		    FIXME("SET: enum element %d = %d\n", i, values[i]);
-		HeapFree (GetProcessHeap(), 0, values);
+		heap_free(values);
 		return TWCC_SUCCESS;
 	    }
 	    FIXME("Unhandled container type %d in MSG_SET\n", pCapability->ConType);
@@ -528,7 +528,7 @@ static TW_UINT16 GPHOTO2_ICAPUnits (pTW_CAPABILITY pCapability, TW_UINT16 action
                     return TWCC_LOWMEMORY;
 		for (i=0;i<nrofvalues;i++)
 		    FIXME("SET: enum element %d = %d\n", i, values[i]);
-		HeapFree (GetProcessHeap(), 0, values);
+		heap_free(values);
 		return TWCC_SUCCESS;
 	    }
 	    FIXME("Unhandled container type %d in MSG_SET\n", pCapability->ConType);

@@ -38,7 +38,7 @@ DSMENTRYPROC GPHOTO2_dsmentry;
 #ifdef HAVE_GPHOTO2
 static char* GPHOTO2_StrDup(const char* str)
 {
-    char* dst = HeapAlloc(GetProcessHeap(), 0, strlen(str)+1);
+    char* dst = heap_alloc(strlen(str)+1);
     strcpy(dst, str);
     return dst;
 }
@@ -70,7 +70,7 @@ load_filesystem(const char *folder) {
 	ret = gp_list_get_name (list, i, &name);
 	if (ret < GP_OK)
 	    continue;
-	gpfile = HeapAlloc(GetProcessHeap(), 0, sizeof(struct gphoto2_file)); /* FIXME: Leaked */
+	gpfile = heap_alloc(sizeof(struct gphoto2_file)); /* FIXME: Leaked */
 	if (!gpfile)
 	    continue;
 	TRACE("adding %s/%s\n", folder, name);
@@ -100,7 +100,7 @@ load_filesystem(const char *folder) {
 	if (ret < GP_OK)
 	    continue;
 	TRACE("recursing into %s\n", name);
-	newfolder = HeapAlloc(GetProcessHeap(), 0, strlen(folder)+1+strlen(name)+1);
+	newfolder = heap_alloc(strlen(folder)+1+strlen(name)+1);
 	if (!strcmp(folder,"/"))
 	    sprintf (newfolder, "/%s", name);
 	else

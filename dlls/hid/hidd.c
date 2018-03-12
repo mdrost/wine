@@ -41,7 +41,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(hid);
 BOOLEAN WINAPI HidD_FreePreparsedData(PHIDP_PREPARSED_DATA PreparsedData)
 {
     TRACE("(%p)\n", PreparsedData);
-    HeapFree(GetProcessHeap(), 0, PreparsedData);
+    heap_free(PreparsedData);
     return TRUE;
 }
 
@@ -128,12 +128,12 @@ BOOLEAN WINAPI HidD_GetPreparsedData(HANDLE HidDeviceObject, PHIDP_PREPARSED_DAT
                          &info, sizeof(HID_COLLECTION_INFORMATION), NULL, NULL))
         return FALSE;
 
-    if (!(data = HeapAlloc(GetProcessHeap(), 0, info.DescriptorSize))) return FALSE;
+    if (!(data = heap_alloc(info.DescriptorSize))) return FALSE;
 
     if (!DeviceIoControl(HidDeviceObject, IOCTL_HID_GET_COLLECTION_DESCRIPTOR, NULL, 0,
                          data, info.DescriptorSize, NULL, NULL))
     {
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
         return FALSE;
     }
     *PreparsedData = data;

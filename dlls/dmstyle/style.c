@@ -85,7 +85,7 @@ static ULONG WINAPI IDirectMusicStyle8Impl_Release(IDirectMusicStyle8 *iface)
     TRACE("(%p) ref=%d\n", This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMSTYLE_UnlockModule();
     }
 
@@ -1007,7 +1007,7 @@ HRESULT WINAPI create_dmstyle(REFIID lpcGUID, void **ppobj)
   IDirectMusicStyle8Impl* obj;
   HRESULT hr;
 
-  obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicStyle8Impl));
+  obj = heap_alloc_zero(sizeof(IDirectMusicStyle8Impl));
   if (NULL == obj) {
     *ppobj = NULL;
     return E_OUTOFMEMORY;

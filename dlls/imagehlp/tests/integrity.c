@@ -152,7 +152,7 @@ static DWORD test_add_certificate(const char *cert_data, int len)
     }
 
     cert_len = sizeof(WIN_CERTIFICATE) + len;
-    cert = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, cert_len);
+    cert = heap_alloc_zero(cert_len);
 
     if (!cert)
     {
@@ -170,7 +170,7 @@ static DWORD test_add_certificate(const char *cert_data, int len)
     ok(ret, "Unable to add certificate to image, error %x\n", GetLastError());
     trace("added cert index %d\n", index);
 
-    HeapFree(GetProcessHeap(), 0, cert);
+    heap_free(cert);
     CloseHandle(hFile);
     return index;
 }
@@ -196,7 +196,7 @@ static void test_get_certificate(const char *cert_data, int index)
 
     ok ((ret == FALSE) && (err == ERROR_INSUFFICIENT_BUFFER), "ImageGetCertificateData gave unexpected result; ret=%d / err=%x\n", ret, err);
 
-    cert = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, cert_len);
+    cert = heap_alloc_zero(cert_len);
 
     if (!cert)
     {
@@ -209,7 +209,7 @@ static void test_get_certificate(const char *cert_data, int index)
     ok(ret, "Unable to retrieve certificate; err=%x\n", GetLastError());
     ok(memcmp(cert->bCertificate, cert_data, cert_len - sizeof(WIN_CERTIFICATE)) == 0, "Certificate retrieved did not match original\n");
 
-    HeapFree(GetProcessHeap(), 0, cert);
+    heap_free(cert);
     CloseHandle(hFile);
 }
 

@@ -161,15 +161,15 @@ static BOOL WINAPI accumulating_stream_output(DIGEST_HANDLE handle, BYTE *pb,
     BOOL ret = FALSE;
 
     if (accum->cUpdates)
-        accum->updates = HeapReAlloc(GetProcessHeap(), 0, accum->updates,
+        accum->updates = heap_realloc(accum->updates,
          (accum->cUpdates + 1) * sizeof(struct blob));
     else
-        accum->updates = HeapAlloc(GetProcessHeap(), 0, sizeof(struct blob));
+        accum->updates = heap_alloc(sizeof(struct blob));
     if (accum->updates)
     {
         struct blob *blob = &accum->updates[accum->cUpdates];
 
-        blob->pb = HeapAlloc(GetProcessHeap(), 0, cb);
+        blob->pb = heap_alloc(cb);
         if (blob->pb)
         {
             memcpy(blob->pb, pb, cb);
@@ -205,8 +205,8 @@ static void free_updates(struct update_accum *accum)
     DWORD i;
 
     for (i = 0; i < accum->cUpdates; i++)
-        HeapFree(GetProcessHeap(), 0, accum->updates[i].pb);
-    HeapFree(GetProcessHeap(), 0, accum->updates);
+        heap_free(accum->updates[i].pb);
+    heap_free(accum->updates);
     accum->updates = NULL;
     accum->cUpdates = 0;
 }

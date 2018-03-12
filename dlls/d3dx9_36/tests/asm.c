@@ -97,13 +97,13 @@ static HRESULT WINAPI testD3DXInclude_open(ID3DXInclude *iface, D3DXINCLUDE_TYPE
 
     if (!strcmp(filename, "shader.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(shader));
+        buffer = heap_alloc(sizeof(shader));
         memcpy(buffer, shader, sizeof(shader));
         *bytes = sizeof(shader);
     }
     else if (!strcmp(filename, "incl.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(include));
+        buffer = heap_alloc(sizeof(include));
         memcpy(buffer, include, sizeof(include));
         *bytes = sizeof(include);
         /* This is included from the first D3DXAssembleShader with non-null ID3DXInclude test
@@ -113,13 +113,13 @@ static HRESULT WINAPI testD3DXInclude_open(ID3DXInclude *iface, D3DXINCLUDE_TYPE
     }
     else if (!strcmp(filename, "incl2.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(include2));
+        buffer = heap_alloc(sizeof(include2));
         memcpy(buffer, include2, sizeof(include2));
         *bytes = sizeof(include2);
     }
     else if (!strcmp(filename, "incl3.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(include3));
+        buffer = heap_alloc(sizeof(include3));
         memcpy(buffer, include3, sizeof(include3));
         *bytes = sizeof(include3);
         /* Also check for the correct parent_data content */
@@ -127,7 +127,7 @@ static HRESULT WINAPI testD3DXInclude_open(ID3DXInclude *iface, D3DXINCLUDE_TYPE
     }
     else if (!strcmp(filename, "include/incl3.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(include));
+        buffer = heap_alloc(sizeof(include));
         memcpy(buffer, include, sizeof(include));
         *bytes = sizeof(include);
         ok(!parent_data, "wrong parent_data value\n");
@@ -143,7 +143,7 @@ static HRESULT WINAPI testD3DXInclude_open(ID3DXInclude *iface, D3DXINCLUDE_TYPE
 
 static HRESULT WINAPI testD3DXInclude_close(ID3DXInclude *iface, const void *data)
 {
-    HeapFree(GetProcessHeap(), 0, (void *)data);
+    heap_free((void *)data);
     return S_OK;
 }
 

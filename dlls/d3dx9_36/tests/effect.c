@@ -3053,13 +3053,13 @@ static void test_effect_states(IDirect3DDevice9 *device)
     {
         hr = IDirect3DVertexShader9_GetFunction(vshader, NULL, &byte_code_size);
         ok(hr == D3D_OK, "Got result %x, expected 0 (D3D_OK).\n", hr);
-        byte_code = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, byte_code_size);
+        byte_code = heap_alloc_zero(byte_code_size);
         hr = IDirect3DVertexShader9_GetFunction(vshader, byte_code, &byte_code_size);
         ok(hr == D3D_OK, "Got result %x, expected 0 (D3D_OK).\n", hr);
         ok(byte_code_size > 1, "Got unexpected byte code size %u.\n", byte_code_size);
         ok(!memcmp(byte_code, &test_effect_states_effect_blob[TEST_EFFECT_STATES_VSHADER_POS], byte_code_size),
             "Incorrect shader selected.\n");
-        HeapFree(GetProcessHeap(), 0, byte_code);
+        heap_free(byte_code);
         IDirect3DVertexShader9_Release(vshader);
     }
 
@@ -4218,14 +4218,14 @@ static void test_effect_preshader_compare_shader_(unsigned int line, IDirect3DDe
     ok_(__FILE__, line)(hr == D3D_OK, "IDirect3DVertexShader9_GetFunction %#x.\n", hr);
     ok_(__FILE__, line)(byte_code_size > 1, "Got unexpected byte code size %u.\n", byte_code_size);
 
-    byte_code = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, byte_code_size);
+    byte_code = heap_alloc_zero(byte_code_size);
     hr = IDirect3DVertexShader9_GetFunction(vshader, byte_code, &byte_code_size);
     ok_(__FILE__, line)(hr == D3D_OK, "Got result %#x.\n", hr);
 
     test_effect_preshader_compare_shader_bytecode_(line, byte_code,
             byte_code_size, expected_shader_index, todo);
 
-    HeapFree(GetProcessHeap(), 0, byte_code);
+    heap_free(byte_code);
     IDirect3DVertexShader9_Release(vshader);
  }
 
@@ -5983,7 +5983,7 @@ static struct test_manager *impl_from_ID3DXEffectStateManager(ID3DXEffectStateMa
 
 static void free_test_effect_state_manager(struct test_manager *state_manager)
 {
-    HeapFree(GetProcessHeap(), 0, state_manager->update_record);
+    heap_free(state_manager->update_record);
     state_manager->update_record = NULL;
 
     IDirect3DDevice9_Release(state_manager->device);
@@ -6004,7 +6004,7 @@ static ULONG WINAPI test_manager_Release(ID3DXEffectStateManager *iface)
     if (!ref)
     {
         free_test_effect_state_manager(state_manager);
-        HeapFree(GetProcessHeap(), 0, state_manager);
+        heap_free(state_manager);
     }
     return ref;
 }
@@ -6025,7 +6025,7 @@ static HRESULT test_process_set_state(ID3DXEffectStateManager *iface,
         else
         {
             state_manager->update_record_size *= 2;
-            state_manager->update_record = HeapReAlloc(GetProcessHeap(), 0, state_manager->update_record,
+            state_manager->update_record = heap_realloc(state_manager->update_record,
                     sizeof(*state_manager->update_record) * state_manager->update_record_size);
         }
     }
@@ -6273,7 +6273,7 @@ static void test_effect_state_manager(IDirect3DDevice9 *device)
     ULONG refcount;
     HRESULT hr;
 
-    state_manager = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*state_manager));
+    state_manager = heap_alloc_zero(sizeof(*state_manager));
     test_effect_state_manager_init(state_manager, device);
 
     for (i = 0; i < 8; ++i)
@@ -7163,7 +7163,7 @@ static void test_effect_unsupported_shader(void)
     ok(!!vshader, "Got NULL vshader.\n");
     hr = IDirect3DVertexShader9_GetFunction(vshader, NULL, &byte_code_size);
     ok(hr == D3D_OK, "Got result %x.\n", hr);
-    byte_code = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, byte_code_size);
+    byte_code = heap_alloc_zero(byte_code_size);
     hr = IDirect3DVertexShader9_GetFunction(vshader, byte_code, &byte_code_size);
     ok(hr == D3D_OK, "Got result %x.\n", hr);
     ok(byte_code_size == TEST_EFFECT_UNSUPPORTED_SHADER_BYTECODE_VS_3_0_LEN * sizeof(DWORD),
@@ -7171,7 +7171,7 @@ static void test_effect_unsupported_shader(void)
     ok(!memcmp(byte_code,
             &test_effect_unsupported_shader_blob[TEST_EFFECT_UNSUPPORTED_SHADER_BYTECODE_VS_3_0_POS],
             byte_code_size), "Incorrect shader selected.\n");
-    HeapFree(GetProcessHeap(), 0, byte_code);
+    heap_free(byte_code);
     IDirect3DVertexShader9_Release(vshader);
 
     effect->lpVtbl->SetInt(effect, "i", 1);

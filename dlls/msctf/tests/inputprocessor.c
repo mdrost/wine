@@ -186,7 +186,7 @@ static inline TextStoreACP *impl_from_ITextStoreACP(ITextStoreACP *iface)
 
 static void TextStoreACP_Destructor(TextStoreACP *This)
 {
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI TextStoreACP_QueryInterface(ITextStoreACP *iface, REFIID iid, LPVOID *ppvOut)
@@ -456,7 +456,7 @@ static HRESULT TextStoreACP_Constructor(IUnknown **ppOut)
 {
     TextStoreACP *This;
 
-    This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(TextStoreACP));
+    This = heap_alloc_zero(sizeof(TextStoreACP));
     if (This == NULL)
         return E_OUTOFMEMORY;
 
@@ -483,7 +483,7 @@ static inline ThreadMgrEventSink *impl_from_ITfThreadMgrEventSink(ITfThreadMgrEv
 
 static void ThreadMgrEventSink_Destructor(ThreadMgrEventSink *This)
 {
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI ThreadMgrEventSink_QueryInterface(ITfThreadMgrEventSink *iface, REFIID iid, LPVOID *ppvOut)
@@ -614,7 +614,7 @@ static HRESULT ThreadMgrEventSink_Constructor(IUnknown **ppOut)
 {
     ThreadMgrEventSink *This;
 
-    This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(ThreadMgrEventSink));
+    This = heap_alloc_zero(sizeof(ThreadMgrEventSink));
     if (This == NULL)
         return E_OUTOFMEMORY;
 
@@ -697,7 +697,7 @@ static inline TextService *impl_from_ITfTextInputProcessor(ITfTextInputProcessor
 
 static void ClassFactory_Destructor(ClassFactory *This)
 {
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
     TS_refCount--;
 }
 
@@ -767,7 +767,7 @@ static const IClassFactoryVtbl ClassFactoryVtbl = {
 
 static HRESULT ClassFactory_Constructor(LPFNCONSTRUCTOR ctor, LPVOID *ppvOut)
 {
-    ClassFactory *This = HeapAlloc(GetProcessHeap(),0,sizeof(ClassFactory));
+    ClassFactory *This = heap_alloc(sizeof(ClassFactory));
     This->IClassFactory_iface.lpVtbl = &ClassFactoryVtbl;
     This->ref = 1;
     This->ctor = ctor;
@@ -778,7 +778,7 @@ static HRESULT ClassFactory_Constructor(LPFNCONSTRUCTOR ctor, LPVOID *ppvOut)
 
 static void TextService_Destructor(TextService *This)
 {
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI TextService_QueryInterface(ITfTextInputProcessor *iface, REFIID iid, LPVOID *ppvOut)
@@ -848,7 +848,7 @@ static HRESULT TextService_Constructor(IUnknown *pUnkOuter, IUnknown **ppOut)
     if (pUnkOuter)
         return CLASS_E_NOAGGREGATION;
 
-    This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(TextService));
+    This = heap_alloc_zero(sizeof(TextService));
     if (This == NULL)
         return E_OUTOFMEMORY;
 
@@ -1140,7 +1140,7 @@ static inline KeyEventSink *impl_from_ITfKeyEventSink(ITfKeyEventSink *iface)
 
 static void KeyEventSink_Destructor(KeyEventSink *This)
 {
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI KeyEventSink_QueryInterface(ITfKeyEventSink *iface, REFIID iid, LPVOID *ppvOut)
@@ -1238,7 +1238,7 @@ static HRESULT KeyEventSink_Constructor(ITfKeyEventSink **ppOut)
 {
     KeyEventSink *This;
 
-    This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(KeyEventSink));
+    This = heap_alloc_zero(sizeof(KeyEventSink));
     if (This == NULL)
         return E_OUTOFMEMORY;
 
@@ -1401,7 +1401,7 @@ static inline TextEditSink *impl_from_ITfTextEditSink(ITfTextEditSink *iface)
 
 static void TextEditSink_Destructor(TextEditSink *This)
 {
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI TextEditSink_QueryInterface(ITfTextEditSink *iface, REFIID iid, LPVOID *ppvOut)
@@ -1460,7 +1460,7 @@ static HRESULT TextEditSink_Constructor(ITfTextEditSink **ppOut)
     TextEditSink *This;
 
     *ppOut = NULL;
-    This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(TextEditSink));
+    This = heap_alloc_zero(sizeof(TextEditSink));
     if (This == NULL)
         return E_OUTOFMEMORY;
 
@@ -1793,7 +1793,7 @@ static inline EditSession *impl_from_ITfEditSession(ITfEditSession *iface)
 
 static void EditSession_Destructor(EditSession *This)
 {
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI EditSession_QueryInterface(ITfEditSession *iface, REFIID iid, LPVOID *ppvOut)
@@ -1940,7 +1940,7 @@ static HRESULT EditSession_Constructor(ITfEditSession **ppOut)
     EditSession *This;
 
     *ppOut = NULL;
-    This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(EditSession));
+    This = heap_alloc_zero(sizeof(EditSession));
     if (This == NULL)
         return E_OUTOFMEMORY;
 

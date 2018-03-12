@@ -59,7 +59,7 @@ DWORD CreateLobbyMessageReceptionThread( HANDLE hNotifyEvent, HANDLE hStart,
   LPMSGTHREADINFO lpThreadInfo;
   HANDLE          hThread;
 
-  lpThreadInfo = HeapAlloc( GetProcessHeap(), 0, sizeof( *lpThreadInfo ) );
+  lpThreadInfo = heap_alloc( sizeof( *lpThreadInfo ) );
   if( lpThreadInfo == NULL )
   {
     return 0;
@@ -102,7 +102,7 @@ DWORD CreateLobbyMessageReceptionThread( HANDLE hNotifyEvent, HANDLE hStart,
 
 error:
 
-  HeapFree( GetProcessHeap(), 0, lpThreadInfo );
+  heap_free( lpThreadInfo );
 
   return 0;
 }
@@ -147,7 +147,7 @@ static DWORD CALLBACK DPL_MSG_ThreadMain( LPVOID lpContext )
 
 end_of_thread:
   TRACE( "Msg thread exiting!\n" );
-  HeapFree( GetProcessHeap(), 0, lpThreadInfo );
+  heap_free( lpThreadInfo );
 
   return 0;
 }
@@ -190,7 +190,7 @@ HRESULT DP_MSG_SendRequestPlayerId( IDirectPlayImpl *This, DWORD dwFlags, DPID *
 
   dwMsgSize = This->dp2->spData.dwSPHeaderSize + sizeof( *lpMsgBody );
 
-  lpMsg = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwMsgSize );
+  lpMsg = heap_alloc_zero( dwMsgSize );
 
   lpMsgBody = (LPDPMSG_REQUESTNEWPLAYERID)( (BYTE*)lpMsg +
                                              This->dp2->spData.dwSPHeaderSize );
@@ -241,7 +241,7 @@ HRESULT DP_MSG_SendRequestPlayerId( IDirectPlayImpl *This, DWORD dwFlags, DPID *
      *        for several different messages?
      */
 
-    HeapFree( GetProcessHeap(), 0, lpMsg );
+    heap_free( lpMsg );
   }
 
   return hr;
@@ -256,7 +256,7 @@ HRESULT DP_MSG_ForwardPlayerCreation( IDirectPlayImpl *This, DPID dpidServer )
 
   dwMsgSize = This->dp2->spData.dwSPHeaderSize + sizeof( *lpMsgBody );
 
-  lpMsg = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwMsgSize );
+  lpMsg = heap_alloc_zero( dwMsgSize );
 
   lpMsgBody = (LPDPMSG_FORWARDADDPLAYER)( (BYTE*)lpMsg +
                                           This->dp2->spData.dwSPHeaderSize );
@@ -452,7 +452,7 @@ void DP_MSG_ToSelf( IDirectPlayImpl *This, DPID dpidSelf )
 
   dwMsgSize = This->dp2->spData.dwSPHeaderSize + sizeof( *lpMsgBody );
 
-  lpMsg = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwMsgSize );
+  lpMsg = heap_alloc_zero( dwMsgSize );
 
   lpMsgBody = (LPDPMSG_SENDENVELOPE)( (BYTE*)lpMsg +
                                       This->dp2->spData.dwSPHeaderSize );

@@ -620,7 +620,7 @@ static void check_messages( IDirectPlay4 *pDP, DPID *dpid, DWORD dpidSize,
     DPID idFrom, idTo;
     UINT i;
     DWORD dwDataSize = 1024;
-    LPVOID lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwDataSize );
+    LPVOID lpData = heap_alloc_zero( dwDataSize );
     HRESULT hr;
     char temp[5];
 
@@ -648,7 +648,7 @@ static void check_messages( IDirectPlay4 *pDP, DPID *dpid, DWORD dpidSize,
     callbackData->dwCounter1 = i;
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
 }
 
 static void init_TCPIP_provider( IDirectPlay4 *pDP, LPCSTR strIPAddressString, WORD port )
@@ -690,7 +690,7 @@ static void init_TCPIP_provider( IDirectPlay4 *pDP, LPCSTR strIPAddressString, W
 
     if( hr == DPERR_BUFFERTOOSMALL )
     {
-        pAddress = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwAddressSize );
+        pAddress = heap_alloc_zero( dwAddressSize );
         hr = IDirectPlayLobby_CreateCompoundAddress( pDPL, addressElements, 2,
                                                      pAddress, &dwAddressSize );
         checkHR( DP_OK, hr );
@@ -699,7 +699,7 @@ static void init_TCPIP_provider( IDirectPlay4 *pDP, LPCSTR strIPAddressString, W
     hr = IDirectPlayX_InitializeConnection( pDP, pAddress, 0 );
     checkHR( DP_OK, hr );
 
-    HeapFree( GetProcessHeap(), 0, pAddress );
+    heap_free( pAddress );
     IDirectPlayLobby_Release(pDPL);
 }
 
@@ -1165,7 +1165,7 @@ static void test_EnumAddressTypes(void)
 
     if( hr == DPERR_BUFFERTOOSMALL )
     {
-        pAddress = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwAddressSize );
+        pAddress = heap_alloc_zero( dwAddressSize );
         hr = IDirectPlayLobby_CreateCompoundAddress( pDPL, addressElements, 2,
                                                      pAddress, &dwAddressSize );
         checkHR( DP_OK, hr );
@@ -1175,7 +1175,7 @@ static void test_EnumAddressTypes(void)
     IDirectPlayX_Release(pDP);
     IDirectPlayLobby_Release(pDPL);
 
-    HeapFree( GetProcessHeap(), 0, pAddress );
+    heap_free( pAddress );
 }
 
 /* Open */
@@ -1855,9 +1855,9 @@ static void test_SessionDesc(void)
         /* Players, only to receive messages */
         IDirectPlayX_CreatePlayer( pDP[i], &dpid[i], NULL, NULL, NULL, 0, 0 );
 
-        lpData[i] = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 );
+        lpData[i] = heap_alloc_zero( 1024 );
     }
-    lpDataMsg = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 );
+    lpDataMsg = heap_alloc_zero( 1024 );
 
 
     /* Incorrect parameters */
@@ -1961,10 +1961,10 @@ if(0)
     checkStr( "S1,S1,S1,S1,S1,S1,", callbackData.szTrace1 );
     checkStr( "90,90,90,90,90,90,", callbackData.szTrace2 );
 
-    HeapFree( GetProcessHeap(), 0, lpDataMsg );
+    heap_free( lpDataMsg );
     for (i=0; i<2; i++)
     {
-        HeapFree( GetProcessHeap(), 0, lpData[i] );
+        heap_free( lpData[i] );
         IDirectPlayX_Release( pDP[i] );
     }
 
@@ -2326,7 +2326,7 @@ static void test_PlayerData(void)
     LPCSTR lpDataLocal    = "local_data";
     DWORD dwDataSizeLocal = strlen(lpDataLocal)+1;
 
-    LPSTR lpDataGet       = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
+    LPSTR lpDataGet       = heap_alloc_zero(
                                        dwDataSizeFake );
     DWORD dwDataSizeGet   = dwDataSizeFake;
 
@@ -2567,7 +2567,7 @@ static void test_PlayerData(void)
     checkStr( lpDataFake, lpDataGet );
 
 
-    HeapFree( GetProcessHeap(), 0, lpDataGet );
+    heap_free( lpDataGet );
     IDirectPlayX_Release( pDP );
 }
 
@@ -2585,7 +2585,7 @@ static void test_PlayerName(void)
 
     DPNAME playerName;
     DWORD dwDataSize = 1024;
-    LPVOID lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwDataSize );
+    LPVOID lpData = heap_alloc_zero( dwDataSize );
     CallbackData callbackData;
 
 
@@ -2817,7 +2817,7 @@ if(0)
     checkStr( "28,57,28,57,57,59,", callbackData.szTrace2 );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP[0] );
     IDirectPlayX_Release( pDP[1] );
 
@@ -2868,7 +2868,7 @@ static void test_GetPlayerAccount(void)
     UINT i;
 
     DWORD dwDataSize = 1024;
-    LPVOID lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwDataSize );
+    LPVOID lpData = heap_alloc_zero( dwDataSize );
 
 
     for (i=0; i<2; i++)
@@ -2994,7 +2994,7 @@ static void test_GetPlayerAccount(void)
     check( 1024, dwDataSize );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP[0] );
     IDirectPlayX_Release( pDP[1] );
 
@@ -3054,7 +3054,7 @@ static void test_GetPlayerAddress(void)
     UINT i;
 
     DWORD dwDataSize = 1024;
-    LPVOID lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwDataSize );
+    LPVOID lpData = heap_alloc_zero( dwDataSize );
 
 
     for (i=0; i<2; i++)
@@ -3172,7 +3172,7 @@ static void test_GetPlayerAddress(void)
     check( 8, callbackData.dwCounter1 );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
 
 cleanup:
     IDirectPlayX_Release( pDP[0] );
@@ -3592,7 +3592,7 @@ static void test_CreateGroup(void)
                                                  shouldn't be messages... */
 
 
-    HeapFree( GetProcessHeap(), 0, lpDataGet );
+    heap_free( lpDataGet );
     IDirectPlayX_Release( pDP );
 
 }
@@ -4562,7 +4562,7 @@ static void test_groups_p2p(void)
     UINT i;
 
     DWORD dwDataSize = 1024;
-    LPVOID lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 );
+    LPVOID lpData = heap_alloc_zero( 1024 );
     CallbackData callbackData;
 
 
@@ -4781,7 +4781,7 @@ static void test_groups_p2p(void)
     checkStr( "54,", callbackData.szTrace1 );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP[0] );
     IDirectPlayX_Release( pDP[1] );
 
@@ -4798,7 +4798,7 @@ static void test_groups_cs(void)
     UINT i;
 
     DWORD dwDataSize = 1024;
-    LPVOID lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 );
+    LPVOID lpData = heap_alloc_zero( 1024 );
 
 
     for (i=0; i<2; i++)
@@ -5016,7 +5016,7 @@ static void test_groups_cs(void)
     checkStr( "54,", callbackData.szTrace1 );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP[0] );
     IDirectPlayX_Release( pDP[1] );
 
@@ -5035,7 +5035,7 @@ static void test_Send(void)
     LPCSTR message = "message";
     DWORD messageSize = strlen(message) + 1;
     DWORD dwDataSize = 1024;
-    LPDPMSG_GENERIC lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwDataSize );
+    LPDPMSG_GENERIC lpData = heap_alloc_zero( dwDataSize );
     LPDPMSG_SECUREMESSAGE lpDataSecure;
     UINT i;
 
@@ -5351,7 +5351,7 @@ static void test_Send(void)
     checkHR( DPERR_INVALIDPARAMS, hr );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP[0] );
     IDirectPlayX_Release( pDP[1] );
 
@@ -5369,7 +5369,7 @@ static void test_Receive(void)
     LPCSTR message = "message";
     DWORD messageSize = strlen(message) + 1;
     DWORD dwDataSize = 1024;
-    LPDPMSG_GENERIC lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
+    LPDPMSG_GENERIC lpData = heap_alloc_zero(
                                         dwDataSize );
     LPDPMSG_CREATEPLAYERORGROUP lpDataCreate;
     LPDPMSG_DESTROYPLAYERORGROUP lpDataDestroy;
@@ -5637,7 +5637,7 @@ static void test_Receive(void)
     checkHR( DPERR_NOMESSAGES, hr );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP );
 
 }
@@ -5655,7 +5655,7 @@ static void test_GetMessageCount(void)
     DWORD dwCount;
 
     DWORD dwDataSize = 1024;
-    LPVOID lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwDataSize );
+    LPVOID lpData = heap_alloc_zero( dwDataSize );
     CallbackData callbackData;
 
 
@@ -5859,7 +5859,7 @@ static void test_GetMessageCount(void)
     check( 0, dwCount );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP[0] );
     IDirectPlayX_Release( pDP[1] );
 
@@ -5879,7 +5879,7 @@ static void test_GetMessageQueue(void)
     DWORD dwNumMsgs, dwNumBytes;
 
     DWORD dwDataSize = 1024;
-    LPVOID lpData = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwDataSize );
+    LPVOID lpData = heap_alloc_zero( dwDataSize );
 
 
     for (i=0; i<2; i++)
@@ -6172,7 +6172,7 @@ if(0)
     check( 0, dwNumBytes );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP[0] );
     IDirectPlayX_Release( pDP[1] );
 
@@ -6199,7 +6199,7 @@ static void test_remote_data_replication(void)
     LPCSTR lpDataLocal[] = { "local_0", "local_1" };
     LPCSTR lpDataRemote[] = { "remote_0", "remote_1" };
     LPCSTR lpDataFake = "ugly_fake_data";
-    LPSTR lpDataGet = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, 32 );
+    LPSTR lpDataGet = heap_alloc_zero( 32 );
     DWORD dwDataSizeLocal = strlen(lpDataLocal[0])+1,
         dwDataSizeRemote = strlen(lpDataRemote[0])+1,
         dwDataSizeFake = strlen(lpDataFake)+1,
@@ -6399,8 +6399,8 @@ static void test_remote_data_replication(void)
     checkStr( "", callbackData.szTrace1 );
 
 
-    HeapFree( GetProcessHeap(), 0, lpDataGet );
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpDataGet );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP[0] );
     IDirectPlayX_Release( pDP[1] );
 
@@ -6534,7 +6534,7 @@ static void test_host_migration(void)
     checkHR( DPERR_NOMESSAGES, hr );
 
 
-    HeapFree( GetProcessHeap(), 0, lpData );
+    heap_free( lpData );
     IDirectPlayX_Release( pDP[0] );
     IDirectPlayX_Release( pDP[1] );
 
@@ -6879,7 +6879,7 @@ static BOOL is_stub_dll(const char *filename)
     size = GetFileVersionInfoSizeA(filename, &ver);
     if (!size) return FALSE;
 
-    data = HeapAlloc(GetProcessHeap(), 0, size);
+    data = heap_alloc(size);
     if (!data) return FALSE;
 
     if (GetFileVersionInfoA(filename, ver, size, data))
@@ -6890,7 +6890,7 @@ static BOOL is_stub_dll(const char *filename)
         if (VerQueryValueA(data, buf, (void**)&p, &size))
             isstub = !lstrcmpiA("wcodstub.dll", p);
     }
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     return isstub;
 }

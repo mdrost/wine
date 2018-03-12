@@ -298,7 +298,7 @@ HRESULT WINAPI AtlModuleAddTermFunc(_ATL_MODULE *pM, _ATL_TERMFUNC *pFunc, DWORD
     TRACE("version %04x (%p %p %ld)\n", _ATL_VER, pM, pFunc, dw);
 
     if (_ATL_VER > _ATL_VER_30 || pM->cbSize > ATLVer1Size) {
-        termfunc_elem = HeapAlloc(GetProcessHeap(), 0, sizeof(_ATL_TERMFUNC_ELEM));
+        termfunc_elem = heap_alloc(sizeof(_ATL_TERMFUNC_ELEM));
         termfunc_elem->pFunc = pFunc;
         termfunc_elem->dw = dw;
         termfunc_elem->pNext = pM->m_pTermFuncs;
@@ -324,7 +324,7 @@ void WINAPI AtlCallTermFunc(_ATL_MODULE *pM)
         iter->pFunc(iter->dw);
         tmp = iter;
         iter = iter->pNext;
-        HeapFree(GetProcessHeap(), 0, tmp);
+        heap_free(tmp);
     }
 
     pM->m_pTermFuncs = NULL;

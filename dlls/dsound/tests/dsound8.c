@@ -1049,7 +1049,7 @@ static void test_hw_buffers(void)
         if(secondaries[i])
             IDirectSoundBuffer_Release(secondaries[i]);
 
-    HeapFree(GetProcessHeap(), 0, secondaries);
+    heap_free(secondaries);
 
     IDirectSoundBuffer_Release(primary);
     IDirectSound8_Release(ds);

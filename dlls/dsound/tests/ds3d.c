@@ -50,7 +50,7 @@ char* wave_generate_la(WAVEFORMATEX* wfx, double duration, DWORD* size, BOOL iee
 
     nb_samples=(int)(duration*wfx->nSamplesPerSec);
     *size=nb_samples*wfx->nBlockAlign;
-    b=buf=HeapAlloc(GetProcessHeap(), 0, *size);
+    b=buf=heap_alloc(*size);
     for (i=0;i<nb_samples;i++) {
         double y=sin(440.0*2*PI*i/wfx->nSamplesPerSec);
         if (wfx->wBitsPerSample==8) {
@@ -694,7 +694,7 @@ void test_buffer(LPDIRECTSOUND dso, LPDIRECTSOUNDBUFFER *dsbo,
            "The sound played for %d ms instead of %g ms\n",
            now-start_time,1000*duration);
 
-        HeapFree(GetProcessHeap(), 0, state.wave);
+        heap_free(state.wave);
         if (is_primary) {
             /* Set the CooperativeLevel back to normal */
             /* DSOUND: Setting DirectSound cooperative level to DSSCL_NORMAL */

@@ -159,7 +159,7 @@ static ULONG WINAPI scriptlet_typelib_Release(IGenScriptletTLib *iface)
     if (!ref)
     {
         SysFreeString(This->guid);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -454,7 +454,7 @@ static HRESULT WINAPI scriptlet_typelib_CreateInstance(IClassFactory *factory, I
 
     *obj = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    This = heap_alloc(sizeof(*This));
     if (!This)
         return E_OUTOFMEMORY;
 

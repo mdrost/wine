@@ -54,7 +54,7 @@ static inline AEVImpl *impl_from_IAudioEndpointVolumeEx(IAudioEndpointVolumeEx *
 
 static void AudioEndpointVolume_Destroy(AEVImpl *This)
 {
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI AEV_QueryInterface(IAudioEndpointVolumeEx *iface, REFIID riid, void **ppv)
@@ -309,7 +309,7 @@ HRESULT AudioEndpointVolume_Create(MMDevice *parent, IAudioEndpointVolumeEx **pp
     AEVImpl *This;
 
     *ppv = NULL;
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*This));
+    This = heap_alloc_zero(sizeof(*This));
     if (!This)
         return E_OUTOFMEMORY;
     This->IAudioEndpointVolumeEx_iface.lpVtbl = &AEVImpl_Vtbl;

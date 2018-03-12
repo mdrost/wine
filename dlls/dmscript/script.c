@@ -93,11 +93,11 @@ static ULONG WINAPI IDirectMusicScriptImpl_Release(IDirectMusicScript *iface)
     TRACE("(%p) ref=%d\n", This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This->pHeader);
-        HeapFree(GetProcessHeap(), 0, This->pVersion);
-        HeapFree(GetProcessHeap(), 0, This->pwzLanguage);
-        HeapFree(GetProcessHeap(), 0, This->pwzSource);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->pHeader);
+        heap_free(This->pVersion);
+        heap_free(This->pwzLanguage);
+        heap_free(This->pwzSource);
+        heap_free(This);
         DMSCRIPT_UnlockModule();
     }
 
@@ -431,7 +431,7 @@ static HRESULT WINAPI IPersistStreamImpl_Load(IPersistStream *iface, IStream *pS
 								    str[count-1] = '\n';
 								    TRACE("source:\n");
 								    write( 2, str, count );
-								    HeapFree(GetProcessHeap(), 0, str);
+								    heap_free(str);
 								}
 								break;
 						        }
@@ -624,7 +624,7 @@ HRESULT WINAPI DMUSIC_CreateDirectMusicScriptImpl(REFIID lpcGUID, void **ppobj, 
   if (pUnkOuter)
     return CLASS_E_NOAGGREGATION;
 
-  obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicScriptImpl));
+  obj = heap_alloc_zero(sizeof(IDirectMusicScriptImpl));
   if (!obj)
     return E_OUTOFMEMORY;
 

@@ -84,7 +84,7 @@ static ULONG WINAPI IDirectMusicTrack8Impl_Release(IDirectMusicTrack8 *iface)
     TRACE("(%p) ref=%d\n", This, ref);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMSCRIPT_UnlockModule();
     }
 

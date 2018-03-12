@@ -715,7 +715,7 @@ void __cdecl _Cnd_register_at_thread_exit(_Cnd_arg_t cnd, _Mtx_arg_t mtx, int *p
         }
         broadcast_at_thread_exit.size = 8;
     } else if(broadcast_at_thread_exit.size == broadcast_at_thread_exit.used) {
-        add = HeapReAlloc(GetProcessHeap(), 0, broadcast_at_thread_exit.to_broadcast,
+        add = heap_realloc(broadcast_at_thread_exit.to_broadcast,
                 broadcast_at_thread_exit.size*2*sizeof(broadcast_at_thread_exit.to_broadcast[0]));
         if(!add) {
             LeaveCriticalSection(&broadcast_at_thread_exit_cs);
@@ -1819,7 +1819,7 @@ void free_misc(void)
 #if _MSVCP_VER >= 110
     if(keyed_event)
         NtClose(keyed_event);
-    HeapFree(GetProcessHeap(), 0, broadcast_at_thread_exit.to_broadcast);
+    heap_free(broadcast_at_thread_exit.to_broadcast);
 #endif
 }
 #endif

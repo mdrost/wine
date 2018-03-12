@@ -188,7 +188,7 @@ static	DWORD	MCICDA_drvOpen(LPCWSTR str, LPMCI_OPEN_DRIVER_PARMSW modp)
     if (!modp) return 0xFFFFFFFF;
     /* FIXME: MCIERR_CANNOT_LOAD_DRIVER if there's no drive of type CD-ROM */
 
-    wmcda = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WINE_MCICDAUDIO));
+    wmcda = heap_alloc_zero(sizeof(WINE_MCICDAUDIO));
 
     if (!wmcda)
 	return 0;
@@ -218,7 +218,7 @@ static	DWORD	MCICDA_drvClose(DWORD dwDevID)
     if (wmcda) {
 	wmcda->cs.DebugInfo->Spare[0] = 0;
 	DeleteCriticalSection(&wmcda->cs);
-	HeapFree(GetProcessHeap(), 0, wmcda);
+	heap_free(wmcda);
 	mciSetDriverData(dwDevID, 0);
     }
     return (dwDevID == 0xFFFFFFFF) ? 1 : 0;

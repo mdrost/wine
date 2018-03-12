@@ -173,7 +173,7 @@ static void test_rasenum(void)
     broken(result == ERROR_BUFFER_TOO_SMALL), /* win98 */
     "Expected ERROR_INVALID_SIZE, got %08d\n", result);
 
-    HeapFree(GetProcessHeap(), 0, rasDevInfo);
+    heap_free(rasDevInfo);
 }
 
 START_TEST(rasapi)

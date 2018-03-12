@@ -1586,7 +1586,7 @@ static void test_streamvolume(void)
     hr = IAudioStreamVolume_GetAllVolumes(asv, fmt->nChannels, NULL);
     ok(hr == E_POINTER, "GetAllVolumes gave wrong error: %08x\n", hr);
 
-    vols = HeapAlloc(GetProcessHeap(), 0, fmt->nChannels * sizeof(float));
+    vols = heap_alloc(fmt->nChannels * sizeof(float));
     ok(vols != NULL, "HeapAlloc failed\n");
 
     hr = IAudioStreamVolume_GetAllVolumes(asv, fmt->nChannels - 1, vols);
@@ -1610,7 +1610,7 @@ static void test_streamvolume(void)
     hr = IAudioStreamVolume_SetAllVolumes(asv, fmt->nChannels, vols);
     ok(hr == S_OK, "SetAllVolumes failed: %08x\n", hr);
 
-    HeapFree(GetProcessHeap(), 0, vols);
+    heap_free(vols);
     IAudioStreamVolume_Release(asv);
     IAudioClient_Release(ac);
     CoTaskMemFree(fmt);
@@ -1690,7 +1690,7 @@ static void test_channelvolume(void)
     hr = IChannelAudioVolume_GetAllVolumes(acv, fmt->nChannels, NULL);
     ok(hr == NULL_PTR_ERR, "GetAllVolumes gave wrong error: %08x\n", hr);
 
-    vols = HeapAlloc(GetProcessHeap(), 0, fmt->nChannels * sizeof(float));
+    vols = heap_alloc(fmt->nChannels * sizeof(float));
     ok(vols != NULL, "HeapAlloc failed\n");
 
     hr = IChannelAudioVolume_GetAllVolumes(acv, fmt->nChannels - 1, vols);
@@ -1717,7 +1717,7 @@ static void test_channelvolume(void)
     hr = IChannelAudioVolume_SetChannelVolume(acv, 0, 1.0f, NULL);
     ok(hr == S_OK, "SetChannelVolume failed: %08x\n", hr);
 
-    HeapFree(GetProcessHeap(), 0, vols);
+    heap_free(vols);
     IChannelAudioVolume_Release(acv);
     IAudioClient_Release(ac);
     CoTaskMemFree(fmt);

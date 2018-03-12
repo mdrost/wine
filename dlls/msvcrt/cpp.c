@@ -1752,11 +1752,11 @@ void __cdecl __ExceptionPtrDestroy(exception_ptr *ep)
             void *obj = (void*)ep->rec->ExceptionInformation[1];
 
             if (type && type->destructor) call_dtor(type, type->destructor, obj);
-            HeapFree(GetProcessHeap(), 0, obj);
+            heap_free(obj);
         }
 
-        HeapFree(GetProcessHeap(), 0, ep->rec);
-        HeapFree(GetProcessHeap(), 0, ep->ref);
+        heap_free(ep->rec);
+        heap_free(ep->ref);
     }
 }
 
@@ -1858,8 +1858,8 @@ void __cdecl __ExceptionPtrCurrentException(exception_ptr *ep)
         return;
     }
 
-    ep->rec = HeapAlloc(GetProcessHeap(), 0, sizeof(EXCEPTION_RECORD));
-    ep->ref = HeapAlloc(GetProcessHeap(), 0, sizeof(int));
+    ep->rec = heap_alloc(sizeof(EXCEPTION_RECORD));
+    ep->ref = heap_alloc(sizeof(int));
 
     *ep->rec = *rec;
     *ep->ref = 1;
@@ -1871,7 +1871,7 @@ void __cdecl __ExceptionPtrCurrentException(exception_ptr *ep)
         void **data, *obj;
 
         ti = et->type_info_table->info[0];
-        data = HeapAlloc(GetProcessHeap(), 0, ti->size);
+        data = heap_alloc(ti->size);
 
         obj = (void*)ep->rec->ExceptionInformation[1];
         if (ti->flags & CLASS_IS_SIMPLE_TYPE)
@@ -1904,8 +1904,8 @@ void __cdecl __ExceptionPtrCurrentException(exception_ptr *ep)
         return;
     }
 
-    ep->rec = HeapAlloc(GetProcessHeap(), 0, sizeof(EXCEPTION_RECORD));
-    ep->ref = HeapAlloc(GetProcessHeap(), 0, sizeof(int));
+    ep->rec = heap_alloc(sizeof(EXCEPTION_RECORD));
+    ep->ref = heap_alloc(sizeof(int));
 
     *ep->rec = *rec;
     *ep->ref = 1;
@@ -1918,7 +1918,7 @@ void __cdecl __ExceptionPtrCurrentException(exception_ptr *ep)
         char *base = RtlPcToFileHeader((void*)et, (void**)&base);
 
         ti = (const cxx_type_info*)(base + ((const cxx_type_info_table*)(base + et->type_info_table))->info[0]);
-        data = HeapAlloc(GetProcessHeap(), 0, ti->size);
+        data = heap_alloc(ti->size);
 
         obj = (void*)ep->rec->ExceptionInformation[1];
         if (ti->flags & CLASS_IS_SIMPLE_TYPE)
@@ -1967,8 +1967,8 @@ void __cdecl __ExceptionPtrCopyException(exception_ptr *ep,
 
     __ExceptionPtrDestroy(ep);
 
-    ep->rec = HeapAlloc(GetProcessHeap(), 0, sizeof(EXCEPTION_RECORD));
-    ep->ref = HeapAlloc(GetProcessHeap(), 0, sizeof(int));
+    ep->rec = heap_alloc(sizeof(EXCEPTION_RECORD));
+    ep->ref = heap_alloc(sizeof(int));
     *ep->ref = 1;
 
     memset(ep->rec, 0, sizeof(EXCEPTION_RECORD));
@@ -1979,7 +1979,7 @@ void __cdecl __ExceptionPtrCopyException(exception_ptr *ep,
     ep->rec->ExceptionInformation[2] = (ULONG_PTR)type;
 
     ti = type->type_info_table->info[0];
-    data = HeapAlloc(GetProcessHeap(), 0, ti->size);
+    data = heap_alloc(ti->size);
     if (ti->flags & CLASS_IS_SIMPLE_TYPE)
     {
         memcpy(data, object, ti->size);
@@ -2005,8 +2005,8 @@ void __cdecl __ExceptionPtrCopyException(exception_ptr *ep,
     RtlPcToFileHeader((void*)type, (void**)&base);
     __ExceptionPtrDestroy(ep);
 
-    ep->rec = HeapAlloc(GetProcessHeap(), 0, sizeof(EXCEPTION_RECORD));
-    ep->ref = HeapAlloc(GetProcessHeap(), 0, sizeof(int));
+    ep->rec = heap_alloc(sizeof(EXCEPTION_RECORD));
+    ep->ref = heap_alloc(sizeof(int));
     *ep->ref = 1;
 
     memset(ep->rec, 0, sizeof(EXCEPTION_RECORD));
@@ -2018,7 +2018,7 @@ void __cdecl __ExceptionPtrCopyException(exception_ptr *ep,
     ep->rec->ExceptionInformation[3] = (ULONG_PTR)base;
 
     ti = (const cxx_type_info*)(base + ((const cxx_type_info_table*)(base + type->type_info_table))->info[0]);
-    data = HeapAlloc(GetProcessHeap(), 0, ti->size);
+    data = heap_alloc(ti->size);
     if (ti->flags & CLASS_IS_SIMPLE_TYPE)
     {
         memcpy(data, object, ti->size);

@@ -621,7 +621,7 @@ _FUNCTION_ {
 #endif
 
 		    /* Init our bitmap */
-		    Mask = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, _BITMAPSIZE_/8);
+		    Mask = heap_alloc_zero(_BITMAPSIZE_/8);
 		    RtlInitializeBitMap(&bitMask, Mask, _BITMAPSIZE_);
 
 		    /* Read the format */
@@ -672,7 +672,7 @@ _FUNCTION_ {
                     }
                     /* terminate */
                     if (!suppress) *sptr = 0;
-		    HeapFree(GetProcessHeap(), 0, Mask);
+		    heap_free(Mask);
                 }
                 break;
             default:

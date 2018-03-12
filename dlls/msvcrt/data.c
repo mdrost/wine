@@ -77,9 +77,9 @@ char ** msvcrt_SnapshotOfEnvironmentA(char **blk)
     len += strlen(ptr) + 1;
   }
   if (blk)
-      blk = HeapReAlloc( GetProcessHeap(), 0, blk, count* sizeof(char*) + len );
+      blk = heap_realloc( blk, count* sizeof(char*) + len );
   else
-    blk = HeapAlloc(GetProcessHeap(), 0, count* sizeof(char*) + len );
+    blk = heap_alloc(count* sizeof(char*) + len );
 
   if (blk)
     {
@@ -109,9 +109,9 @@ MSVCRT_wchar_t ** msvcrt_SnapshotOfEnvironmentW(MSVCRT_wchar_t **wblk)
     len += strlenW(wptr) + 1;
   }
   if (wblk)
-      wblk = HeapReAlloc( GetProcessHeap(), 0, wblk, count* sizeof(MSVCRT_wchar_t*) + len * sizeof(MSVCRT_wchar_t));
+      wblk = heap_realloc( wblk, count* sizeof(MSVCRT_wchar_t*) + len * sizeof(MSVCRT_wchar_t));
   else
-    wblk = HeapAlloc(GetProcessHeap(), 0, count* sizeof(MSVCRT_wchar_t*) + len * sizeof(MSVCRT_wchar_t));
+    wblk = heap_alloc(count* sizeof(MSVCRT_wchar_t*) + len * sizeof(MSVCRT_wchar_t));
   if (wblk)
     {
       if (count)
@@ -343,7 +343,7 @@ void msvcrt_init_args(void)
   MSVCRT___initenv = msvcrt_SnapshotOfEnvironmentA(NULL);
   MSVCRT___winitenv = msvcrt_SnapshotOfEnvironmentW(NULL);
 
-  MSVCRT__pgmptr = HeapAlloc(GetProcessHeap(), 0, MAX_PATH);
+  MSVCRT__pgmptr = heap_alloc(MAX_PATH);
   if (MSVCRT__pgmptr)
   {
     if (!GetModuleFileNameA(0, MSVCRT__pgmptr, MAX_PATH))
@@ -352,7 +352,7 @@ void msvcrt_init_args(void)
       MSVCRT__pgmptr[MAX_PATH - 1] = '\0';
   }
 
-  MSVCRT__wpgmptr = HeapAlloc(GetProcessHeap(), 0, MAX_PATH * sizeof(WCHAR));
+  MSVCRT__wpgmptr = heap_alloc(MAX_PATH * sizeof(WCHAR));
   if (MSVCRT__wpgmptr)
   {
     if (!GetModuleFileNameW(0, MSVCRT__wpgmptr, MAX_PATH))
@@ -366,14 +366,14 @@ void msvcrt_init_args(void)
 void msvcrt_free_args(void)
 {
   /* FIXME: more things to free */
-  HeapFree(GetProcessHeap(), 0, MSVCRT___initenv);
-  HeapFree(GetProcessHeap(), 0, MSVCRT___winitenv);
-  HeapFree(GetProcessHeap(), 0, MSVCRT__environ);
-  HeapFree(GetProcessHeap(), 0, MSVCRT__wenviron);
-  HeapFree(GetProcessHeap(), 0, MSVCRT__pgmptr);
-  HeapFree(GetProcessHeap(), 0, MSVCRT__wpgmptr);
-  HeapFree(GetProcessHeap(), 0, argv_expand);
-  HeapFree(GetProcessHeap(), 0, wargv_expand);
+  heap_free(MSVCRT___initenv);
+  heap_free(MSVCRT___winitenv);
+  heap_free(MSVCRT__environ);
+  heap_free(MSVCRT__wenviron);
+  heap_free(MSVCRT__pgmptr);
+  heap_free(MSVCRT__wpgmptr);
+  heap_free(argv_expand);
+  heap_free(wargv_expand);
 }
 
 static int build_expanded_argv(int *argc, char **argv)
@@ -446,7 +446,7 @@ void CDECL __getmainargs(int *argc, char** *argv, char** *envp,
     TRACE("(%p,%p,%p,%d,%p).\n", argc, argv, envp, expand_wildcards, new_mode);
 
     if (expand_wildcards) {
-        HeapFree(GetProcessHeap(), 0, argv_expand);
+        heap_free(argv_expand);
         argv_expand = NULL;
 
         argv_expand = HeapAlloc(GetProcessHeap(), 0,
@@ -544,7 +544,7 @@ void CDECL __wgetmainargs(int *argc, MSVCRT_wchar_t** *wargv, MSVCRT_wchar_t** *
     TRACE("(%p,%p,%p,%d,%p).\n", argc, wargv, wenvp, expand_wildcards, new_mode);
 
     if (expand_wildcards) {
-        HeapFree(GetProcessHeap(), 0, wargv_expand);
+        heap_free(wargv_expand);
         wargv_expand = NULL;
 
         wargv_expand = HeapAlloc(GetProcessHeap(), 0,

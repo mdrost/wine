@@ -86,7 +86,7 @@ int CDECL _putenv(const char *str)
  if (!str)
    return -1;
    
- name = HeapAlloc(GetProcessHeap(), 0, strlen(str) + 1);
+ name = heap_alloc(strlen(str) + 1);
  if (!name)
    return -1;
  dst = name;
@@ -114,7 +114,7 @@ int CDECL _putenv(const char *str)
    MSVCRT__wenviron = msvcrt_SnapshotOfEnvironmentW(MSVCRT__wenviron);
    
 finish:
- HeapFree(GetProcessHeap(), 0, name);
+ heap_free(name);
  return ret;
 }
 
@@ -131,7 +131,7 @@ int CDECL _wputenv(const MSVCRT_wchar_t *str)
 
  if (!str)
    return -1;
- name = HeapAlloc(GetProcessHeap(), 0, (strlenW(str) + 1) * sizeof(MSVCRT_wchar_t));
+ name = heap_alloc((strlenW(str) + 1) * sizeof(MSVCRT_wchar_t));
  if (!name)
    return -1;
  dst = name;
@@ -157,7 +157,7 @@ int CDECL _wputenv(const MSVCRT_wchar_t *str)
  MSVCRT__wenviron = msvcrt_SnapshotOfEnvironmentW(MSVCRT__wenviron);
 
 finish:
- HeapFree(GetProcessHeap(), 0, name);
+ heap_free(name);
  return ret;
 }
 

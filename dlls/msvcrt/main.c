@@ -80,7 +80,7 @@ static inline void msvcrt_free_tls_mem(void)
         free_mbcinfo(tls->mbcinfo);
     }
   }
-  HeapFree(GetProcessHeap(), 0, tls);
+  heap_free(tls);
 }
 
 /*********************************************************************

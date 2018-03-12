@@ -128,14 +128,14 @@ static inline int FUNC_NAME(pf_output_wstr)(FUNC_NAME(puts_clbk) pf_puts, void *
     if(def_char)
         return 0;
 
-    out = HeapAlloc(GetProcessHeap(), 0, len_a);
+    out = heap_alloc(len_a);
     if(!out)
         return -1;
 
     WideCharToMultiByte(locinfo->lc_codepage, WC_NO_BEST_FIT_CHARS,
             str, len, out, len_a, NULL, NULL);
     len = pf_puts(puts_ctx, len_a, out);
-    HeapFree(GetProcessHeap(), 0, out);
+    heap_free(out);
     return len;
 #endif
 }
@@ -147,13 +147,13 @@ static inline int FUNC_NAME(pf_output_str)(FUNC_NAME(puts_clbk) pf_puts, void *p
     LPWSTR out;
     int len_w = MultiByteToWideChar(locinfo->lc_codepage, 0, str, len, NULL, 0);
 
-    out = HeapAlloc(GetProcessHeap(), 0, len_w*sizeof(WCHAR));
+    out = heap_alloc(len_w*sizeof(WCHAR));
     if(!out)
         return -1;
 
     MultiByteToWideChar(locinfo->lc_codepage, 0, str, len, out, len_w);
     len = pf_puts(puts_ctx, len_w, out);
-    HeapFree(GetProcessHeap(), 0, out);
+    heap_free(out);
     return len;
 #else
     return pf_puts(puts_ctx, len, str);
@@ -550,7 +550,7 @@ int FUNC_NAME(pf_printf)(FUNC_NAME(puts_clbk) pf_puts, void *puts_ctx, const API
 
             max_len = (flags.FieldLength>flags.Precision ? flags.FieldLength : flags.Precision) + 10;
             if(max_len > sizeof(buf)/sizeof(APICHAR))
-                tmp = HeapAlloc(GetProcessHeap(), 0, max_len);
+                tmp = heap_alloc(max_len);
             if(!tmp)
                 return -1;
 
@@ -572,7 +572,7 @@ int FUNC_NAME(pf_printf)(FUNC_NAME(puts_clbk) pf_puts, void *puts_ctx, const API
             i = FUNC_NAME(pf_output_format_str)(pf_puts, puts_ctx, tmp, -1, &flags, locinfo);
 #endif
             if(tmp != buf)
-                HeapFree(GetProcessHeap(), 0, tmp);
+                heap_free(tmp);
         } else if(flags.Format && strchr("aeEfFgG", flags.Format)) {
             char float_fmt[20], buf_a[32], *tmp = buf_a, *decimal_point;
             int len = flags.Precision + 10;
@@ -617,7 +617,7 @@ int FUNC_NAME(pf_printf)(FUNC_NAME(puts_clbk) pf_puts, void *puts_ctx, const API
             }
 
             if(len > sizeof(buf_a))
-                tmp = HeapAlloc(GetProcessHeap(), 0, len);
+                tmp = heap_alloc(len);
             if(!tmp)
                 return -1;
 
@@ -690,7 +690,7 @@ int FUNC_NAME(pf_printf)(FUNC_NAME(puts_clbk) pf_puts, void *puts_ctx, const API
                 return r;
             i += r;
             if(tmp != buf_a)
-                HeapFree(GetProcessHeap(), 0, tmp);
+                heap_free(tmp);
             r = FUNC_NAME(pf_fill)(pf_puts, puts_ctx, len, &flags, FALSE);
             if(r < 0)
                 return r;

@@ -436,13 +436,13 @@ void __thiscall critical_section_unlock(critical_section *this)
 
         next = this->unk_active.next;
         if(InterlockedCompareExchangePointer(&this->tail, NULL, next) == next) {
-            HeapFree(GetProcessHeap(), 0, next);
+            heap_free(next);
             return;
         }
         spin_wait_for_next_cs(next);
 
         this->unk_active.next = next->next;
-        HeapFree(GetProcessHeap(), 0, next);
+        heap_free(next);
     }
 #endif
 
@@ -472,7 +472,7 @@ MSVCRT_bool __thiscall critical_section_try_lock_for(
     if(this->unk_thread_id == GetCurrentThreadId())
         throw_exception(EXCEPTION_IMPROPER_LOCK, 0, "Already locked");
 
-    if(!(q = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*q))))
+    if(!(q = heap_alloc_zero(sizeof(*q))))
         return critical_section_try_lock(this);
 
     last = InterlockedExchangePointer(&this->tail, q);
@@ -501,7 +501,7 @@ MSVCRT_bool __thiscall critical_section_try_lock_for(
         this->unk_active.next = q->next;
     }
 
-    HeapFree(GetProcessHeap(), 0, q);
+    heap_free(q);
     return TRUE;
 }
 #endif
@@ -933,7 +933,7 @@ void __thiscall _Condition_variable_dtor(_Condition_variable *this)
         cv_queue *next = this->queue->next;
         if(!this->queue->expired)
             ERR("there's an active wait\n");
-        HeapFree(GetProcessHeap(), 0, this->queue);
+        heap_free(this->queue);
         this->queue = next;
     }
     critical_section_dtor(&this->lock);
@@ -972,7 +972,7 @@ MSVCRT_bool __thiscall _Condition_variable_wait_for(_Condition_variable *this,
 
     TRACE("(%p %p %d)\n", this, cs, timeout);
 
-    if(!(q = HeapAlloc(GetProcessHeap(), 0, sizeof(cv_queue)))) {
+    if(!(q = heap_alloc(sizeof(cv_queue)))) {
         throw_exception(EXCEPTION_BAD_ALLOC, 0, "bad allocation");
     }
 
@@ -997,7 +997,7 @@ MSVCRT_bool __thiscall _Condition_variable_wait_for(_Condition_variable *this,
             NtWaitForKeyedEvent(keyed_event, q, 0, 0);
     }
 
-    HeapFree(GetProcessHeap(), 0, q);
+    heap_free(q);
     critical_section_lock(cs);
     return TRUE;
 }
@@ -1028,7 +1028,7 @@ void __thiscall _Condition_variable_notify_one(_Condition_variable *this)
             NtReleaseKeyedEvent(keyed_event, node, 0, NULL);
             return;
         } else {
-            HeapFree(GetProcessHeap(), 0, node);
+            heap_free(node);
         }
     }
 }
@@ -1056,7 +1056,7 @@ void __thiscall _Condition_variable_notify_all(_Condition_variable *this)
         if(!InterlockedExchange(&ptr->expired, TRUE))
             NtReleaseKeyedEvent(keyed_event, ptr, 0, NULL);
         else
-            HeapFree(GetProcessHeap(), 0, ptr);
+            heap_free(ptr);
         ptr = next;
     }
 }

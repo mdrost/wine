@@ -42,7 +42,7 @@ thread_data_t *msvcrt_get_thread_data(void)
 
     if (!(ptr = TlsGetValue( msvcrt_tls_index )))
     {
-        if (!(ptr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*ptr) )))
+        if (!(ptr = heap_alloc_zero( sizeof(*ptr) )))
             _amsg_exit( _RT_THREAD );
         if (!TlsSetValue( msvcrt_tls_index, ptr )) _amsg_exit( _RT_THREAD );
         ptr->tid = GetCurrentThreadId();

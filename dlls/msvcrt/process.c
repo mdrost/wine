@@ -346,7 +346,7 @@ static MSVCRT_wchar_t *msvcrt_get_comspec(void)
   unsigned int len;
 
   if (!(len = GetEnvironmentVariableW(comspec, NULL, 0))) len = sizeof(cmd)/sizeof(MSVCRT_wchar_t);
-  if ((ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(MSVCRT_wchar_t))))
+  if ((ret = heap_alloc(len * sizeof(MSVCRT_wchar_t))))
   {
     if (!GetEnvironmentVariableW(comspec, ret, len)) strcpyW(ret, cmd);
   }
@@ -1111,9 +1111,9 @@ MSVCRT_FILE* CDECL MSVCRT__wpopen(const MSVCRT_wchar_t* command, const MSVCRT_wc
   if (!(comspec = msvcrt_get_comspec())) goto error;
   len = strlenW(comspec) + strlenW(flag) + strlenW(command) + 1;
 
-  if (!(fullcmd = HeapAlloc(GetProcessHeap(), 0, len * sizeof(MSVCRT_wchar_t))))
+  if (!(fullcmd = heap_alloc(len * sizeof(MSVCRT_wchar_t))))
   {
-    HeapFree(GetProcessHeap(), 0, comspec);
+    heap_free(comspec);
     goto error;
   }
 
@@ -1135,8 +1135,8 @@ MSVCRT_FILE* CDECL MSVCRT__wpopen(const MSVCRT_wchar_t* command, const MSVCRT_wc
     container->f = ret;
   }
   _munlock(_POPEN_LOCK);
-  HeapFree(GetProcessHeap(), 0, comspec);
-  HeapFree(GetProcessHeap(), 0, fullcmd);
+  heap_free(comspec);
+  heap_free(fullcmd);
   MSVCRT__dup2(fdStdHandle, fdToDup);
   MSVCRT__close(fdStdHandle);
   return ret;
@@ -1165,14 +1165,14 @@ MSVCRT_FILE* CDECL MSVCRT__popen(const char* command, const char* mode)
   if (!(cmdW = msvcrt_wstrdupa(command))) return NULL;
   if (!(modeW = msvcrt_wstrdupa(mode)))
   {
-    HeapFree(GetProcessHeap(), 0, cmdW);
+    heap_free(cmdW);
     return NULL;
   }
 
   ret = MSVCRT__wpopen(cmdW, modeW);
 
-  HeapFree(GetProcessHeap(), 0, cmdW);
-  HeapFree(GetProcessHeap(), 0, modeW);
+  heap_free(cmdW);
+  heap_free(modeW);
   return ret;
 }
 
@@ -1236,7 +1236,7 @@ int CDECL _wsystem(const MSVCRT_wchar_t* cmd)
         *MSVCRT__errno() = MSVCRT_ENOENT;
         return 0;
     }
-    HeapFree(GetProcessHeap(), 0, comspec);
+    heap_free(comspec);
     return 1;
   }
 
@@ -1245,9 +1245,9 @@ int CDECL _wsystem(const MSVCRT_wchar_t* cmd)
 
   len = strlenW(comspec) + strlenW(flag) + strlenW(cmd) + 1;
 
-  if (!(fullcmd = HeapAlloc(GetProcessHeap(), 0, len * sizeof(MSVCRT_wchar_t))))
+  if (!(fullcmd = heap_alloc(len * sizeof(MSVCRT_wchar_t))))
   {
-    HeapFree(GetProcessHeap(), 0, comspec);
+    heap_free(comspec);
     return -1;
   }
   strcpyW(fullcmd, comspec);
@@ -1256,8 +1256,8 @@ int CDECL _wsystem(const MSVCRT_wchar_t* cmd)
 
   res = msvcrt_spawn(MSVCRT__P_WAIT, comspec, fullcmd, NULL, 1);
 
-  HeapFree(GetProcessHeap(), 0, comspec);
-  HeapFree(GetProcessHeap(), 0, fullcmd);
+  heap_free(comspec);
+  heap_free(fullcmd);
   return res;
 }
 
@@ -1275,7 +1275,7 @@ int CDECL MSVCRT_system(const char* cmd)
   if ((cmdW = msvcrt_wstrdupa(cmd)))
   {
     res = _wsystem(cmdW);
-    HeapFree(GetProcessHeap(), 0, cmdW);
+    heap_free(cmdW);
   }
   return res;
 }

@@ -257,7 +257,7 @@ GLUtesselator * WINAPI gluNewTess(void)
    * are initialized where they are used.
    */
 
-  tess = HeapAlloc(GetProcessHeap(), 0, sizeof( GLUtesselator ));
+  tess = heap_alloc(sizeof( GLUtesselator ));
   if (tess == NULL) {
      return 0;			/* out of memory */
   }
@@ -352,7 +352,7 @@ static void GotoState( GLUtesselator *tess, enum TessState newState )
 void WINAPI gluDeleteTess( GLUtesselator *tess )
 {
   RequireState( tess, T_DORMANT );
-  HeapFree( GetProcessHeap(), 0, tess );
+  heap_free( tess );
 }
 
 

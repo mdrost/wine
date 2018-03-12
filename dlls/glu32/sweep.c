@@ -70,7 +70,7 @@ struct Dict {
 static Dict *dictNewDict( void *frame,
                           int (*leq)(void *frame, DictKey key1, DictKey key2) )
 {
-  Dict *dict = HeapAlloc( GetProcessHeap(), 0, sizeof( Dict ));
+  Dict *dict = heap_alloc( sizeof( Dict ));
   DictNode *head;
 
   if (dict == NULL) return NULL;
@@ -93,9 +93,9 @@ static void dictDeleteDict( Dict *dict )
 
   for( node = dict->head.next; node != &dict->head; node = next ) {
     next = node->next;
-    HeapFree( GetProcessHeap(), 0, node );
+    heap_free( node );
   }
-  HeapFree( GetProcessHeap(), 0, dict );
+  heap_free( dict );
 }
 
 static DictNode *dictInsertBefore( Dict *dict, DictNode *node, DictKey key )
@@ -106,7 +106,7 @@ static DictNode *dictInsertBefore( Dict *dict, DictNode *node, DictKey key )
     node = node->prev;
   } while( node->key != NULL && ! (*dict->leq)(dict->frame, node->key, key));
 
-  newNode = HeapAlloc( GetProcessHeap(), 0, sizeof( DictNode ));
+  newNode = heap_alloc( sizeof( DictNode ));
   if (newNode == NULL) return NULL;
 
   newNode->key = key;
@@ -122,7 +122,7 @@ static void dictDelete( Dict *dict, DictNode *node )
 {
   node->next->prev = node->prev;
   node->prev->next = node->next;
-  HeapFree( GetProcessHeap(), 0, node );
+  heap_free( node );
 }
 
 static DictNode *dictSearch( Dict *dict, DictKey key )
@@ -264,7 +264,7 @@ static void DeleteRegion( GLUtesselator *tess, ActiveRegion *reg )
   }
   reg->eUp->activeRegion = NULL;
   dictDelete( tess->dict, reg->nodeUp );
-  HeapFree( GetProcessHeap(), 0, reg );
+  heap_free( reg );
 }
 
 
@@ -325,7 +325,7 @@ static ActiveRegion *AddRegionBelow( GLUtesselator *tess,
  * Winding number and "inside" flag are not updated.
  */
 {
-  ActiveRegion *regNew = HeapAlloc( GetProcessHeap(), 0, sizeof( ActiveRegion ));
+  ActiveRegion *regNew = heap_alloc( sizeof( ActiveRegion ));
   if (regNew == NULL) longjmp(tess->env,1);
 
   regNew->eUp = eNewUp;
@@ -1235,7 +1235,7 @@ static void AddSentinel( GLUtesselator *tess, GLdouble t )
  */
 {
   GLUhalfEdge *e;
-  ActiveRegion *reg = HeapAlloc( GetProcessHeap(), 0, sizeof( ActiveRegion ));
+  ActiveRegion *reg = heap_alloc( sizeof( ActiveRegion ));
   if (reg == NULL) longjmp(tess->env,1);
 
   e = __gl_meshMakeEdge( tess->mesh );

@@ -57,7 +57,7 @@ GLUquadric * WINAPI gluNewQuadric(void)
 {
     GLUquadric *newstate;
 
-    newstate = HeapAlloc(GetProcessHeap(), 0, sizeof(GLUquadric));
+    newstate = heap_alloc(sizeof(GLUquadric));
     if (newstate == NULL) {
 	/* Can't report an error at this point... */
 	return NULL;
@@ -76,7 +76,7 @@ GLUquadric * WINAPI gluNewQuadric(void)
  */
 void WINAPI gluDeleteQuadric( GLUquadric *state )
 {
-    HeapFree(GetProcessHeap(), 0, state);
+    heap_free(state);
 }
 
 static void gluQuadricError(GLUquadric *qobj, GLenum which)

@@ -42,12 +42,12 @@
 
 static GLUvertex *allocVertex(void)
 {
-    return HeapAlloc( GetProcessHeap(), 0, sizeof( GLUvertex ));
+    return heap_alloc( sizeof( GLUvertex ));
 }
 
 static GLUface *allocFace(void)
 {
-    return HeapAlloc( GetProcessHeap(), 0, sizeof( GLUface ));
+    return heap_alloc( sizeof( GLUface ));
 }
 
 /************************ Utility Routines ************************/
@@ -66,7 +66,7 @@ static GLUhalfEdge *MakeEdge( GLUhalfEdge *eNext )
   GLUhalfEdge *e;
   GLUhalfEdge *eSym;
   GLUhalfEdge *ePrev;
-  EdgePair *pair = HeapAlloc( GetProcessHeap(), 0, sizeof( EdgePair ));
+  EdgePair *pair = heap_alloc( sizeof( EdgePair ));
   if (pair == NULL) return NULL;
 
   e = &pair->e;
@@ -209,7 +209,7 @@ static void KillEdge( GLUhalfEdge *eDel )
   eNext->Sym->next = ePrev;
   ePrev->Sym->next = eNext;
 
-  HeapFree( GetProcessHeap(), 0, eDel );
+  heap_free( eDel );
 }
 
 
@@ -234,7 +234,7 @@ static void KillVertex( GLUvertex *vDel, GLUvertex *newOrg )
   vNext->prev = vPrev;
   vPrev->next = vNext;
 
-  HeapFree( GetProcessHeap(), 0, vDel );
+  heap_free( vDel );
 }
 
 /* KillFace( fDel ) destroys a face and removes it from the global face
@@ -258,7 +258,7 @@ static void KillFace( GLUface *fDel, GLUface *newLface )
   fNext->prev = fPrev;
   fPrev->next = fNext;
 
-  HeapFree( GetProcessHeap(), 0, fDel );
+  heap_free( fDel );
 }
 
 
@@ -276,17 +276,17 @@ GLUhalfEdge *__gl_meshMakeEdge( GLUmesh *mesh )
 
   /* if any one is null then all get freed */
   if (newVertex1 == NULL || newVertex2 == NULL || newFace == NULL) {
-     HeapFree( GetProcessHeap(), 0, newVertex1 );
-     HeapFree( GetProcessHeap(), 0, newVertex2 );
-     HeapFree( GetProcessHeap(), 0, newFace );
+     heap_free( newVertex1 );
+     heap_free( newVertex2 );
+     heap_free( newFace );
      return NULL;
   }
 
   e = MakeEdge( &mesh->eHead );
   if (e == NULL) {
-     HeapFree( GetProcessHeap(), 0, newVertex1 );
-     HeapFree( GetProcessHeap(), 0, newVertex2 );
-     HeapFree( GetProcessHeap(), 0, newFace );
+     heap_free( newVertex1 );
+     heap_free( newVertex2 );
+     heap_free( newFace );
      return NULL;
   }
 
@@ -588,7 +588,7 @@ void __gl_meshZapFace( GLUface *fZap )
   fNext->prev = fPrev;
   fPrev->next = fNext;
 
-  HeapFree( GetProcessHeap(), 0, fZap );
+  heap_free( fZap );
 }
 
 
@@ -601,7 +601,7 @@ GLUmesh *__gl_meshNewMesh( void )
   GLUface *f;
   GLUhalfEdge *e;
   GLUhalfEdge *eSym;
-  GLUmesh *mesh = HeapAlloc( GetProcessHeap(), 0, sizeof( GLUmesh ));
+  GLUmesh *mesh = heap_alloc( sizeof( GLUmesh ));
   if (mesh == NULL) {
      return NULL;
   }
@@ -678,7 +678,7 @@ GLUmesh *__gl_meshUnion( GLUmesh *mesh1, GLUmesh *mesh2 )
     e1->Sym->next = e2->Sym->next;
   }
 
-  HeapFree( GetProcessHeap(), 0, mesh2 );
+  heap_free( mesh2 );
   return mesh1;
 }
 
@@ -711,21 +711,21 @@ void __gl_meshDeleteMesh( GLUmesh *mesh )
 
   for( f = mesh->fHead.next; f != &mesh->fHead; f = fNext ) {
     fNext = f->next;
-    HeapFree( GetProcessHeap(), 0, f );
+    heap_free( f );
   }
 
   for( v = mesh->vHead.next; v != &mesh->vHead; v = vNext ) {
     vNext = v->next;
-    HeapFree( GetProcessHeap(), 0, v );
+    heap_free( v );
   }
 
   for( e = mesh->eHead.next; e != &mesh->eHead; e = eNext ) {
     /* One call frees both e and e->Sym (see EdgePair above) */
     eNext = e->next;
-    HeapFree( GetProcessHeap(), 0, e );
+    heap_free( e );
   }
 
-  HeapFree( GetProcessHeap(), 0, mesh );
+  heap_free( mesh );
 }
 
 #endif

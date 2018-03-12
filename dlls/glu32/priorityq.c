@@ -65,21 +65,21 @@ struct PriorityQHeap {
 
 static PriorityQHeap *__gl_pqHeapNewPriorityQ( int (*leq)(PQkey key1, PQkey key2) )
 {
-  PriorityQHeap *pq = HeapAlloc( GetProcessHeap(), 0, sizeof( PriorityQHeap ));
+  PriorityQHeap *pq = heap_alloc( sizeof( PriorityQHeap ));
   if (pq == NULL) return NULL;
 
   pq->size = 0;
   pq->max = INIT_SIZE;
-  pq->nodes = HeapAlloc( GetProcessHeap(), 0, (INIT_SIZE + 1) * sizeof(pq->nodes[0]) );
+  pq->nodes = heap_alloc( (INIT_SIZE + 1) * sizeof(pq->nodes[0]) );
   if (pq->nodes == NULL) {
-     HeapFree( GetProcessHeap(), 0, pq );
+     heap_free( pq );
      return NULL;
   }
 
-  pq->handles = HeapAlloc( GetProcessHeap(), 0, (INIT_SIZE + 1) * sizeof(pq->handles[0]) );
+  pq->handles = heap_alloc( (INIT_SIZE + 1) * sizeof(pq->handles[0]) );
   if (pq->handles == NULL) {
-     HeapFree( GetProcessHeap(), 0, pq->nodes );
-     HeapFree( GetProcessHeap(), 0, pq );
+     heap_free( pq->nodes );
+     heap_free( pq );
      return NULL;
   }
 
@@ -94,9 +94,9 @@ static PriorityQHeap *__gl_pqHeapNewPriorityQ( int (*leq)(PQkey key1, PQkey key2
 
 static void __gl_pqHeapDeletePriorityQ( PriorityQHeap *pq )
 {
-  HeapFree( GetProcessHeap(), 0, pq->handles );
-  HeapFree( GetProcessHeap(), 0, pq->nodes );
-  HeapFree( GetProcessHeap(), 0, pq );
+  heap_free( pq->handles );
+  heap_free( pq->nodes );
+  heap_free( pq );
 }
 
 
@@ -177,14 +177,14 @@ static PQhandle __gl_pqHeapInsert( PriorityQHeap *pq, PQkey keyNew )
 
     /* If the heap overflows, double its size. */
     pq->max <<= 1;
-    pq->nodes = HeapReAlloc( GetProcessHeap(), 0, pq->nodes,
+    pq->nodes = heap_realloc( pq->nodes,
 				     (size_t)
 				     ((pq->max + 1) * sizeof( pq->nodes[0] )));
     if (pq->nodes == NULL) {
        pq->nodes = saveNodes;	/* restore ptr to free upon return */
        return LONG_MAX;
     }
-    pq->handles = HeapReAlloc( GetProcessHeap(), 0, pq->handles,
+    pq->handles = heap_realloc( pq->handles,
 			                     (size_t)
 			                      ((pq->max + 1) *
 					       sizeof( pq->handles[0] )));
@@ -271,19 +271,19 @@ struct PriorityQSort {
 
 PriorityQSort *__gl_pqSortNewPriorityQ( int (*leq)(PQkey key1, PQkey key2) )
 {
-  PriorityQSort *pq = HeapAlloc( GetProcessHeap(), 0, sizeof( PriorityQSort ));
+  PriorityQSort *pq = heap_alloc( sizeof( PriorityQSort ));
   if (pq == NULL) return NULL;
 
   pq->heap = __gl_pqHeapNewPriorityQ( leq );
   if (pq->heap == NULL) {
-     HeapFree( GetProcessHeap(), 0, pq );
+     heap_free( pq );
      return NULL;
   }
 
-  pq->keys = HeapAlloc( GetProcessHeap(), 0, INIT_SIZE * sizeof(pq->keys[0]) );
+  pq->keys = heap_alloc( INIT_SIZE * sizeof(pq->keys[0]) );
   if (pq->keys == NULL) {
      __gl_pqHeapDeletePriorityQ(pq->heap);
-     HeapFree( GetProcessHeap(), 0, pq );
+     heap_free( pq );
      return NULL;
   }
 
@@ -298,9 +298,9 @@ void __gl_pqSortDeletePriorityQ( PriorityQSort *pq )
 {
   assert(pq != NULL);
   if (pq->heap != NULL) __gl_pqHeapDeletePriorityQ( pq->heap );
-  HeapFree( GetProcessHeap(), 0, pq->order );
-  HeapFree( GetProcessHeap(), 0, pq->keys );
-  HeapFree( GetProcessHeap(), 0, pq );
+  heap_free( pq->order );
+  heap_free( pq->keys );
+  heap_free( pq );
 }
 
 
@@ -317,7 +317,7 @@ int __gl_pqSortInit( PriorityQSort *pq )
   /* Create an array of indirect pointers to the keys, so that we
    * the handles we have returned are still valid.
    */
-  pq->order = HeapAlloc( GetProcessHeap(), 0, (size_t)
+  pq->order = heap_alloc( (size_t)
                                   (pq->size * sizeof(pq->order[0])) );
   if (pq->order == NULL) return 0;
 
@@ -394,7 +394,7 @@ PQhandle __gl_pqSortInsert( PriorityQSort *pq, PQkey keyNew )
 
     /* If the heap overflows, double its size. */
     pq->max <<= 1;
-    pq->keys = HeapReAlloc( GetProcessHeap(), 0, pq->keys,
+    pq->keys = heap_realloc( pq->keys,
 	 	                        (size_t)
 	                                 (pq->max * sizeof( pq->keys[0] )));
     if (pq->keys == NULL) {

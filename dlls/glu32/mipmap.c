@@ -3456,12 +3456,12 @@ GLint WINAPI gluScaleImage( GLenum format, GLint widthin, GLint heightin, GLenum
        return GLU_INVALID_OPERATION;
     }
     beforeImage =
-	HeapAlloc(GetProcessHeap(), 0, image_size(widthin, heightin, format, GL_UNSIGNED_SHORT));
+	heap_alloc(image_size(widthin, heightin, format, GL_UNSIGNED_SHORT));
     afterImage =
-	HeapAlloc(GetProcessHeap(), 0, image_size(widthout, heightout, format, GL_UNSIGNED_SHORT));
+	heap_alloc(image_size(widthout, heightout, format, GL_UNSIGNED_SHORT));
     if (beforeImage == NULL || afterImage == NULL) {
-	HeapFree(GetProcessHeap(), 0, beforeImage);
-	HeapFree(GetProcessHeap(), 0, afterImage);
+	heap_free(beforeImage);
+	heap_free(afterImage);
 	return GLU_OUT_OF_MEMORY;
     }
 
@@ -3473,8 +3473,8 @@ GLint WINAPI gluScaleImage( GLenum format, GLint widthin, GLint heightin, GLenum
 	    widthout, heightout, afterImage);
     empty_image(&psm,widthout, heightout, format, typeout,
 	    is_index(format), afterImage, dataout);
-    HeapFree(GetProcessHeap(), 0, beforeImage);
-    HeapFree(GetProcessHeap(), 0, afterImage);
+    heap_free(beforeImage);
+    heap_free(afterImage);
 
     return 0;
 }
@@ -3507,7 +3507,7 @@ int gluBuild1DMipmapLevelsCore(GLenum target, GLint internalFormat,
     levels+= userLevel;
 
     retrieveStoreModes(&psm);
-    newImage = HeapAlloc(GetProcessHeap(), 0, image_size(width, 1, format, GL_UNSIGNED_SHORT));
+    newImage = heap_alloc(image_size(width, 1, format, GL_UNSIGNED_SHORT));
     newImage_width = width;
     if (newImage == NULL) {
 	return GLU_OUT_OF_MEMORY;
@@ -3534,14 +3534,14 @@ int gluBuild1DMipmapLevelsCore(GLenum target, GLint internalFormat,
 	} else {
 	    if (otherImage == NULL) {
 		memreq = image_size(newwidth, 1, format, GL_UNSIGNED_SHORT);
-		otherImage = HeapAlloc(GetProcessHeap(), 0, memreq);
+		otherImage = heap_alloc(memreq);
 		if (otherImage == NULL) {
 		    glPixelStorei(GL_UNPACK_ALIGNMENT, psm.unpack_alignment);
 		    glPixelStorei(GL_UNPACK_SKIP_ROWS, psm.unpack_skip_rows);
 		    glPixelStorei(GL_UNPACK_SKIP_PIXELS,psm.unpack_skip_pixels);
 		    glPixelStorei(GL_UNPACK_ROW_LENGTH, psm.unpack_row_length);
 		    glPixelStorei(GL_UNPACK_SWAP_BYTES, psm.unpack_swap_bytes);
-		    HeapFree(GetProcessHeap(), 0, newImage);
+		    heap_free(newImage);
 		    return GLU_OUT_OF_MEMORY;
 		}
 	    }
@@ -3566,8 +3566,8 @@ int gluBuild1DMipmapLevelsCore(GLenum target, GLint internalFormat,
     glPixelStorei(GL_UNPACK_ROW_LENGTH, psm.unpack_row_length);
     glPixelStorei(GL_UNPACK_SWAP_BYTES, psm.unpack_swap_bytes);
 
-    HeapFree(GetProcessHeap(), 0, newImage);
-    HeapFree(GetProcessHeap(), 0, otherImage);
+    heap_free(newImage);
+    heap_free(otherImage);
     return 0;
 }
 
@@ -3630,7 +3630,7 @@ static int bitmapBuild2DMipmaps(GLenum target, GLint internalFormat,
     if (level > levels) levels=level;
 
     otherImage = NULL;
-    newImage = HeapAlloc(GetProcessHeap(), 0, image_size(width, height, format, GL_UNSIGNED_SHORT));
+    newImage = heap_alloc(image_size(width, height, format, GL_UNSIGNED_SHORT));
     newImage_width = width;
     newImage_height = height;
     if (newImage == NULL) {
@@ -3659,14 +3659,14 @@ static int bitmapBuild2DMipmaps(GLenum target, GLint internalFormat,
 	    if (otherImage == NULL) {
 		memreq =
 		    image_size(newwidth, newheight, format, GL_UNSIGNED_SHORT);
-		otherImage = HeapAlloc(GetProcessHeap(), 0, memreq);
+		otherImage = heap_alloc(memreq);
 		if (otherImage == NULL) {
 		    glPixelStorei(GL_UNPACK_ALIGNMENT, psm.unpack_alignment);
 		    glPixelStorei(GL_UNPACK_SKIP_ROWS, psm.unpack_skip_rows);
 		    glPixelStorei(GL_UNPACK_SKIP_PIXELS,psm.unpack_skip_pixels);
 		    glPixelStorei(GL_UNPACK_ROW_LENGTH, psm.unpack_row_length);
 		    glPixelStorei(GL_UNPACK_SWAP_BYTES, psm.unpack_swap_bytes);
-		    HeapFree(GetProcessHeap(), 0, newImage);
+		    heap_free(newImage);
 		    return GLU_OUT_OF_MEMORY;
 		}
 	    }
@@ -3692,8 +3692,8 @@ static int bitmapBuild2DMipmaps(GLenum target, GLint internalFormat,
     glPixelStorei(GL_UNPACK_ROW_LENGTH, psm.unpack_row_length);
     glPixelStorei(GL_UNPACK_SWAP_BYTES, psm.unpack_swap_bytes);
 
-    HeapFree(GetProcessHeap(), 0, newImage);
-    HeapFree(GetProcessHeap(), 0, otherImage);
+    heap_free(newImage);
+    heap_free(otherImage);
     return 0;
 }
 
@@ -3815,7 +3815,7 @@ static int gluBuild2DMipmapLevelsCore(GLenum target, GLint internalFormat,
 	case GL_UNSIGNED_INT_8_8_8_8_REV:
 	case GL_UNSIGNED_INT_10_10_10_2:
 	case GL_UNSIGNED_INT_2_10_10_10_REV:
-	  dstImage = HeapAlloc(GetProcessHeap(), 0, memreq);
+	  dstImage = heap_alloc(memreq);
 	  break;
 	default:
 	  return GLU_INVALID_ENUM;
@@ -3962,7 +3962,7 @@ static int gluBuild2DMipmapLevelsCore(GLenum target, GLint internalFormat,
 	case GL_UNSIGNED_INT_8_8_8_8_REV:
 	case GL_UNSIGNED_INT_10_10_10_2:
 	case GL_UNSIGNED_INT_2_10_10_10_REV:
-	  dstImage = HeapAlloc(GetProcessHeap(), 0, memreq);
+	  dstImage = heap_alloc(memreq);
 	  break;
 	default:
 	  return GLU_INVALID_ENUM;
@@ -3973,7 +3973,7 @@ static int gluBuild2DMipmapLevelsCore(GLenum target, GLint internalFormat,
 	  glPixelStorei(GL_UNPACK_SKIP_PIXELS, psm.unpack_skip_pixels);
 	  glPixelStorei(GL_UNPACK_ROW_LENGTH, psm.unpack_row_length);
 	  glPixelStorei(GL_UNPACK_SWAP_BYTES, psm.unpack_swap_bytes);
-	  HeapFree(GetProcessHeap(), 0, srcImage);
+	  heap_free(srcImage);
 	  return GLU_OUT_OF_MEMORY;
 	}
 	/* level userLevel+1 is in srcImage; level userLevel already saved */
@@ -4000,7 +4000,7 @@ static int gluBuild2DMipmapLevelsCore(GLenum target, GLint internalFormat,
 	    case GL_UNSIGNED_INT_8_8_8_8_REV:
 	    case GL_UNSIGNED_INT_10_10_10_2:
 	    case GL_UNSIGNED_INT_2_10_10_10_REV:
-		dstImage = HeapAlloc(GetProcessHeap(), 0, memreq);
+		dstImage = heap_alloc(memreq);
 		break;
 	    default:
 		return GLU_INVALID_ENUM;
@@ -4169,7 +4169,7 @@ static int gluBuild2DMipmapLevelsCore(GLenum target, GLint internalFormat,
 	  case GL_UNSIGNED_INT_8_8_8_8_REV:
 	  case GL_UNSIGNED_INT_10_10_10_2:
 	  case GL_UNSIGNED_INT_2_10_10_10_REV:
-	    dstImage = HeapAlloc(GetProcessHeap(), 0, memreq);
+	    dstImage = heap_alloc(memreq);
 	    break;
 	  default:
 	    return GLU_INVALID_ENUM;
@@ -4180,7 +4180,7 @@ static int gluBuild2DMipmapLevelsCore(GLenum target, GLint internalFormat,
 	    glPixelStorei(GL_UNPACK_SKIP_PIXELS, psm.unpack_skip_pixels);
 	    glPixelStorei(GL_UNPACK_ROW_LENGTH, psm.unpack_row_length);
 	    glPixelStorei(GL_UNPACK_SWAP_BYTES, psm.unpack_swap_bytes);
-	    HeapFree(GetProcessHeap(), 0, srcImage);
+	    heap_free(srcImage);
 	    return GLU_OUT_OF_MEMORY;
 	  }
 	}
@@ -4331,7 +4331,7 @@ static int gluBuild2DMipmapLevelsCore(GLenum target, GLint internalFormat,
 	  int ii; unsigned char *dstTrav, *srcTrav; /* indices for copying */
 
 	  /* allocate new image for mipmap of size newRowLength x newheight */
-	  void *newMipmapImage= HeapAlloc(GetProcessHeap(), 0, (size_t) (newRowLength*newheight));
+	  void *newMipmapImage= heap_alloc((size_t) (newRowLength*newheight));
 	  if (newMipmapImage == NULL) {
 	     /* out of memory so return */
 	     glPixelStorei(GL_UNPACK_ALIGNMENT, psm.unpack_alignment);
@@ -4361,7 +4361,7 @@ static int gluBuild2DMipmapLevelsCore(GLenum target, GLint internalFormat,
 	  glTexImage2D(target, level, internalFormat, newwidth, newheight, 0,
 		       format, type, newMipmapImage);
 	  }
-	  HeapFree(GetProcessHeap(), 0, newMipmapImage); /* don't forget to free it! */
+	  heap_free(newMipmapImage); /* don't forget to free it! */
        } /* else */
       }
     } /* for level */
@@ -4371,8 +4371,8 @@ static int gluBuild2DMipmapLevelsCore(GLenum target, GLint internalFormat,
     glPixelStorei(GL_UNPACK_ROW_LENGTH, psm.unpack_row_length);
     glPixelStorei(GL_UNPACK_SWAP_BYTES, psm.unpack_swap_bytes);
 
-    HeapFree(GetProcessHeap(), 0, srcImage); /*if you get to here, a srcImage has always been malloc'ed*/
-    HeapFree(GetProcessHeap(), 0, dstImage);
+    heap_free(srcImage); /*if you get to here, a srcImage has always been malloc'ed*/
+    heap_free(dstImage);
     return 0;
 } /* gluBuild2DMipmapLevelsCore() */
 

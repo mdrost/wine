@@ -73,7 +73,7 @@ HANDLE WINAPI PSetupCreateMonitorInfo(DWORD unknown1, WCHAR *server)
 
     TRACE("(%d, %s)\n", unknown1, debugstr_w(server));
 
-    mi = HeapAlloc(GetProcessHeap(), 0, sizeof(monitorinfo_t));
+    mi = heap_alloc(sizeof(monitorinfo_t));
     if (!mi) {
         /* FIXME: SetLastError() needed? */
         return NULL;
@@ -82,12 +82,12 @@ HANDLE WINAPI PSetupCreateMonitorInfo(DWORD unknown1, WCHAR *server)
     /* Get the needed size for all Monitors */
     res = EnumMonitorsW(server, 2, NULL, 0, &needed, &mi->installed);
     if (!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        mi->mi2 = HeapAlloc(GetProcessHeap(), 0, needed);
+        mi->mi2 = heap_alloc(needed);
         res = EnumMonitorsW(server, 2, (LPBYTE) mi->mi2, needed, &needed, &mi->installed);
     }
 
     if (!res) {
-        HeapFree(GetProcessHeap(), 0, mi);
+        heap_free(mi);
         return NULL;
     }
 
@@ -106,8 +106,8 @@ VOID WINAPI PSetupDestroyMonitorInfo(HANDLE monitorinfo)
 
     TRACE("(%p)\n", mi);
     if (mi) {
-        if (mi->installed) HeapFree(GetProcessHeap(), 0, mi->mi2);
-        HeapFree(GetProcessHeap(), 0, mi);
+        if (mi->installed) heap_free(mi->mi2);
+        heap_free(mi);
     }
 }
 

@@ -110,7 +110,7 @@ static ULONG WINAPI PStore_fnRelease(IPStore* iface)
 
     ref = InterlockedDecrement( &This->ref );
     if( !ref )
-        HeapFree( GetProcessHeap(), 0, This );
+        heap_free( This );
 
     return ref;
 }
@@ -358,7 +358,7 @@ HRESULT WINAPI PStoreCreateInstance( IPStore** ppProvider,
 
     TRACE("%p %s %p %08x\n", ppProvider, debugstr_guid(pProviderID), pReserved, dwFlags);
 
-    ips = HeapAlloc( GetProcessHeap(), 0, sizeof (PStore_impl) );
+    ips = heap_alloc( sizeof (PStore_impl) );
     if( !ips )
         return E_OUTOFMEMORY;
 

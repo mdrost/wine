@@ -119,7 +119,7 @@ static inline void flush_sequence(struct call_sequence **seg, int sequence_index
 {
     struct call_sequence *call_seq = seg[sequence_index];
 
-    HeapFree(GetProcessHeap(), 0, call_seq->sequence);
+    heap_free(call_seq->sequence);
     call_seq->sequence = NULL;
     call_seq->count = call_seq->size = 0;
 }
@@ -129,7 +129,7 @@ static void init_call_sequences(struct call_sequence **seq, int n)
     int i;
 
     for (i = 0; i < n; i++)
-        seq[i] = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct call_sequence));
+        seq[i] = heap_alloc_zero(sizeof(struct call_sequence));
 }
 
 static void test_uint(UINT32 actual, UINT32 expected, const char *name, const struct testcontext *ctxt)

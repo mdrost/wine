@@ -697,7 +697,7 @@ static ULONG WINAPI fontdatastream_Release(IDWriteFontFileStream *iface)
     struct test_fontdatastream *This = impl_from_IDWriteFontFileStream(iface);
     ULONG ref = InterlockedDecrement(&This->ref);
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return ref;
 }
 
@@ -747,7 +747,7 @@ static const IDWriteFontFileStreamVtbl fontdatastreamvtbl =
 
 static HRESULT create_fontdatastream(LPVOID data, UINT size, IDWriteFontFileStream** iface)
 {
-    struct test_fontdatastream *This = HeapAlloc(GetProcessHeap(), 0, sizeof(struct test_fontdatastream));
+    struct test_fontdatastream *This = heap_alloc(sizeof(struct test_fontdatastream));
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -5148,7 +5148,7 @@ static void test_CreateGlyphRunAnalysis(void)
         ok(!IsRectEmpty(&rect), "Unexpected empty bbox.\n");
 
         size = (rect.right - rect.left) * (rect.bottom - rect.top);
-        bits = HeapAlloc(GetProcessHeap(), 0, size);
+        bits = heap_alloc(size);
 
         hr = IDWriteGlyphRunAnalysis_CreateAlphaTexture(analysis, DWRITE_TEXTURE_ALIASED_1x1, &rect, bits, size);
         ok(hr == S_OK, "Failed to get alpha texture, hr %#x.\n", hr);
@@ -5163,7 +5163,7 @@ static void test_CreateGlyphRunAnalysis(void)
     todo_wine
         ok(hr == DWRITE_E_UNSUPPORTEDOPERATION, "Unexpected hr %#x.\n", hr);
 
-        HeapFree(GetProcessHeap(), 0, bits);
+        heap_free(bits);
 
         hr = IDWriteFactory_CreateCustomRenderingParams(factory, 0.1f, 0.0f, 1.0f, DWRITE_PIXEL_GEOMETRY_FLAT,
                 DWRITE_RENDERING_MODE_NATURAL, &params);
@@ -5229,7 +5229,7 @@ static void test_CreateGlyphRunAnalysis(void)
         ok(!IsRectEmpty(&rect), "Unexpected empty bbox.\n");
 
         size = (rect.right - rect.left) * (rect.bottom - rect.top);
-        bits = HeapAlloc(GetProcessHeap(), 0, size);
+        bits = heap_alloc(size);
 
         hr = IDWriteGlyphRunAnalysis_CreateAlphaTexture(analysis, DWRITE_TEXTURE_ALIASED_1x1, &rect, bits, size);
         ok(hr == S_OK, "Failed to get alpha texture, hr %#x.\n", hr);
@@ -5244,7 +5244,7 @@ static void test_CreateGlyphRunAnalysis(void)
     todo_wine
         ok(hr == DWRITE_E_UNSUPPORTEDOPERATION, "Unexpected hr %#x.\n", hr);
 
-        HeapFree(GetProcessHeap(), 0, bits);
+        heap_free(bits);
 
         IDWriteGlyphRunAnalysis_Release(analysis);
 

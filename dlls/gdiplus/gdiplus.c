@@ -141,7 +141,7 @@ ULONG WINAPI GdiplusShutdown_wrapper(ULONG_PTR token)
  */
 void* WINGDIPAPI GdipAlloc(SIZE_T size)
 {
-    return HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    return heap_alloc_zero(size);
 }
 
 /*****************************************************
@@ -149,7 +149,7 @@ void* WINGDIPAPI GdipAlloc(SIZE_T size)
  */
 void WINGDIPAPI GdipFree(void* ptr)
 {
-    HeapFree(GetProcessHeap(), 0, ptr);
+    heap_free(ptr);
 }
 
 /* Calculates the bezier points needed to fill in the arc portion starting at

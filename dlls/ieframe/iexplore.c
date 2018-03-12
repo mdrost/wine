@@ -887,7 +887,7 @@ static ULONG WINAPI InternetExplorerManager_Release(IInternetExplorerManager *if
     TRACE("(%p) decreasing refcount to %u\n", iface, ref);
 
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -914,7 +914,7 @@ HRESULT WINAPI InternetExplorerManager_Create(IClassFactory *iface, IUnknown *pO
 
     TRACE("(%p %s %p)\n", pOuter, debugstr_guid(riid), ppv);
 
-    if (!(ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*ret))))
+    if (!(ret = heap_alloc_zero(sizeof(*ret))))
         return E_OUTOFMEMORY;
 
     ret->IInternetExplorerManager_iface.lpVtbl = &InternetExplorerManager_vtbl;

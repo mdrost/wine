@@ -787,7 +787,7 @@ static InternetShortcut *create_shortcut(void)
 {
     InternetShortcut *newshortcut;
 
-    newshortcut = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(InternetShortcut));
+    newshortcut = heap_alloc_zero(sizeof(InternetShortcut));
     if (newshortcut)
     {
         HRESULT hr;

@@ -369,7 +369,7 @@ static HRESULT dup_partial_mediatype(const DMO_PARTIAL_MEDIATYPE *types, DWORD c
     if (count == 0)
         return S_OK;
 
-    *ret = HeapAlloc(GetProcessHeap(), 0, count*sizeof(*types));
+    *ret = heap_alloc(count*sizeof(*types));
     if (!*ret)
         return E_OUTOFMEMORY;
 
@@ -395,7 +395,7 @@ static HRESULT IEnumDMO_Constructor(
 
     *obj = NULL;
 
-    lpedmo = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IEnumDMOImpl));
+    lpedmo = heap_alloc_zero(sizeof(IEnumDMOImpl));
     if (!lpedmo)
         return E_OUTOFMEMORY;
 
@@ -490,9 +490,9 @@ static ULONG WINAPI IEnumDMO_fnRelease(IEnumDMO * iface)
     {
         if (This->hkey)
             RegCloseKey(This->hkey);
-        HeapFree(GetProcessHeap(), 0, This->pInTypes);
-        HeapFree(GetProcessHeap(), 0, This->pOutTypes);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->pInTypes);
+        heap_free(This->pOutTypes);
+        heap_free(This);
     }
     return refCount;
 }

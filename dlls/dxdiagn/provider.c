@@ -125,7 +125,7 @@ static ULONG WINAPI IDxDiagProviderImpl_Release(IDxDiagProvider *iface)
 
     if (!refCount) {
         free_information_tree(This->info_root);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     DXDIAGN_UnlockModule();
@@ -194,7 +194,7 @@ HRESULT DXDiag_CreateDXDiagProvider(LPCLASSFACTORY iface, LPUNKNOWN punkOuter, R
   *ppobj = NULL;
   if (punkOuter) return CLASS_E_NOAGGREGATION;
 
-  provider = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDxDiagProviderImpl));
+  provider = heap_alloc_zero(sizeof(IDxDiagProviderImpl));
   if (NULL == provider) return E_OUTOFMEMORY;
   provider->IDxDiagProvider_iface.lpVtbl = &DxDiagProvider_Vtbl;
   provider->ref = 0; /* will be inited with QueryInterface */
@@ -204,8 +204,8 @@ HRESULT DXDiag_CreateDXDiagProvider(LPCLASSFACTORY iface, LPUNKNOWN punkOuter, R
 static void free_property_information(IDxDiagContainerImpl_Property *prop)
 {
     VariantClear(&prop->vProp);
-    HeapFree(GetProcessHeap(), 0, prop->propName);
-    HeapFree(GetProcessHeap(), 0, prop);
+    heap_free(prop->propName);
+    heap_free(prop);
 }
 
 static void free_information_tree(IDxDiagContainerImpl_Container *node)
@@ -215,7 +215,7 @@ static void free_information_tree(IDxDiagContainerImpl_Container *node)
     if (!node)
         return;
 
-    HeapFree(GetProcessHeap(), 0, node->contName);
+    heap_free(node->contName);
 
     LIST_FOR_EACH_ENTRY_SAFE(ptr, cursor2, &node->subContainers, IDxDiagContainerImpl_Container, entry)
     {
@@ -231,23 +231,23 @@ static void free_information_tree(IDxDiagContainerImpl_Container *node)
         free_information_tree(ptr);
     }
 
-    HeapFree(GetProcessHeap(), 0, node);
+    heap_free(node);
 }
 
 static IDxDiagContainerImpl_Container *allocate_information_node(const WCHAR *name)
 {
     IDxDiagContainerImpl_Container *ret;
 
-    ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*ret));
+    ret = heap_alloc_zero(sizeof(*ret));
     if (!ret)
         return NULL;
 
     if (name)
     {
-        ret->contName = HeapAlloc(GetProcessHeap(), 0, (strlenW(name) + 1) * sizeof(*name));
+        ret->contName = heap_alloc((strlenW(name) + 1) * sizeof(*name));
         if (!ret->contName)
         {
-            HeapFree(GetProcessHeap(), 0, ret);
+            heap_free(ret);
             return NULL;
         }
         strcpyW(ret->contName, name);
@@ -263,14 +263,14 @@ static IDxDiagContainerImpl_Property *allocate_property_information(const WCHAR 
 {
     IDxDiagContainerImpl_Property *ret;
 
-    ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*ret));
+    ret = heap_alloc_zero(sizeof(*ret));
     if (!ret)
         return NULL;
 
-    ret->propName = HeapAlloc(GetProcessHeap(), 0, (strlenW(name) + 1) * sizeof(*name));
+    ret->propName = heap_alloc((strlenW(name) + 1) * sizeof(*name));
     if (!ret->propName)
     {
-        HeapFree(GetProcessHeap(), 0, ret);
+        heap_free(ret);
         return NULL;
     }
     strcpyW(ret->propName, name);
@@ -373,7 +373,7 @@ static DWORD *enumerate_processes(DWORD *list_count)
 {
     DWORD *pid_list, alloc_bytes = 1024 * sizeof(*pid_list), needed_bytes;
 
-    pid_list = HeapAlloc(GetProcessHeap(), 0, alloc_bytes);
+    pid_list = heap_alloc(alloc_bytes);
     if (!pid_list)
         return NULL;
 
@@ -383,7 +383,7 @@ static DWORD *enumerate_processes(DWORD *list_count)
 
         if (!EnumProcesses(pid_list, alloc_bytes, &needed_bytes))
         {
-            HeapFree(GetProcessHeap(), 0, pid_list);
+            heap_free(pid_list);
             return NULL;
         }
 
@@ -396,10 +396,10 @@ static DWORD *enumerate_processes(DWORD *list_count)
             break;
 
         alloc_bytes *= 2;
-        realloc_list = HeapReAlloc(GetProcessHeap(), 0, pid_list, alloc_bytes);
+        realloc_list = heap_realloc(pid_list, alloc_bytes);
         if (!realloc_list)
         {
-            HeapFree(GetProcessHeap(), 0, pid_list);
+            heap_free(pid_list);
             return NULL;
         }
         pid_list = realloc_list;
@@ -454,11 +454,11 @@ static BOOL is_netmeeting_running(void)
             if (get_process_name_from_pid(pid_list[i], process_name, sizeof(process_name)/sizeof(WCHAR)) &&
                 !lstrcmpW(conf_exe, process_name))
             {
-                HeapFree(GetProcessHeap(), 0, pid_list);
+                heap_free(pid_list);
                 return TRUE;
             }
         }
-        HeapFree(GetProcessHeap(), 0, pid_list);
+        heap_free(pid_list);
     }
 
     return FALSE;
@@ -1268,7 +1268,7 @@ static HRESULT fill_file_description(IDxDiagContainerImpl_Container *node, const
     TRACE("Filling container %p for %s in %s\n", node,
           debugstr_w(szFileName), debugstr_w(szFilePath));
 
-    szFile = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * (lstrlenW(szFilePath) +
+    szFile = heap_alloc(sizeof(WCHAR) * (lstrlenW(szFilePath) +
                                             lstrlenW(szFileName) + 2 /* slash + terminator */));
     if (!szFile)
         return E_OUTOFMEMORY;
@@ -1280,7 +1280,7 @@ static HRESULT fill_file_description(IDxDiagContainerImpl_Container *node, const
     retval = GetFileVersionInfoSizeW(szFile, &hdl);
     if (retval)
     {
-        pVersionInfo = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, retval);
+        pVersionInfo = heap_alloc_zero(retval);
         if (!pVersionInfo)
         {
             hr = E_OUTOFMEMORY;
@@ -1346,8 +1346,8 @@ static HRESULT fill_file_description(IDxDiagContainerImpl_Container *node, const
 
     hr = S_OK;
 cleanup:
-    HeapFree(GetProcessHeap(), 0, pVersionInfo);
-    HeapFree(GetProcessHeap(), 0, szFile);
+    heap_free(pVersionInfo);
+    heap_free(szFile);
 
     return hr;
 }

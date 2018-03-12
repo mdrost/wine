@@ -74,7 +74,7 @@ static ULONG WINAPI IDxDiagContainerImpl_Release(IDxDiagContainer *iface)
 
     if (!refCount) {
         IDxDiagProvider_Release(This->pProv);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     DXDIAGN_UnlockModule();
@@ -158,7 +158,7 @@ static HRESULT WINAPI IDxDiagContainerImpl_GetChildContainer(IDxDiagContainer *i
   *ppInstance = NULL;
 
   tmp_len = strlenW(pwszContainer) + 1;
-  orig_tmp = tmp = HeapAlloc(GetProcessHeap(), 0, tmp_len * sizeof(WCHAR));
+  orig_tmp = tmp = heap_alloc(tmp_len * sizeof(WCHAR));
   if (NULL == tmp) return E_FAIL;
   lstrcpynW(tmp, pwszContainer, tmp_len);
 
@@ -184,7 +184,7 @@ static HRESULT WINAPI IDxDiagContainerImpl_GetChildContainer(IDxDiagContainer *i
   }
 
 on_error:
-  HeapFree(GetProcessHeap(), 0, orig_tmp);
+  heap_free(orig_tmp);
   return hr;
 }
 
@@ -271,7 +271,7 @@ HRESULT DXDiag_CreateDXDiagContainer(REFIID riid, IDxDiagContainerImpl_Container
 
   TRACE("(%s, %p)\n", debugstr_guid(riid), ppobj);
 
-  container = HeapAlloc(GetProcessHeap(), 0, sizeof(IDxDiagContainerImpl));
+  container = heap_alloc(sizeof(IDxDiagContainerImpl));
   if (NULL == container) {
     *ppobj = NULL;
     return E_OUTOFMEMORY;

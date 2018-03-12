@@ -2864,7 +2864,7 @@ static void register_stream(ProtocolHandler *protocol_handler, const WCHAR *name
     size_t len;
 
     len = lstrlenW(name)+1;
-    stream = HeapAlloc(GetProcessHeap(), 0, offsetof(js_stream_t, name[len+1]));
+    stream = heap_alloc(offsetof(js_stream_t, name[len+1]));
 
     IInternetProtocolEx_AddRef(&protocol_handler->IInternetProtocolEx_iface);
     stream->protocol_handler = protocol_handler;
@@ -2884,7 +2884,7 @@ static void free_registered_streams(void)
             IInternetProtocolEx_Release(&iter->protocol_handler->IInternetProtocolEx_iface);
 
         registered_stream_list = iter->next;
-        HeapFree(GetProcessHeap(), 0, iter);
+        heap_free(iter);
     }
 }
 
@@ -2986,7 +2986,7 @@ static ULONG WINAPI Protocol_Release(IInternetProtocolEx *iface)
         if(This->uri)
             IUri_Release(This->uri);
         ReleaseBindInfo(&This->bind_info);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -3220,7 +3220,7 @@ static HRESULT WINAPI ProtocolCF_CreateInstance(IClassFactory *iface, IUnknown *
     ProtocolHandler *protocol;
     HRESULT hres;
 
-    protocol = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*protocol));
+    protocol = heap_alloc_zero(sizeof(*protocol));
     protocol->IInternetProtocolEx_iface.lpVtbl = &ProtocolExVtbl;
     protocol->IWinInetHttpInfo_iface.lpVtbl = &WinInetHttpInfoVtbl;
     protocol->ref = 1;

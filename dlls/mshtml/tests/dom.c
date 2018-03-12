@@ -2825,14 +2825,14 @@ static void _test_elem_getelembytag(unsigned line, IUnknown *unk, elem_type_t ty
     ok_(__FILE__,line) (col != NULL, "col == NULL\n");
 
     if(exlen) {
-        types = HeapAlloc(GetProcessHeap(), 0, exlen*sizeof(elem_type_t));
+        types = heap_alloc(exlen*sizeof(elem_type_t));
         for(i=0; i<exlen; i++)
             types[i] = type;
     }
 
     _test_elem_collection(line, (IUnknown*)col, types, exlen);
 
-    HeapFree(GetProcessHeap(), 0, types);
+    heap_free(types);
 
     if(ret)
         *ret = get_elem_col_item_idx(col, 0);
@@ -2856,14 +2856,14 @@ static void _test_doc_getelembytag(unsigned line, IHTMLDocument2 *unk, const cha
     ok_(__FILE__,line) (col != NULL, "col == NULL\n");
 
     if(exlen) {
-        types = HeapAlloc(GetProcessHeap(), 0, exlen*sizeof(elem_type_t));
+        types = heap_alloc(exlen*sizeof(elem_type_t));
         for(i=0; i<exlen; i++)
             types[i] = type;
     }
 
     _test_elem_collection(line, (IUnknown*)col, types, exlen);
 
-    HeapFree(GetProcessHeap(), 0, types);
+    heap_free(types);
     IHTMLElementCollection_Release(col);
     IHTMLDocument3_Release(doc);
 }

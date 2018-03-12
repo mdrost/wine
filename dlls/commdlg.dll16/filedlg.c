@@ -60,7 +60,7 @@ static LPDLGTEMPLATEA convert_dialog( const char *p, DWORD size )
     LPDLGTEMPLATEA dlg;
     WORD len, count, *out, *end;
 
-    if (!(dlg = HeapAlloc( GetProcessHeap(), 0, size * 2 ))) return NULL;
+    if (!(dlg = heap_alloc( size * 2 ))) return NULL;
     out = (WORD *)dlg;
     end = out + size;
     copy_dword( &out, &p );  /* style */
@@ -219,7 +219,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 	lpofn->nFileOffset    = ofn32.nFileOffset;
 	lpofn->nFileExtension = ofn32.nFileExtension;
     }
-    HeapFree( GetProcessHeap(), 0, template );
+    heap_free( template );
     return ret;
 }
 
@@ -287,7 +287,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 	lpofn->nFileOffset    = ofn32.nFileOffset;
 	lpofn->nFileExtension = ofn32.nFileExtension;
     }
-    HeapFree( GetProcessHeap(), 0, template );
+    heap_free( template );
     return ret;
 }
 

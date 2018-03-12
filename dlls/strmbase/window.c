@@ -93,7 +93,7 @@ HRESULT WINAPI BaseWindow_Destroy(BaseWindow *This)
     if (This->hWnd)
         BaseWindowImpl_DoneWithWindow(This);
 
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
     return S_OK;
 }
 

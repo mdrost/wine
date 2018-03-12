@@ -53,7 +53,7 @@ static void OutputQueue_FreeSamples(OutputQueue *pOutputQueue)
     {
         QueuedEvent *qev = LIST_ENTRY(cursor, QueuedEvent, entry);
         list_remove(cursor);
-        HeapFree(GetProcessHeap(),0,qev);
+        heap_free(qev);
     }
 }
 
@@ -76,7 +76,7 @@ HRESULT WINAPI OutputQueue_Construct(
     if (!pInputPin || !pFuncsTable || !ppOutputQueue)
         return E_INVALIDARG;
 
-    *ppOutputQueue = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(OutputQueue));
+    *ppOutputQueue = heap_alloc_zero(sizeof(OutputQueue));
     if (!*ppOutputQueue)
         return E_OUTOFMEMORY;
 
@@ -124,7 +124,7 @@ HRESULT WINAPI OutputQueue_Destroy(OutputQueue *pOutputQueue)
     CloseHandle(pOutputQueue->hProcessQueue);
 
     IPin_Release(&pOutputQueue->pInputPin->pin.IPin_iface);
-    HeapFree(GetProcessHeap(),0,pOutputQueue);
+    heap_free(pOutputQueue);
     return S_OK;
 }
 
@@ -149,7 +149,7 @@ HRESULT WINAPI OutputQueue_ReceiveMultiple(OutputQueue *pOutputQueue, IMediaSamp
 
         for (i = 0; i < nSamples; i++)
         {
-            QueuedEvent *qev = HeapAlloc(GetProcessHeap(),0,sizeof(QueuedEvent));
+            QueuedEvent *qev = heap_alloc(sizeof(QueuedEvent));
             if (!qev)
             {
                 ERR("Out of Memory\n");
@@ -195,7 +195,7 @@ VOID WINAPI OutputQueue_EOS(OutputQueue *pOutputQueue)
     EnterCriticalSection(&pOutputQueue->csQueue);
     if (pOutputQueue->hThread)
     {
-        QueuedEvent *qev = HeapAlloc(GetProcessHeap(),0,sizeof(QueuedEvent));
+        QueuedEvent *qev = heap_alloc(sizeof(QueuedEvent));
         if (!qev)
         {
             ERR("Out of Memory\n");
@@ -243,7 +243,7 @@ DWORD WINAPI OutputQueueImpl_ThreadProc(OutputQueue *pOutputQueue)
 
                 /* First Pass Process Samples */
                 i = list_count(&pOutputQueue->SampleList);
-                ppSamples = HeapAlloc(GetProcessHeap(),0,sizeof(IMediaSample*) * i);
+                ppSamples = heap_alloc(sizeof(IMediaSample*) * i);
                 nSamples = 0;
                 LIST_FOR_EACH_SAFE(cursor, cursor2, &pOutputQueue->SampleList)
                 {
@@ -253,7 +253,7 @@ DWORD WINAPI OutputQueueImpl_ThreadProc(OutputQueue *pOutputQueue)
                     else
                         break;
                     list_remove(cursor);
-                    HeapFree(GetProcessHeap(),0,qev);
+                    heap_free(qev);
                 }
 
                 if (pOutputQueue->pInputPin->pin.pConnectedTo && pOutputQueue->pInputPin->pMemInputPin)
@@ -266,7 +266,7 @@ DWORD WINAPI OutputQueueImpl_ThreadProc(OutputQueue *pOutputQueue)
                 }
                 for (i = 0; i < nSamples; i++)
                     IMediaSample_Release(ppSamples[i]);
-                HeapFree(GetProcessHeap(),0,ppSamples);
+                heap_free(ppSamples);
 
                 /* Process Non-Samples */
                 LIST_FOR_EACH_SAFE(cursor, cursor2, &pOutputQueue->SampleList)
@@ -287,7 +287,7 @@ DWORD WINAPI OutputQueueImpl_ThreadProc(OutputQueue *pOutputQueue)
                     else
                         FIXME("Unhandled Event type %i\n",qev->type);
                     list_remove(cursor);
-                    HeapFree(GetProcessHeap(),0,qev);
+                    heap_free(qev);
                 }
             }
             pOutputQueue->bSendAnyway = FALSE;

@@ -43,7 +43,7 @@ HRESULT QualityControlImpl_Create(IPin *input, IBaseFilter *self, QualityControl
 {
     QualityControlImpl *This;
     TRACE("%p, %p, %p\n", input, self, ppv);
-    *ppv = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(QualityControlImpl));
+    *ppv = heap_alloc_zero(sizeof(QualityControlImpl));
     if (!*ppv)
         return E_OUTOFMEMORY;
     This = *ppv;
@@ -58,7 +58,7 @@ HRESULT QualityControlImpl_Create(IPin *input, IBaseFilter *self, QualityControl
 
 void QualityControlImpl_Destroy(QualityControlImpl *This)
 {
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static inline QualityControlImpl *impl_from_IQualityControl(IQualityControl *iface)

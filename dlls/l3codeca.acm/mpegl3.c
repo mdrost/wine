@@ -224,7 +224,7 @@ static	LRESULT	MPEG3_StreamOpen(PACMDRVSTREAMINSTANCE adsi)
 	MPEG3_GetFormatIndex(adsi->pwfxDst) == 0xFFFFFFFF)
 	return ACMERR_NOTPOSSIBLE;
 
-    aad = HeapAlloc(GetProcessHeap(), 0, sizeof(AcmMpeg3Data));
+    aad = heap_alloc(sizeof(AcmMpeg3Data));
     if (aad == 0) return MMSYSERR_NOMEM;
 
     adsi->dwDriver = (DWORD_PTR)aad;
@@ -271,7 +271,7 @@ static	LRESULT	MPEG3_StreamOpen(PACMDRVSTREAMINSTANCE adsi)
     return MMSYSERR_NOERROR;
 
  theEnd:
-    HeapFree(GetProcessHeap(), 0, aad);
+    heap_free(aad);
     adsi->dwDriver = 0L;
     return MMSYSERR_NOTSUPPORTED;
 }
@@ -284,7 +284,7 @@ static	LRESULT	MPEG3_StreamClose(PACMDRVSTREAMINSTANCE adsi)
 {
     mpg123_close(((AcmMpeg3Data*)adsi->dwDriver)->mh);
     mpg123_delete(((AcmMpeg3Data*)adsi->dwDriver)->mh);
-    HeapFree(GetProcessHeap(), 0, (void*)adsi->dwDriver);
+    heap_free((void*)adsi->dwDriver);
     return MMSYSERR_NOERROR;
 }
 
@@ -493,7 +493,7 @@ static LRESULT mp3_leopard_horse(PACMDRVSTREAMINSTANCE adsi,
      */
 
     amd->NumberPackets = 25; /* This is the initial array capacity */
-    amd->PacketDescriptions = HeapAlloc(GetProcessHeap(), 0, amd->NumberPackets * sizeof(AudioStreamPacketDescription));
+    amd->PacketDescriptions = heap_alloc(amd->NumberPackets * sizeof(AudioStreamPacketDescription));
     if (amd->PacketDescriptions == 0) return MMSYSERR_NOMEM;
 
     for (aspdi = 0, psrc = src;
@@ -505,7 +505,7 @@ static LRESULT mp3_leopard_horse(PACMDRVSTREAMINSTANCE adsi,
         {
             *ndst = *nsrc = 0;
             ERR("Invalid header at %p.\n", psrc);
-            HeapFree(GetProcessHeap(), 0, amd->PacketDescriptions);
+            heap_free(amd->PacketDescriptions);
             return MMSYSERR_ERROR;
         }
 
@@ -513,7 +513,7 @@ static LRESULT mp3_leopard_horse(PACMDRVSTREAMINSTANCE adsi,
         if (aspdi >= amd->NumberPackets)
         {
             amd->NumberPackets *= 2;
-            amd->PacketDescriptions = HeapReAlloc(GetProcessHeap(), 0, amd->PacketDescriptions, amd->NumberPackets * sizeof(AudioStreamPacketDescription));
+            amd->PacketDescriptions = heap_realloc(amd->PacketDescriptions, amd->NumberPackets * sizeof(AudioStreamPacketDescription));
             if (amd->PacketDescriptions == 0) return MMSYSERR_NOMEM;
         }
 
@@ -545,7 +545,7 @@ static LRESULT mp3_leopard_horse(PACMDRVSTREAMINSTANCE adsi,
     size = amd->outBuffer.mBuffers[0].mDataByteSize / amd->out.mBytesPerPacket;
     err = AudioConverterFillComplexBuffer(amd->acr, Mp3AudioConverterComplexInputDataProc, amd, &size, &amd->outBuffer, 0);
 
-    HeapFree(GetProcessHeap(), 0, amd->PacketDescriptions);
+    heap_free(amd->PacketDescriptions);
 
     /* Add skipped bytes back into *nsrc */
     if (amd->tagBytesLeft > 0)
@@ -592,7 +592,7 @@ static LRESULT MPEG3_StreamOpen(PACMDRVSTREAMINSTANCE adsi)
         MPEG3_GetFormatIndex(adsi->pwfxDst) == 0xFFFFFFFF)
         return ACMERR_NOTPOSSIBLE;
 
-    aad = HeapAlloc(GetProcessHeap(), 0, sizeof(AcmMpeg3Data));
+    aad = heap_alloc(sizeof(AcmMpeg3Data));
     if (aad == 0) return MMSYSERR_NOMEM;
 
     adsi->dwDriver = (DWORD_PTR)aad;
@@ -638,7 +638,7 @@ static LRESULT MPEG3_StreamOpen(PACMDRVSTREAMINSTANCE adsi)
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, aad);
+    heap_free(aad);
     adsi->dwDriver = 0;
 
     return MMSYSERR_NOTSUPPORTED;
@@ -654,7 +654,7 @@ static LRESULT MPEG3_StreamClose(PACMDRVSTREAMINSTANCE adsi)
 
     AudioConverterDispose(amd->acr);
 
-    HeapFree(GetProcessHeap(), 0, amd);
+    heap_free(amd);
     adsi->dwDriver = 0;
 
     return MMSYSERR_NOERROR;

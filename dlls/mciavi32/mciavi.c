@@ -81,7 +81,7 @@ static	DWORD	MCIAVI_drvOpen(LPCWSTR str, LPMCI_OPEN_DRIVER_PARMSW modp)
 
     if (!MCIAVI_RegisterClass()) return 0;
 
-    wma = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WINE_MCIAVI));
+    wma = heap_alloc_zero(sizeof(WINE_MCIAVI));
     if (!wma)
 	return 0;
 
@@ -126,7 +126,7 @@ static	DWORD	MCIAVI_drvClose(DWORD dwDevID)
         wma->cs.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&wma->cs);
 
-	HeapFree(GetProcessHeap(), 0, wma);
+	heap_free(wma);
 	return 1;
     }
     return (dwDevID == 0xFFFFFFFF) ? 1 : 0;
@@ -174,29 +174,29 @@ static void MCIAVI_CleanUp(WINE_MCIAVI* wma)
 	mmioClose(wma->hFile, 0);
 	wma->hFile = 0;
 
-        HeapFree(GetProcessHeap(), 0, wma->lpFileName);
+        heap_free(wma->lpFileName);
         wma->lpFileName = NULL;
 
-        HeapFree(GetProcessHeap(), 0, wma->lpVideoIndex);
+        heap_free(wma->lpVideoIndex);
 	wma->lpVideoIndex = NULL;
-        HeapFree(GetProcessHeap(), 0, wma->lpAudioIndex);
+        heap_free(wma->lpAudioIndex);
 	wma->lpAudioIndex = NULL;
 	if (wma->hic)		ICClose(wma->hic);
 	wma->hic = 0;
-        HeapFree(GetProcessHeap(), 0, wma->inbih);
+        heap_free(wma->inbih);
 	wma->inbih = NULL;
-        HeapFree(GetProcessHeap(), 0, wma->outbih);
+        heap_free(wma->outbih);
 	wma->outbih = NULL;
-        HeapFree(GetProcessHeap(), 0, wma->indata);
+        heap_free(wma->indata);
 	wma->indata = NULL;
-        HeapFree(GetProcessHeap(), 0, wma->outdata);
+        heap_free(wma->outdata);
 	wma->outdata = NULL;
     	if (wma->hbmFrame)	DeleteObject(wma->hbmFrame);
 	wma->hbmFrame = 0;
 	if (wma->hWnd)		DestroyWindow(wma->hWnd);
 	wma->hWnd = 0;
 
-        HeapFree(GetProcessHeap(), 0, wma->lpWaveFormat);
+        heap_free(wma->lpWaveFormat);
 	wma->lpWaveFormat = 0;
 
 	memset(&wma->mah, 0, sizeof(wma->mah));
@@ -253,7 +253,7 @@ static	DWORD	MCIAVI_mciOpen(UINT wDevID, DWORD dwFlags,
 	    /* FIXME : what should be done id wma->hFile is already != 0, or the driver is playin' */
 	    TRACE("MCI_OPEN_ELEMENT %s!\n", debugstr_w(lpOpenParms->lpstrElementName));
 
-            wma->lpFileName = HeapAlloc(GetProcessHeap(), 0, (strlenW(lpOpenParms->lpstrElementName) + 1) * sizeof(WCHAR));
+            wma->lpFileName = heap_alloc((strlenW(lpOpenParms->lpstrElementName) + 1) * sizeof(WCHAR));
             strcpyW(wma->lpFileName, lpOpenParms->lpstrElementName);
 
 	    if (lpOpenParms->lpstrElementName[0] == '@') {
@@ -368,7 +368,7 @@ static	DWORD	MCIAVI_player(WINE_MCIAVI *wma, DWORD dwFlags, LPMCI_PLAY_PARMS lpP
        if (MCIAVI_OpenAudio(wma, &nHdr, &waveHdr) != 0)
         {
             /* can't play audio */
-            HeapFree(GetProcessHeap(), 0, wma->lpWaveFormat);
+            heap_free(wma->lpWaveFormat);
             wma->lpWaveFormat = NULL;
         }
        else
@@ -464,7 +464,7 @@ static	DWORD	MCIAVI_player(WINE_MCIAVI *wma, DWORD dwFlags, LPMCI_PLAY_PARMS lpP
     dwRet = 0;
 
     if (wma->lpWaveFormat) {
-	HeapFree(GetProcessHeap(), 0, waveHdr);
+	heap_free(waveHdr);
 
 	if (wma->hWave) {
 	    LeaveCriticalSection(&wma->cs);
@@ -509,7 +509,7 @@ static DWORD WINAPI MCIAVI_mciPlay_thread(LPVOID arg)
     ret = MCIAVI_player(data->wma, data->flags, &data->params);
     TRACE("In thread after async play command (id %u, flags %08x)\n", data->wma->wDevID, data->flags);
 
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
     return ret;
 }
 
@@ -519,7 +519,7 @@ static DWORD WINAPI MCIAVI_mciPlay_thread(LPVOID arg)
 static DWORD MCIAVI_mciPlay_async(WINE_MCIAVI *wma, DWORD dwFlags, LPMCI_PLAY_PARMS lpParams)
 {
     HANDLE handle;
-    struct MCIAVI_play_data *data = HeapAlloc(GetProcessHeap(), 0, sizeof(struct MCIAVI_play_data));
+    struct MCIAVI_play_data *data = heap_alloc(sizeof(struct MCIAVI_play_data));
 
     if (!data) return MCIERR_OUT_OF_MEMORY;
 

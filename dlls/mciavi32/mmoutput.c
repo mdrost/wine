@@ -65,7 +65,7 @@ static BOOL MCIAVI_GetInfoAudio(WINE_MCIAVI* wma, const MMCKINFO* mmckList, MMCK
 	WARN("Size of strf chunk (%d) < audio format struct\n", mmckInfo.cksize);
 	return FALSE;
     }
-    wma->lpWaveFormat = HeapAlloc(GetProcessHeap(), 0, mmckInfo.cksize);
+    wma->lpWaveFormat = heap_alloc(mmckInfo.cksize);
     if (!wma->lpWaveFormat) {
 	WARN("Can't alloc WaveFormat\n");
 	return FALSE;
@@ -120,7 +120,7 @@ static BOOL MCIAVI_GetInfoVideo(WINE_MCIAVI* wma, const MMCKINFO* mmckList, MMCK
 	return FALSE;
     }
 
-    wma->inbih = HeapAlloc(GetProcessHeap(), 0, mmckInfo.cksize);
+    wma->inbih = heap_alloc(mmckInfo.cksize);
     if (!wma->inbih) {
 	WARN("Can't alloc input BIH\n");
 	return FALSE;
@@ -229,9 +229,9 @@ static BOOL	MCIAVI_AddFrame(WINE_MCIAVI* wma, LPMMCKINFO mmck,
                 struct MMIOPos* newindex;
 
                 if (!wma->lpAudioIndex)
-                    newindex = HeapAlloc(GetProcessHeap(), 0, newsize * sizeof(struct MMIOPos));
+                    newindex = heap_alloc(newsize * sizeof(struct MMIOPos));
                 else
-                    newindex = HeapReAlloc(GetProcessHeap(), 0, wma->lpAudioIndex, newsize * sizeof(struct MMIOPos));
+                    newindex = heap_realloc(wma->lpAudioIndex, newsize * sizeof(struct MMIOPos));
                 if (!newindex) return FALSE;
                 alb->numAudioAllocated = newsize;
                 wma->lpAudioIndex = newindex;
@@ -414,7 +414,7 @@ BOOL MCIAVI_GetInfo(WINE_MCIAVI* wma)
 	wma->ash_audio.dwSuggestedBufferSize = alb.inAudioSize;
     }
 
-    wma->indata = HeapAlloc(GetProcessHeap(), 0, wma->ash_video.dwSuggestedBufferSize);
+    wma->indata = heap_alloc(wma->ash_video.dwSuggestedBufferSize);
     if (!wma->indata) {
 	WARN("Can't alloc input buffer\n");
 	return FALSE;
@@ -453,7 +453,7 @@ BOOL    MCIAVI_OpenVideo(WINE_MCIAVI* wma)
 
     outSize = sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD);
 
-    wma->outbih = HeapAlloc(GetProcessHeap(), 0, outSize);
+    wma->outbih = heap_alloc(outSize);
     if (!wma->outbih) {
 	WARN("Can't alloc output BIH\n");
 	return FALSE;
@@ -475,7 +475,7 @@ BOOL    MCIAVI_OpenVideo(WINE_MCIAVI* wma)
     TRACE("bih.biClrUsed=%d\n", 	wma->outbih->biClrUsed);
     TRACE("bih.biClrImportant=%d\n", 	wma->outbih->biClrImportant);
 
-    wma->outdata = HeapAlloc(GetProcessHeap(), 0, wma->outbih->biSizeImage);
+    wma->outdata = heap_alloc(wma->outbih->biSizeImage);
     if (!wma->outdata) {
 	WARN("Can't alloc output buffer\n");
 	return FALSE;

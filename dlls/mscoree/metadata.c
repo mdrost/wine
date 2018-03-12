@@ -93,7 +93,7 @@ static ULONG WINAPI MetaDataDispenser_Release(IMetaDataDispenserEx* iface)
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -191,7 +191,7 @@ HRESULT MetaDataDispenser_CreateInstance(IUnknown **ppUnk)
 {
     MetaDataDispenser *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(MetaDataDispenser));
+    This = heap_alloc(sizeof(MetaDataDispenser));
 
     if (!This)
         return E_OUTOFMEMORY;

@@ -61,7 +61,7 @@ char *WtoA(LPCWSTR wstr)
 
     length = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
 
-    result = HeapAlloc(GetProcessHeap(), 0, length);
+    result = heap_alloc(length);
 
     if (result)
         WideCharToMultiByte(CP_UTF8, 0, wstr, -1, result, length, NULL, NULL);
@@ -141,7 +141,7 @@ static ULONG WINAPI mscorecf_Release(IClassFactory *iface )
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -621,7 +621,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
     if(!ppv)
         return E_INVALIDARG;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(mscorecf));
+    This = heap_alloc(sizeof(mscorecf));
 
     This->IClassFactory_iface.lpVtbl = &mscorecf_vtbl;
     This->pfnCreateInstance = create_monodata;
@@ -730,7 +730,7 @@ static BOOL install_wine_mono(void)
     len = GetSystemDirectoryW(app, MAX_PATH-sizeof(controlW)/sizeof(WCHAR));
     memcpy(app+len, controlW, sizeof(controlW));
 
-    args = HeapAlloc(GetProcessHeap(), 0, (len*sizeof(WCHAR) + sizeof(controlW) + sizeof(argsW)));
+    args = heap_alloc((len*sizeof(WCHAR) + sizeof(controlW) + sizeof(argsW)));
     if(!args)
         return FALSE;
 
@@ -742,7 +742,7 @@ static BOOL install_wine_mono(void)
     memset(&si, 0, sizeof(si));
     si.cb = sizeof(si);
     ret = CreateProcessW(app, args, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
-    HeapFree(GetProcessHeap(), 0, args);
+    heap_free(args);
     if (ret) {
         CloseHandle(pi.hThread);
         WaitForSingleObject(pi.hProcess, INFINITE);

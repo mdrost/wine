@@ -735,7 +735,7 @@ static ULONG WINAPI InstalledRuntimeEnum_Release(IEnumUnknown* iface)
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -811,7 +811,7 @@ static HRESULT WINAPI InstalledRuntimeEnum_Clone(IEnumUnknown *iface, IEnumUnkno
 
     TRACE("(%p)\n", iface);
 
-    new_enum = HeapAlloc(GetProcessHeap(), 0, sizeof(*new_enum));
+    new_enum = heap_alloc(sizeof(*new_enum));
     if (!new_enum)
         return E_OUTOFMEMORY;
 
@@ -989,7 +989,7 @@ static HRESULT WINAPI CLRMetaHost_EnumerateInstalledRuntimes(ICLRMetaHost* iface
 
     TRACE("%p\n", ppEnumerator);
 
-    new_enum = HeapAlloc(GetProcessHeap(), 0, sizeof(*new_enum));
+    new_enum = heap_alloc(sizeof(*new_enum));
     if (!new_enum)
         return E_OUTOFMEMORY;
 
@@ -1241,14 +1241,14 @@ static MonoAssembly* CDECL mono_assembly_preload_hook_fn(MonoAssemblyName *aname
 
     stringnameW_size = MultiByteToWideChar(CP_UTF8, 0, stringname, -1, NULL, 0);
 
-    stringnameW = HeapAlloc(GetProcessHeap(), 0, stringnameW_size * sizeof(WCHAR));
+    stringnameW = heap_alloc(stringnameW_size * sizeof(WCHAR));
     if (stringnameW)
     {
         MultiByteToWideChar(CP_UTF8, 0, stringname, -1, stringnameW, stringnameW_size);
 
         hr = get_file_from_strongname(stringnameW, path, MAX_PATH);
 
-        HeapFree(GetProcessHeap(), 0, stringnameW);
+        heap_free(stringnameW);
     }
     else
         hr = E_OUTOFMEMORY;
@@ -1266,7 +1266,7 @@ static MonoAssembly* CDECL mono_assembly_preload_hook_fn(MonoAssemblyName *aname
             if (!result)
                 ERR("Failed to load %s, status=%u\n", debugstr_w(path), stat);
 
-            HeapFree(GetProcessHeap(), 0, pathA);
+            heap_free(pathA);
         }
     }
 

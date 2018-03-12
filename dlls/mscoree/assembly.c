@@ -87,7 +87,7 @@ static inline LPWSTR strdupW(LPCWSTR src)
     if (!src)
         return NULL;
 
-    dest = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(src) + 1) * sizeof(WCHAR));
+    dest = heap_alloc((lstrlenW(src) + 1) * sizeof(WCHAR));
     if (dest)
         lstrcpyW(dest, src);
 
@@ -131,7 +131,7 @@ static HRESULT parse_metadata_header(ASSEMBLY *assembly, DWORD *hdrsz)
 
     metadatahdr = (METADATAHDR *)ptr;
 
-    assembly->metadatahdr = HeapAlloc(GetProcessHeap(), 0, sizeof(METADATAHDR));
+    assembly->metadatahdr = heap_alloc(sizeof(METADATAHDR));
     if (!assembly->metadatahdr)
         return E_OUTOFMEMORY;
 
@@ -211,7 +211,7 @@ HRESULT assembly_create(ASSEMBLY **out, LPCWSTR file)
 
     *out = NULL;
 
-    assembly = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ASSEMBLY));
+    assembly = heap_alloc_zero(sizeof(ASSEMBLY));
     if (!assembly)
         return E_OUTOFMEMORY;
 
@@ -265,7 +265,7 @@ HRESULT assembly_from_hmodule(ASSEMBLY **out, HMODULE hmodule)
 
     *out = NULL;
 
-    assembly = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ASSEMBLY));
+    assembly = heap_alloc_zero(sizeof(ASSEMBLY));
     if (!assembly)
         return E_OUTOFMEMORY;
 
@@ -293,9 +293,9 @@ HRESULT assembly_release(ASSEMBLY *assembly)
         CloseHandle(assembly->hmap);
         CloseHandle(assembly->hfile);
     }
-    HeapFree(GetProcessHeap(), 0, assembly->metadatahdr);
-    HeapFree(GetProcessHeap(), 0, assembly->path);
-    HeapFree(GetProcessHeap(), 0, assembly);
+    heap_free(assembly->metadatahdr);
+    heap_free(assembly->path);
+    heap_free(assembly);
 
     return S_OK;
 }

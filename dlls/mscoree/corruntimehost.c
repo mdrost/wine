@@ -94,7 +94,7 @@ static HRESULT RuntimeHost_AddDefaultDomain(RuntimeHost *This, MonoDomain **resu
 
     EnterCriticalSection(&This->lock);
 
-    entry = HeapAlloc(GetProcessHeap(), 0, sizeof(*entry));
+    entry = heap_alloc(sizeof(*entry));
     if (!entry)
     {
         res = E_OUTOFMEMORY;
@@ -106,7 +106,7 @@ static HRESULT RuntimeHost_AddDefaultDomain(RuntimeHost *This, MonoDomain **resu
 
     if (!entry->domain)
     {
-        HeapFree(GetProcessHeap(), 0, entry);
+        heap_free(entry);
         res = E_FAIL;
         goto end;
     }
@@ -163,7 +163,7 @@ static HRESULT RuntimeHost_GetDefaultDomain(RuntimeHost *This, const WCHAR *conf
     base_dirA = WtoA(base_dir);
     if (!base_dirA)
     {
-        HeapFree(GetProcessHeap(), 0, config_pathA);
+        heap_free(config_pathA);
         res = E_OUTOFMEMORY;
         goto end;
     }
@@ -175,8 +175,8 @@ static HRESULT RuntimeHost_GetDefaultDomain(RuntimeHost *This, const WCHAR *conf
     TRACE("setting base_dir: %s, config_path: %s\n", base_dirA, config_pathA);
     mono_domain_set_config(This->default_domain, base_dirA, config_pathA);
 
-    HeapFree(GetProcessHeap(), 0, config_pathA);
-    HeapFree(GetProcessHeap(), 0, base_dirA);
+    heap_free(config_pathA);
+    heap_free(base_dirA);
 
 end:
     *result = This->default_domain;
@@ -199,7 +199,7 @@ static void RuntimeHost_DeleteDomain(RuntimeHost *This, MonoDomain *domain)
             list_remove(&entry->entry);
             if (This->default_domain == domain)
                 This->default_domain = NULL;
-            HeapFree(GetProcessHeap(), 0, entry);
+            heap_free(entry);
             break;
         }
     }
@@ -395,7 +395,7 @@ static HRESULT RuntimeHost_AddDomain(RuntimeHost *This, const WCHAR *name, IUnkn
     }
 
     args[0] = mono_string_new(domain, nameA);
-    HeapFree(GetProcessHeap(), 0, nameA);
+    heap_free(nameA);
 
     if (!args[0])
     {
@@ -950,10 +950,10 @@ static HRESULT WINAPI CLRRuntimeHost_ExecuteInDefaultAppDomain(ICLRRuntimeHost* 
 
     domain_restore(prev_domain);
 
-    HeapFree(GetProcessHeap(), 0, filenameA);
-    HeapFree(GetProcessHeap(), 0, classA);
-    HeapFree(GetProcessHeap(), 0, argsA);
-    HeapFree(GetProcessHeap(), 0, methodA);
+    heap_free(filenameA);
+    heap_free(classA);
+    heap_free(argsA);
+    heap_free(methodA);
 
     return hr;
 }
@@ -1041,7 +1041,7 @@ HRESULT RuntimeHost_CreateManagedInstance(RuntimeHost *This, LPCWSTR name,
 
     domain_restore(prev_domain);
 
-    HeapFree(GetProcessHeap(), 0, nameA);
+    heap_free(nameA);
 
     return hr;
 }
@@ -1089,7 +1089,7 @@ static void get_utf8_args(int *argc, char ***argv)
     }
     size += sizeof(char*);
 
-    *argv = HeapAlloc(GetProcessHeap(), 0, size);
+    *argv = heap_alloc(size);
     current_arg = (char*)(*argv + *argc + 1);
 
     for (i=0; i<*argc; i++)
@@ -1100,7 +1100,7 @@ static void get_utf8_args(int *argc, char ***argv)
 
     (*argv)[*argc] = NULL;
 
-    HeapFree(GetProcessHeap(), 0, argvw);
+    heap_free(argvw);
 }
 
 #if __i386__
@@ -1305,7 +1305,7 @@ static void CDECL ReallyFixupVTable(struct dll_fixup *fixup)
     if (info != NULL)
         ICLRRuntimeInfo_Release(info);
 
-    HeapFree(GetProcessHeap(), 0, filenameA);
+    heap_free(filenameA);
 
     if (!fixup->done)
     {
@@ -1326,7 +1326,7 @@ static void FixupVTableEntry(HMODULE hmodule, VTableFixup *vtable_fixup)
      * threads are clear. */
     struct dll_fixup *fixup;
 
-    fixup = HeapAlloc(GetProcessHeap(), 0, sizeof(*fixup));
+    fixup = heap_alloc(sizeof(*fixup));
 
     fixup->dll = hmodule;
     fixup->thunk_code = HeapAlloc(dll_fixup_heap, 0, sizeof(struct vtable_fixup_thunk) * vtable_fixup->count);
@@ -1346,7 +1346,7 @@ static void FixupVTableEntry(HMODULE hmodule, VTableFixup *vtable_fixup)
         int i;
         struct vtable_fixup_thunk *thunks = fixup->thunk_code;
 
-        tokens = fixup->tokens = HeapAlloc(GetProcessHeap(), 0, sizeof(*tokens) * vtable_fixup->count);
+        tokens = fixup->tokens = heap_alloc(sizeof(*tokens) * vtable_fixup->count);
         memcpy(tokens, vtable, sizeof(*tokens) * vtable_fixup->count);
         for (i=0; i<vtable_fixup->count; i++)
         {
@@ -1361,7 +1361,7 @@ static void FixupVTableEntry(HMODULE hmodule, VTableFixup *vtable_fixup)
     {
         ERR("unsupported vtable fixup flags %x\n", vtable_fixup->type);
         HeapFree(dll_fixup_heap, 0, fixup->thunk_code);
-        HeapFree(GetProcessHeap(), 0, fixup);
+        heap_free(fixup);
         return;
     }
 
@@ -1424,7 +1424,7 @@ __int32 WINAPI _CorExeMain(void)
     filenameA = WtoA(filename);
     if (!filenameA)
     {
-        HeapFree(GetProcessHeap(), 0, argv);
+        heap_free(argv);
         return -1;
     }
 
@@ -1477,7 +1477,7 @@ __int32 WINAPI _CorExeMain(void)
     else
         exit_code = -1;
 
-    HeapFree(GetProcessHeap(), 0, argv);
+    heap_free(argv);
 
     if (domain)
     {
@@ -1533,8 +1533,8 @@ void runtimehost_uninit(void)
     HeapDestroy(dll_fixup_heap);
     LIST_FOR_EACH_ENTRY_SAFE(fixup, fixup2, &dll_fixups, struct dll_fixup, entry)
     {
-        HeapFree(GetProcessHeap(), 0, fixup->tokens);
-        HeapFree(GetProcessHeap(), 0, fixup);
+        heap_free(fixup->tokens);
+        heap_free(fixup);
     }
 }
 
@@ -1542,7 +1542,7 @@ HRESULT RuntimeHost_Construct(CLRRuntimeInfo *runtime_version, RuntimeHost** res
 {
     RuntimeHost *This;
 
-    This = HeapAlloc( GetProcessHeap(), 0, sizeof *This );
+    This = heap_alloc( sizeof *This );
     if ( !This )
         return E_OUTOFMEMORY;
 
@@ -1741,7 +1741,7 @@ HRESULT create_monodata(REFIID riid, LPVOID *ppObj )
 
             filenameA = WtoA(filename);
             assembly = mono_domain_assembly_open(domain, filenameA);
-            HeapFree(GetProcessHeap(), 0, filenameA);
+            heap_free(filenameA);
             if (!assembly)
             {
                 ERR("Cannot open assembly %s\n", filenameA);
@@ -1762,7 +1762,7 @@ HRESULT create_monodata(REFIID riid, LPVOID *ppObj )
             *ns = '\0';
 
             klass = mono_class_from_name(image, classA, ns+1);
-            HeapFree(GetProcessHeap(), 0, classA);
+            heap_free(classA);
             if (!klass)
             {
                 ERR("Couldn't get class from image\n");

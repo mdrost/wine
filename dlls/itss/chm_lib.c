@@ -627,8 +627,8 @@ static void chm_set_param(struct chmFile *h,
                 int     i;
 
                 /* allocate new cached blocks */
-                newBlocks = HeapAlloc(GetProcessHeap(), 0, paramVal * sizeof (UChar *));
-                newIndices = HeapAlloc(GetProcessHeap(), 0, paramVal * sizeof (UInt64));
+                newBlocks = heap_alloc(paramVal * sizeof (UChar *));
+                newIndices = heap_alloc(paramVal * sizeof (UInt64));
                 for (i=0; i<paramVal; i++)
                 {
                     newBlocks[i] = NULL;
@@ -647,7 +647,7 @@ static void chm_set_param(struct chmFile *h,
                             /* in case of collision, destroy newcomer */
                             if (newBlocks[newSlot])
                             {
-                                HeapFree(GetProcessHeap(), 0, h->cache_blocks[i]);
+                                heap_free(h->cache_blocks[i]);
                                 h->cache_blocks[i] = NULL;
                             }
                             else
@@ -659,8 +659,8 @@ static void chm_set_param(struct chmFile *h,
                         }
                     }
 
-                    HeapFree(GetProcessHeap(), 0, h->cache_blocks);
-                    HeapFree(GetProcessHeap(), 0, h->cache_block_indices);
+                    heap_free(h->cache_blocks);
+                    heap_free(h->cache_block_indices);
                 }
 
                 /* now, set new values */
@@ -692,7 +692,7 @@ struct chmFile *chm_openW(const WCHAR *filename)
     struct chmLzxcControlData   ctlData;
 
     /* allocate handle */
-    newHandle = HeapAlloc(GetProcessHeap(), 0, sizeof(struct chmFile));
+    newHandle = heap_alloc(sizeof(struct chmFile));
     newHandle->fd = CHM_NULL_FD;
     newHandle->lzx_state = NULL;
     newHandle->cache_blocks = NULL;
@@ -708,7 +708,7 @@ struct chmFile *chm_openW(const WCHAR *filename)
                                    FILE_ATTRIBUTE_NORMAL,
                                    NULL)) == CHM_NULL_FD)
     {
-        HeapFree(GetProcessHeap(), 0, newHandle);
+        heap_free(newHandle);
         return NULL;
     }
 
@@ -834,7 +834,7 @@ struct chmFile *chm_dup(struct chmFile *oldHandle)
 {
     struct chmFile *newHandle=NULL;
 
-    newHandle = HeapAlloc(GetProcessHeap(), 0, sizeof(struct chmFile));
+    newHandle = heap_alloc(sizeof(struct chmFile));
     *newHandle = *oldHandle;
 
     /* duplicate fd handle */
@@ -886,16 +886,16 @@ void chm_close(struct chmFile *h)
             int i;
             for (i=0; i<h->cache_num_blocks; i++)
             {
-                HeapFree(GetProcessHeap(), 0, h->cache_blocks[i]);
+                heap_free(h->cache_blocks[i]);
             }
-            HeapFree(GetProcessHeap(), 0, h->cache_blocks);
+            heap_free(h->cache_blocks);
             h->cache_blocks = NULL;
         }
 
-        HeapFree(GetProcessHeap(), 0, h->cache_block_indices);
+        heap_free(h->cache_block_indices);
         h->cache_block_indices = NULL;
 
-        HeapFree(GetProcessHeap(), 0, h);
+        heap_free(h);
     }
 }
 
@@ -1058,7 +1058,7 @@ int chm_resolve_object(struct chmFile *h,
     Int32 curPage;
 
     /* buffer to hold whatever page we're looking at */
-    UChar *page_buf = HeapAlloc(GetProcessHeap(), 0, h->block_len);
+    UChar *page_buf = heap_alloc(h->block_len);
 
     /* starting page */
     curPage = h->index_root;
@@ -1072,7 +1072,7 @@ int chm_resolve_object(struct chmFile *h,
                              h->dir_offset + (UInt64)curPage*h->block_len,
                              h->block_len) != h->block_len)
 	{
-	    HeapFree(GetProcessHeap(), 0, page_buf);
+	    heap_free(page_buf);
             return CHM_RESOLVE_FAILURE;
 	}
 
@@ -1085,13 +1085,13 @@ int chm_resolve_object(struct chmFile *h,
                                               objPath);
             if (pEntry == NULL)
             {
-	        HeapFree(GetProcessHeap(), 0, page_buf);
+	        heap_free(page_buf);
                 return CHM_RESOLVE_FAILURE;
             }
 
             /* parse entry and return */
             _chm_parse_PMGL_entry(&pEntry, ui);
-	    HeapFree(GetProcessHeap(), 0, page_buf);
+	    heap_free(page_buf);
             return CHM_RESOLVE_SUCCESS;
         }
 
@@ -1102,13 +1102,13 @@ int chm_resolve_object(struct chmFile *h,
         /* else, we are confused.  give up. */
         else
         {
-	    HeapFree(GetProcessHeap(), 0, page_buf);
+	    heap_free(page_buf);
             return CHM_RESOLVE_FAILURE;
         }
     }
 
     /* didn't find anything.  fail. */
-    HeapFree(GetProcessHeap(), 0, page_buf);
+    heap_free(page_buf);
     return CHM_RESOLVE_FAILURE;
 }
 
@@ -1183,7 +1183,7 @@ static Int64 _chm_decompress_block(struct chmFile *h,
                                    UInt64 block,
                                    UChar **ubuffer)
 {
-    UChar *cbuffer = HeapAlloc( GetProcessHeap(), 0,
+    UChar *cbuffer = heap_alloc(
                               ((unsigned int)h->reset_table.block_len + 6144));
     UInt64 cmpStart;                                    /* compressed start  */
     Int64 cmpLen;                                       /* compressed len    */
@@ -1236,7 +1236,7 @@ static Int64 _chm_decompress_block(struct chmFile *h,
 #ifdef CHM_DEBUG
                     fprintf(stderr, "   (DECOMPRESS FAILED!)\n");
 #endif
-                    HeapFree(GetProcessHeap(), 0, cbuffer);
+                    heap_free(cbuffer);
                     return 0;
                 }
 
@@ -1260,7 +1260,7 @@ static Int64 _chm_decompress_block(struct chmFile *h,
     h->cache_block_indices[indexSlot] = block;
     if (! h->cache_blocks[indexSlot])
         h->cache_blocks[indexSlot] =
-          HeapAlloc(GetProcessHeap(), 0, ((unsigned int)h->reset_table.block_len));
+          heap_alloc(((unsigned int)h->reset_table.block_len));
     lbuffer = h->cache_blocks[indexSlot];
     *ubuffer = lbuffer;
 
@@ -1276,7 +1276,7 @@ static Int64 _chm_decompress_block(struct chmFile *h,
 #ifdef CHM_DEBUG
         fprintf(stderr, "   (DECOMPRESS FAILED!)\n");
 #endif
-        HeapFree(GetProcessHeap(), 0, cbuffer);
+        heap_free(cbuffer);
         return 0;
     }
     h->lzx_last_block = (int)block;
@@ -1284,7 +1284,7 @@ static Int64 _chm_decompress_block(struct chmFile *h,
     /* XXX: modify LZX routines to return the length of the data they
      * decompressed and return that instead, for an extra sanity check.
      */
-    HeapFree(GetProcessHeap(), 0, cbuffer);
+    heap_free(cbuffer);
     return h->reset_table.block_len;
 }
 
@@ -1413,7 +1413,7 @@ BOOL chm_enumerate_dir(struct chmFile *h,
     Int32 curPage;
 
     /* buffer to hold whatever page we're looking at */
-    UChar *page_buf = HeapAlloc(GetProcessHeap(), 0, h->block_len);
+    UChar *page_buf = heap_alloc(h->block_len);
     struct chmPmglHeader header;
     UChar *end;
     UChar *cur;
@@ -1461,7 +1461,7 @@ BOOL chm_enumerate_dir(struct chmFile *h,
                              h->dir_offset + (UInt64)curPage*h->block_len,
                              h->block_len) != h->block_len)
         {
-            HeapFree(GetProcessHeap(), 0, page_buf);
+            heap_free(page_buf);
             return FALSE;
         }
 
@@ -1470,7 +1470,7 @@ BOOL chm_enumerate_dir(struct chmFile *h,
         lenRemain = _CHM_PMGL_LEN;
         if (! _unmarshal_pmgl_header(&cur, &lenRemain, &header))
         {
-            HeapFree(GetProcessHeap(), 0, page_buf);
+            heap_free(page_buf);
             return FALSE;
         }
         end = page_buf + h->block_len - (header.free_space);
@@ -1480,7 +1480,7 @@ BOOL chm_enumerate_dir(struct chmFile *h,
         {
             if (! _chm_parse_PMGL_entry(&cur, &ui))
             {
-                HeapFree(GetProcessHeap(), 0, page_buf);
+                heap_free(page_buf);
                 return FALSE;
             }
 
@@ -1501,7 +1501,7 @@ BOOL chm_enumerate_dir(struct chmFile *h,
             {
                 if (strncmpiW(ui.path, prefixRectified, prefixLen) != 0)
                 {
-                    HeapFree(GetProcessHeap(), 0, page_buf);
+                    heap_free(page_buf);
                     return TRUE;
                 }
             }
@@ -1547,12 +1547,12 @@ BOOL chm_enumerate_dir(struct chmFile *h,
                 switch (status)
                 {
                     case CHM_ENUMERATOR_FAILURE:
-                        HeapFree(GetProcessHeap(), 0, page_buf);
+                        heap_free(page_buf);
                         return FALSE;
                     case CHM_ENUMERATOR_CONTINUE:
                         break;
                     case CHM_ENUMERATOR_SUCCESS:
-                        HeapFree(GetProcessHeap(), 0, page_buf);
+                        heap_free(page_buf);
                         return TRUE;
                     default:
                         break;
@@ -1564,6 +1564,6 @@ BOOL chm_enumerate_dir(struct chmFile *h,
         curPage = header.block_next;
     }
 
-    HeapFree(GetProcessHeap(), 0, page_buf);
+    heap_free(page_buf);
     return TRUE;
 }

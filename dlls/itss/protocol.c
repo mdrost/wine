@@ -110,7 +110,7 @@ static ULONG WINAPI ITSProtocol_Release(IInternetProtocol *iface)
 
     if(!ref) {
         release_chm(This);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
         ITSS_UnlockModule();
     }
@@ -223,19 +223,19 @@ static HRESULT WINAPI ITSProtocol_Start(IInternetProtocol *iface, LPCWSTR szUrl,
     ReleaseBindInfo(&bindinfo);
 
     len = strlenW(ptr)+3;
-    file_name = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+    file_name = heap_alloc(len*sizeof(WCHAR));
     memcpy(file_name, ptr, len*sizeof(WCHAR));
     hres = UrlUnescapeW(file_name, NULL, &len, URL_UNESCAPE_INPLACE);
     if(FAILED(hres)) {
         WARN("UrlUnescape failed: %08x\n", hres);
-        HeapFree(GetProcessHeap(), 0, file_name);
+        heap_free(file_name);
         return hres;
     }
 
     p = strstrW(file_name, separator);
     if(!p) {
         WARN("invalid url\n");
-        HeapFree(GetProcessHeap(), 0, file_name);
+        heap_free(file_name);
         return report_result(pOIProtSink, STG_E_FILENOTFOUND);
     }
 
@@ -243,7 +243,7 @@ static HRESULT WINAPI ITSProtocol_Start(IInternetProtocol *iface, LPCWSTR szUrl,
     chm_file = chm_openW(file_name);
     if(!chm_file) {
         WARN("Could not open chm file\n");
-        HeapFree(GetProcessHeap(), 0, file_name);
+        heap_free(file_name);
         return report_result(pOIProtSink, STG_E_FILENOTFOUND);
     }
 
@@ -272,7 +272,7 @@ static HRESULT WINAPI ITSProtocol_Start(IInternetProtocol *iface, LPCWSTR szUrl,
     res = chm_resolve_object(chm_file, object_name, &chm_object);
     if(res != CHM_RESOLVE_SUCCESS) {
         WARN("Could not resolve chm object\n");
-        HeapFree(GetProcessHeap(), 0, file_name);
+        heap_free(file_name);
         chm_close(chm_file);
         return report_result(pOIProtSink, STG_E_FILENOTFOUND);
     }
@@ -282,7 +282,7 @@ static HRESULT WINAPI ITSProtocol_Start(IInternetProtocol *iface, LPCWSTR szUrl,
 
     /* FIXME: Native doesn't use FindMimeFromData */
     hres = FindMimeFromData(NULL, object_name, NULL, 0, NULL, 0, &mime, 0);
-    HeapFree(GetProcessHeap(), 0, file_name);
+    heap_free(file_name);
     if(SUCCEEDED(hres)) {
         IInternetProtocolSink_ReportProgress(pOIProtSink, BINDSTATUS_MIMETYPEAVAILABLE, mime);
         CoTaskMemFree(mime);
@@ -528,7 +528,7 @@ HRESULT ITSProtocol_create(IUnknown *pUnkOuter, LPVOID *ppobj)
 
     ITSS_LockModule();
 
-    ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ITSProtocol));
+    ret = heap_alloc_zero(sizeof(ITSProtocol));
 
     ret->IInternetProtocol_iface.lpVtbl = &ITSProtocolVtbl;
     ret->IInternetProtocolInfo_iface.lpVtbl = &ITSProtocolInfoVtbl;

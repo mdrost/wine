@@ -180,10 +180,10 @@ struct LZXstate *LZXinit(int window)
     if (window < 15 || window > 21) return NULL;
 
     /* allocate state and associated window */
-    pState = HeapAlloc(GetProcessHeap(), 0, sizeof(struct LZXstate));
-    if (!(pState->window = HeapAlloc(GetProcessHeap(), 0, wndsize)))
+    pState = heap_alloc(sizeof(struct LZXstate));
+    if (!(pState->window = heap_alloc(wndsize)))
     {
-        HeapFree(GetProcessHeap(), 0, pState);
+        heap_free(pState);
         return NULL;
     }
     pState->actual_size = wndsize;
@@ -219,8 +219,8 @@ void LZXteardown(struct LZXstate *pState)
 {
     if (pState)
     {
-        HeapFree(GetProcessHeap(), 0, pState->window);
-        HeapFree(GetProcessHeap(), 0, pState);
+        heap_free(pState->window);
+        heap_free(pState);
     }
 }
 

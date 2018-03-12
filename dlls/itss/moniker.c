@@ -89,7 +89,7 @@ static ULONG WINAPI ITS_IMonikerImpl_Release(
     ULONG ref = InterlockedDecrement(&This->ref);
 
     if (ref == 0) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         ITSS_UnlockModule();
     }
 
@@ -356,7 +356,7 @@ static HRESULT ITS_IMoniker_create( IMoniker **ppObj, LPCWSTR name, DWORD n )
     /* szFile[1] has space for one character already */
     sz = FIELD_OFFSET( ITS_IMonikerImpl, szFile[strlenW( name ) + 1] );
 
-    itsmon = HeapAlloc( GetProcessHeap(), 0, sz );
+    itsmon = heap_alloc( sz );
     itsmon->IMoniker_iface.lpVtbl = &ITS_IMonikerImpl_Vtbl;
     itsmon->ref = 1;
     strcpyW( itsmon->szFile, name );
@@ -419,7 +419,7 @@ static ULONG WINAPI ITS_IParseDisplayNameImpl_Release(
     ULONG ref = InterlockedDecrement(&This->ref);
 
     if (ref == 0) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         ITSS_UnlockModule();
     }
 
@@ -478,7 +478,7 @@ HRESULT ITS_IParseDisplayName_create(IUnknown *pUnkOuter, LPVOID *ppObj)
     if( pUnkOuter )
         return CLASS_E_NOAGGREGATION;
 
-    its = HeapAlloc( GetProcessHeap(), 0, sizeof(ITS_IParseDisplayNameImpl) );
+    its = heap_alloc( sizeof(ITS_IParseDisplayNameImpl) );
     its->IParseDisplayName_iface.lpVtbl = &ITS_IParseDisplayNameImpl_Vtbl;
     its->ref = 1;
 

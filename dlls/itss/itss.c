@@ -218,7 +218,7 @@ static ULONG WINAPI ITStorageImpl_Release(
     ULONG ref = InterlockedDecrement(&This->ref);
 
     if (ref == 0) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         ITSS_UnlockModule();
     }
 
@@ -367,7 +367,7 @@ static HRESULT ITSS_create(IUnknown *pUnkOuter, LPVOID *ppObj)
     if( pUnkOuter )
         return CLASS_E_NOAGGREGATION;
 
-    its = HeapAlloc( GetProcessHeap(), 0, sizeof(ITStorageImpl) );
+    its = heap_alloc( sizeof(ITStorageImpl) );
     its->IITStorage_iface.lpVtbl = &ITStorageImpl_Vtbl;
     its->ref = 1;
 

@@ -133,10 +133,10 @@ static ULONG WINAPI ITSS_IEnumSTATSTG_Release(
         while( This->first )
         {
             struct enum_info *t = This->first->next;
-            HeapFree( GetProcessHeap(), 0, This->first );
+            heap_free( This->first );
             This->first = t;
         }
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         ITSS_UnlockModule();
     }
 
@@ -257,7 +257,7 @@ static IEnumSTATSTG_Impl *ITSS_create_enum( void )
 {
     IEnumSTATSTG_Impl *stgenum;
 
-    stgenum = HeapAlloc( GetProcessHeap(), 0, sizeof (IEnumSTATSTG_Impl) );
+    stgenum = heap_alloc( sizeof (IEnumSTATSTG_Impl) );
     stgenum->IEnumSTATSTG_iface.lpVtbl = &IEnumSTATSTG_vtbl;
     stgenum->ref = 1;
     stgenum->first = NULL;
@@ -308,7 +308,7 @@ static ULONG WINAPI ITSS_IStorageImpl_Release(
     if (ref == 0)
     {
         chm_close(This->chmfile);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         ITSS_UnlockModule();
     }
 
@@ -346,7 +346,7 @@ static HRESULT WINAPI ITSS_IStorageImpl_OpenStream(
           reserved1, grfMode, reserved2, ppstm );
 
     len = strlenW( This->dir ) + strlenW( pwcsName ) + 1;
-    path = HeapAlloc( GetProcessHeap(), 0, len*sizeof(WCHAR) );
+    path = heap_alloc( len*sizeof(WCHAR) );
     strcpyW( path, This->dir );
 
     if( pwcsName[0] == '/' || pwcsName[0] == '\\' )
@@ -368,7 +368,7 @@ static HRESULT WINAPI ITSS_IStorageImpl_OpenStream(
     TRACE("Resolving %s\n", debugstr_w(path));
 
     r = chm_resolve_object(This->chmfile, path, &ui);
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( path );
 
     if( r != CHM_RESOLVE_SUCCESS ) {
         WARN("Could not resolve object\n");
@@ -418,7 +418,7 @@ static HRESULT WINAPI ITSS_IStorageImpl_OpenStorage(
         return E_FAIL;
 
     len = strlenW( This->dir ) + strlenW( pwcsName ) + 2; /* need room for a terminating slash */
-    path = HeapAlloc( GetProcessHeap(), 0, len*sizeof(WCHAR) );
+    path = heap_alloc( len*sizeof(WCHAR) );
     strcpyW( path, This->dir );
 
     if( pwcsName[0] == '/' || pwcsName[0] == '\\' )
@@ -493,7 +493,7 @@ static int ITSS_chm_enumerator(
 
     TRACE("adding %s to enumeration\n", debugstr_w(ui->path) );
 
-    info = HeapAlloc( GetProcessHeap(), 0, sizeof (struct enum_info) );
+    info = heap_alloc( sizeof (struct enum_info) );
     info->ui = *ui;
 
     info->next = NULL;
@@ -619,7 +619,7 @@ static HRESULT ITSS_create_chm_storage(
 
     TRACE("%p %s\n", chmfile, debugstr_w( dir ) );
 
-    stg = HeapAlloc( GetProcessHeap(), 0,
+    stg = heap_alloc(
                      FIELD_OFFSET( ITSS_IStorageImpl, dir[strlenW( dir ) + 1] ));
     stg->IStorage_iface.lpVtbl = &ITSS_IStorageImpl_Vtbl;
     stg->ref = 1;
@@ -691,7 +691,7 @@ static ULONG WINAPI ITSS_IStream_Release(
     if (ref == 0)
     {
         IStorage_Release( &This->stg->IStorage_iface );
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         ITSS_UnlockModule();
     }
 
@@ -871,7 +871,7 @@ static IStream_Impl *ITSS_create_stream(
 {
     IStream_Impl *stm;
 
-    stm = HeapAlloc( GetProcessHeap(), 0, sizeof (IStream_Impl) );
+    stm = heap_alloc( sizeof (IStream_Impl) );
     stm->IStream_iface.lpVtbl = &ITSS_IStream_vtbl;
     stm->ref = 1;
     stm->addr = 0;

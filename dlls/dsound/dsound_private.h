@@ -273,7 +273,7 @@ static inline WCHAR *strdupW( const WCHAR *str )
 
     if (!str) return NULL;
     size = (strlenW( str ) + 1) * sizeof(WCHAR);
-    ret = HeapAlloc( GetProcessHeap(), 0, size );
+    ret = heap_alloc( size );
     if (ret) memcpy( ret, str, size );
     return ret;
 }

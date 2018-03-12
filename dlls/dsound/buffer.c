@@ -124,7 +124,7 @@ static HRESULT WINAPI IDirectSoundNotifyImpl_SetNotificationPositions(IDirectSou
 	if (howmuch > 0) {
 	    /* Make an internal copy of the caller-supplied array.
 	     * Replace the existing copy if one is already present. */
-            HeapFree(GetProcessHeap(), 0, This->notifies);
+            heap_free(This->notifies);
             This->notifies = HeapAlloc(GetProcessHeap(), 0,
 			howmuch * sizeof(DSBPOSITIONNOTIFY));
 
@@ -136,7 +136,7 @@ static HRESULT WINAPI IDirectSoundNotifyImpl_SetNotificationPositions(IDirectSou
             This->nrofnotifies = howmuch;
             qsort(This->notifies, howmuch, sizeof(DSBPOSITIONNOTIFY), notify_compar);
 	} else {
-           HeapFree(GetProcessHeap(), 0, This->notifies);
+           heap_free(This->notifies);
            This->notifies = NULL;
            This->nrofnotifies = 0;
 	}
@@ -731,7 +731,7 @@ static HRESULT WINAPI IDirectSoundBufferImpl_SetFX(IDirectSoundBuffer8 *iface, D
 			for (u = 0; u < This->num_filters; u++) {
 				IMediaObject_Release(This->filters[u].obj);
 			}
-			HeapFree(GetProcessHeap(), 0, This->filters);
+			heap_free(This->filters);
 
 			This->filters = NULL;
 			This->num_filters = 0;
@@ -740,7 +740,7 @@ static HRESULT WINAPI IDirectSoundBufferImpl_SetFX(IDirectSoundBuffer8 *iface, D
 		return DS_OK;
 	}
 
-	filters = HeapAlloc(GetProcessHeap(), 0, dwEffectsCount * sizeof(DSFilter));
+	filters = heap_alloc(dwEffectsCount * sizeof(DSFilter));
 	if (!filters) {
 		WARN("out of memory\n");
 		return DSERR_OUTOFMEMORY;
@@ -802,14 +802,14 @@ static HRESULT WINAPI IDirectSoundBufferImpl_SetFX(IDirectSoundBuffer8 *iface, D
 				IMediaObject_Release(filters[u].obj);
 		}
 
-		HeapFree(GetProcessHeap(), 0, filters);
+		heap_free(filters);
 	} else {
 		if (This->num_filters > 0) {
 			for (u = 0; u < This->num_filters; u++) {
 				IMediaObject_Release(This->filters[u].obj);
 				if (This->filters[u].inplace) IMediaObjectInPlace_Release(This->filters[u].inplace);
 			}
-			HeapFree(GetProcessHeap(), 0, This->filters);
+			heap_free(This->filters);
 		}
 
 		for (u = 0; u < dwEffectsCount; u++) {
@@ -998,7 +998,7 @@ HRESULT secondarybuffer_create(DirectSoundDevice *device, const DSBUFFERDESC *ds
 		return DSERR_INVALIDPARAM; /* FIXME: which error? */
 	}
 
-	dsb = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(*dsb));
+	dsb = heap_alloc_zero(sizeof(*dsb));
 
         if (!dsb)
 		return DSERR_OUTOFMEMORY;
@@ -1045,14 +1045,14 @@ HRESULT secondarybuffer_create(DirectSoundDevice *device, const DSBUFFERDESC *ds
 	TRACE("capf = 0x%08x, device->drvcaps.dwFlags = 0x%08x\n", capf, device->drvcaps.dwFlags);
 
 	/* Allocate an empty buffer */
-	dsb->buffer = HeapAlloc(GetProcessHeap(),0,sizeof(*(dsb->buffer)));
+	dsb->buffer = heap_alloc(sizeof(*(dsb->buffer)));
         if (!dsb->buffer) {
                 IDirectSoundBuffer8_Release(&dsb->IDirectSoundBuffer8_iface);
 		return DSERR_OUTOFMEMORY;
 	}
 
 	/* Allocate system memory for buffer */
-	dsb->buffer->memory = HeapAlloc(GetProcessHeap(),0,dsb->buflen);
+	dsb->buffer->memory = heap_alloc(dsb->buflen);
         if (!dsb->buffer->memory) {
 		WARN("out of memory\n");
                 IDirectSoundBuffer8_Release(&dsb->IDirectSoundBuffer8_iface);
@@ -1129,12 +1129,12 @@ void secondarybuffer_destroy(IDirectSoundBufferImpl *This)
     This->buffer->ref--;
     list_remove(&This->entry);
     if (This->buffer->ref == 0) {
-        HeapFree(GetProcessHeap(), 0, This->buffer->memory);
-        HeapFree(GetProcessHeap(), 0, This->buffer);
+        heap_free(This->buffer->memory);
+        heap_free(This->buffer);
     }
 
-    HeapFree(GetProcessHeap(), 0, This->notifies);
-    HeapFree(GetProcessHeap(), 0, This->pwfx);
+    heap_free(This->notifies);
+    heap_free(This->pwfx);
 
     if (This->filters) {
         int i;
@@ -1142,10 +1142,10 @@ void secondarybuffer_destroy(IDirectSoundBufferImpl *This)
             IMediaObject_Release(This->filters[i].obj);
             if (This->filters[i].inplace) IMediaObjectInPlace_Release(This->filters[i].inplace);
         }
-        HeapFree(GetProcessHeap(), 0, This->filters);
+        heap_free(This->filters);
     }
 
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 
     TRACE("(%p) released\n", This);
 }
@@ -1159,7 +1159,7 @@ HRESULT IDirectSoundBufferImpl_Duplicate(
     HRESULT hres = DS_OK;
     TRACE("(%p,%p,%p)\n", device, ppdsb, pdsb);
 
-    dsb = HeapAlloc(GetProcessHeap(),0,sizeof(*dsb));
+    dsb = heap_alloc(sizeof(*dsb));
     if (dsb == NULL) {
         WARN("out of memory\n");
         *ppdsb = NULL;
@@ -1175,7 +1175,7 @@ HRESULT IDirectSoundBufferImpl_Duplicate(
     RtlReleaseResource(&pdsb->lock);
 
     if (dsb->pwfx == NULL) {
-        HeapFree(GetProcessHeap(),0,dsb);
+        heap_free(dsb);
         *ppdsb = NULL;
         return DSERR_OUTOFMEMORY;
     }
@@ -1202,8 +1202,8 @@ HRESULT IDirectSoundBufferImpl_Duplicate(
         RtlDeleteResource(&dsb->lock);
         list_remove(&dsb->entry);
         dsb->buffer->ref--;
-        HeapFree(GetProcessHeap(),0,dsb->pwfx);
-        HeapFree(GetProcessHeap(),0,dsb);
+        heap_free(dsb->pwfx);
+        heap_free(dsb);
         dsb = NULL;
     }else
         IDirectSoundBuffer8_AddRef(&dsb->IDirectSoundBuffer8_iface);

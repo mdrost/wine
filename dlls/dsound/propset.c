@@ -92,7 +92,7 @@ static ULONG WINAPI IKsPrivatePropertySetImpl_Release(LPKSPROPERTYSET iface)
     TRACE("(%p) ref was %d\n", This, ref + 1);
 
     if (!ref) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 	TRACE("(%p) released\n", This);
     }
     return ref;
@@ -175,13 +175,13 @@ static HRESULT DSPROPERTY_WaveDeviceMappingA(
 
     data.DataFlow = ppd->DataFlow;
     len = MultiByteToWideChar(CP_ACP, 0, ppd->DeviceName, -1, NULL, 0);
-    data.DeviceName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    data.DeviceName = heap_alloc(len * sizeof(WCHAR));
     if (!data.DeviceName)
         return E_OUTOFMEMORY;
     MultiByteToWideChar(CP_ACP, 0, ppd->DeviceName, -1, data.DeviceName, len);
 
     hr = DSPROPERTY_WaveDeviceMappingW(&data, cbPropData, pcbReturned);
-    HeapFree(GetProcessHeap(), 0, data.DeviceName);
+    heap_free(data.DeviceName);
     ppd->DeviceId = data.DeviceId;
 
     if (pcbReturned)
@@ -282,19 +282,19 @@ BOOL CALLBACK enum_callback(GUID *guid, const WCHAR *desc, const WCHAR *module,
     data.DeviceId = *guid;
 
     len = lstrlenW(module) + 1;
-    data.Module = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    data.Module = heap_alloc(len * sizeof(WCHAR));
     memcpy(data.Module, module, len * sizeof(WCHAR));
 
     len = lstrlenW(desc) + 1;
-    data.Description = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    data.Description = heap_alloc(len * sizeof(WCHAR));
     memcpy(data.Description, desc, len * sizeof(WCHAR));
 
     data.Interface = wInterface;
 
     ret = ppd->Callback(&data, ppd->Context);
 
-    HeapFree(GetProcessHeap(), 0, data.Module);
-    HeapFree(GetProcessHeap(), 0, data.Description);
+    heap_free(data.Module);
+    heap_free(data.Description);
 
     return ret;
 }
@@ -342,12 +342,12 @@ static BOOL DSPROPERTY_descWtoA(const DSPROPERTY_DIRECTSOUNDDEVICE_DESCRIPTION_W
     dataA->DeviceId = dataW->DeviceId;
     dataA->WaveDeviceId = dataW->WaveDeviceId;
     dataA->Interface = Interface;
-    dataA->Module = HeapAlloc(GetProcessHeap(), 0, modlen);
-    dataA->Description = HeapAlloc(GetProcessHeap(), 0, desclen);
+    dataA->Module = heap_alloc(modlen);
+    dataA->Description = heap_alloc(desclen);
     if (!dataA->Module || !dataA->Description)
     {
-        HeapFree(GetProcessHeap(), 0, dataA->Module);
-        HeapFree(GetProcessHeap(), 0, dataA->Description);
+        heap_free(dataA->Module);
+        heap_free(dataA->Description);
         dataA->Module = dataA->Description = NULL;
         return FALSE;
     }
@@ -382,8 +382,8 @@ static BOOL CALLBACK DSPROPERTY_enumWtoA(DSPROPERTY_DIRECTSOUNDDEVICE_DESCRIPTIO
     if (!ret)
         return FALSE;
     ret = ppd->Callback(&descA, ppd->Context);
-    HeapFree(GetProcessHeap(), 0, descA.Module);
-    HeapFree(GetProcessHeap(), 0, descA.Description);
+    heap_free(descA.Module);
+    heap_free(descA.Description);
     return ret;
 }
 
@@ -459,9 +459,9 @@ static HRESULT DSPROPERTY_DescriptionA(
         return hr;
     if (!DSPROPERTY_descWtoA(&data, ppd))
         hr = E_OUTOFMEMORY;
-    HeapFree(GetProcessHeap(), 0, data.Description);
-    HeapFree(GetProcessHeap(), 0, data.Module);
-    HeapFree(GetProcessHeap(), 0, data.Interface);
+    heap_free(data.Description);
+    heap_free(data.Module);
+    heap_free(data.Interface);
     return hr;
 }
 
@@ -485,9 +485,9 @@ static HRESULT DSPROPERTY_Description1(
     if (FAILED(hr))
         return hr;
     DSPROPERTY_descWto1(&data, ppd);
-    HeapFree(GetProcessHeap(), 0, data.Description);
-    HeapFree(GetProcessHeap(), 0, data.Module);
-    HeapFree(GetProcessHeap(), 0, data.Interface);
+    heap_free(data.Description);
+    heap_free(data.Module);
+    heap_free(data.Interface);
     return hr;
 }
 
@@ -616,7 +616,7 @@ HRESULT IKsPrivatePropertySetImpl_Create(REFIID riid, void **ppv)
 
     TRACE("(%s, %p)\n", debugstr_guid(riid), ppv);
 
-    iks = HeapAlloc(GetProcessHeap(), 0, sizeof(*iks));
+    iks = heap_alloc(sizeof(*iks));
     if (!iks) {
         WARN("out of memory\n");
         return DSERR_OUTOFMEMORY;

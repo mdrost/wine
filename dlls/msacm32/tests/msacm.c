@@ -59,9 +59,9 @@ static BOOL CALLBACK FormatTagEnumProc(HACMDRIVERID hadid,
 
         fd.cbStruct = sizeof(fd);
         if (paftd->cbFormatSize < sizeof(WAVEFORMATEX))
-            pwfx = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WAVEFORMATEX));
+            pwfx = heap_alloc_zero(sizeof(WAVEFORMATEX));
         else
-            pwfx = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, paftd->cbFormatSize);
+            pwfx = heap_alloc_zero(paftd->cbFormatSize);
         fd.pwfx = pwfx;
         fd.cbwfx = paftd->cbFormatSize;
         fd.dwFormatTag = paftd->dwFormatTag;
@@ -224,7 +224,7 @@ static BOOL CALLBACK FormatTagEnumProc(HACMDRIVERID hadid,
            "acmFormatDetailsA(): rc = %08x, should be %08x\n",
            rc, MMSYSERR_INVALPARAM);
 
-        HeapFree(GetProcessHeap(), 0, pwfx);
+        heap_free(pwfx);
     }
     return TRUE;
 }
@@ -247,7 +247,7 @@ static BOOL CALLBACK FormatEnumProc(HACMDRIVERID hadid,
 
     acmDriverOpen(&had, hadid, 0);
     dwSize = pafd->cbwfx;
-    dst = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSize);
+    dst = heap_alloc_zero(dwSize);
 
     /* test acmFormatSuggest with valid src format */
     if (pafd->dwFormatTag == WAVE_FORMAT_PCM)
@@ -286,13 +286,13 @@ static BOOL CALLBACK FormatEnumProc(HACMDRIVERID hadid,
 
         /* test with NULL driver */
         acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &dwSizeMax);
-        dstMax = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSizeMax);
+        dstMax = heap_alloc_zero(dwSizeMax);
         rc = acmFormatSuggest(NULL, pafd->pwfx, dstMax, dwSizeMax, 0);
         ok(rc == MMSYSERR_NOERROR,
            "acmFormatSuggest(): rc = %08x, should be %08x\n",
            rc, MMSYSERR_NOERROR);
 
-        HeapFree(GetProcessHeap(), 0, dstMax);
+        heap_free(dstMax);
     }
 
     ZeroMemory(dst, dwSize);
@@ -308,7 +308,7 @@ static BOOL CALLBACK FormatEnumProc(HACMDRIVERID hadid,
            "acmFormatSuggest(): rc = %08x, should be %08x\n",
            rc, ACMERR_NOTPOSSIBLE);
 
-    HeapFree(GetProcessHeap(), 0, dst);
+    heap_free(dst);
     acmDriverClose(had, 0);
 
     return TRUE;
@@ -589,7 +589,7 @@ static BOOL CALLBACK DriverEnumProc(HACMDRIVERID hadid,
                "acmFormatEnumA(): rc = %08x, should be %08x\n",
                rc, MMSYSERR_INVALPARAM);
 
-            pwfx = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSize);
+            pwfx = heap_alloc_zero(dwSize);
 
             if (dwSize >= sizeof(WAVEFORMATEX))
                 pwfx->cbSize = LOWORD(dwSize) - sizeof(WAVEFORMATEX);
@@ -701,7 +701,7 @@ static BOOL CALLBACK DriverEnumProc(HACMDRIVERID hadid,
                "acmFormatDetailsA(): rc = %08x, should be %08x\n",
                rc, MMSYSERR_INVALPARAM);
 
-            HeapFree(GetProcessHeap(), 0, pwfx);
+            heap_free(pwfx);
 
             /* try invalid handle */
             rc = acmDriverClose((HACMDRIVER)1, 0);
@@ -1257,7 +1257,7 @@ static void test_acmFormatChoose(void)
     MMRESULT rc;
 
     acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &sizeMax);
-    pwfx = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeMax);
+    pwfx = heap_alloc_zero(sizeMax);
 
     afc.cbStruct = sizeof(afc);
     afc.pwfx = pwfx;
@@ -1273,7 +1273,7 @@ static void test_acmFormatChoose(void)
     ok(rc == MMSYSERR_INVALPARAM, "expected 0xb, got 0x%x\n", rc);
     afc.pwfx = pwfx;
 
-    HeapFree(GetProcessHeap(), 0, pwfx);
+    heap_free(pwfx);
 }
 
 static struct

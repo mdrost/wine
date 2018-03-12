@@ -103,7 +103,7 @@ QueryPathOfRegTypeLib16(
 		FIXME("key %s not found\n",typelibkey);
 		return E_FAIL;
 	}
-        ret = HeapAlloc( GetProcessHeap(), 0, strlen(pathname) + 1 );
+        ret = heap_alloc( strlen(pathname) + 1 );
         if (!ret) return E_FAIL;
         strcpy( ret, pathname );
 	*path = MapLS(ret);

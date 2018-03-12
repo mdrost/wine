@@ -92,7 +92,7 @@ static ULONG WINAPI cache_Release( IAssemblyCache *iface )
     {
         TRACE("destroying %p\n", cache);
         CloseHandle( cache->lock );
-        HeapFree( GetProcessHeap(), 0, cache );
+        heap_free( cache );
     }
     return refs;
 }
@@ -118,7 +118,7 @@ static WCHAR *build_assembly_name( const WCHAR *arch, const WCHAR *name, const W
     buflen += strlenW( name );
     buflen += strlenW( token );
     buflen += strlenW( version );
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, buflen * sizeof(WCHAR) ))) return NULL;
+    if (!(ret = heap_alloc( buflen * sizeof(WCHAR) ))) return NULL;
     *len = sprintfW( ret, fmtW, arch, name, token, version );
     for (p = ret; *p; p++) *p = tolowerW( *p );
     return ret;
@@ -135,13 +135,13 @@ static WCHAR *build_manifest_path( const WCHAR *arch, const WCHAR *name, const W
     if (!(path = build_assembly_name( arch, name, token, version, &len ))) return NULL;
     len += sizeof(fmtW) / sizeof(fmtW[0]);
     len += build_sxs_path( sxsdir );
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+    if (!(ret = heap_alloc( len * sizeof(WCHAR) )))
     {
-        HeapFree( GetProcessHeap(), 0, path );
+        heap_free( path );
         return NULL;
     }
     sprintfW( ret, fmtW, sxsdir, path );
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( path );
     return ret;
 }
 
@@ -156,7 +156,7 @@ static WCHAR *build_policy_name( const WCHAR *arch, const WCHAR *name, const WCH
     buflen += strlenW( arch );
     buflen += strlenW( name );
     buflen += strlenW( token );
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, buflen * sizeof(WCHAR) ))) return NULL;
+    if (!(ret = heap_alloc( buflen * sizeof(WCHAR) ))) return NULL;
     *len = sprintfW( ret, fmtW, arch, name, token );
     for (p = ret; *p; p++) *p = tolowerW( *p );
     return ret;
@@ -174,13 +174,13 @@ static WCHAR *build_policy_path( const WCHAR *arch, const WCHAR *name, const WCH
     len += sizeof(fmtW) / sizeof(fmtW[0]);
     len += build_sxs_path( sxsdir );
     len += strlenW( version );
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+    if (!(ret = heap_alloc( len * sizeof(WCHAR) )))
     {
-        HeapFree( GetProcessHeap(), 0, path );
+        heap_free( path );
         return NULL;
     }
     sprintfW( ret, fmtW, sxsdir, path, version );
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( path );
     return ret;
 }
 
@@ -266,7 +266,7 @@ static HRESULT WINAPI cache_QueryAssemblyInfo(
     }
 
 done:
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( path );
     IAssemblyName_Release( name_obj );
     cache_unlock( cache );
     return hr;
@@ -346,9 +346,9 @@ static void free_assembly( struct assembly *assembly )
         struct file *file = LIST_ENTRY( item, struct file, entry );
         list_remove( &file->entry );
         SysFreeString( file->name );
-        HeapFree( GetProcessHeap(), 0, file );
+        heap_free( file );
     }
-    HeapFree( GetProcessHeap(), 0, assembly );
+    heap_free( assembly );
 }
 
 static HRESULT parse_files( IXMLDOMDocument *doc, struct assembly *assembly )
@@ -393,7 +393,7 @@ static HRESULT parse_files( IXMLDOMDocument *doc, struct assembly *assembly )
         if (hr != S_OK)
             goto done;
 
-        if (!(f = HeapAlloc( GetProcessHeap(), 0, sizeof(struct file) )))
+        if (!(f = heap_alloc( sizeof(struct file) )))
         {
             IXMLDOMNamedNodeMap_Release( attrs );
             hr = E_OUTOFMEMORY;
@@ -404,7 +404,7 @@ static HRESULT parse_files( IXMLDOMDocument *doc, struct assembly *assembly )
         IXMLDOMNamedNodeMap_Release( attrs );
         if (!f->name)
         {
-            HeapFree( GetProcessHeap(), 0, f );
+            heap_free( f );
             hr = ERROR_SXS_MANIFEST_FORMAT_ERROR;
             goto done;
         }
@@ -457,7 +457,7 @@ static HRESULT parse_assembly( IXMLDOMDocument *doc, struct assembly **assembly 
         hr = ERROR_SXS_MANIFEST_FORMAT_ERROR;
         goto done;
     }
-    if (!(a = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct assembly) )))
+    if (!(a = heap_alloc_zero( sizeof(struct assembly) )))
     {
         hr = E_OUTOFMEMORY;
         goto done;
@@ -504,9 +504,9 @@ static WCHAR *build_policy_filename( const WCHAR *arch, const WCHAR *name, const
     len += sizeof(policiesW) / sizeof(policiesW[0]) - 1;
     len += strlenW( version );
     len += sizeof(suffixW) / sizeof(suffixW[0]) - 1;
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) )))
+    if (!(ret = heap_alloc( (len + 1) * sizeof(WCHAR) )))
     {
-        HeapFree( GetProcessHeap(), 0, fullname );
+        heap_free( fullname );
         return NULL;
     }
     strcpyW( ret, sxsdir );
@@ -518,7 +518,7 @@ static WCHAR *build_policy_filename( const WCHAR *arch, const WCHAR *name, const
     strcatW( ret, version );
     strcatW( ret, suffixW );
 
-    HeapFree( GetProcessHeap(), 0, fullname );
+    heap_free( fullname );
     return ret;
 }
 
@@ -533,7 +533,7 @@ static HRESULT install_policy( const WCHAR *manifest, struct assembly *assembly 
     if (!dst) return E_OUTOFMEMORY;
 
     ret = CopyFileW( manifest, dst, FALSE );
-    HeapFree( GetProcessHeap(), 0, dst );
+    heap_free( dst );
     if (!ret)
     {
         HRESULT hr = HRESULT_FROM_WIN32( GetLastError() );
@@ -554,7 +554,7 @@ static WCHAR *build_source_filename( const WCHAR *manifest, struct file *file )
     if (!p) return strdupW( manifest );
 
     len = p - manifest + 1;
-    if (!(src = HeapAlloc( GetProcessHeap(), 0, (len + strlenW( file->name ) + 1) * sizeof(WCHAR) )))
+    if (!(src = heap_alloc( (len + strlenW( file->name ) + 1) * sizeof(WCHAR) )))
         return NULL;
 
     memcpy( src, manifest, len * sizeof(WCHAR) );
@@ -574,9 +574,9 @@ static WCHAR *build_manifest_filename( const WCHAR *arch, const WCHAR *name, con
     len += build_sxs_path( sxsdir );
     len += sizeof(manifestsW) / sizeof(manifestsW[0]) - 1;
     len += sizeof(suffixW) / sizeof(suffixW[0]) - 1;
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) )))
+    if (!(ret = heap_alloc( (len + 1) * sizeof(WCHAR) )))
     {
-        HeapFree( GetProcessHeap(), 0, fullname );
+        heap_free( fullname );
         return NULL;
     }
     strcpyW( ret, sxsdir );
@@ -584,7 +584,7 @@ static WCHAR *build_manifest_filename( const WCHAR *arch, const WCHAR *name, con
     strcatW( ret, fullname );
     strcatW( ret, suffixW );
 
-    HeapFree( GetProcessHeap(), 0, fullname );
+    heap_free( fullname );
     return ret;
 }
 
@@ -622,7 +622,7 @@ static HRESULT install_assembly( const WCHAR *manifest, struct assembly *assembl
     if (!dst) return E_OUTOFMEMORY;
 
     ret = CopyFileW( manifest, dst, FALSE );
-    HeapFree( GetProcessHeap(), 0, dst );
+    heap_free( dst );
     if (!ret)
     {
         hr = HRESULT_FROM_WIN32( GetLastError() );
@@ -640,9 +640,9 @@ static HRESULT install_assembly( const WCHAR *manifest, struct assembly *assembl
         if (!(src = build_source_filename( manifest, file ))) goto done;
 
         len = len_sxsdir + len_name + strlenW( file->name );
-        if (!(dst = HeapAlloc( GetProcessHeap(), 0, (len + 2) * sizeof(WCHAR) )))
+        if (!(dst = heap_alloc( (len + 2) * sizeof(WCHAR) )))
         {
-            HeapFree( GetProcessHeap(), 0, src );
+            heap_free( src );
             goto done;
         }
         strcpyW( dst, sxsdir );
@@ -654,8 +654,8 @@ static HRESULT install_assembly( const WCHAR *manifest, struct assembly *assembl
         for (p = dst; *p; p++) *p = tolowerW( *p );
 
         ret = CopyFileW( src, dst, FALSE );
-        HeapFree( GetProcessHeap(), 0, src );
-        HeapFree( GetProcessHeap(), 0, dst );
+        heap_free( src );
+        heap_free( dst );
         if (!ret)
         {
             hr = HRESULT_FROM_WIN32( GetLastError() );
@@ -666,7 +666,7 @@ static HRESULT install_assembly( const WCHAR *manifest, struct assembly *assembl
     hr = S_OK;
 
 done:
-    HeapFree( GetProcessHeap(), 0, name );
+    heap_free( name );
     return hr;
 }
 
@@ -718,7 +718,7 @@ static HRESULT uninstall_assembly( struct assembly *assembly )
     name = build_assembly_name( assembly->arch, assembly->name, assembly->token, assembly->version,
                                 &len_name );
     if (!name) return E_OUTOFMEMORY;
-    if (!(dirname = HeapAlloc( GetProcessHeap(), 0, (len_sxsdir + len_name + 1) * sizeof(WCHAR) )))
+    if (!(dirname = heap_alloc( (len_sxsdir + len_name + 1) * sizeof(WCHAR) )))
         goto done;
     strcpyW( dirname, sxsdir );
     strcpyW( dirname + len_sxsdir, name );
@@ -726,20 +726,20 @@ static HRESULT uninstall_assembly( struct assembly *assembly )
     LIST_FOR_EACH_ENTRY( file, &assembly->files, struct file, entry )
     {
         len = len_sxsdir + len_name + 1 + strlenW( file->name );
-        if (!(filename = HeapAlloc( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) ))) goto done;
+        if (!(filename = heap_alloc( (len + 1) * sizeof(WCHAR) ))) goto done;
         strcpyW( filename, dirname );
         strcatW( filename, backslashW );
         strcatW( filename, file->name );
 
         if (!DeleteFileW( filename )) WARN( "failed to delete file %u\n", GetLastError() );
-        HeapFree( GetProcessHeap(), 0, filename );
+        heap_free( filename );
     }
     RemoveDirectoryW( dirname );
     hr = S_OK;
 
 done:
-    HeapFree( GetProcessHeap(), 0, dirname );
-    HeapFree( GetProcessHeap(), 0, name );
+    heap_free( dirname );
+    heap_free( name );
     return hr;
 }
 
@@ -807,7 +807,7 @@ static HRESULT WINAPI cache_UninstallAssembly(
 
 done:
     if (name_obj) IAssemblyName_Release( name_obj );
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( path );
     free_assembly( assembly );
     if (doc) IXMLDOMDocument_Release( doc );
     if (SUCCEEDED(init)) CoUninitialize();
@@ -841,7 +841,7 @@ HRESULT WINAPI CreateAssemblyCache( IAssemblyCache **obj, DWORD reserved )
 
     *obj = NULL;
 
-    cache = HeapAlloc( GetProcessHeap(), 0, sizeof(struct cache) );
+    cache = heap_alloc( sizeof(struct cache) );
     if (!cache)
         return E_OUTOFMEMORY;
 
@@ -850,7 +850,7 @@ HRESULT WINAPI CreateAssemblyCache( IAssemblyCache **obj, DWORD reserved )
     cache->lock = CreateMutexW( NULL, FALSE, cache_mutex_nameW );
     if (!cache->lock)
     {
-        HeapFree( GetProcessHeap(), 0, cache );
+        heap_free( cache );
         return HRESULT_FROM_WIN32( GetLastError() );
     }
     *obj = &cache->IAssemblyCache_iface;

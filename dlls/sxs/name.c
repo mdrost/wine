@@ -91,12 +91,12 @@ static ULONG WINAPI name_Release( IAssemblyName *iface )
     if (!refs)
     {
         TRACE("destroying %p\n", name);
-        HeapFree( GetProcessHeap(), 0, name->name );
-        HeapFree( GetProcessHeap(), 0, name->arch );
-        HeapFree( GetProcessHeap(), 0, name->token );
-        HeapFree( GetProcessHeap(), 0, name->type );
-        HeapFree( GetProcessHeap(), 0, name->version );
-        HeapFree( GetProcessHeap(), 0, name );
+        heap_free( name->name );
+        heap_free( name->arch );
+        heap_free( name->token );
+        heap_free( name->type );
+        heap_free( name->version );
+        heap_free( name );
     }
     return refs;
 }
@@ -257,7 +257,7 @@ static HRESULT WINAPI name_GetVersion(
     if (!name->version) return HRESULT_FROM_WIN32( ERROR_NOT_FOUND );
     if (!(version = strdupW( name->version ))) return E_OUTOFMEMORY;
     hr = parse_version( version, high, low );
-    HeapFree( GetProcessHeap(), 0, version );
+    heap_free( version );
     return hr;
 }
 
@@ -304,7 +304,7 @@ static WCHAR *parse_value( const WCHAR *str, unsigned int *len )
     if (!*p) return NULL;
 
     *len = p - str;
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, *len * sizeof(WCHAR) ))) return NULL;
+    if (!(ret = heap_alloc( *len * sizeof(WCHAR) ))) return NULL;
     memcpy( ret, str + 1, (*len - 1) * sizeof(WCHAR) );
     ret[*len - 1] = 0;
     return ret;
@@ -318,7 +318,7 @@ static HRESULT parse_displayname( struct name *name, const WCHAR *displayname )
     p = q = displayname;
     while (*q && *q != ',') q++;
     len = q - p;
-    if (!(name->name = HeapAlloc( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) ))) return E_OUTOFMEMORY;
+    if (!(name->name = heap_alloc( (len + 1) * sizeof(WCHAR) ))) return E_OUTOFMEMORY;
     memcpy( name->name, p, len * sizeof(WCHAR) );
     name->name[len] = 0;
     if (!*q) return S_OK;
@@ -380,7 +380,7 @@ HRESULT WINAPI CreateAssemblyNameObject(
     if (!assembly || !assembly[0] || flags != CANOF_PARSE_DISPLAY_NAME)
         return E_INVALIDARG;
 
-    if (!(name = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*name) )))
+    if (!(name = heap_alloc_zero( sizeof(*name) )))
         return E_OUTOFMEMORY;
 
     name->IAssemblyName_iface.lpVtbl = &name_vtbl;
@@ -389,12 +389,12 @@ HRESULT WINAPI CreateAssemblyNameObject(
     hr = parse_displayname( name, assembly );
     if (hr != S_OK)
     {
-        HeapFree( GetProcessHeap(), 0, name->name );
-        HeapFree( GetProcessHeap(), 0, name->arch );
-        HeapFree( GetProcessHeap(), 0, name->token );
-        HeapFree( GetProcessHeap(), 0, name->type );
-        HeapFree( GetProcessHeap(), 0, name->version );
-        HeapFree( GetProcessHeap(), 0, name );
+        heap_free( name->name );
+        heap_free( name->arch );
+        heap_free( name->token );
+        heap_free( name->type );
+        heap_free( name->version );
+        heap_free( name );
         return hr;
     }
     *obj = &name->IAssemblyName_iface;

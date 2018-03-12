@@ -233,7 +233,7 @@ static void test_simple_streaming(IXAudio2 *xa)
 
     memset(&buf, 0, sizeof(buf));
     buf.AudioBytes = 22050 * fmt.nBlockAlign;
-    buf.pAudioData = HeapAlloc(GetProcessHeap(), 0, buf.AudioBytes);
+    buf.pAudioData = heap_alloc(buf.AudioBytes);
     fill_buf((float*)buf.pAudioData, &fmt, 440, 22050);
 
     hr = IXAudio2SourceVoice_SubmitSourceBuffer(src, &buf, NULL);
@@ -263,7 +263,7 @@ static void test_simple_streaming(IXAudio2 *xa)
 
     memset(&buf2, 0, sizeof(buf2));
     buf2.AudioBytes = 22050 * fmt.nBlockAlign;
-    buf2.pAudioData = HeapAlloc(GetProcessHeap(), 0, buf2.AudioBytes);
+    buf2.pAudioData = heap_alloc(buf2.AudioBytes);
     fill_buf((float*)buf2.pAudioData, &fmt, 220, 22050);
 
     hr = IXAudio2SourceVoice_SubmitSourceBuffer(src2, &buf2, NULL);
@@ -323,8 +323,8 @@ static void test_simple_streaming(IXAudio2 *xa)
 
     ok(state.SamplesPlayed == 22050, "Got wrong samples played\n");
 
-    HeapFree(GetProcessHeap(), 0, (void*)buf.pAudioData);
-    HeapFree(GetProcessHeap(), 0, (void*)buf2.pAudioData);
+    heap_free((void*)buf.pAudioData);
+    heap_free((void*)buf2.pAudioData);
 
     if(xaudio27){
         IXAudio27SourceVoice_DestroyVoice((IXAudio27SourceVoice*)src);
@@ -502,7 +502,7 @@ static void test_buffer_callbacks(IXAudio2 *xa)
 
     memset(&buf, 0, sizeof(buf));
     buf.AudioBytes = 4410 * fmt.nBlockAlign;
-    buf.pAudioData = HeapAlloc(GetProcessHeap(), 0, buf.AudioBytes);
+    buf.pAudioData = heap_alloc(buf.AudioBytes);
     fill_buf((float*)buf.pAudioData, &fmt, 440, 4410);
 
     /* submit same buffer fragment 5 times */
@@ -583,7 +583,7 @@ static void test_buffer_callbacks(IXAudio2 *xa)
 
     IXAudio2MasteringVoice_DestroyVoice(master);
 
-    HeapFree(GetProcessHeap(), 0, (void*)buf.pAudioData);
+    heap_free((void*)buf.pAudioData);
 }
 
 static UINT32 play_to_completion(IXAudio2SourceVoice *src, UINT32 max_samples)
@@ -650,7 +650,7 @@ static void test_looping(IXAudio2 *xa)
     memset(&buf, 0, sizeof(buf));
 
     buf.AudioBytes = 44100 * fmt.nBlockAlign;
-    buf.pAudioData = HeapAlloc(GetProcessHeap(), 0, buf.AudioBytes);
+    buf.pAudioData = heap_alloc(buf.AudioBytes);
     fill_buf((float*)buf.pAudioData, &fmt, 440, 44100);
 
     XA2CALL_0(StartEngine);
@@ -802,7 +802,7 @@ static void test_looping(IXAudio2 *xa)
     else
         IXAudio2SourceVoice_DestroyVoice(src);
     IXAudio2MasteringVoice_DestroyVoice(master);
-    HeapFree(GetProcessHeap(), 0, (void*)buf.pAudioData);
+    heap_free((void*)buf.pAudioData);
 }
 
 static void test_submix(IXAudio2 *xa)
@@ -871,7 +871,7 @@ static void test_flush(IXAudio2 *xa)
 
     memset(&buf, 0, sizeof(buf));
     buf.AudioBytes = 22050 * fmt.nBlockAlign;
-    buf.pAudioData = HeapAlloc(GetProcessHeap(), 0, buf.AudioBytes);
+    buf.pAudioData = heap_alloc(buf.AudioBytes);
     fill_buf((float*)buf.pAudioData, &fmt, 440, 22050);
 
     hr = IXAudio2SourceVoice_SubmitSourceBuffer(src, &buf, NULL);
@@ -914,7 +914,7 @@ static void test_flush(IXAudio2 *xa)
     }
     IXAudio2MasteringVoice_DestroyVoice(master);
 
-    HeapFree(GetProcessHeap(), 0, (void*)buf.pAudioData);
+    heap_free((void*)buf.pAudioData);
 }
 
 static UINT32 test_DeviceDetails(IXAudio27 *xa)

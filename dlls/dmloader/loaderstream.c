@@ -122,7 +122,7 @@ static ULONG WINAPI IDirectMusicLoaderFileStream_IStream_Release (LPSTREAM iface
 	if (dwRef == 0) {
 		if (This->hFile)
 			IDirectMusicLoaderFileStream_Detach (iface);
-		HeapFree (GetProcessHeap(), 0, This);
+		heap_free(This);
 	}
 	
 	return dwRef;
@@ -369,7 +369,7 @@ static ULONG WINAPI IDirectMusicLoaderResourceStream_IStream_Release (LPSTREAM i
 	TRACE("(%p): ReleaseRef to %d\n", This, dwRef);
 	if (dwRef == 0) {
 		IDirectMusicLoaderResourceStream_Detach (iface);
-		HeapFree (GetProcessHeap(), 0, This);
+		heap_free(This);
 	}
 	
 	return dwRef;
@@ -629,7 +629,7 @@ static ULONG WINAPI IDirectMusicLoaderGenericStream_IStream_Release (LPSTREAM if
 	TRACE("(%p): ReleaseRef to %d\n", This, dwRef);
 	if (dwRef == 0) {
 		IDirectMusicLoaderGenericStream_Detach (iface);
-		HeapFree (GetProcessHeap(), 0, This);
+		heap_free(This);
 	}
 	
 	return dwRef;

@@ -155,8 +155,8 @@ static ULONG WINAPI IDirectMusicLoaderImpl_Release(IDirectMusicLoader8 *iface)
 
         IDirectMusicLoader8_ClearCache(iface, &GUID_DirectMusicAllTypes);
         for (i = 0; i < ARRAY_SIZE(classes); i++)
-            HeapFree(GetProcessHeap(), 0, This->search_paths[i]);
-        HeapFree(GetProcessHeap(), 0, This);
+            heap_free(This->search_paths[i]);
+        heap_free(This);
         unlock_module();
     }
 
@@ -560,7 +560,7 @@ static HRESULT WINAPI IDirectMusicLoaderImpl_SetSearchDirectory(IDirectMusicLoad
         return S_OK;
 
     if (!This->search_paths[index])
-        This->search_paths[index] = HeapAlloc(GetProcessHeap(), 0, MAX_PATH);
+        This->search_paths[index] = heap_alloc(MAX_PATH);
     else if (!strncmpW(This->search_paths[index], path, MAX_PATH))
         return S_FALSE;
 
@@ -786,7 +786,7 @@ static HRESULT WINAPI IDirectMusicLoaderImpl_ClearCache(IDirectMusicLoader8 *ifa
             /* basically, wrap to ReleaseObject for each object found */
             IDirectMusicLoader8_ReleaseObject(iface, obj->pObject);
             list_remove(&obj->entry);
-            HeapFree(GetProcessHeap(), 0, obj);
+            heap_free(obj);
         }
     }
 
@@ -951,7 +951,7 @@ HRESULT WINAPI create_dmloader(REFIID lpcGUID, void **ppobj)
 	struct list *pEntry;
 
         TRACE("(%s, %p)\n", debugstr_dmguid(lpcGUID), ppobj);
-	obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicLoaderImpl));
+	obj = heap_alloc_zero(sizeof(IDirectMusicLoaderImpl));
 	if (NULL == obj) {
 		*ppobj = NULL;
 		return E_OUTOFMEMORY;

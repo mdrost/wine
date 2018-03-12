@@ -80,7 +80,7 @@ static BOOL is_token_admin(HANDLE token)
     /* Get the group info from the token */
     groups_size = 0;
     GetTokenInformation(token, TokenGroups, NULL, 0, &groups_size);
-    groups = HeapAlloc(GetProcessHeap(), 0, groups_size);
+    groups = heap_alloc(groups_size);
     if (groups == NULL)
     {
         FreeSid(administrators);
@@ -88,7 +88,7 @@ static BOOL is_token_admin(HANDLE token)
     }
     if (! GetTokenInformation(token, TokenGroups, groups, groups_size, &groups_size))
     {
-        HeapFree(GetProcessHeap(), 0, groups);
+        heap_free(groups);
         FreeSid(administrators);
         return FALSE;
     }
@@ -98,14 +98,14 @@ static BOOL is_token_admin(HANDLE token)
     {
         if (EqualSid(groups->Groups[group_index].Sid, administrators))
         {
-            HeapFree(GetProcessHeap(), 0, groups);
+            heap_free(groups);
             FreeSid(administrators);
             return TRUE;
         }
     }
 
     /* If we end up here we didn't find the Administrators group */
-    HeapFree(GetProcessHeap(), 0, groups);
+    heap_free(groups);
     FreeSid(administrators);
     return FALSE;
 }

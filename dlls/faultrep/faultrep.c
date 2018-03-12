@@ -95,10 +95,10 @@ BOOL WINAPI AddERExcludedApplicationA(LPCSTR lpAppFileName)
     TRACE("(%s)\n", wine_dbgstr_a(lpAppFileName));
     if (len == 0)
         return FALSE;
-    wstr = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*len);
+    wstr = heap_alloc(sizeof(WCHAR)*len);
     MultiByteToWideChar(CP_ACP, 0, lpAppFileName, -1, wstr, len);
     ret = AddERExcludedApplicationW(wstr);
-    HeapFree(GetProcessHeap(), 0, wstr);
+    heap_free(wstr);
     return ret;
 }
 

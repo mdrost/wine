@@ -413,14 +413,14 @@ static LPWSTR SERIALUI_strdup( LPCSTR str )
     if (!str)
         return NULL;
     len = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
-    strW = HeapAlloc( GetProcessHeap(), 0, len*sizeof(WCHAR) );
+    strW = heap_alloc( len*sizeof(WCHAR) );
     MultiByteToWideChar( CP_ACP, 0, str, -1, strW, len );
     return strW;
 }
 
 static VOID SERIALUI_strfree( LPWSTR strW )
 {
-    HeapFree( GetProcessHeap(), 0, strW );
+    heap_free( strW );
 }
 
 /***********************************************************************

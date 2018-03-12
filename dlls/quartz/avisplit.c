@@ -1064,7 +1064,7 @@ static HRESULT AVISplitter_InputPin_PreConnect(IPin * iface, IPin * pConnectPin,
         return E_FAIL;
     }
 
-    pBuffer = HeapAlloc(GetProcessHeap(), 0, list.cb - sizeof(RIFFLIST) + sizeof(RIFFCHUNK));
+    pBuffer = heap_alloc(list.cb - sizeof(RIFFLIST) + sizeof(RIFFCHUNK));
     hr = IAsyncReader_SyncRead(This->pReader, pos + sizeof(list), list.cb - sizeof(RIFFLIST) + sizeof(RIFFCHUNK), pBuffer);
 
     pAviSplit->AviHeader.cb = 0;
@@ -1101,7 +1101,7 @@ static HRESULT AVISplitter_InputPin_PreConnect(IPin * iface, IPin * pConnectPin,
             FIXME("unrecognised header list type: %.04s\n", (LPSTR)&pCurrentChunk->fcc);
         }
     }
-    HeapFree(GetProcessHeap(), 0, pBuffer);
+    heap_free(pBuffer);
 
     if (pAviSplit->AviHeader.cb != sizeof(pAviSplit->AviHeader) - sizeof(RIFFCHUNK))
     {

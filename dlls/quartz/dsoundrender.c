@@ -949,7 +949,7 @@ static DWORD WINAPI DSoundAdviseThread(LPVOID lpParam) {
                     struct dsoundrender_timer *next = cur->next;
                     TRACE("Firing %p %s < %s\n", cur, wine_dbgstr_longlong(cur->start), wine_dbgstr_longlong(curtime));
                     SetEvent(cur->handle);
-                    HeapFree(GetProcessHeap(), 0, cur);
+                    heap_free(cur);
                     prev->next = next;
                 }
             }
@@ -978,7 +978,7 @@ static DWORD WINAPI DSoundAdviseThread(LPVOID lpParam) {
                         cur = prev->next;
                         if (cur->cookie == msg.wParam) {
                             struct dsoundrender_timer *next = cur->next;
-                            HeapFree(GetProcessHeap(), 0, cur);
+                            heap_free(cur);
                             prev->next = next;
                             break;
                         }
@@ -1087,7 +1087,7 @@ static HRESULT WINAPI ReferenceClock_AdviseTime(IReferenceClock *iface,
         SetEvent((HANDLE)hEvent);
         *pdwAdviseCookie = 0;
     } else {
-        struct dsoundrender_timer *t = HeapAlloc(GetProcessHeap(), 0, sizeof(*t));
+        struct dsoundrender_timer *t = heap_alloc(sizeof(*t));
         t->next = NULL;
         t->start = when;
         t->periodicity = 0;
@@ -1126,7 +1126,7 @@ static HRESULT WINAPI ReferenceClock_AdvisePeriodic(IReferenceClock *iface,
     }
     LeaveCriticalSection(&This->renderer.filter.csFilter);
 
-    t = HeapAlloc(GetProcessHeap(), 0, sizeof(*t));
+    t = heap_alloc(sizeof(*t));
     t->next = NULL;
     t->start = rtStartTime;
     t->periodicity = rtPeriodTime;

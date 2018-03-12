@@ -185,9 +185,9 @@ static HRESULT process_pattern_string(LPCWSTR wszPatternString, IAsyncReader * p
 
     ulBytes = strtolW(wszPatternString, NULL, 10);
 
-    pbMask = HeapAlloc(GetProcessHeap(), 0, ulBytes);
-    pbValue = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, ulBytes);
-    pbFile = HeapAlloc(GetProcessHeap(), 0, ulBytes);
+    pbMask = heap_alloc(ulBytes);
+    pbValue = heap_alloc_zero(ulBytes);
+    pbFile = heap_alloc(ulBytes);
 
     /* default mask is match everything */
     memset(pbMask, 0xFF, ulBytes);
@@ -242,9 +242,9 @@ static HRESULT process_pattern_string(LPCWSTR wszPatternString, IAsyncReader * p
             }
     }
 
-    HeapFree(GetProcessHeap(), 0, pbMask);
-    HeapFree(GetProcessHeap(), 0, pbValue);
-    HeapFree(GetProcessHeap(), 0, pbFile);
+    heap_free(pbMask);
+    heap_free(pbValue);
+    heap_free(pbFile);
 
     /* if we encountered no errors with this string, and there is a following tuple, then we
      * have to match that as well to succeed */
@@ -325,25 +325,25 @@ HRESULT GetClassMediaFile(IAsyncReader * pReader, LPCOLESTR pszFileName, GUID * 
                     {
                         DWORD dwType;
                         WCHAR wszValueName[14]; /* longest name we should encounter will be "Source Filter" */
-                        LPWSTR wszPatternString = HeapAlloc(GetProcessHeap(), 0, maxValueLen);
+                        LPWSTR wszPatternString = heap_alloc(maxValueLen);
                         DWORD dwValueNameLen = sizeof(wszValueName) / sizeof(wszValueName[0]); /* remember this is in chars */
                         DWORD dwDataLen = maxValueLen; /* remember this is in bytes */
 
                         if (RegEnumValueW(hkeyMinor, indexValue, wszValueName, &dwValueNameLen, NULL, &dwType, (LPBYTE)wszPatternString, &dwDataLen) != ERROR_SUCCESS)
                         {
-                            HeapFree(GetProcessHeap(), 0, wszPatternString);
+                            heap_free(wszPatternString);
                             break;
                         }
 
                         if (strcmpW(wszValueName, source_filter_name)==0) {
-                            HeapFree(GetProcessHeap(), 0, wszPatternString);
+                            heap_free(wszPatternString);
                             continue;
                         }
 
                         /* if it is not the source filter value */
                         if (process_pattern_string(wszPatternString, pReader) == S_OK)
                         {
-                            HeapFree(GetProcessHeap(), 0, wszPatternString);
+                            heap_free(wszPatternString);
                             if (majorType && FAILED(CLSIDFromString(wszMajorKeyName, majorType)))
                                 break;
                             if (minorType && FAILED(CLSIDFromString(wszMinorKeyName, minorType)))
@@ -358,7 +358,7 @@ HRESULT GetClassMediaFile(IAsyncReader * pReader, LPCOLESTR pszFileName, GUID * 
                             }
                             bFound = TRUE;
                         } else
-                            HeapFree(GetProcessHeap(), 0, wszPatternString);
+                            heap_free(wszPatternString);
                     }
                     CloseHandle(hkeyMinor);
                 }

@@ -52,14 +52,14 @@ static VOID WINAPI UnloadDriver(DRIVER_OBJECT *driver)
         if (md->DriverUnload)
             md->DriverUnload(md->minidriver.DriverObject);
         list_remove(&md->entry);
-        HeapFree( GetProcessHeap(), 0, md );
+        heap_free( md );
     }
 }
 
 NTSTATUS WINAPI HidRegisterMinidriver(HID_MINIDRIVER_REGISTRATION *registration)
 {
     minidriver *driver;
-    driver = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*driver));
+    driver = heap_alloc_zero(sizeof(*driver));
 
     if (!driver)
         return STATUS_NO_MEMORY;

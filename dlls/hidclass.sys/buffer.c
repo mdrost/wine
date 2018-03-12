@@ -51,26 +51,26 @@ struct ReportRingBuffer* RingBuffer_Create(UINT buffer_size)
 
     TRACE("Create Ring Buffer with buffer size %i\n",buffer_size);
 
-    ring = HeapAlloc(GetProcessHeap(), 0, sizeof(*ring));
+    ring = heap_alloc(sizeof(*ring));
     if (!ring)
         return NULL;
     ring->start = ring->end = 0;
     ring->size = BASE_BUFFER_SIZE;
     ring->buffer_size = buffer_size;
     ring->pointer_alloc = 2;
-    ring->pointers = HeapAlloc(GetProcessHeap(), 0, sizeof(UINT) * ring->pointer_alloc);
+    ring->pointers = heap_alloc(sizeof(UINT) * ring->pointer_alloc);
     if (!ring->pointers)
     {
-        HeapFree(GetProcessHeap(), 0, ring);
+        heap_free(ring);
         return NULL;
     }
     for (i = 0; i < ring->pointer_alloc; i++)
         ring->pointers[i] = POINTER_UNUSED;
-    ring->buffer = HeapAlloc(GetProcessHeap(), 0, buffer_size * ring->size);
+    ring->buffer = heap_alloc(buffer_size * ring->size);
     if (!ring->buffer)
     {
-        HeapFree(GetProcessHeap(), 0, ring->pointers);
-        HeapFree(GetProcessHeap(), 0, ring);
+        heap_free(ring->pointers);
+        heap_free(ring);
         return NULL;
     }
     InitializeCriticalSection(&ring->lock);
@@ -80,11 +80,11 @@ struct ReportRingBuffer* RingBuffer_Create(UINT buffer_size)
 
 void RingBuffer_Destroy(struct ReportRingBuffer *ring)
 {
-    HeapFree(GetProcessHeap(), 0, ring->buffer);
-    HeapFree(GetProcessHeap(), 0, ring->pointers);
+    heap_free(ring->buffer);
+    heap_free(ring->pointers);
     ring->lock.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection(&ring->lock);
-    HeapFree(GetProcessHeap(), 0, ring);
+    heap_free(ring);
 }
 
 UINT RingBuffer_GetBufferSize(struct ReportRingBuffer *ring)
@@ -114,13 +114,13 @@ NTSTATUS RingBuffer_SetSize(struct ReportRingBuffer *ring, UINT size)
         if (ring->pointers[i] != POINTER_UNUSED)
             ring->pointers[i] = 0;
     }
-    new_buffer = HeapAlloc(GetProcessHeap(), 0, ring->buffer_size * size);
+    new_buffer = heap_alloc(ring->buffer_size * size);
     if (!new_buffer)
     {
         LeaveCriticalSection(&ring->lock);
         return STATUS_NO_MEMORY;
     }
-    HeapFree(GetProcessHeap(), 0, ring->buffer);
+    heap_free(ring->buffer);
     ring->buffer = new_buffer;
     ring->size = size;
     LeaveCriticalSection(&ring->lock);
@@ -200,7 +200,7 @@ UINT RingBuffer_AddPointer(struct ReportRingBuffer *ring)
     {
         int count = idx = ring->pointer_alloc;
         ring->pointer_alloc *= 2;
-        ring->pointers = HeapReAlloc(GetProcessHeap(), 0, ring->pointers, sizeof(UINT) * ring->pointer_alloc);
+        ring->pointers = heap_realloc(ring->pointers, sizeof(UINT) * ring->pointer_alloc);
         for( ;count < ring->pointer_alloc; count++)
             ring->pointers[count] = POINTER_UNUSED;
     }

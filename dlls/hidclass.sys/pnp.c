@@ -100,7 +100,7 @@ NTSTATUS WINAPI PNP_AddDevice(DRIVER_OBJECT *driver, DEVICE_OBJECT *PDO)
     if (status != STATUS_SUCCESS)
     {
         ERR("Failed to create HID object (%x)\n",status);
-        HeapFree(GetProcessHeap(), 0, PDO_id);
+        heap_free(PDO_id);
         return status;
     }
 
@@ -112,7 +112,7 @@ NTSTATUS WINAPI PNP_AddDevice(DRIVER_OBJECT *driver, DEVICE_OBJECT *PDO)
     if (status != STATUS_SUCCESS)
     {
         ERR("Minidriver AddDevice failed (%x)\n",status);
-        HeapFree(GetProcessHeap(), 0, PDO_id);
+        heap_free(PDO_id);
         HID_DeleteDevice(&minidriver->minidriver, device);
         return status;
     }
@@ -124,7 +124,7 @@ NTSTATUS WINAPI PNP_AddDevice(DRIVER_OBJECT *driver, DEVICE_OBJECT *PDO)
     {
         ERR("Minidriver failed to get Attributes(%x)\n",status);
         HID_DeleteDevice(&minidriver->minidriver, device);
-        HeapFree(GetProcessHeap(), 0, PDO_id);
+        heap_free(PDO_id);
         return status;
     }
 
@@ -139,7 +139,7 @@ NTSTATUS WINAPI PNP_AddDevice(DRIVER_OBJECT *driver, DEVICE_OBJECT *PDO)
     {
         ERR("Cannot get Device Descriptor(%x)\n",status);
         HID_DeleteDevice(&minidriver->minidriver, device);
-        HeapFree(GetProcessHeap(), 0, PDO_id);
+        heap_free(PDO_id);
         return status;
     }
     for (i = 0; i < descriptor.bNumDescriptors; i++)
@@ -150,30 +150,30 @@ NTSTATUS WINAPI PNP_AddDevice(DRIVER_OBJECT *driver, DEVICE_OBJECT *PDO)
     {
         ERR("No Report Descriptor found in reply\n");
         HID_DeleteDevice(&minidriver->minidriver, device);
-        HeapFree(GetProcessHeap(), 0, PDO_id);
+        heap_free(PDO_id);
         return status;
     }
 
-    reportDescriptor = HeapAlloc(GetProcessHeap(), 0, descriptor.DescriptorList[i].wReportLength);
+    reportDescriptor = heap_alloc(descriptor.DescriptorList[i].wReportLength);
     status = call_minidriver(IOCTL_HID_GET_REPORT_DESCRIPTOR, device, NULL, 0,
         reportDescriptor, descriptor.DescriptorList[i].wReportLength);
     if (status != STATUS_SUCCESS)
     {
         ERR("Cannot get Report Descriptor(%x)\n",status);
         HID_DeleteDevice(&minidriver->minidriver, device);
-        HeapFree(GetProcessHeap(), 0, reportDescriptor);
-        HeapFree(GetProcessHeap(), 0, PDO_id);
+        heap_free(reportDescriptor);
+        heap_free(PDO_id);
         return status;
     }
 
     ext->preparseData = ParseDescriptor(reportDescriptor, descriptor.DescriptorList[0].wReportLength);
 
-    HeapFree(GetProcessHeap(), 0, reportDescriptor);
+    heap_free(reportDescriptor);
     if (!ext->preparseData)
     {
         ERR("Cannot parse Report Descriptor\n");
         HID_DeleteDevice(&minidriver->minidriver, device);
-        HeapFree(GetProcessHeap(), 0, PDO_id);
+        heap_free(PDO_id);
         return STATUS_NOT_SUPPORTED;
     }
 
@@ -185,7 +185,7 @@ NTSTATUS WINAPI PNP_AddDevice(DRIVER_OBJECT *driver, DEVICE_OBJECT *PDO)
     id_ptr = strchrW(PDO_id, '\\');
     id_ptr++;
     strcatW(ext->instance_id, id_ptr);
-    HeapFree(GetProcessHeap(), 0, PDO_id);
+    heap_free(PDO_id);
 
     sprintfW(ext->device_id, device_deviceid_fmtW, device_enumeratorW, ext->information.VendorID, ext->information.ProductID);
 
@@ -213,7 +213,7 @@ NTSTATUS WINAPI HID_PNP_Dispatch(DEVICE_OBJECT *device, IRP *irp)
         case IRP_MN_QUERY_ID:
         {
             BASE_DEVICE_EXTENSION *ext = device->DeviceExtension;
-            WCHAR *id = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR)*REGSTR_VAL_MAX_HCID_LEN);
+            WCHAR *id = heap_alloc_zero(sizeof(WCHAR)*REGSTR_VAL_MAX_HCID_LEN);
             TRACE("IRP_MN_QUERY_ID[%i]\n", irpsp->Parameters.QueryId.IdType);
             switch (irpsp->Parameters.QueryId.IdType)
             {
@@ -248,7 +248,7 @@ NTSTATUS WINAPI HID_PNP_Dispatch(DEVICE_OBJECT *device, IRP *irp)
                     break;
                 case BusQueryDeviceSerialNumber:
                     FIXME("BusQueryDeviceSerialNumber not implemented\n");
-                    HeapFree(GetProcessHeap(), 0, id);
+                    heap_free(id);
                     break;
             }
             break;

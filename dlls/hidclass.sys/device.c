@@ -72,7 +72,7 @@ NTSTATUS HID_CreateDevice(DEVICE_OBJECT *native_device, HID_MINIDRIVER_REGISTRAT
     ext->deviceExtension.MiniDeviceExtension = ext + 1;
     ext->deviceExtension.PhysicalDeviceObject = *device;
     ext->deviceExtension.NextDeviceObject = native_device;
-    ext->device_name = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(dev_name) + 1) * sizeof(WCHAR));
+    ext->device_name = heap_alloc((lstrlenW(dev_name) + 1) * sizeof(WCHAR));
     lstrcpyW(ext->device_name, dev_name);
     ext->link_name = NULL;
 
@@ -105,7 +105,7 @@ NTSTATUS HID_LinkDevice(DEVICE_OBJECT *device)
 
     TRACE("Create link %s\n", debugstr_w(dev_link));
 
-    ext->link_name = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * (lstrlenW(dev_link) + 1));
+    ext->link_name = heap_alloc(sizeof(WCHAR) * (lstrlenW(dev_link) + 1));
     lstrcpyW(ext->link_name, dev_link);
 
     status = IoCreateSymbolicLink( &linkW, &nameW );
@@ -178,7 +178,7 @@ void HID_DeleteDevice(HID_MINIDRIVER_REGISTRATION *driver, DEVICE_OBJECT *device
     }
     CloseHandle(ext->halt_event);
 
-    HeapFree(GetProcessHeap(), 0, ext->preparseData);
+    heap_free(ext->preparseData);
     if (ext->ring_buffer)
         RingBuffer_Destroy(ext->ring_buffer);
 
@@ -192,8 +192,8 @@ void HID_DeleteDevice(HID_MINIDRIVER_REGISTRATION *driver, DEVICE_OBJECT *device
     }
 
     TRACE("Delete device(%p) %s\n", device, debugstr_w(ext->device_name));
-    HeapFree(GetProcessHeap(), 0, ext->device_name);
-    HeapFree(GetProcessHeap(), 0, ext->link_name);
+    heap_free(ext->device_name);
+    heap_free(ext->link_name);
 
     IoDeleteDevice(device);
 }
@@ -232,7 +232,7 @@ static void HID_Device_processQueue(DEVICE_OBJECT *device)
     UINT buffer_size = RingBuffer_GetBufferSize(ext->ring_buffer);
     HID_XFER_PACKET *packet;
 
-    packet = HeapAlloc(GetProcessHeap(), 0, buffer_size);
+    packet = heap_alloc(buffer_size);
 
     entry = RemoveHeadList(&ext->irp_queue);
     while(entry != &ext->irp_queue)
@@ -261,7 +261,7 @@ static void HID_Device_processQueue(DEVICE_OBJECT *device)
         IoCompleteRequest( irp, IO_NO_INCREMENT );
         entry = RemoveHeadList(&ext->irp_queue);
     }
-    HeapFree(GetProcessHeap(), 0, packet);
+    heap_free(packet);
 }
 
 static NTSTATUS WINAPI read_Completion(DEVICE_OBJECT *deviceObject, IRP *irp, void *context)
@@ -286,7 +286,7 @@ static DWORD CALLBACK hid_device_thread(void *args)
     events[0] = CreateEventA(NULL, TRUE, FALSE, NULL);
     events[1] = ext->halt_event;
 
-    packet = HeapAlloc(GetProcessHeap(), 0, sizeof(*packet) + ext->preparseData->caps.InputReportByteLength);
+    packet = heap_alloc(sizeof(*packet) + ext->preparseData->caps.InputReportByteLength);
     packet->reportBuffer = (BYTE *)packet + sizeof(*packet);
 
     if (ext->information.Polled)
@@ -453,7 +453,7 @@ static NTSTATUS HID_get_feature(DEVICE_OBJECT *device, IRP *irp)
     TRACE_(hid_report)("Device %p Buffer length %i Buffer %p\n", device, irpsp->Parameters.DeviceIoControl.OutputBufferLength, out_buffer);
 
     len = sizeof(*packet) + irpsp->Parameters.DeviceIoControl.OutputBufferLength;
-    packet = HeapAlloc(GetProcessHeap(), 0, len);
+    packet = heap_alloc(len);
     packet->reportBufferLen = irpsp->Parameters.DeviceIoControl.OutputBufferLength;
     packet->reportBuffer = ((BYTE*)packet) + sizeof(*packet);
     packet->reportId = out_buffer[0];
@@ -473,7 +473,7 @@ static NTSTATUS HID_get_feature(DEVICE_OBJECT *device, IRP *irp)
 
     TRACE_(hid_report)("Result 0x%x get %li bytes\n", rc, irp->IoStatus.Information);
 
-    HeapFree(GetProcessHeap(), 0, packet);
+    heap_free(packet);
 
     return rc;
 }
@@ -587,7 +587,7 @@ NTSTATUS WINAPI HID_Device_ioctl(DEVICE_OBJECT *device, IRP *irp)
             BYTE *buffer = MmGetSystemAddressForMdlSafe(irp->MdlAddress, NormalPagePriority);
             ULONG out_length;
 
-            packet = HeapAlloc(GetProcessHeap(), 0, packet_size);
+            packet = heap_alloc(packet_size);
 
             if (extension->preparseData->InputReports[0].reportID)
                 packet->reportId = buffer[0];
@@ -605,7 +605,7 @@ NTSTATUS WINAPI HID_Device_ioctl(DEVICE_OBJECT *device, IRP *irp)
             else
                 irp->IoStatus.Information = 0;
             irp->IoStatus.u.Status = rc;
-            HeapFree(GetProcessHeap(), 0, packet);
+            heap_free(packet);
             break;
         }
         case IOCTL_SET_NUM_DEVICE_INPUT_BUFFERS:
@@ -669,7 +669,7 @@ NTSTATUS WINAPI HID_Device_read(DEVICE_OBJECT *device, IRP *irp)
     IO_STACK_LOCATION *irpsp = IoGetCurrentIrpStackLocation(irp);
     int ptr = -1;
 
-    packet = HeapAlloc(GetProcessHeap(), 0, buffer_size);
+    packet = heap_alloc(buffer_size);
     ptr = PtrToUlong( irp->Tail.Overlay.OriginalFileObject->FsContext );
 
     irp->IoStatus.Information = 0;
@@ -715,7 +715,7 @@ NTSTATUS WINAPI HID_Device_read(DEVICE_OBJECT *device, IRP *irp)
             IoCompleteRequest(irp, IO_NO_INCREMENT);
         }
     }
-    HeapFree(GetProcessHeap(), 0, packet);
+    heap_free(packet);
 
     return rc;
 }

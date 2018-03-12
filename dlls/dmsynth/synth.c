@@ -85,7 +85,7 @@ static ULONG WINAPI IDirectMusicSynth8Impl_Release(LPDIRECTMUSICSYNTH8 iface)
     if (!ref) {
         if (This->pLatencyClock)
             IReferenceClock_Release(This->pLatencyClock);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMSYNTH_UnlockModule();
     }
 
@@ -581,7 +581,7 @@ HRESULT WINAPI DMUSIC_CreateDirectMusicSynthImpl(REFIID riid, void **ppobj)
 
     TRACE("(%s, %p)\n", debugstr_guid(riid), ppobj);
 
-    obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*obj));
+    obj = heap_alloc_zero(sizeof(*obj));
     if (NULL == obj) {
         *ppobj = NULL;
         return E_OUTOFMEMORY;

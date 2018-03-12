@@ -80,7 +80,7 @@ static ULONG WINAPI IDirectMusicSynthSinkImpl_Release(LPDIRECTMUSICSYNTHSINK ifa
     if (!ref) {
         if (This->latency_clock)
             IReferenceClock_Release(This->latency_clock);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         DMSYNTH_UnlockModule();
     }
 
@@ -273,7 +273,7 @@ HRESULT WINAPI DMUSIC_CreateDirectMusicSynthSinkImpl(REFIID riid, void **ret_ifa
 
     *ret_iface = NULL;
 
-    obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectMusicSynthSinkImpl));
+    obj = heap_alloc_zero(sizeof(IDirectMusicSynthSinkImpl));
     if (!obj)
         return E_OUTOFMEMORY;
 
@@ -284,7 +284,7 @@ HRESULT WINAPI DMUSIC_CreateDirectMusicSynthSinkImpl(REFIID riid, void **ret_ifa
     hr = CoCreateInstance(&CLSID_SystemClock, NULL, CLSCTX_INPROC_SERVER, &IID_IReferenceClock, (LPVOID*)&obj->latency_clock);
     if (FAILED(hr))
     {
-        HeapFree(GetProcessHeap(), 0, obj);
+        heap_free(obj);
         return hr;
     }
 

@@ -54,7 +54,7 @@ HRESULT IDirectXFileImpl_Create(IUnknown* pUnkOuter, LPVOID* ppObj)
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectXFileImpl));
+    object = heap_alloc_zero(sizeof(IDirectXFileImpl));
     if (!object)
         return DXFILEERR_BADALLOC;
 
@@ -119,7 +119,7 @@ static ULONG WINAPI IDirectXFileImpl_Release(IDirectXFile* iface)
   TRACE("(%p/%p)->(): new ref %d\n", iface, This, ref);
 
   if (!ref)
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 
   return ref;
 }
@@ -348,7 +348,7 @@ static HRESULT WINAPI IDirectXFileImpl_RegisterTemplates(IDirectXFile* iface, LP
 
   hr = DXFILE_OK;
 cleanup:
-  HeapFree(GetProcessHeap(), 0, decomp_buffer);
+  heap_free(decomp_buffer);
   return hr;
 }
 
@@ -368,7 +368,7 @@ static HRESULT IDirectXFileBinaryImpl_Create(IDirectXFileBinaryImpl** ppObj)
 
     TRACE("(%p)\n", ppObj);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectXFileBinaryImpl));
+    object = heap_alloc_zero(sizeof(IDirectXFileBinaryImpl));
     if (!object)
         return DXFILEERR_BADALLOC;
 
@@ -427,7 +427,7 @@ static ULONG WINAPI IDirectXFileBinaryImpl_Release(IDirectXFileBinary* iface)
   TRACE("(%p/%p)->(): new ref %d\n", iface, This, ref);
 
   if (!ref)
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 
   return ref;
 }
@@ -498,7 +498,7 @@ static HRESULT IDirectXFileDataImpl_Create(IDirectXFileDataImpl** ppObj)
 
     TRACE("(%p)\n", ppObj);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectXFileDataImpl));
+    object = heap_alloc_zero(sizeof(IDirectXFileDataImpl));
     if (!object)
         return DXFILEERR_BADALLOC;
 
@@ -560,14 +560,14 @@ static ULONG WINAPI IDirectXFileDataImpl_Release(IDirectXFileData* iface)
   {
     if (!This->level && !This->from_ref)
     {
-      HeapFree(GetProcessHeap(), 0, This->pstrings);
+      heap_free(This->pstrings);
       if (This->pobj)
       {
-        HeapFree(GetProcessHeap(), 0, This->pobj->pdata);
-        HeapFree(GetProcessHeap(), 0, This->pobj);
+        heap_free(This->pobj->pdata);
+        heap_free(This->pobj);
       }
     }
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
   }
 
   return ref;
@@ -773,7 +773,7 @@ static HRESULT IDirectXFileDataReferenceImpl_Create(IDirectXFileDataReferenceImp
 
     TRACE("(%p)\n", ppObj);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectXFileDataReferenceImpl));
+    object = heap_alloc_zero(sizeof(IDirectXFileDataReferenceImpl));
     if (!object)
         return DXFILEERR_BADALLOC;
 
@@ -832,7 +832,7 @@ static ULONG WINAPI IDirectXFileDataReferenceImpl_Release(IDirectXFileDataRefere
   TRACE("(%p/%p)->(): new ref %d\n", iface, This, ref);
 
   if (!ref)
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 
   return ref;
 }
@@ -921,7 +921,7 @@ static HRESULT IDirectXFileEnumObjectImpl_Create(IDirectXFileEnumObjectImpl** pp
 
     TRACE("(%p)\n", ppObj);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectXFileEnumObjectImpl));
+    object = heap_alloc_zero(sizeof(IDirectXFileEnumObjectImpl));
     if (!object)
         return DXFILEERR_BADALLOC;
 
@@ -981,8 +981,8 @@ static ULONG WINAPI IDirectXFileEnumObjectImpl_Release(IDirectXFileEnumObject* i
       IDirectXFileData_Release(This->pRefObjects[i]);
     if (This->mapped_memory)
       UnmapViewOfFile(This->mapped_memory);
-    HeapFree(GetProcessHeap(), 0, This->decomp_buffer);
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This->decomp_buffer);
+    heap_free(This);
   }
 
   return ref;
@@ -1019,14 +1019,14 @@ static HRESULT WINAPI IDirectXFileEnumObjectImpl_GetNextDataObject(IDirectXFileE
   if (FAILED(hr))
     return hr;
 
-  object->pobj = HeapAlloc(GetProcessHeap(), 0, sizeof(xobject)*MAX_SUBOBJECTS);
+  object->pobj = heap_alloc(sizeof(xobject)*MAX_SUBOBJECTS);
   if (!object->pobj)
   {
     hr = DXFILEERR_BADALLOC;
     goto error;
   }
 
-  object->pstrings = HeapAlloc(GetProcessHeap(), 0, MAX_STRINGS_BUFFER);
+  object->pstrings = heap_alloc(MAX_STRINGS_BUFFER);
   if (!object->pstrings)
   {
     hr = DXFILEERR_BADALLOC;
@@ -1106,7 +1106,7 @@ static HRESULT IDirectXFileSaveObjectImpl_Create(IDirectXFileSaveObjectImpl** pp
 
     TRACE("(%p)\n", ppObj);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectXFileSaveObjectImpl));
+    object = heap_alloc_zero(sizeof(IDirectXFileSaveObjectImpl));
     if (!object)
         return DXFILEERR_BADALLOC;
 
@@ -1160,7 +1160,7 @@ static ULONG WINAPI IDirectXFileSaveObjectImpl_Release(IDirectXFileSaveObject* i
   TRACE("(%p/%p)->(): new ref %d\n", iface, This, ref);
 
   if (!ref)
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 
   return ref;
 }

@@ -244,7 +244,7 @@ HRESULT parse_header(parse_buffer * buf, BYTE ** decomp_buffer_ptr)
     /* Does not take xof header into account */
     decomp_file_size -= 16;
 
-    decomp_buffer = HeapAlloc(GetProcessHeap(), 0, decomp_file_size);
+    decomp_buffer = heap_alloc(decomp_file_size);
     if (!decomp_buffer)
     {
         ERR("Out of memory\n");
@@ -266,7 +266,7 @@ HRESULT parse_header(parse_buffer * buf, BYTE ** decomp_buffer_ptr)
       if (err)
       {
         WARN("Error while decompressing MSZIP chunk %d\n", err);
-        HeapFree(GetProcessHeap(), 0, decomp_buffer);
+        heap_free(decomp_buffer);
         return DXFILEERR_BADALLOC;
       }
       buf->rem_bytes -= comp_chunk_size;
@@ -1124,11 +1124,11 @@ static BOOL check_buffer(parse_buffer * buf, ULONG size)
     LPBYTE pdata;
     ULONG new_capacity = buf->capacity ? 2 * buf->capacity : 100000;
 
-    pdata = HeapAlloc(GetProcessHeap(), 0, new_capacity);
+    pdata = heap_alloc(new_capacity);
     if (!pdata)
       return FALSE;
     memcpy(pdata, buf->pdata, buf->cur_pos_data);
-    HeapFree(GetProcessHeap(), 0, buf->pdata);
+    heap_free(buf->pdata);
     buf->capacity = new_capacity;
     buf->pdata = pdata;
     buf->pxo->root->pdata = pdata;

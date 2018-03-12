@@ -90,7 +90,7 @@ static DWORD CALLBACK	MCI_SCAStarter(LPVOID arg)
     ret = sca->cmd(sca->wDevID, sca->dwParam1 | MCI_WAIT, sca->dwParam2, sca->evt);
     TRACE("In thread after async command (%08x,%08lx,%08lx)\n",
 	  sca->wDevID, sca->dwParam1, sca->dwParam2);
-    HeapFree(GetProcessHeap(), 0, sca);
+    heap_free(sca);
     return ret;
 }
 
@@ -101,7 +101,7 @@ static	DWORD MCI_SendCommandAsync(UINT wDevID, async_cmd cmd, DWORD_PTR dwParam1
 				   DWORD_PTR dwParam2, UINT size)
 {
     HANDLE handles[2];
-    struct SCA*	sca = HeapAlloc(GetProcessHeap(), 0, sizeof(struct SCA) + size);
+    struct SCA*	sca = heap_alloc(sizeof(struct SCA) + size);
 
     if (sca == 0)
 	return MCIERR_OUT_OF_MEMORY;
@@ -154,7 +154,7 @@ static LRESULT WAVE_drvOpen(LPCWSTR str, LPMCI_OPEN_DRIVER_PARMSW modp)
 
     if (modp == NULL) return 0xFFFFFFFF;
 
-    wmw = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WINE_MCIWAVE));
+    wmw = heap_alloc_zero(sizeof(WINE_MCIWAVE));
 
     if (!wmw)
 	return 0;
@@ -183,7 +183,7 @@ static LRESULT WAVE_drvClose(MCIDEVICEID dwDevID)
     WINE_MCIWAVE*  wmw = (WINE_MCIWAVE*)mciGetDriverData(dwDevID);
 
     if (wmw) {
-	HeapFree(GetProcessHeap(), 0, wmw);
+	heap_free(wmw);
 	mciSetDriverData(dwDevID, 0);
 	return 1;
     }
@@ -288,12 +288,12 @@ static	DWORD WAVE_mciReadFmt(WINE_MCIWAVE* wmw, const MMCKINFO* pckMainRIFF)
     TRACE("Chunk Found ckid=%.4s fccType=%.4s cksize=%08X\n",
 	  (LPSTR)&mmckInfo.ckid, (LPSTR)&mmckInfo.fccType, mmckInfo.cksize);
 
-    pwfx = HeapAlloc(GetProcessHeap(), 0, mmckInfo.cksize);
+    pwfx = heap_alloc(mmckInfo.cksize);
     if (!pwfx) return MCIERR_OUT_OF_MEMORY;
 
     r = mmioRead(wmw->hFile, (HPSTR)pwfx, mmckInfo.cksize);
     if (r < sizeof(PCMWAVEFORMAT)) {
-	HeapFree(GetProcessHeap(), 0, pwfx);
+	heap_free(pwfx);
 	return MCIERR_INVALID_FILE;
     }
     TRACE("wFormatTag=%04X !\n",   pwfx->wFormatTag);
@@ -306,7 +306,7 @@ static	DWORD WAVE_mciReadFmt(WINE_MCIWAVE* wmw, const MMCKINFO* pckMainRIFF)
 	TRACE("cbSize=%u !\n",     pwfx->cbSize);
     if ((pwfx->wFormatTag != WAVE_FORMAT_PCM)
 	&& (r < sizeof(WAVEFORMATEX) || (r < sizeof(WAVEFORMATEX) + pwfx->cbSize))) {
-	HeapFree(GetProcessHeap(), 0, pwfx);
+	heap_free(pwfx);
 	return MCIERR_INVALID_FILE;
     }
     wmw->lpWaveFormat = pwfx;
@@ -383,7 +383,7 @@ static DWORD WAVE_mciCreateRIFFSkeleton(WINE_MCIWAVE* wmw)
 	}
    }
    if (wmw->lpWaveFormat == &wmw->wfxRef) {
-	LPWAVEFORMATEX pwfx = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WAVEFORMATEX));
+	LPWAVEFORMATEX pwfx = heap_alloc_zero(sizeof(WAVEFORMATEX));
 	if (!pwfx) return MCIERR_OUT_OF_MEMORY;
 	/* Set wave format accepts PCM only so the size is known. */
 	assert(wmw->wfxRef.wFormatTag == WAVE_FORMAT_PCM);
@@ -438,7 +438,7 @@ static DWORD create_tmp_file(HMMIO* hFile, LPWSTR* pszTmpFileName)
                                 MAX_PATH * sizeof(WCHAR));
     if (!GetTempFileNameW(szTmpPath, szPrefix, 0, *pszTmpFileName)) {
         WARN("can't retrieve temp file name!\n");
-        HeapFree(GetProcessHeap(), 0, *pszTmpFileName);
+        heap_free(*pszTmpFileName);
         return MCIERR_FILE_NOT_FOUND;
     }
 
@@ -452,7 +452,7 @@ static DWORD create_tmp_file(HMMIO* hFile, LPWSTR* pszTmpFileName)
         if (*hFile == 0) {
             WARN("can't create file=%s!\n", debugstr_w(*pszTmpFileName));
             /* temporary file could not be created. clean filename. */
-            HeapFree(GetProcessHeap(), 0, *pszTmpFileName);
+            heap_free(*pszTmpFileName);
             dwRet = MCIERR_FILE_NOT_FOUND;
         }
     }
@@ -464,10 +464,10 @@ static LRESULT WAVE_mciOpenFile(WINE_MCIWAVE* wmw, LPCWSTR filename)
     LRESULT dwRet = MMSYSERR_NOERROR;
     LPWSTR fn;
 
-    fn = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(filename) + 1) * sizeof(WCHAR));
+    fn = heap_alloc((lstrlenW(filename) + 1) * sizeof(WCHAR));
     if (!fn) return MCIERR_OUT_OF_MEMORY;
     strcpyW(fn, filename);
-    HeapFree(GetProcessHeap(), 0, wmw->lpFileName);
+    heap_free(wmw->lpFileName);
     wmw->lpFileName = fn;
 
     if (filename[0]) {
@@ -570,7 +570,7 @@ static LRESULT WAVE_mciOpen(MCIDEVICEID wDevID, DWORD dwFlags, LPMCI_WAVE_OPEN_P
 	if (wmw->hFile != 0)
 	    mmioClose(wmw->hFile, 0);
 	wmw->hFile = 0;
-	HeapFree(GetProcessHeap(), 0, wmw->lpFileName);
+	heap_free(wmw->lpFileName);
 	wmw->lpFileName = NULL;
     }
     return dwRet;
@@ -682,9 +682,9 @@ static DWORD WAVE_mciClose(MCIDEVICEID wDevID, DWORD dwFlags, LPMCI_GENERIC_PARM
     }
 
     if (wmw->lpWaveFormat != &wmw->wfxRef)
-	HeapFree(GetProcessHeap(), 0, wmw->lpWaveFormat);
+	heap_free(wmw->lpWaveFormat);
     wmw->lpWaveFormat = &wmw->wfxRef;
-    HeapFree(GetProcessHeap(), 0, wmw->lpFileName);
+    heap_free(wmw->lpFileName);
     wmw->lpFileName = NULL;
 
     if ((dwFlags & MCI_NOTIFY) && lpParms) {
@@ -855,7 +855,7 @@ static DWORD WAVE_mciPlay(MCIDEVICEID wDevID, DWORD_PTR dwFlags, DWORD_PTR pmt, 
     /* make it so that 3 buffers per second are needed */
     bufsize = WAVE_ALIGN_ON_BLOCK(wmw, wmw->lpWaveFormat->nAvgBytesPerSec / 3);
 
-    waveHdr = HeapAlloc(GetProcessHeap(), 0, 2 * sizeof(WAVEHDR) + 2 * bufsize);
+    waveHdr = heap_alloc(2 * sizeof(WAVEHDR) + 2 * bufsize);
     waveHdr[0].lpData = (char*)waveHdr + 2 * sizeof(WAVEHDR);
     waveHdr[1].lpData = (char*)waveHdr + 2 * sizeof(WAVEHDR) + bufsize;
     waveHdr[0].dwUser         = waveHdr[1].dwUser         = 0L;
@@ -918,7 +918,7 @@ cleanUp:
     if (dwFlags & MCI_NOTIFY)
 	oldcb = InterlockedExchangePointer(&wmw->hCallback, NULL);
 
-    HeapFree(GetProcessHeap(), 0, waveHdr);
+    heap_free(waveHdr);
 
     if (wmw->hWave) {
 	waveOutClose(wmw->hWave);
@@ -1039,7 +1039,7 @@ static DWORD WAVE_mciRecord(MCIDEVICEID wDevID, DWORD_PTR dwFlags, DWORD_PTR pmt
      * we don't modify the wave part of an existing file (ie. we always erase an
      * existing content, we don't overwrite)
      */
-    HeapFree(GetProcessHeap(), 0, wmw->lpFileName);
+    heap_free(wmw->lpFileName);
     dwRet = create_tmp_file(&wmw->hFile, (WCHAR**)&wmw->lpFileName);
     if (dwRet != 0) return dwRet;
 
@@ -1093,7 +1093,7 @@ static DWORD WAVE_mciRecord(MCIDEVICEID wDevID, DWORD_PTR dwFlags, DWORD_PTR pmt
     /* make it so that 3 buffers per second are needed */
     bufsize = WAVE_ALIGN_ON_BLOCK(wmw, wmw->lpWaveFormat->nAvgBytesPerSec / 3);
 
-    waveHdr = HeapAlloc(GetProcessHeap(), 0, 2 * sizeof(WAVEHDR) + 2 * bufsize);
+    waveHdr = heap_alloc(2 * sizeof(WAVEHDR) + 2 * bufsize);
     waveHdr[0].lpData = (char*)waveHdr + 2 * sizeof(WAVEHDR);
     waveHdr[1].lpData = (char*)waveHdr + 2 * sizeof(WAVEHDR) + bufsize;
     waveHdr[0].dwUser         = waveHdr[1].dwUser         = 0L;
@@ -1144,7 +1144,7 @@ cleanUp:
     if (dwFlags & MCI_NOTIFY)
 	oldcb = InterlockedExchangePointer(&wmw->hCallback, NULL);
 
-    HeapFree(GetProcessHeap(), 0, waveHdr);
+    heap_free(waveHdr);
 
     if (wmw->hWave) {
 	waveInClose(wmw->hWave);

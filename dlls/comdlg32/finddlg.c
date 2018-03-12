@@ -284,7 +284,7 @@ static INT_PTR CALLBACK COMDLG32_FindReplaceDlgProc(HWND hDlgWnd, UINT iMsg, WPA
         if(iMsg == WM_DESTROY)
         {
 		RemovePropA(hDlgWnd, (LPSTR)COMDLG32_Atom);
-		HeapFree(GetProcessHeap(), 0, pdata);
+		heap_free(pdata);
         }
 
         return retval;
@@ -427,7 +427,7 @@ static HWND COMDLG32_FR_DoFindReplace(
 		error = CDERR_DIALOGFAILURE;
 cleanup:
 		COMDLG32_SetCommDlgExtendedError(error);
-                HeapFree(GetProcessHeap(), 0, pdata);
+                heap_free(pdata);
         }
         return hdlgwnd;
 }

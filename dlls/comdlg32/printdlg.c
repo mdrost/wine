@@ -158,7 +158,7 @@ static LPWSTR strdupW(LPCWSTR p)
 
     if(!p) return NULL;
     len = (strlenW(p) + 1) * sizeof(WCHAR);
-    ret = HeapAlloc(GetProcessHeap(), 0, len);
+    ret = heap_alloc(len);
     memcpy(ret, p, len);
     return ret;
 }
@@ -177,7 +177,7 @@ static DRIVER_INFO_3W * get_driver_infoW(HANDLE hprn)
 
     res = GetPrinterDriverW(hprn, NULL, 3, NULL, 0, &needed);
     if (!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        di3 = HeapAlloc(GetProcessHeap(), 0, needed);
+        di3 = heap_alloc(needed);
         res = GetPrinterDriverW(hprn, NULL, 3, (LPBYTE)di3, needed, &needed);
     }
 
@@ -185,7 +185,7 @@ static DRIVER_INFO_3W * get_driver_infoW(HANDLE hprn)
         return di3;
 
     TRACE("GetPrinterDriverW failed with %u\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, di3);
+    heap_free(di3);
     return NULL;
 }
 
@@ -197,7 +197,7 @@ static DRIVER_INFO_3A * get_driver_infoA(HANDLE hprn)
 
     res = GetPrinterDriverA(hprn, NULL, 3, NULL, 0, &needed);
     if (!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        di3 = HeapAlloc(GetProcessHeap(), 0, needed);
+        di3 = heap_alloc(needed);
         res = GetPrinterDriverA(hprn, NULL, 3, (LPBYTE)di3, needed, &needed);
     }
 
@@ -205,7 +205,7 @@ static DRIVER_INFO_3A * get_driver_infoA(HANDLE hprn)
         return di3;
 
     TRACE("GetPrinterDriverA failed with %u\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, di3);
+    heap_free(di3);
     return NULL;
 }
 
@@ -224,7 +224,7 @@ static PRINTER_INFO_2W * get_printer_infoW(HANDLE hprn)
 
     res = GetPrinterW(hprn, 2, NULL, 0, &needed);
     if (!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        pi2 = HeapAlloc(GetProcessHeap(), 0, needed);
+        pi2 = heap_alloc(needed);
         res = GetPrinterW(hprn, 2, (LPBYTE)pi2, needed, &needed);
     }
 
@@ -232,7 +232,7 @@ static PRINTER_INFO_2W * get_printer_infoW(HANDLE hprn)
         return pi2;
 
     TRACE("GetPrinterW failed with %u\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, pi2);
+    heap_free(pi2);
     return NULL;
 }
 
@@ -244,7 +244,7 @@ static PRINTER_INFO_2A * get_printer_infoA(HANDLE hprn)
 
     res = GetPrinterA(hprn, 2, NULL, 0, &needed);
     if (!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-        pi2 = HeapAlloc(GetProcessHeap(), 0, needed);
+        pi2 = heap_alloc(needed);
         res = GetPrinterA(hprn, 2, (LPBYTE)pi2, needed, &needed);
     }
 
@@ -252,7 +252,7 @@ static PRINTER_INFO_2A * get_printer_infoA(HANDLE hprn)
         return pi2;
 
     TRACE("GetPrinterA failed with %u\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, pi2);
+    heap_free(pi2);
     return NULL;
 }
 
@@ -332,7 +332,7 @@ static DEVMODEA *convert_to_devmodeA(const DEVMODEW *dmW)
     size = dmW->dmSize - CCHDEVICENAME -
                         ((dmW->dmSize > FIELD_OFFSET(DEVMODEW, dmFormName)) ? CCHFORMNAME : 0);
 
-    dmA = HeapAlloc(GetProcessHeap(), 0, size + dmW->dmDriverExtra);
+    dmA = heap_alloc(size + dmW->dmDriverExtra);
     if (!dmA) return NULL;
 
     WideCharToMultiByte(CP_ACP, 0, dmW->dmDeviceName, -1,
@@ -398,7 +398,7 @@ static INT PRINTDLG_SetUpPrinterListComboA(HWND hDlg, UINT id, LPCSTR name)
     INT i;
     LPPRINTER_INFO_2A pi;
     EnumPrintersA(PRINTER_ENUM_LOCAL, NULL, 2, NULL, 0, &needed, &num);
-    pi = HeapAlloc(GetProcessHeap(), 0, needed);
+    pi = heap_alloc(needed);
     EnumPrintersA(PRINTER_ENUM_LOCAL, NULL, 2, (LPBYTE)pi, needed, &needed,
 		  &num);
 
@@ -408,7 +408,7 @@ static INT PRINTDLG_SetUpPrinterListComboA(HWND hDlg, UINT id, LPCSTR name)
         SendDlgItemMessageA(hDlg, id, CB_ADDSTRING, 0,
 			    (LPARAM)pi[i].pPrinterName );
     }
-    HeapFree(GetProcessHeap(), 0, pi);
+    heap_free(pi);
     if(!name ||
        (i = SendDlgItemMessageA(hDlg, id, CB_FINDSTRINGEXACT, -1,
 				(LPARAM)name)) == CB_ERR) {
@@ -434,7 +434,7 @@ static INT PRINTDLG_SetUpPrinterListComboW(HWND hDlg, UINT id, LPCWSTR name)
     INT i;
     LPPRINTER_INFO_2W pi;
     EnumPrintersW(PRINTER_ENUM_LOCAL, NULL, 2, NULL, 0, &needed, &num);
-    pi = HeapAlloc(GetProcessHeap(), 0, needed);
+    pi = heap_alloc(needed);
     EnumPrintersW(PRINTER_ENUM_LOCAL, NULL, 2, (LPBYTE)pi, needed, &needed,
 		  &num);
 
@@ -442,7 +442,7 @@ static INT PRINTDLG_SetUpPrinterListComboW(HWND hDlg, UINT id, LPCWSTR name)
         SendDlgItemMessageW(hDlg, id, CB_ADDSTRING, 0,
 			    (LPARAM)pi[i].pPrinterName );
     }
-    HeapFree(GetProcessHeap(), 0, pi);
+    heap_free(pi);
     if(!name ||
        (i = SendDlgItemMessageW(hDlg, id, CB_FINDSTRINGEXACT, -1,
 				(LPARAM)name)) == CB_ERR) {
@@ -836,8 +836,8 @@ static BOOL PRINTDLG_SetUpPaperComboBoxA(HWND hDlg,
 	NrOfEntries = 0;
     }
 
-    Names = HeapAlloc(GetProcessHeap(),0, NrOfEntries*sizeof(char)*NamesSize);
-    Words = HeapAlloc(GetProcessHeap(),0, NrOfEntries*sizeof(WORD));
+    Names = heap_alloc( NrOfEntries*sizeof(char)*NamesSize);
+    Words = heap_alloc( NrOfEntries*sizeof(WORD));
     DeviceCapabilitiesA(PrinterName, PortName, fwCapability_Names, Names, dm);
     NrOfEntries = DeviceCapabilitiesA(PrinterName, PortName,
 				      fwCapability_Words, (LPSTR)Words, dm);
@@ -881,8 +881,8 @@ static BOOL PRINTDLG_SetUpPaperComboBoxA(HWND hDlg,
 
     SendDlgItemMessageA(hDlg, nIDComboBox, CB_SETCURSEL, Sel, 0);
 
-    HeapFree(GetProcessHeap(),0,Words);
-    HeapFree(GetProcessHeap(),0,Names);
+    heap_free(Words);
+    heap_free(Names);
     return TRUE;
 }
 
@@ -946,8 +946,8 @@ static BOOL PRINTDLG_SetUpPaperComboBoxW(HWND hDlg,
 	NrOfEntries = 0;
     }
 
-    Names = HeapAlloc(GetProcessHeap(),0, NrOfEntries*sizeof(WCHAR)*NamesSize);
-    Words = HeapAlloc(GetProcessHeap(),0, NrOfEntries*sizeof(WORD));
+    Names = heap_alloc( NrOfEntries*sizeof(WCHAR)*NamesSize);
+    Words = heap_alloc( NrOfEntries*sizeof(WORD));
     DeviceCapabilitiesW(PrinterName, PortName, fwCapability_Names, Names, dm);
     NrOfEntries = DeviceCapabilitiesW(PrinterName, PortName,
                                       fwCapability_Words, Words, dm);
@@ -991,8 +991,8 @@ static BOOL PRINTDLG_SetUpPaperComboBoxW(HWND hDlg,
 
     SendDlgItemMessageW(hDlg, nIDComboBox, CB_SETCURSEL, Sel, 0);
 
-    HeapFree(GetProcessHeap(),0,Words);
-    HeapFree(GetProcessHeap(),0,Names);
+    heap_free(Words);
+    heap_free(Names);
     return TRUE;
 }
 
@@ -1085,18 +1085,18 @@ static BOOL PRINTDLG_ChangePrinterA(HWND hDlg, char *name, PRINT_PTRA *PrintStru
     DWORD needed;
     HANDLE hprn;
 
-    HeapFree(GetProcessHeap(),0, PrintStructures->lpPrinterInfo);
-    HeapFree(GetProcessHeap(),0, PrintStructures->lpDriverInfo);
+    heap_free( PrintStructures->lpPrinterInfo);
+    heap_free( PrintStructures->lpDriverInfo);
     if(!OpenPrinterA(name, &hprn, NULL)) {
         ERR("Can't open printer %s\n", name);
 	return FALSE;
     }
     GetPrinterA(hprn, 2, NULL, 0, &needed);
-    PrintStructures->lpPrinterInfo = HeapAlloc(GetProcessHeap(),0,needed);
+    PrintStructures->lpPrinterInfo = heap_alloc(needed);
     GetPrinterA(hprn, 2, (LPBYTE)PrintStructures->lpPrinterInfo, needed,
 		&needed);
     GetPrinterDriverA(hprn, NULL, 3, NULL, 0, &needed);
-    PrintStructures->lpDriverInfo = HeapAlloc(GetProcessHeap(),0,needed);
+    PrintStructures->lpDriverInfo = heap_alloc(needed);
     if (!GetPrinterDriverA(hprn, NULL, 3, (LPBYTE)PrintStructures->lpDriverInfo,
 	    needed, &needed)) {
 	ERR("GetPrinterDriverA failed for %s, fix your config!\n",PrintStructures->lpPrinterInfo->pPrinterName);
@@ -1106,7 +1106,7 @@ static BOOL PRINTDLG_ChangePrinterA(HWND hDlg, char *name, PRINT_PTRA *PrintStru
 
     PRINTDLG_UpdatePrinterInfoTextsA(hDlg, PrintStructures->lpPrinterInfo);
 
-    HeapFree(GetProcessHeap(), 0, PrintStructures->lpDevMode);
+    heap_free(PrintStructures->lpDevMode);
     PrintStructures->lpDevMode = NULL;
 
     dmSize = DocumentPropertiesA(0, 0, name, NULL, NULL, 0);
@@ -1114,7 +1114,7 @@ static BOOL PRINTDLG_ChangePrinterA(HWND hDlg, char *name, PRINT_PTRA *PrintStru
         ERR("DocumentProperties fails on %s\n", debugstr_a(name));
 	return FALSE;
     }
-    PrintStructures->lpDevMode = HeapAlloc(GetProcessHeap(), 0, dmSize);
+    PrintStructures->lpDevMode = heap_alloc(dmSize);
     dmSize = DocumentPropertiesA(0, 0, name, PrintStructures->lpDevMode, NULL,
 				 DM_OUT_BUFFER);
     if(lppd->hDevMode && (lpdm = GlobalLock(lppd->hDevMode)) &&
@@ -1220,7 +1220,7 @@ static BOOL PRINTDLG_ChangePrinterA(HWND hDlg, char *name, PRINT_PTRA *PrintStru
 					   PrintStructures->lpPrinterInfo->pPrinterName,
 					   0, lpdm);
 
-		Resolutions = HeapAlloc(GetProcessHeap(), 0, numResolutions*sizeof(LONG)*2);
+		Resolutions = heap_alloc(numResolutions*sizeof(LONG)*2);
 		DeviceCapabilitiesA(PrintStructures->lpPrinterInfo->pPrinterName,
 				    PrintStructures->lpPrinterInfo->pPortName,
 				    DC_ENUMRESOLUTIONS, (LPSTR)Resolutions, lpdm);
@@ -1254,7 +1254,7 @@ static BOOL PRINTDLG_ChangePrinterA(HWND hDlg, char *name, PRINT_PTRA *PrintStru
 
 		    SendMessageA(hQuality, CB_SETITEMDATA, Index, MAKELONG(dpiX,dpiY));
 		}
-		HeapFree(GetProcessHeap(), 0, Resolutions);
+		heap_free(Resolutions);
 	    }
 	}
     } else { /* PD_PRINTSETUP */
@@ -1292,18 +1292,18 @@ static BOOL PRINTDLG_ChangePrinterW(HWND hDlg, WCHAR *name,
     DWORD needed;
     HANDLE hprn;
 
-    HeapFree(GetProcessHeap(),0, PrintStructures->lpPrinterInfo);
-    HeapFree(GetProcessHeap(),0, PrintStructures->lpDriverInfo);
+    heap_free( PrintStructures->lpPrinterInfo);
+    heap_free( PrintStructures->lpDriverInfo);
     if(!OpenPrinterW(name, &hprn, NULL)) {
         ERR("Can't open printer %s\n", debugstr_w(name));
 	return FALSE;
     }
     GetPrinterW(hprn, 2, NULL, 0, &needed);
-    PrintStructures->lpPrinterInfo = HeapAlloc(GetProcessHeap(),0,needed);
+    PrintStructures->lpPrinterInfo = heap_alloc(needed);
     GetPrinterW(hprn, 2, (LPBYTE)PrintStructures->lpPrinterInfo, needed,
 		&needed);
     GetPrinterDriverW(hprn, NULL, 3, NULL, 0, &needed);
-    PrintStructures->lpDriverInfo = HeapAlloc(GetProcessHeap(),0,needed);
+    PrintStructures->lpDriverInfo = heap_alloc(needed);
     if (!GetPrinterDriverW(hprn, NULL, 3, (LPBYTE)PrintStructures->lpDriverInfo,
 	    needed, &needed)) {
 	ERR("GetPrinterDriverA failed for %s, fix your config!\n",debugstr_w(PrintStructures->lpPrinterInfo->pPrinterName));
@@ -1313,7 +1313,7 @@ static BOOL PRINTDLG_ChangePrinterW(HWND hDlg, WCHAR *name,
 
     PRINTDLG_UpdatePrinterInfoTextsW(hDlg, PrintStructures->lpPrinterInfo);
 
-    HeapFree(GetProcessHeap(), 0, PrintStructures->lpDevMode);
+    heap_free(PrintStructures->lpDevMode);
     PrintStructures->lpDevMode = NULL;
 
     dmSize = DocumentPropertiesW(0, 0, name, NULL, NULL, 0);
@@ -1321,7 +1321,7 @@ static BOOL PRINTDLG_ChangePrinterW(HWND hDlg, WCHAR *name,
         ERR("DocumentProperties fails on %s\n", debugstr_w(name));
 	return FALSE;
     }
-    PrintStructures->lpDevMode = HeapAlloc(GetProcessHeap(), 0, dmSize);
+    PrintStructures->lpDevMode = heap_alloc(dmSize);
     dmSize = DocumentPropertiesW(0, 0, name, PrintStructures->lpDevMode, NULL,
 				 DM_OUT_BUFFER);
     if(lppd->hDevMode && (lpdm = GlobalLock(lppd->hDevMode)) &&
@@ -1552,10 +1552,10 @@ static LRESULT PRINTDLG_WMInitDialog(HWND hDlg,
 	if(pdn) GlobalUnlock(lppd->hDevNames);
 
 	/* Now find selected printer and update rest of dlg */
-	name = HeapAlloc(GetProcessHeap(),0,256);
+	name = heap_alloc(256);
 	if (GetDlgItemTextA(hDlg, comboID, name, 255))
 	    PRINTDLG_ChangePrinterA(hDlg, name, PrintStructures);
-	HeapFree(GetProcessHeap(),0,name);
+	heap_free(name);
     } else {
 	/* else use default printer */
 	char name[200];
@@ -1661,10 +1661,10 @@ static LRESULT PRINTDLG_WMInitDialogW(HWND hDlg,
 
 	/* Now find selected printer and update rest of dlg */
 	/* ansi is ok here */
-	name = HeapAlloc(GetProcessHeap(),0,256*sizeof(WCHAR));
+	name = heap_alloc(256*sizeof(WCHAR));
 	if (GetDlgItemTextW(hDlg, comboID, name, 255))
 	    PRINTDLG_ChangePrinterW(hDlg, name, PrintStructures);
-	HeapFree(GetProcessHeap(),0,name);
+	heap_free(name);
     } else {
 	/* else use default printer */
 	WCHAR name[200];
@@ -1786,10 +1786,10 @@ static LRESULT PRINTDLG_WMCommandA(HWND hDlg, WPARAM wParam,
 	     char   *PrinterName;
 	     INT index = SendDlgItemMessageW(hDlg, LOWORD(wParam), CB_GETCURSEL, 0, 0);
 	     INT length = SendDlgItemMessageW(hDlg, LOWORD(wParam), CB_GETLBTEXTLEN, index, 0);
-	     PrinterName = HeapAlloc(GetProcessHeap(),0,length+1);
+	     PrinterName = heap_alloc(length+1);
 	     SendDlgItemMessageA(hDlg, LOWORD(wParam), CB_GETLBTEXT, index, (LPARAM)PrinterName);
 	     PRINTDLG_ChangePrinterA(hDlg, PrinterName, PrintStructures);
-	     HeapFree(GetProcessHeap(),0,PrinterName);
+	     heap_free(PrinterName);
 	 }
 	 break;
 
@@ -1944,10 +1944,10 @@ static LRESULT PRINTDLG_WMCommandW(HWND hDlg, WPARAM wParam,
 	     INT index = SendDlgItemMessageW(hDlg, LOWORD(wParam), CB_GETCURSEL, 0, 0);
 	     INT length = SendDlgItemMessageW(hDlg, LOWORD(wParam), CB_GETLBTEXTLEN, index, 0);
 
-	     PrinterName = HeapAlloc(GetProcessHeap(),0,sizeof(WCHAR)*(length+1));
+	     PrinterName = heap_alloc(sizeof(WCHAR)*(length+1));
 	     SendDlgItemMessageW(hDlg, LOWORD(wParam), CB_GETLBTEXT, index, (LPARAM)PrinterName);
 	     PRINTDLG_ChangePrinterW(hDlg, PrinterName, PrintStructures);
-	     HeapFree(GetProcessHeap(),0,PrinterName);
+	     heap_free(PrinterName);
 	 }
 	 break;
 
@@ -2288,16 +2288,16 @@ BOOL WINAPI PrintDlgA(LPPRINTDLGA lppd)
 	}
 
 	GetPrinterA(hprn, 2, NULL, 0, &needed);
-	pbuf = HeapAlloc(GetProcessHeap(), 0, needed);
+	pbuf = heap_alloc(needed);
 	GetPrinterA(hprn, 2, (LPBYTE)pbuf, needed, &needed);
 
 	GetPrinterDriverA(hprn, NULL, 3, NULL, 0, &needed);
-	dbuf = HeapAlloc(GetProcessHeap(),0,needed);
+	dbuf = heap_alloc(needed);
 	if (!GetPrinterDriverA(hprn, NULL, 3, (LPBYTE)dbuf, needed, &needed)) {
 	    ERR("GetPrinterDriverA failed, le %d, fix your config for printer %s!\n",
 	        GetLastError(),pbuf->pPrinterName);
-	    HeapFree(GetProcessHeap(), 0, dbuf);
-	    HeapFree(GetProcessHeap(), 0, pbuf);
+	    heap_free(dbuf);
+	    heap_free(pbuf);
 	    COMDLG32_SetCommDlgExtendedError(PDERR_RETDEFFAILURE);
 	    return FALSE;
 	}
@@ -2313,8 +2313,8 @@ BOOL WINAPI PrintDlgA(LPPRINTDLGA lppd)
 	memcpy(ptr, pbuf->pDevMode, pbuf->pDevMode->dmSize +
 	       pbuf->pDevMode->dmDriverExtra);
 	GlobalUnlock(lppd->hDevMode);
-	HeapFree(GetProcessHeap(), 0, pbuf);
-	HeapFree(GetProcessHeap(), 0, dbuf);
+	heap_free(pbuf);
+	heap_free(dbuf);
 	bRet = TRUE;
     } else {
 	HGLOBAL hDlgTmpl;
@@ -2371,10 +2371,10 @@ BOOL WINAPI PrintDlgA(LPPRINTDLGA lppd)
 	    );
 	    GlobalUnlock(lppd->hDevMode);
 	}
-	HeapFree(GetProcessHeap(), 0, PrintStructures->lpDevMode);
-	HeapFree(GetProcessHeap(), 0, PrintStructures->lpPrinterInfo);
-	HeapFree(GetProcessHeap(), 0, PrintStructures->lpDriverInfo);
-	HeapFree(GetProcessHeap(), 0, PrintStructures);
+	heap_free(PrintStructures->lpDevMode);
+	heap_free(PrintStructures->lpPrinterInfo);
+	heap_free(PrintStructures->lpDriverInfo);
+	heap_free(PrintStructures);
     }
     if(bRet && (lppd->Flags & PD_RETURNDC || lppd->Flags & PD_RETURNIC))
         bRet = PRINTDLG_CreateDCA(lppd);
@@ -2439,16 +2439,16 @@ BOOL WINAPI PrintDlgW(LPPRINTDLGW lppd)
 	}
 
 	GetPrinterW(hprn, 2, NULL, 0, &needed);
-	pbuf = HeapAlloc(GetProcessHeap(), 0, needed);
+	pbuf = heap_alloc(needed);
 	GetPrinterW(hprn, 2, (LPBYTE)pbuf, needed, &needed);
 
 	GetPrinterDriverW(hprn, NULL, 3, NULL, 0, &needed);
-	dbuf = HeapAlloc(GetProcessHeap(),0,needed);
+	dbuf = heap_alloc(needed);
 	if (!GetPrinterDriverW(hprn, NULL, 3, (LPBYTE)dbuf, needed, &needed)) {
 	    ERR("GetPrinterDriverA failed, le %d, fix your config for printer %s!\n",
 	        GetLastError(),debugstr_w(pbuf->pPrinterName));
-	    HeapFree(GetProcessHeap(), 0, dbuf);
-	    HeapFree(GetProcessHeap(), 0, pbuf);
+	    heap_free(dbuf);
+	    heap_free(pbuf);
 	    COMDLG32_SetCommDlgExtendedError(PDERR_RETDEFFAILURE);
 	    return FALSE;
 	}
@@ -2464,8 +2464,8 @@ BOOL WINAPI PrintDlgW(LPPRINTDLGW lppd)
 	memcpy(ptr, pbuf->pDevMode, pbuf->pDevMode->dmSize +
 	       pbuf->pDevMode->dmDriverExtra);
 	GlobalUnlock(lppd->hDevMode);
-	HeapFree(GetProcessHeap(), 0, pbuf);
-	HeapFree(GetProcessHeap(), 0, dbuf);
+	heap_free(pbuf);
+	heap_free(dbuf);
 	bRet = TRUE;
     } else {
 	HGLOBAL hDlgTmpl;
@@ -2538,10 +2538,10 @@ BOOL WINAPI PrintDlgW(LPPRINTDLGW lppd)
 	    );
 	    GlobalUnlock(lppd->hDevMode);
 	}
-	HeapFree(GetProcessHeap(), 0, PrintStructures->lpDevMode);
-	HeapFree(GetProcessHeap(), 0, PrintStructures->lpPrinterInfo);
-	HeapFree(GetProcessHeap(), 0, PrintStructures->lpDriverInfo);
-	HeapFree(GetProcessHeap(), 0, PrintStructures);
+	heap_free(PrintStructures->lpDevMode);
+	heap_free(PrintStructures->lpPrinterInfo);
+	heap_free(PrintStructures->lpDriverInfo);
+	heap_free(PrintStructures);
     }
     if(bRet && (lppd->Flags & PD_RETURNDC || lppd->Flags & PD_RETURNIC))
         bRet = PRINTDLG_CreateDCW(lppd);
@@ -2783,7 +2783,7 @@ static WCHAR *pagesetup_get_a_devname(const pagesetup_data *data, devnames_name 
     else
     {
         int len = MultiByteToWideChar(CP_ACP, 0, (char*)dn + get_devname_offset(dn, which), -1, NULL, 0);
-        name = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        name = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, (char*)dn + get_devname_offset(dn, which), -1, name, len);
     }
     GlobalUnlock(data->u.dlgw->hDevNames);
@@ -2807,7 +2807,7 @@ static WCHAR *pagesetup_get_portname(const pagesetup_data *data)
 
 static void pagesetup_release_a_devname(const pagesetup_data *data, WCHAR *name)
 {
-    HeapFree(GetProcessHeap(), 0, name);
+    heap_free(name);
 }
 
 static void pagesetup_set_devnames(pagesetup_data *data, LPCWSTR drv, LPCWSTR devname, LPCWSTR port)
@@ -2886,7 +2886,7 @@ static DEVMODEW *pagesetup_get_devmode(const pagesetup_data *data)
     {
         /* We make a copy even in the unicode case because the ptr
            may get passed back to us in pagesetup_set_devmode. */
-        ret = HeapAlloc(GetProcessHeap(), 0, dm->dmSize + dm->dmDriverExtra);
+        ret = heap_alloc(dm->dmSize + dm->dmDriverExtra);
         memcpy(ret, dm, dm->dmSize + dm->dmDriverExtra);
     }
     else
@@ -2898,7 +2898,7 @@ static DEVMODEW *pagesetup_get_devmode(const pagesetup_data *data)
 
 static void pagesetup_release_devmode(const pagesetup_data *data, DEVMODEW *dm)
 {
-    HeapFree(GetProcessHeap(), 0, dm);
+    heap_free(dm);
 }
 
 static void pagesetup_set_devmode(pagesetup_data *data, DEVMODEW *dm)
@@ -2928,7 +2928,7 @@ static void pagesetup_set_devmode(pagesetup_data *data, DEVMODEW *dm)
     dst = GlobalLock(data->u.dlgw->hDevMode);
     memcpy(dst, src, size);
     GlobalUnlock(data->u.dlgw->hDevMode);
-    HeapFree(GetProcessHeap(), 0, dmA);
+    heap_free(dmA);
 }
 
 static inline POINT *pagesetup_get_papersize_pt(const pagesetup_data *data)
@@ -2991,8 +2991,8 @@ static BOOL pagesetup_update_papersize(pagesetup_data *data)
         goto end;
     }
 
-    words = HeapAlloc(GetProcessHeap(), 0, num * sizeof(WORD));
-    points = HeapAlloc(GetProcessHeap(), 0, num * sizeof(POINT));
+    words = heap_alloc(num * sizeof(WORD));
+    points = heap_alloc(num * sizeof(POINT));
 
     if (num != DeviceCapabilitiesW(devname, portname, DC_PAPERS, (LPWSTR)words, dm))
     {
@@ -3028,8 +3028,8 @@ static BOOL pagesetup_update_papersize(pagesetup_data *data)
     retval = TRUE;
 
 end:
-    HeapFree(GetProcessHeap(), 0, words);
-    HeapFree(GetProcessHeap(), 0, points);
+    heap_free(words);
+    heap_free(points);
     pagesetup_release_a_devname(data, portname);
     pagesetup_release_a_devname(data, devname);
     pagesetup_release_devmode(data, dm);
@@ -3059,10 +3059,10 @@ static BOOL pagesetup_change_printer(LPWSTR name, pagesetup_data *data)
     }
 
     GetPrinterW(hprn, 2, NULL, 0, &needed);
-    prn_info = HeapAlloc(GetProcessHeap(), 0, needed);
+    prn_info = heap_alloc(needed);
     GetPrinterW(hprn, 2, (LPBYTE)prn_info, needed, &needed);
     GetPrinterDriverW(hprn, NULL, 3, NULL, 0, &needed);
-    drv_info = HeapAlloc(GetProcessHeap(), 0, needed);
+    drv_info = heap_alloc(needed);
     if(!GetPrinterDriverW(hprn, NULL, 3, (LPBYTE)drv_info, needed, &needed))
     {
         ERR("GetPrinterDriverA failed for %s, fix your config!\n", debugstr_w(prn_info->pPrinterName));
@@ -3077,7 +3077,7 @@ static BOOL pagesetup_change_printer(LPWSTR name, pagesetup_data *data)
         goto end;
     }
 
-    dm = HeapAlloc(GetProcessHeap(), 0, needed);
+    dm = heap_alloc(needed);
     DocumentPropertiesW(0, 0, name, dm, NULL, DM_OUT_BUFFER);
 
     pagesetup_set_devmode(data, dm);
@@ -3086,9 +3086,9 @@ static BOOL pagesetup_change_printer(LPWSTR name, pagesetup_data *data)
 
     retval = TRUE;
 end:
-    HeapFree(GetProcessHeap(), 0, dm);
-    HeapFree(GetProcessHeap(), 0, prn_info);
-    HeapFree(GetProcessHeap(), 0, drv_info);
+    heap_free(dm);
+    heap_free(prn_info);
+    heap_free(drv_info);
     return retval;
 }
 
@@ -3394,11 +3394,11 @@ static BOOL pagesetup_wm_command(HWND hDlg, WPARAM wParam, LPARAM lParam, pagese
             WCHAR *name;
             INT index = SendDlgItemMessageW(hDlg, id, CB_GETCURSEL, 0, 0);
             INT length = SendDlgItemMessageW(hDlg, id, CB_GETLBTEXTLEN, index, 0);
-            name = HeapAlloc(GetProcessHeap(),0,sizeof(WCHAR)*(length+1));
+            name = heap_alloc(sizeof(WCHAR)*(length+1));
             SendDlgItemMessageW(hDlg, id, CB_GETLBTEXT, index, (LPARAM)name);
             pagesetup_change_printer(name, data);
             pagesetup_init_combos(hDlg, data);
-            HeapFree(GetProcessHeap(),0,name);
+            heap_free(name);
         }
         break;
     case cmb2: /* Paper combo */
@@ -3770,7 +3770,7 @@ static WCHAR *get_default_printer(void)
     GetDefaultPrinterW(NULL, &len);
     if(len)
     {
-        name = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        name = heap_alloc(len * sizeof(WCHAR));
         GetDefaultPrinterW(name, &len);
     }
     return name;
@@ -3872,7 +3872,7 @@ static BOOL pagesetup_common(pagesetup_data *data)
             return FALSE;
         }
         pagesetup_change_printer(def, data);
-        HeapFree(GetProcessHeap(), 0, def);
+        heap_free(def);
     }
 
     if (pagesetup_get_flags(data) & PSD_RETURNDEFAULT)
@@ -4072,7 +4072,7 @@ HRESULT WINAPI PrintDlgExA(LPPRINTDLGEXA lppd)
         dbuf = get_driver_infoA(hprn);
         if (!dbuf)
         {
-            HeapFree(GetProcessHeap(), 0, pbuf);
+            heap_free(pbuf);
             COMDLG32_SetCommDlgExtendedError(PDERR_RETDEFFAILURE);
             ClosePrinter(hprn);
             return E_FAIL;
@@ -4138,8 +4138,8 @@ HRESULT WINAPI PrintDlgExA(LPPRINTDLGEXA lppd)
     else
         hr = E_FAIL;
 
-    HeapFree(GetProcessHeap(), 0, pbuf);
-    HeapFree(GetProcessHeap(), 0, dbuf);
+    heap_free(pbuf);
+    heap_free(dbuf);
 
     return hr;
 }
@@ -4223,7 +4223,7 @@ HRESULT WINAPI PrintDlgExW(LPPRINTDLGEXW lppd)
         dbuf = get_driver_infoW(hprn);
         if (!dbuf)
         {
-            HeapFree(GetProcessHeap(), 0, pbuf);
+            heap_free(pbuf);
             COMDLG32_SetCommDlgExtendedError(PDERR_RETDEFFAILURE);
             ClosePrinter(hprn);
             return E_FAIL;
@@ -4286,8 +4286,8 @@ HRESULT WINAPI PrintDlgExW(LPPRINTDLGEXW lppd)
     else
         hr = E_FAIL;
 
-    HeapFree(GetProcessHeap(), 0, pbuf);
-    HeapFree(GetProcessHeap(), 0, dbuf);
+    heap_free(pbuf);
+    heap_free(dbuf);
 
     return hr;
 }

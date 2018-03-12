@@ -892,7 +892,7 @@ static INT_PTR FILEDLG95_Handle_GetFilePath(HWND hwnd, DWORD size, LPVOID result
 
     /* get path and filenames */
     len = SendMessageW( fodInfos->DlgInfos.hwndFileName, WM_GETTEXTLENGTH, 0, 0 );
-    buffer = HeapAlloc( GetProcessHeap(), 0, (len + 2 + MAX_PATH) * sizeof(WCHAR) );
+    buffer = heap_alloc( (len + 2 + MAX_PATH) * sizeof(WCHAR) );
     COMDLG32_GetDisplayNameOf( fodInfos->ShellInfos.pidlAbsCurrent, buffer );
     if (len)
     {
@@ -912,7 +912,7 @@ static INT_PTR FILEDLG95_Handle_GetFilePath(HWND hwnd, DWORD size, LPVOID result
         if (total <= size) WideCharToMultiByte( CP_ACP, 0, buffer, -1, result, size, NULL, NULL );
         TRACE( "CDM_GETFILEPATH: returning %u %s\n", total, debugstr_a(result));
     }
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     return total;
 }
 
@@ -2538,7 +2538,7 @@ BOOL FILEDLG95_OnOpen(HWND hwnd)
             if (lpstrFilter != (LPWSTR)CB_ERR)  /* control is not empty */
             {
                 WCHAR* filterSearchIndex;
-                filterExt = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(lpstrFilter) + 1) * sizeof(WCHAR));
+                filterExt = heap_alloc((lstrlenW(lpstrFilter) + 1) * sizeof(WCHAR));
                 strcpyW(filterExt, lpstrFilter);
 
                 /* if a semicolon-separated list of file extensions was given, do not include the
@@ -2560,7 +2560,7 @@ BOOL FILEDLG95_OnOpen(HWND hwnd)
                 }
                 else
                 {
-                    HeapFree(GetProcessHeap(), 0, filterExt);
+                    heap_free(filterExt);
                     filterExt = NULL;
                 }
             }
@@ -2568,7 +2568,7 @@ BOOL FILEDLG95_OnOpen(HWND hwnd)
             if (!filterExt)
             {
                 /* use the default file extension */
-                filterExt = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(fodInfos->defext) + 1) * sizeof(WCHAR));
+                filterExt = heap_alloc((lstrlenW(fodInfos->defext) + 1) * sizeof(WCHAR));
                 strcpyW(filterExt, fodInfos->defext);
             }
 
@@ -2580,7 +2580,7 @@ BOOL FILEDLG95_OnOpen(HWND hwnd)
                 lstrcatW(lpstrPathAndFile, filterExt);
             }
 
-            HeapFree(GetProcessHeap(), 0, filterExt);
+            heap_free(filterExt);
 
             /* In Open dialog: if file does not exist try without extension */
             if (!(fodInfos->DlgInfos.dwDlgProp & FODPROP_SAVEDLG) && !PathFileExistsW(lpstrPathAndFile))
@@ -3617,7 +3617,7 @@ void FILEDLG95_FILENAME_FillFromSelection (HWND hwnd)
 
     /* Allocate a buffer */
     nAllFilesMaxLength = MAX_PATH + 3;
-    lpstrAllFiles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, nAllFilesMaxLength * sizeof(WCHAR));
+    lpstrAllFiles = heap_alloc_zero(nAllFilesMaxLength * sizeof(WCHAR));
     if (!lpstrAllFiles)
         goto ret;
 
@@ -3664,7 +3664,7 @@ void FILEDLG95_FILENAME_FillFromSelection (HWND hwnd)
     }
 
 ret:
-    HeapFree(GetProcessHeap(), 0, lpstrAllFiles);
+    heap_free(lpstrAllFiles);
     COMCTL32_ReleaseStgMedium(medium);
 }
 
@@ -3975,12 +3975,12 @@ static BOOL BrowseSelectedFolder(HWND hwnd)
  * Memory allocation methods */
 static void *MemAlloc(UINT size)
 {
-    return HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,size);
+    return heap_alloc_zero(size);
 }
 
 static void MemFree(void *mem)
 {
-    HeapFree(GetProcessHeap(),0,mem);
+    heap_free(mem);
 }
 
 static inline BOOL valid_struct_size( DWORD size )
@@ -4139,11 +4139,11 @@ short WINAPI GetFileTitleA(LPCSTR lpFile, LPSTR lpTitle, WORD cbBuf)
     LPWSTR lpWTitle;
 
     RtlCreateUnicodeStringFromAsciiz(&strWFile, lpFile);
-    lpWTitle = RtlAllocateHeap( GetProcessHeap(), 0, cbBuf*sizeof(WCHAR));
+    lpWTitle = malloc( cbBuf*sizeof(WCHAR));
     ret = GetFileTitleW(strWFile.Buffer, lpWTitle, cbBuf);
     if (!ret) WideCharToMultiByte( CP_ACP, 0, lpWTitle, -1, lpTitle, cbBuf, NULL, NULL );
     RtlFreeUnicodeString( &strWFile );
-    RtlFreeHeap( GetProcessHeap(), 0, lpWTitle );
+    free( lpWTitle );
     return ret;
 }
 

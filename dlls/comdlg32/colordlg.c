@@ -858,7 +858,7 @@ static LRESULT CC_WMInitDialog( HWND hDlg, WPARAM wParam, LPARAM lParam )
        return FALSE;
    }
 
-   lpp = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct CCPRIVATE) );
+   lpp = heap_alloc_zero(sizeof(struct CCPRIVATE) );
    lpp->lpcc = cc;
    lpp->hwndSelf = hDlg;
 
@@ -1215,7 +1215,7 @@ static INT_PTR CALLBACK ColorDlgProc( HWND hDlg, UINT message,
 	  case WM_NCDESTROY:
 	                DeleteDC(lpp->hdcMem);
 	                DeleteObject(lpp->hbmMem);
-                        HeapFree(GetProcessHeap(), 0, lpp);
+                        heap_free(lpp);
                         RemovePropW( hDlg, szColourDialogProp );
 	                break;
 	  case WM_COMMAND:
@@ -1326,7 +1326,7 @@ BOOL WINAPI ChooseColorA( LPCHOOSECOLORA lpChCol )
   LPWSTR template_name = NULL;
   BOOL ret;
 
-  LPCHOOSECOLORW lpcc = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(CHOOSECOLORW));
+  LPCHOOSECOLORW lpcc = heap_alloc_zero(sizeof(CHOOSECOLORW));
   lpcc->lStructSize = sizeof(*lpcc);
   lpcc->hwndOwner = lpChCol->hwndOwner;
   lpcc->hInstance = lpChCol->hInstance;
@@ -1338,7 +1338,7 @@ BOOL WINAPI ChooseColorA( LPCHOOSECOLORA lpChCol )
   if ((lpcc->Flags & CC_ENABLETEMPLATE) && (lpChCol->lpTemplateName)) {
       if (!IS_INTRESOURCE(lpChCol->lpTemplateName)) {
 	  INT len = MultiByteToWideChar( CP_ACP, 0, lpChCol->lpTemplateName, -1, NULL, 0);
-          template_name = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+          template_name = heap_alloc( len * sizeof(WCHAR) );
           MultiByteToWideChar( CP_ACP, 0, lpChCol->lpTemplateName, -1, template_name, len );
           lpcc->lpTemplateName = template_name;
       } else {
@@ -1350,7 +1350,7 @@ BOOL WINAPI ChooseColorA( LPCHOOSECOLORA lpChCol )
 
   if (ret)
       lpChCol->rgbResult = lpcc->rgbResult;
-  HeapFree(GetProcessHeap(), 0, template_name);
-  HeapFree(GetProcessHeap(), 0, lpcc);
+  heap_free(template_name);
+  heap_free(lpcc);
   return ret;
 }

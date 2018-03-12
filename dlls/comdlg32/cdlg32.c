@@ -131,7 +131,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD Reason, LPVOID Reserved)
 LPVOID COMDLG32_AllocMem(
 	int size	/* [in] Block size to allocate */
 ) {
-        LPVOID ptr = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+        LPVOID ptr = heap_alloc_zero(size);
         if(!ptr)
         {
         	COMDLG32_SetCommDlgExtendedError(CDERR_MEMALLOCFAILURE);

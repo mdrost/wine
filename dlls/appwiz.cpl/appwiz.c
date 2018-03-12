@@ -133,13 +133,13 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason,
  */
 static void FreeAppInfo(APPINFO *info)
 {
-    HeapFree(GetProcessHeap(), 0, info->title);
-    HeapFree(GetProcessHeap(), 0, info->path);
-    HeapFree(GetProcessHeap(), 0, info->path_modify);
-    HeapFree(GetProcessHeap(), 0, info->icon);
-    HeapFree(GetProcessHeap(), 0, info->publisher);
-    HeapFree(GetProcessHeap(), 0, info->version);
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info->title);
+    heap_free(info->path);
+    heap_free(info->path_modify);
+    heap_free(info->icon);
+    heap_free(info->publisher);
+    heap_free(info->version);
+    heap_free(info);
 }
 
 /******************************************************************************
@@ -186,12 +186,12 @@ static BOOL ReadApplicationsFromRegistry(HKEY root)
                 static const WCHAR fmtW[] = {'m','s','i','e','x','e','c',' ','/','x','%','s',0};
                 int len = lstrlenW(fmtW) + lstrlenW(subKeyName);
 
-                if (!(command = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR)))) goto err;
+                if (!(command = heap_alloc(len * sizeof(WCHAR)))) goto err;
                 wsprintfW(command, fmtW, subKeyName);
             }
             else if (!RegQueryValueExW(hkeyApp, UninstallCommandlineW, 0, 0, NULL, &uninstlen))
             {
-                if (!(command = HeapAlloc(GetProcessHeap(), 0, uninstlen))) goto err;
+                if (!(command = heap_alloc(uninstlen))) goto err;
                 RegQueryValueExW(hkeyApp, UninstallCommandlineW, 0, 0, (LPBYTE)command, &uninstlen);
             }
             else
@@ -201,10 +201,10 @@ static BOOL ReadApplicationsFromRegistry(HKEY root)
                 continue;
             }
 
-            info = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct APPINFO));
+            info = heap_alloc_zero(sizeof(struct APPINFO));
             if (!info) goto err;
 
-            info->title = HeapAlloc(GetProcessHeap(), 0, displen);
+            info->title = heap_alloc(displen);
 
             if (!info->title)
                 goto err;
@@ -220,7 +220,7 @@ static BOOL ReadApplicationsFromRegistry(HKEY root)
                 info->icon = 0;
             else
             {
-                info->icon = HeapAlloc(GetProcessHeap(), 0, displen);
+                info->icon = heap_alloc(displen);
 
                 if (!info->icon)
                     goto err;
@@ -242,7 +242,7 @@ static BOOL ReadApplicationsFromRegistry(HKEY root)
             if (RegQueryValueExW(hkeyApp, PublisherW, 0, 0, NULL, &displen) ==
                 ERROR_SUCCESS)
             {
-                info->publisher = HeapAlloc(GetProcessHeap(), 0, displen);
+                info->publisher = heap_alloc(displen);
 
                 if (!info->publisher)
                     goto err;
@@ -254,7 +254,7 @@ static BOOL ReadApplicationsFromRegistry(HKEY root)
             if (RegQueryValueExW(hkeyApp, DisplayVersionW, 0, 0, NULL, &displen) ==
                 ERROR_SUCCESS)
             {
-                info->version = HeapAlloc(GetProcessHeap(), 0, displen);
+                info->version = heap_alloc(displen);
 
                 if (!info->version)
                     goto err;
@@ -288,12 +288,12 @@ static BOOL ReadApplicationsFromRegistry(HKEY root)
                     static const WCHAR fmtW[] = {'m','s','i','e','x','e','c',' ','/','i','%','s',0};
                     int len = lstrlenW(fmtW) + lstrlenW(subKeyName);
 
-                    if (!(info->path_modify = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR)))) goto err;
+                    if (!(info->path_modify = heap_alloc(len * sizeof(WCHAR)))) goto err;
                     wsprintfW(info->path_modify, fmtW, subKeyName);
                 }
                 else if (!RegQueryValueExW(hkeyApp, ModifyPathW, 0, 0, NULL, &displen))
                 {
-                    if (!(info->path_modify = HeapAlloc(GetProcessHeap(), 0, displen))) goto err;
+                    if (!(info->path_modify = heap_alloc(displen))) goto err;
                     RegQueryValueExW(hkeyApp, ModifyPathW, 0, 0, (LPBYTE)info->path_modify, &displen);
                 }
             }
@@ -315,7 +315,7 @@ static BOOL ReadApplicationsFromRegistry(HKEY root)
 err:
     RegCloseKey(hkeyApp);
     if (info) FreeAppInfo(info);
-    HeapFree(GetProcessHeap(), 0, command);
+    heap_free(command);
     return FALSE;
 }
 

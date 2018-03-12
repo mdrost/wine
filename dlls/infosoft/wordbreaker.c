@@ -78,7 +78,7 @@ static ULONG WINAPI wb_Release(IWordBreaker *iface)
 
     refcount = InterlockedDecrement(&This->ref);
     if (!refcount)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return refcount;
 }
@@ -190,7 +190,7 @@ DECLSPEC_HIDDEN HRESULT WINAPI wb_Constructor(IUnknown* pUnkOuter, REFIID riid, 
 
     TRACE("%p %s %p\n", pUnkOuter, debugstr_guid(riid), ppvObject);
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof *This);
+    This = heap_alloc(sizeof *This);
     if (!This)
         return E_OUTOFMEMORY;
 

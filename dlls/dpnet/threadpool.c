@@ -77,7 +77,7 @@ static ULONG WINAPI IDirectPlay8ThreadPoolImpl_Release(IDirectPlay8ThreadPool *i
     ULONG RefCount = InterlockedDecrement(&This->ref);
 
     if(!RefCount)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return RefCount;
 }
@@ -162,7 +162,7 @@ HRESULT DPNET_CreateDirectPlay8ThreadPool(LPCLASSFACTORY iface, LPUNKNOWN punkOu
 {
     IDirectPlay8ThreadPoolImpl* Client;
 
-    Client = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectPlay8ThreadPoolImpl));
+    Client = heap_alloc_zero(sizeof(IDirectPlay8ThreadPoolImpl));
 
     if(Client == NULL)
     {

@@ -451,7 +451,7 @@ HRESULT DPNET_CreateDirectPlay8Server(IClassFactory *iface, IUnknown *pUnkOuter,
     if(pUnkOuter)
         return CLASS_E_NOAGGREGATION;
 
-    server = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectPlay8ServerImpl));
+    server = heap_alloc_zero(sizeof(IDirectPlay8ServerImpl));
     if (!server)
         return E_OUTOFMEMORY;
 

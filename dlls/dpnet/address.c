@@ -43,7 +43,7 @@ static char *heap_strdupA( const char *str )
     char *ret;
 
     if (!str) return NULL;
-    if ((ret = HeapAlloc( GetProcessHeap(), 0, strlen(str) + 1 ))) strcpy( ret, str );
+    if ((ret = heap_alloc( strlen(str) + 1 ))) strcpy( ret, str );
     return ret;
 }
 
@@ -638,7 +638,7 @@ HRESULT DPNET_CreateDirectPlay8Address(IClassFactory *iface, IUnknown *pUnkOuter
 
     *ppobj = NULL;
 
-    client = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectPlay8AddressImpl));
+    client = heap_alloc_zero(sizeof(IDirectPlay8AddressImpl));
     if (!client)
         return E_OUTOFMEMORY;
 

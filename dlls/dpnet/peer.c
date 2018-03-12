@@ -635,7 +635,7 @@ HRESULT DPNET_CreateDirectPlay8Peer(IClassFactory *iface, IUnknown *pUnkOuter, R
     IDirectPlay8PeerImpl* Client;
     HRESULT ret;
 
-    Client = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectPlay8PeerImpl));
+    Client = heap_alloc_zero(sizeof(IDirectPlay8PeerImpl));
 
     *ppobj = NULL;
 

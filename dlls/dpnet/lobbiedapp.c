@@ -76,7 +76,7 @@ static ULONG WINAPI IDirectPlay8LobbiedApplicationImpl_Release(IDirectPlay8Lobbi
     TRACE("(%p)->(ref before=%u)\n", This, refCount + 1);
 
     if (!refCount) {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return refCount;
 }
@@ -194,7 +194,7 @@ HRESULT DPNET_CreateDirectPlay8LobbiedApp(LPCLASSFACTORY iface, LPUNKNOWN punkOu
 
   TRACE("(%p, %s, %p)\n", punkOuter, debugstr_guid(riid), ppobj);
 
-  app = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectPlay8LobbiedApplicationImpl));
+  app = heap_alloc_zero(sizeof(IDirectPlay8LobbiedApplicationImpl));
   if (NULL == app) {
     *ppobj = NULL;
     return E_OUTOFMEMORY;

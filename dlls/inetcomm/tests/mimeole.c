@@ -121,7 +121,7 @@ static WCHAR *a2w(const char *str)
         return NULL;
 
     len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-    ret = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+    ret = heap_alloc(len*sizeof(WCHAR));
     MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
     return ret;
 }
@@ -334,7 +334,7 @@ static ULONG WINAPI Stream_Release(IStream *iface)
     ULONG ref = InterlockedDecrement(&This->ref);
 
     if (!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -456,7 +456,7 @@ static const IStreamVtbl StreamVtbl = {
 static IStream *create_test_stream(void)
 {
     TestStream *stream;
-    stream = HeapAlloc(GetProcessHeap(), 0, sizeof(*stream));
+    stream = heap_alloc(sizeof(*stream));
     stream->IStream_iface.lpVtbl = &StreamVtbl;
     stream->ref = 1;
     stream->pos = 0;
@@ -1536,8 +1536,8 @@ static void test_mhtml_protocol_info(void)
             ok(!combined_len, "[%u] combined_len = %u\n", i, combined_len);
         }
 
-        HeapFree(GetProcessHeap(), 0, base_url);
-        HeapFree(GetProcessHeap(), 0, relative_url);
+        heap_free(base_url);
+        heap_free(relative_url);
     }
 
     hres = IInternetProtocolInfo_CombineUrl(protocol_info, http_url, http_url, ICU_BROWSER_MODE,
@@ -1632,7 +1632,7 @@ static void test_MimeOleObjectFromMoniker(void)
         url = a2w(tests[i].url);
         hres = CreateURLMoniker(NULL, url, &mon);
         ok(hres == S_OK, "CreateURLMoniker failed: %08x\n", hres);
-        HeapFree(GetProcessHeap(), 0, url);
+        heap_free(url);
 
         hres = CreateBindCtx(0, &bind_ctx);
         ok(hres == S_OK, "CreateBindCtx failed: %08x\n", hres);

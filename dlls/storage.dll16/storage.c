@@ -1168,7 +1168,7 @@ ULONG CDECL IStream16_fnRelease(IStream16 *iface)
 	else
 	    _ilockbytes16_release(This->str.lockbytes);
         UnMapLS( This->thisptr );
-	HeapFree( GetProcessHeap(), 0, This );
+	heap_free( This );
 	return 0;
 }
 
@@ -1309,7 +1309,7 @@ HRESULT CDECL IStream16_fnWrite(IStream16 *iface, const void *pv, ULONG cb, ULON
 				/* Migrate large blocks to small blocks
 				 * (we just migrate newsize bytes)
 				 */
-				LPBYTE	curdata,data = HeapAlloc(GetProcessHeap(),0,newsize+BIGSIZE);
+				LPBYTE	curdata,data = heap_alloc(newsize+BIGSIZE);
 				HRESULT r = E_FAIL;
 
 				cc	= newsize;
@@ -1317,7 +1317,7 @@ HRESULT CDECL IStream16_fnWrite(IStream16 *iface, const void *pv, ULONG cb, ULON
 				curdata = data;
 				while (cc>0) {
 					if (!STORAGE_get_big_block(&This->str,blocknr,curdata)) {
-						HeapFree(GetProcessHeap(),0,data);
+						heap_free(data);
 						return E_FAIL;
 					}
 					curdata	+= BIGSIZE;
@@ -1352,7 +1352,7 @@ HRESULT CDECL IStream16_fnWrite(IStream16 *iface, const void *pv, ULONG cb, ULON
 				}
 				r = S_OK;
 			err:
-				HeapFree(GetProcessHeap(),0,data);
+				heap_free(data);
 				if(r != S_OK)
 					return r;
 			}
@@ -1408,7 +1408,7 @@ HRESULT CDECL IStream16_fnWrite(IStream16 *iface, const void *pv, ULONG cb, ULON
 					This->stde.pps_sb = blocknr;
 				} else {
 					/* Migrate small blocks to big blocks */
-					LPBYTE	curdata,data = HeapAlloc(GetProcessHeap(),0,oldsize+BIGSIZE);
+					LPBYTE	curdata,data = heap_alloc(oldsize+BIGSIZE);
 					HRESULT r = E_FAIL;
 
 					cc	= oldsize;
@@ -1451,7 +1451,7 @@ HRESULT CDECL IStream16_fnWrite(IStream16 *iface, const void *pv, ULONG cb, ULON
 					}
 					r = S_OK;
 				err2:
-					HeapFree(GetProcessHeap(),0,data);
+					heap_free(data);
 					if(r != S_OK)
 						return r;
 				}
@@ -1589,7 +1589,7 @@ static void _create_istream16(LPSTREAM16 *str) {
 			segstrvt16 = &strvt16;
 		}
 	}
-	lpst = HeapAlloc( GetProcessHeap(), 0, sizeof(*lpst) );
+	lpst = heap_alloc( sizeof(*lpst) );
 	lpst->IStream16_iface.lpVtbl = segstrvt16;
 	lpst->ref	= 1;
 	lpst->thisptr	= MapLS( lpst );
@@ -1639,7 +1639,7 @@ ULONG CDECL IStorage16_fnRelease(IStorage16 *iface)
         if (!ref)
         {
             UnMapLS( This->thisptr );
-            HeapFree( GetProcessHeap(), 0, This );
+            heap_free( This );
         }
         return ref;
 }
@@ -1651,7 +1651,7 @@ HRESULT CDECL IStorage16_fnStat(IStorage16 *iface, STATSTG16 *pstatstg, DWORD gr
 {
         IStorage16Impl *This = impl_from_IStorage16(iface);
         DWORD len = WideCharToMultiByte( CP_ACP, 0, This->stde.pps_rawname, -1, NULL, 0, NULL, NULL );
-        LPSTR nameA = HeapAlloc( GetProcessHeap(), 0, len );
+        LPSTR nameA = heap_alloc( len );
 
 	TRACE("(%p)->(%p,0x%08x)\n",
 		This,pstatstg,grfStatFlag
@@ -1972,7 +1972,7 @@ static void _create_istorage16(LPSTORAGE16 *stg) {
 			segstvt16 = &stvt16;
 		}
 	}
-	lpst = HeapAlloc( GetProcessHeap(), 0, sizeof(*lpst) );
+	lpst = heap_alloc( sizeof(*lpst) );
 	lpst->IStorage16_iface.lpVtbl = segstvt16;
 	lpst->str.hf	= NULL;
 	lpst->str.lockbytes	= 0;

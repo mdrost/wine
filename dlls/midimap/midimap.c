@@ -271,13 +271,13 @@ static void MIDIMAP_NotifyClient(MIDIMAPDATA* mom, WORD wMsg,
 
 static DWORD modOpen(DWORD_PTR *lpdwUser, LPMIDIOPENDESC lpDesc, DWORD dwFlags)
 {
-    MIDIMAPDATA*	mom = HeapAlloc(GetProcessHeap(), 0, sizeof(MIDIMAPDATA));
+    MIDIMAPDATA*	mom = heap_alloc(sizeof(MIDIMAPDATA));
 
     TRACE("(%p %p %08x)\n", lpdwUser, lpDesc, dwFlags);
 
     if (!mom) return MMSYSERR_NOMEM;
     if (!lpDesc) {
-	HeapFree(GetProcessHeap(), 0, mom);
+	heap_free(mom);
 	return MMSYSERR_INVALPARAM;
     }
 
@@ -292,7 +292,7 @@ static DWORD modOpen(DWORD_PTR *lpdwUser, LPMIDIOPENDESC lpDesc, DWORD dwFlags)
 
 	return MMSYSERR_NOERROR;
     }
-    HeapFree(GetProcessHeap(), 0, mom);
+    heap_free(mom);
     return MIDIERR_INVALIDSETUP;
 }
 
@@ -320,7 +320,7 @@ static	DWORD	modClose(MIDIMAPDATA* mom)
     }
     if (ret == MMSYSERR_NOERROR) {
 	MIDIMAP_NotifyClient(mom, MOM_CLOSE, 0L, 0L);
-	HeapFree(GetProcessHeap(), 0, mom);
+	heap_free(mom);
     }
     return ret;
 }
@@ -596,7 +596,7 @@ static LRESULT MIDIMAP_drvClose(void)
 {
     if (midiOutPorts)
     {
-	HeapFree(GetProcessHeap(), 0, midiOutPorts);
+	heap_free(midiOutPorts);
 	midiOutPorts = NULL;
 	return 1;
     }

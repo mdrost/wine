@@ -141,7 +141,7 @@ SEGPTR CDECL IMalloc16_fnAlloc(IMalloc16* iface,DWORD cb) {
         IMalloc16Impl *This = impl_from_IMalloc16(iface);
 
 	TRACE("(%p)->Alloc(%d)\n",This,cb);
-        return MapLS( HeapAlloc( GetProcessHeap(), 0, cb ) );
+        return MapLS( heap_alloc( cb ) );
 }
 
 /******************************************************************************
@@ -153,7 +153,7 @@ VOID CDECL IMalloc16_fnFree(IMalloc16* iface,SEGPTR pv)
     IMalloc16Impl *This = impl_from_IMalloc16(iface);
     TRACE("(%p)->Free(%08x)\n",This,pv);
     UnMapLS(pv);
-    HeapFree( GetProcessHeap(), 0, ptr );
+    heap_free( ptr );
 }
 
 /******************************************************************************
@@ -168,7 +168,7 @@ SEGPTR CDECL IMalloc16_fnRealloc(IMalloc16* iface,SEGPTR pv,DWORD cb)
     if (!pv)
 	ret = IMalloc16_fnAlloc(iface, cb);
     else if (cb) {
-        ret = MapLS( HeapReAlloc( GetProcessHeap(), 0, MapSL(pv), cb ) );
+        ret = MapLS( heap_realloc( MapSL(pv), cb ) );
         UnMapLS(pv);
     } else {
 	IMalloc16_fnFree(iface, pv);
@@ -219,7 +219,7 @@ IMalloc16_Constructor(void)
     IMalloc16Impl* This;
     HMODULE16 hcomp = GetModuleHandle16("COMPOBJ");
 
-    This = HeapAlloc( GetProcessHeap(), 0, sizeof(IMalloc16Impl) );
+    This = heap_alloc( sizeof(IMalloc16Impl) );
     if (!msegvt16)
     {
 #define VTENT(x) vt16.x = (void*)GetProcAddress16(hcomp,"IMalloc16_"#x);assert(vt16.x)
@@ -672,13 +672,13 @@ HRESULT WINAPI CLSIDFromProgID16(LPCOLESTR16 progid, LPCLSID riid)
 	LONG	buf2len;
 	HKEY	xhkey;
 
-	buf = HeapAlloc(GetProcessHeap(),0,strlen(progid)+8);
+	buf = heap_alloc(strlen(progid)+8);
 	sprintf(buf,"%s\\CLSID",progid);
 	if (RegOpenKeyA(HKEY_CLASSES_ROOT,buf,&xhkey)) {
-		HeapFree(GetProcessHeap(),0,buf);
+		heap_free(buf);
                 return CO_E_CLASSSTRING;
 	}
-	HeapFree(GetProcessHeap(),0,buf);
+	heap_free(buf);
 	buf2len = sizeof(buf2);
 	if (RegQueryValueA(xhkey,NULL,buf2,&buf2len)) {
 		RegCloseKey(xhkey);

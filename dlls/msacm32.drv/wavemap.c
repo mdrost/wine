@@ -153,7 +153,7 @@ static	DWORD	wodOpen(DWORD_PTR *lpdwUser, LPWAVEOPENDESC lpDesc, DWORD dwFlags)
 {
     UINT 		ndlo, ndhi;
     UINT		i;
-    WAVEMAPDATA*	wom = HeapAlloc(GetProcessHeap(), 0, sizeof(WAVEMAPDATA));
+    WAVEMAPDATA*	wom = heap_alloc(sizeof(WAVEMAPDATA));
     DWORD               res;
 
     TRACE("(%p %p %08x)\n", lpdwUser, lpDesc, dwFlags);
@@ -167,7 +167,7 @@ static	DWORD	wodOpen(DWORD_PTR *lpdwUser, LPWAVEOPENDESC lpDesc, DWORD dwFlags)
     if (dwFlags & WAVE_MAPPED) {
 	if (lpDesc->uMappedDeviceID >= ndhi) {
             WARN("invalid parameter: dwFlags WAVE_MAPPED\n");
-            HeapFree(GetProcessHeap(), 0, wom);
+            heap_free(wom);
             return MMSYSERR_INVALPARAM;
         }
 	ndlo = lpDesc->uMappedDeviceID;
@@ -271,20 +271,20 @@ static	DWORD	wodOpen(DWORD_PTR *lpdwUser, LPWAVEOPENDESC lpDesc, DWORD dwFlags)
 #undef TRY
     }
 
-    HeapFree(GetProcessHeap(), 0, wom);
+    heap_free(wom);
     WARN("ret = WAVERR_BADFORMAT\n");
     return WAVERR_BADFORMAT;
 
 found:
     if (dwFlags & WAVE_FORMAT_QUERY) {
 	*lpdwUser = 0L;
-	HeapFree(GetProcessHeap(), 0, wom);
+	heap_free(wom);
     } else {
         *lpdwUser = (DWORD_PTR)wom;
     }
     return MMSYSERR_NOERROR;
 error:
-    HeapFree(GetProcessHeap(), 0, wom);
+    heap_free(wom);
     if (res==ACMERR_NOTPOSSIBLE) {
         WARN("ret = WAVERR_BADFORMAT\n");
         return WAVERR_BADFORMAT;
@@ -305,7 +305,7 @@ static	DWORD	wodClose(WAVEMAPDATA* wom)
 	    ret = acmStreamClose(wom->hAcmStream, 0);
 	}
 	if (ret == MMSYSERR_NOERROR) {
-	    HeapFree(GetProcessHeap(), 0, wom);
+	    heap_free(wom);
 	}
     }
     return ret;
@@ -363,7 +363,7 @@ static	DWORD	wodPrepare(WAVEMAPDATA* wom, LPWAVEHDR lpWaveHdrSrc, DWORD dwParam2
 	return MMSYSERR_ERROR;
     }
 
-    ash = HeapAlloc(GetProcessHeap(), 0, sizeof(ACMSTREAMHEADER) + sizeof(WAVEHDR) + size);
+    ash = heap_alloc(sizeof(ACMSTREAMHEADER) + sizeof(WAVEHDR) + size);
     if (ash == NULL) {
         WARN("no memory\n");
 	return MMSYSERR_NOMEM;
@@ -403,7 +403,7 @@ static	DWORD	wodPrepare(WAVEMAPDATA* wom, LPWAVEHDR lpWaveHdrSrc, DWORD dwParam2
     return MMSYSERR_NOERROR;
 errCleanUp:
     TRACE("=> (%d)\n", dwRet);
-    HeapFree(GetProcessHeap(), 0, ash);
+    heap_free(ash);
     return dwRet;
 }
 
@@ -424,7 +424,7 @@ static	DWORD	wodUnprepare(WAVEMAPDATA* wom, LPWAVEHDR lpWaveHdrSrc, DWORD dwPara
     lpWaveHdrDst = (LPWAVEHDR)((LPSTR)ash + sizeof(ACMSTREAMHEADER));
     dwRet2 = waveOutUnprepareHeader(wom->u.out.hInnerWave, lpWaveHdrDst, sizeof(*lpWaveHdrDst));
 
-    HeapFree(GetProcessHeap(), 0, ash);
+    heap_free(ash);
 
     lpWaveHdrSrc->dwFlags &= ~WHDR_PREPARED;
     return (dwRet1 == MMSYSERR_NOERROR) ? dwRet2 : dwRet1;
@@ -743,7 +743,7 @@ static	DWORD	widOpen(DWORD_PTR *lpdwUser, LPWAVEOPENDESC lpDesc, DWORD dwFlags)
 {
     UINT 		ndlo, ndhi;
     UINT		i;
-    WAVEMAPDATA*	wim = HeapAlloc(GetProcessHeap(), 0, sizeof(WAVEMAPDATA));
+    WAVEMAPDATA*	wim = heap_alloc(sizeof(WAVEMAPDATA));
     DWORD               res;
 
     TRACE("(%p %p %08x)\n", lpdwUser, lpDesc, dwFlags);
@@ -844,20 +844,20 @@ static	DWORD	widOpen(DWORD_PTR *lpdwUser, LPWAVEOPENDESC lpDesc, DWORD dwFlags)
 #undef TRY
     }
 
-    HeapFree(GetProcessHeap(), 0, wim);
+    heap_free(wim);
     WARN("ret = WAVERR_BADFORMAT\n");
     return WAVERR_BADFORMAT;
 found:
     if (dwFlags & WAVE_FORMAT_QUERY) {
 	*lpdwUser = 0L;
-	HeapFree(GetProcessHeap(), 0, wim);
+	heap_free(wim);
     } else {
         *lpdwUser = (DWORD_PTR)wim;
         TRACE("Ok (stream=%p)\n", wim->hAcmStream);
     }
     return MMSYSERR_NOERROR;
 error:
-    HeapFree(GetProcessHeap(), 0, wim);
+    heap_free(wim);
     if (res==ACMERR_NOTPOSSIBLE) {
         WARN("ret = WAVERR_BADFORMAT\n");
         return WAVERR_BADFORMAT;
@@ -878,7 +878,7 @@ static	DWORD	widClose(WAVEMAPDATA* wim)
 	    ret = acmStreamClose(wim->hAcmStream, 0);
 	}
 	if (ret == MMSYSERR_NOERROR) {
-	    HeapFree(GetProcessHeap(), 0, wim);
+	    heap_free(wim);
 	}
     }
     return ret;
@@ -920,7 +920,7 @@ static	DWORD	widPrepare(WAVEMAPDATA* wim, LPWAVEHDR lpWaveHdrDst, DWORD dwParam2
 	return MMSYSERR_ERROR;
     }
 
-    ash = HeapAlloc(GetProcessHeap(), 0, sizeof(ACMSTREAMHEADER) + sizeof(WAVEHDR) + size);
+    ash = heap_alloc(sizeof(ACMSTREAMHEADER) + sizeof(WAVEHDR) + size);
     if (ash == NULL) {
         WARN("no memory\n");
 	return MMSYSERR_NOMEM;
@@ -960,7 +960,7 @@ static	DWORD	widPrepare(WAVEMAPDATA* wim, LPWAVEHDR lpWaveHdrDst, DWORD dwParam2
     return MMSYSERR_NOERROR;
 errCleanUp:
     TRACE("=> (%d)\n", dwRet);
-    HeapFree(GetProcessHeap(), 0, ash);
+    heap_free(ash);
     return dwRet;
 }
 
@@ -981,7 +981,7 @@ static	DWORD	widUnprepare(WAVEMAPDATA* wim, LPWAVEHDR lpWaveHdrDst, DWORD dwPara
     lpWaveHdrSrc = (LPWAVEHDR)((LPSTR)ash + sizeof(ACMSTREAMHEADER));
     dwRet2 = waveInUnprepareHeader(wim->u.in.hInnerWave, lpWaveHdrSrc, sizeof(*lpWaveHdrSrc));
 
-    HeapFree(GetProcessHeap(), 0, ash);
+    heap_free(ash);
 
     lpWaveHdrDst->dwFlags &= ~WHDR_PREPARED;
     return (dwRet1 == MMSYSERR_NOERROR) ? dwRet2 : dwRet1;

@@ -105,7 +105,7 @@ static ULONG WINAPI VUMXAPO_Release(IXAPO *iface)
     TRACE("(%p)->(): Refcount now %u\n", This, ref);
 
     if(!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -307,7 +307,7 @@ static ULONG WINAPI RVBXAPO_Release(IXAPO *iface)
     TRACE("(%p)->(): Refcount now %u\n", This, ref);
 
     if(!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -508,7 +508,7 @@ static ULONG WINAPI EQXAPO_Release(IXAPO *iface)
     TRACE("(%p)->(): Refcount now %u\n", This, ref);
 
     if(!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -693,7 +693,7 @@ static ULONG WINAPI xapocf_Release(IClassFactory *iface)
     ULONG ref = InterlockedDecrement(&This->ref);
     TRACE("(%p)->(): Refcount now %u\n", This, ref);
     if (!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return ref;
 }
 
@@ -713,7 +713,7 @@ static HRESULT WINAPI xapocf_CreateInstance(IClassFactory *iface, IUnknown *pOut
     if(IsEqualGUID(This->class, &CLSID_AudioVolumeMeter27)){
         VUMeterImpl *object;
 
-        object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+        object = heap_alloc_zero(sizeof(*object));
         if(!object)
             return E_OUTOFMEMORY;
 
@@ -722,13 +722,13 @@ static HRESULT WINAPI xapocf_CreateInstance(IClassFactory *iface, IUnknown *pOut
 
         hr = IXAPO_QueryInterface(&object->IXAPO_iface, riid, ppobj);
         if(FAILED(hr)){
-            HeapFree(GetProcessHeap(), 0, object);
+            heap_free(object);
             return hr;
         }
     }else if(IsEqualGUID(This->class, &CLSID_FXReverb)){
         ReverbImpl *object;
 
-        object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+        object = heap_alloc_zero(sizeof(*object));
         if(!object)
             return E_OUTOFMEMORY;
 
@@ -737,13 +737,13 @@ static HRESULT WINAPI xapocf_CreateInstance(IClassFactory *iface, IUnknown *pOut
 
         hr = IXAPO_QueryInterface(&object->IXAPO_iface, riid, ppobj);
         if(FAILED(hr)){
-            HeapFree(GetProcessHeap(), 0, object);
+            heap_free(object);
             return hr;
         }
     }else if(IsEqualGUID(This->class, &CLSID_FXEQ)){
         EQImpl *object;
 
-        object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+        object = heap_alloc_zero(sizeof(*object));
         if(!object)
             return E_OUTOFMEMORY;
 
@@ -752,7 +752,7 @@ static HRESULT WINAPI xapocf_CreateInstance(IClassFactory *iface, IUnknown *pOut
 
         hr = IXAPO_QueryInterface(&object->IXAPO_iface, riid, ppobj);
         if(FAILED(hr)){
-            HeapFree(GetProcessHeap(), 0, object);
+            heap_free(object);
             return hr;
         }
     }else
@@ -764,8 +764,7 @@ static HRESULT WINAPI xapocf_CreateInstance(IClassFactory *iface, IUnknown *pOut
 
 static HRESULT WINAPI xapocf_LockServer(IClassFactory *iface, BOOL dolock)
 {
-    struct xapo_cf *This = xapo_impl_from_IClassFactory(iface);
-    FIXME("(%p)->(%d): stub!\n", This, dolock);
+    FIXME("(static)->(%d): stub!\n", dolock);
     return S_OK;
 }
 
@@ -778,17 +777,13 @@ static const IClassFactoryVtbl xapo_Vtbl =
     xapocf_LockServer
 };
 
-HRESULT make_xapo_factory(REFCLSID clsid, REFIID riid, void **ppv)
+IClassFactory *make_xapo_factory(REFCLSID clsid)
 {
-    HRESULT hr;
-    struct xapo_cf *ret = HeapAlloc(GetProcessHeap(), 0, sizeof(struct xapo_cf));
+    struct xapo_cf *ret = heap_alloc(sizeof(struct xapo_cf));
     ret->IClassFactory_iface.lpVtbl = &xapo_Vtbl;
     ret->class = clsid;
     ret->ref = 0;
-    hr = IClassFactory_QueryInterface(&ret->IClassFactory_iface, riid, ppv);
-    if(FAILED(hr))
-        HeapFree(GetProcessHeap(), 0, ret);
-    return hr;
+    return &ret->IClassFactory_iface;
 }
 
 #if XAUDIO2_VER >= 8
@@ -797,9 +792,7 @@ HRESULT WINAPI CreateAudioVolumeMeter(IUnknown **out)
     IClassFactory *cf;
     HRESULT hr;
 
-    hr = make_xapo_factory(&CLSID_AudioVolumeMeter27, &IID_IClassFactory, (void**)&cf);
-    if(FAILED(hr))
-        return hr;
+    cf = make_xapo_factory(&CLSID_AudioVolumeMeter27);
 
     hr = IClassFactory_CreateInstance(cf, NULL, &IID_IUnknown, (void**)out);
 
@@ -813,9 +806,7 @@ HRESULT WINAPI CreateAudioReverb(IUnknown **out)
     IClassFactory *cf;
     HRESULT hr;
 
-    hr = make_xapo_factory(&CLSID_FXReverb, &IID_IClassFactory, (void**)&cf);
-    if(FAILED(hr))
-        return hr;
+    cf = make_xapo_factory(&CLSID_FXReverb);
 
     hr = IClassFactory_CreateInstance(cf, NULL, &IID_IUnknown, (void**)out);
 
@@ -841,9 +832,7 @@ HRESULT CDECL CreateFX(REFCLSID clsid, IUnknown **out, void *initdata, UINT32 in
         class = &CLSID_FXEQ;
 
     if(class){
-        hr = make_xapo_factory(class, &IID_IClassFactory, (void**)&cf);
-        if(FAILED(hr))
-            return hr;
+        cf = make_xapo_factory(class);
 
         hr = IClassFactory_CreateInstance(cf, NULL, &IID_IUnknown, (void**)&obj);
         IClassFactory_Release(cf);
@@ -901,9 +890,7 @@ HRESULT CDECL CreateFX(REFCLSID clsid, IUnknown **out)
     /* TODO FXECHO, FXMasteringLimiter, */
 
     if(class){
-        hr = make_xapo_factory(class, &IID_IClassFactory, (void**)&cf);
-        if(FAILED(hr))
-            return hr;
+        cf = make_xapo_factory(class);
 
         hr = IClassFactory_CreateInstance(cf, NULL, &IID_IUnknown, (void**)&obj);
         IClassFactory_Release(cf);

@@ -217,8 +217,8 @@ static HRESULT WINAPI XA2SRC_SetOutputVoices(IXAudio2SourceVoice *iface,
     }
 
     if(This->nsends < pSendList->SendCount){
-        HeapFree(GetProcessHeap(), 0, This->sends);
-        This->sends = HeapAlloc(GetProcessHeap(), 0, sizeof(*This->sends) * pSendList->SendCount);
+        heap_free(This->sends);
+        This->sends = heap_alloc(sizeof(*This->sends) * pSendList->SendCount);
         This->nsends = pSendList->SendCount;
     }else
         memset(This->sends, 0, sizeof(*This->sends) * This->nsends);
@@ -431,7 +431,7 @@ static void WINAPI XA2SRC_DestroyVoice(IXAudio2SourceVoice *iface)
         alSourceUnqueueBuffers(This->al_src, processed, al_buffers);
     }
 
-    HeapFree(GetProcessHeap(), 0, This->fmt);
+    heap_free(This->fmt);
 
     alDeleteBuffers(XAUDIO2_MAX_QUEUED_BUFFERS, This->al_bufs);
     alDeleteSources(1, &This->al_src);
@@ -1319,18 +1319,18 @@ static ULONG WINAPI IXAudio2Impl_Release(IXAudio2 *iface)
         }
 
         LIST_FOR_EACH_ENTRY_SAFE(src, src2, &This->source_voices, XA2SourceImpl, entry){
-            HeapFree(GetProcessHeap(), 0, src->sends);
+            heap_free(src->sends);
             IXAudio2SourceVoice_DestroyVoice(&src->IXAudio2SourceVoice_iface);
             src->lock.DebugInfo->Spare[0] = 0;
             DeleteCriticalSection(&src->lock);
-            HeapFree(GetProcessHeap(), 0, src);
+            heap_free(src);
         }
 
         LIST_FOR_EACH_ENTRY_SAFE(sub, sub2, &This->submix_voices, XA2SubmixImpl, entry){
             IXAudio2SubmixVoice_DestroyVoice(&sub->IXAudio2SubmixVoice_iface);
             sub->lock.DebugInfo->Spare[0] = 0;
             DeleteCriticalSection(&sub->lock);
-            HeapFree(GetProcessHeap(), 0, sub);
+            heap_free(sub);
         }
 
         IXAudio2MasteringVoice_DestroyVoice(&This->IXAudio2MasteringVoice_iface);
@@ -1339,15 +1339,15 @@ static ULONG WINAPI IXAudio2Impl_Release(IXAudio2 *iface)
             IMMDeviceEnumerator_Release(This->devenum);
         for(i = 0; i < This->ndevs; ++i)
             CoTaskMemFree(This->devids[i]);
-        HeapFree(GetProcessHeap(), 0, This->devids);
-        HeapFree(GetProcessHeap(), 0, This->cbs);
+        heap_free(This->devids);
+        heap_free(This->cbs);
 
         CloseHandle(This->mmevt);
 
         This->lock.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->lock);
 
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -1371,7 +1371,7 @@ static HRESULT WINAPI IXAudio2Impl_RegisterForCallbacks(IXAudio2 *iface,
     }
 
     This->ncbs *= 2;
-    This->cbs = HeapReAlloc(GetProcessHeap(), 0, This->cbs, This->ncbs * sizeof(*This->cbs));
+    This->cbs = heap_realloc(This->cbs, This->ncbs * sizeof(*This->cbs));
 
     This->cbs[i] = pCallback;
 
@@ -1409,11 +1409,11 @@ static WAVEFORMATEX *copy_waveformat(const WAVEFORMATEX *wfex)
     WAVEFORMATEX *pwfx;
 
     if(wfex->wFormatTag == WAVE_FORMAT_PCM){
-        pwfx = HeapAlloc(GetProcessHeap(), 0, sizeof(WAVEFORMATEX));
+        pwfx = heap_alloc(sizeof(WAVEFORMATEX));
         CopyMemory(pwfx, wfex, sizeof(PCMWAVEFORMAT));
         pwfx->cbSize = 0;
     }else{
-        pwfx = HeapAlloc(GetProcessHeap(), 0, sizeof(WAVEFORMATEX) + wfex->cbSize);
+        pwfx = heap_alloc(sizeof(WAVEFORMATEX) + wfex->cbSize);
         CopyMemory(pwfx, wfex, sizeof(WAVEFORMATEX) + wfex->cbSize);
     }
 
@@ -1448,7 +1448,7 @@ static HRESULT WINAPI IXAudio2Impl_CreateSourceVoice(IXAudio2 *iface,
     }
 
     if(&src->entry == &This->source_voices){
-        src = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*src));
+        src = heap_alloc_zero(sizeof(*src));
         if(!src){
             LeaveCriticalSection(&This->lock);
             return E_OUTOFMEMORY;
@@ -1495,7 +1495,7 @@ static HRESULT WINAPI IXAudio2Impl_CreateSourceVoice(IXAudio2 *iface,
 
     hr = XA2SRC_SetOutputVoices(&src->IXAudio2SourceVoice_iface, pSendList);
     if(FAILED(hr)){
-        HeapFree(GetProcessHeap(), 0, src->fmt);
+        heap_free(src->fmt);
         src->in_use = FALSE;
         LeaveCriticalSection(&src->lock);
         return hr;
@@ -1506,7 +1506,7 @@ static HRESULT WINAPI IXAudio2Impl_CreateSourceVoice(IXAudio2 *iface,
         static int once = 0;
         if(!once++)
             ERR_(winediag)("OpenAL ran out of sources, consider increasing its source limit.\n");
-        HeapFree(GetProcessHeap(), 0, src->fmt);
+        heap_free(src->fmt);
         src->in_use = FALSE;
         LeaveCriticalSection(&src->lock);
         return E_OUTOFMEMORY;
@@ -1556,7 +1556,7 @@ static HRESULT WINAPI IXAudio2Impl_CreateSubmixVoice(IXAudio2 *iface,
     }
 
     if(&sub->entry == &This->submix_voices){
-        sub = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*sub));
+        sub = heap_alloc_zero(sizeof(*sub));
         if(!sub){
             LeaveCriticalSection(&This->lock);
             return E_OUTOFMEMORY;
@@ -1976,7 +1976,7 @@ static ULONG WINAPI XAudio2CF_Release(IClassFactory *iface)
     ULONG ref = InterlockedDecrement(&This->ref);
     TRACE("(%p)->(): Refcount now %u\n", This, ref);
     if (!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return ref;
 }
 
@@ -2012,7 +2012,7 @@ static HRESULT initialize_mmdevices(IXAudio2Impl *This)
         /* make sure that device 0 is the default device */
         IMMDeviceEnumerator_GetDefaultAudioEndpoint(This->devenum, eRender, eConsole, &def_dev);
 
-        This->devids = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR *) * devcount);
+        This->devids = heap_alloc(sizeof(WCHAR *) * devcount);
 
         for(i = 0; i < devcount; ++i){
             hr = IMMDeviceCollection_Item(devcoll, i, &dev);
@@ -2029,7 +2029,7 @@ static HRESULT initialize_mmdevices(IXAudio2Impl *This)
                 hr = IMMDevice_GetId(dev, &This->devids[idx]);
                 if(FAILED(hr)){
                     WARN("GetId failed: %08x\n", hr);
-                    HeapFree(GetProcessHeap(), 0, This->devids);
+                    heap_free(This->devids);
                     This->devids = NULL;
                     IMMDevice_Release(dev);
                     return hr;
@@ -2038,7 +2038,7 @@ static HRESULT initialize_mmdevices(IXAudio2Impl *This)
                 IMMDevice_Release(dev);
             }else{
                 WARN("Item failed: %08x\n", hr);
-                HeapFree(GetProcessHeap(), 0, This->devids);
+                heap_free(This->devids);
                 This->devids = NULL;
                 IMMDeviceCollection_Release(devcoll);
                 return hr;
@@ -2067,7 +2067,7 @@ static HRESULT WINAPI XAudio2CF_CreateInstance(IClassFactory *iface, IUnknown *p
     if(pOuter)
         return CLASS_E_NOAGGREGATION;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if(!object)
         return E_OUTOFMEMORY;
 
@@ -2099,7 +2099,7 @@ static HRESULT WINAPI XAudio2CF_CreateInstance(IClassFactory *iface, IUnknown *p
 
     hr = IXAudio2_QueryInterface(&object->IXAudio2_iface, riid, ppobj);
     if(FAILED(hr)){
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         return hr;
     }
 
@@ -2110,7 +2110,7 @@ static HRESULT WINAPI XAudio2CF_CreateInstance(IClassFactory *iface, IUnknown *p
     }
 
     object->ncbs = 4;
-    object->cbs = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, object->ncbs * sizeof(*object->cbs));
+    object->cbs = heap_alloc_zero(object->ncbs * sizeof(*object->cbs));
 
     IXAudio2_StartEngine(&object->IXAudio2_iface);
 
@@ -2121,8 +2121,7 @@ static HRESULT WINAPI XAudio2CF_CreateInstance(IClassFactory *iface, IUnknown *p
 
 static HRESULT WINAPI XAudio2CF_LockServer(IClassFactory *iface, BOOL dolock)
 {
-    struct xaudio2_cf *This = impl_from_IClassFactory(iface);
-    FIXME("(%p)->(%d): stub!\n", This, dolock);
+    FIXME("(static)->(%d): stub!\n", dolock);
     return S_OK;
 }
 
@@ -2135,20 +2134,18 @@ static const IClassFactoryVtbl XAudio2CF_Vtbl =
     XAudio2CF_LockServer
 };
 
-static HRESULT make_xaudio2_factory(REFIID riid, void **ppv)
+static IClassFactory *make_xaudio2_factory(void)
 {
-    HRESULT hr;
-    struct xaudio2_cf *ret = HeapAlloc(GetProcessHeap(), 0, sizeof(struct xaudio2_cf));
+    struct xaudio2_cf *ret = heap_alloc(sizeof(struct xaudio2_cf));
     ret->IClassFactory_iface.lpVtbl = &XAudio2CF_Vtbl;
     ret->ref = 0;
-    hr = IClassFactory_QueryInterface(&ret->IClassFactory_iface, riid, ppv);
-    if(FAILED(hr))
-        HeapFree(GetProcessHeap(), 0, ret);
-    return hr;
+    return &ret->IClassFactory_iface;
 }
 
 HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void **ppv)
 {
+    IClassFactory *factory = NULL;
+
     TRACE("(%s, %s, %p)\n", debugstr_guid(rclsid), debugstr_guid(riid), ppv);
 
     if(IsEqualGUID(rclsid, &CLSID_XAudio20) ||
@@ -2158,30 +2155,33 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void **ppv)
             IsEqualGUID(rclsid, &CLSID_XAudio24) ||
             IsEqualGUID(rclsid, &CLSID_XAudio25) ||
             IsEqualGUID(rclsid, &CLSID_XAudio26) ||
-            IsEqualGUID(rclsid, &CLSID_XAudio27))
-        return make_xaudio2_factory(riid, ppv);
+            IsEqualGUID(rclsid, &CLSID_XAudio27)){
+        factory = make_xaudio2_factory();
 
-    if(IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter20) ||
+    }else if(IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter20) ||
                 IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter21) ||
                 IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter22) ||
                 IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter23) ||
                 IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter24) ||
                 IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter25) ||
                 IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter26) ||
-                IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter27))
-        return make_xapo_factory(&CLSID_AudioVolumeMeter27, riid, ppv);
+                IsEqualGUID(rclsid, &CLSID_AudioVolumeMeter27)){
+        factory = make_xapo_factory(&CLSID_AudioVolumeMeter27);
 
-    if(IsEqualGUID(rclsid, &CLSID_AudioReverb20) ||
+    }else if(IsEqualGUID(rclsid, &CLSID_AudioReverb20) ||
                 IsEqualGUID(rclsid, &CLSID_AudioReverb21) ||
                 IsEqualGUID(rclsid, &CLSID_AudioReverb22) ||
                 IsEqualGUID(rclsid, &CLSID_AudioReverb23) ||
                 IsEqualGUID(rclsid, &CLSID_AudioReverb24) ||
                 IsEqualGUID(rclsid, &CLSID_AudioReverb25) ||
                 IsEqualGUID(rclsid, &CLSID_AudioReverb26) ||
-                IsEqualGUID(rclsid, &CLSID_AudioReverb27))
-        return make_xapo_factory(&CLSID_FXReverb, riid, ppv);
+                IsEqualGUID(rclsid, &CLSID_AudioReverb27)){
+        factory = make_xapo_factory(&CLSID_FXReverb);
+    }
 
-    return CLASS_E_CLASSNOTAVAILABLE;
+    if(!factory) return CLASS_E_CLASSNOTAVAILABLE;
+
+    return IClassFactory_QueryInterface(factory, riid, ppv);
 }
 
 HRESULT xaudio2_initialize(IXAudio2Impl *This, UINT32 flags, XAUDIO2_PROCESSOR proc)
@@ -2200,9 +2200,7 @@ HRESULT WINAPI XAudio2Create(IXAudio2 **ppxa2, UINT32 flags, XAUDIO2_PROCESSOR p
 
     TRACE("%p 0x%x 0x%x\n", ppxa2, flags, proc);
 
-    hr = make_xaudio2_factory(&IID_IClassFactory, (void**)&cf);
-    if(FAILED(hr))
-        return hr;
+    cf = make_xaudio2_factory();
 
     hr = IClassFactory_CreateInstance(cf, NULL, &IID_IXAudio2, (void**)&xa2);
     IClassFactory_Release(cf);

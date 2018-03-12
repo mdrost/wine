@@ -136,7 +136,7 @@ static HRESULT WINAPI XA20SRC_SetOutputVoices(IXAudio20SourceVoice *iface,
     TRACE("%p, %p\n", This, pSendList);
 
     sends.SendCount = pSendList->OutputCount;
-    sends.pSends = HeapAlloc(GetProcessHeap(), 0, sends.SendCount * sizeof(*sends.pSends));
+    sends.pSends = heap_alloc(sends.SendCount * sizeof(*sends.pSends));
     for(i = 0; i < sends.SendCount; ++i){
         sends.pSends[i].Flags = 0;
         sends.pSends[i].pOutputVoice = pSendList->pOutputVoices[i];
@@ -144,7 +144,7 @@ static HRESULT WINAPI XA20SRC_SetOutputVoices(IXAudio20SourceVoice *iface,
 
     hr = IXAudio2SourceVoice_SetOutputVoices(&This->IXAudio2SourceVoice_iface, &sends);
 
-    HeapFree(GetProcessHeap(), 0, sends.pSends);
+    heap_free(sends.pSends);
 
     return hr;
 }
@@ -394,7 +394,7 @@ static HRESULT WINAPI XA23SRC_SetOutputVoices(IXAudio23SourceVoice *iface,
     TRACE("%p, %p\n", This, pSendList);
 
     sends.SendCount = pSendList->OutputCount;
-    sends.pSends = HeapAlloc(GetProcessHeap(), 0, sends.SendCount * sizeof(*sends.pSends));
+    sends.pSends = heap_alloc(sends.SendCount * sizeof(*sends.pSends));
     for(i = 0; i < sends.SendCount; ++i){
         sends.pSends[i].Flags = 0;
         sends.pSends[i].pOutputVoice = pSendList->pOutputVoices[i];
@@ -402,7 +402,7 @@ static HRESULT WINAPI XA23SRC_SetOutputVoices(IXAudio23SourceVoice *iface,
 
     hr = IXAudio2SourceVoice_SetOutputVoices(&This->IXAudio2SourceVoice_iface, &sends);
 
-    HeapFree(GetProcessHeap(), 0, sends.pSends);
+    heap_free(sends.pSends);
 
     return hr;
 }
@@ -915,7 +915,7 @@ static HRESULT WINAPI XA20SUB_SetOutputVoices(IXAudio20SubmixVoice *iface,
     TRACE("%p, %p\n", This, pSendList);
 
     sends.SendCount = pSendList->OutputCount;
-    sends.pSends = HeapAlloc(GetProcessHeap(), 0, sends.SendCount * sizeof(*sends.pSends));
+    sends.pSends = heap_alloc(sends.SendCount * sizeof(*sends.pSends));
     for(i = 0; i < sends.SendCount; ++i){
         sends.pSends[i].Flags = 0;
         sends.pSends[i].pOutputVoice = pSendList->pOutputVoices[i];
@@ -923,7 +923,7 @@ static HRESULT WINAPI XA20SUB_SetOutputVoices(IXAudio20SubmixVoice *iface,
 
     hr = IXAudio2SubmixVoice_SetOutputVoices(&This->IXAudio2SubmixVoice_iface, &sends);
 
-    HeapFree(GetProcessHeap(), 0, sends.pSends);
+    heap_free(sends.pSends);
 
     return hr;
 }
@@ -1101,7 +1101,7 @@ static HRESULT WINAPI XA23SUB_SetOutputVoices(IXAudio23SubmixVoice *iface,
     TRACE("%p, %p\n", This, pSendList);
 
     sends.SendCount = pSendList->OutputCount;
-    sends.pSends = HeapAlloc(GetProcessHeap(), 0, sends.SendCount * sizeof(*sends.pSends));
+    sends.pSends = heap_alloc(sends.SendCount * sizeof(*sends.pSends));
     for(i = 0; i < sends.SendCount; ++i){
         sends.pSends[i].Flags = 0;
         sends.pSends[i].pOutputVoice = pSendList->pOutputVoices[i];
@@ -1109,7 +1109,7 @@ static HRESULT WINAPI XA23SUB_SetOutputVoices(IXAudio23SubmixVoice *iface,
 
     hr = IXAudio2SubmixVoice_SetOutputVoices(&This->IXAudio2SubmixVoice_iface, &sends);
 
-    HeapFree(GetProcessHeap(), 0, sends.pSends);
+    heap_free(sends.pSends);
 
     return hr;
 }
@@ -1477,7 +1477,7 @@ static HRESULT WINAPI XA20M_SetOutputVoices(IXAudio20MasteringVoice *iface,
     TRACE("%p, %p\n", This, pSendList);
 
     sends.SendCount = pSendList->OutputCount;
-    sends.pSends = HeapAlloc(GetProcessHeap(), 0, sends.SendCount * sizeof(*sends.pSends));
+    sends.pSends = heap_alloc(sends.SendCount * sizeof(*sends.pSends));
     for(i = 0; i < sends.SendCount; ++i){
         sends.pSends[i].Flags = 0;
         sends.pSends[i].pOutputVoice = pSendList->pOutputVoices[i];
@@ -1485,7 +1485,7 @@ static HRESULT WINAPI XA20M_SetOutputVoices(IXAudio20MasteringVoice *iface,
 
     hr = IXAudio2MasteringVoice_SetOutputVoices(&This->IXAudio2MasteringVoice_iface, &sends);
 
-    HeapFree(GetProcessHeap(), 0, sends.pSends);
+    heap_free(sends.pSends);
 
     return hr;
 }
@@ -1663,7 +1663,7 @@ static HRESULT WINAPI XA23M_SetOutputVoices(IXAudio23MasteringVoice *iface,
     TRACE("%p, %p\n", This, pSendList);
 
     sends.SendCount = pSendList->OutputCount;
-    sends.pSends = HeapAlloc(GetProcessHeap(), 0, sends.SendCount * sizeof(*sends.pSends));
+    sends.pSends = heap_alloc(sends.SendCount * sizeof(*sends.pSends));
     for(i = 0; i < sends.SendCount; ++i){
         sends.pSends[i].Flags = 0;
         sends.pSends[i].pOutputVoice = pSendList->pOutputVoices[i];
@@ -1671,7 +1671,7 @@ static HRESULT WINAPI XA23M_SetOutputVoices(IXAudio23MasteringVoice *iface,
 
     hr = IXAudio2MasteringVoice_SetOutputVoices(&This->IXAudio2MasteringVoice_iface, &sends);
 
-    HeapFree(GetProcessHeap(), 0, sends.pSends);
+    heap_free(sends.pSends);
 
     return hr;
 }

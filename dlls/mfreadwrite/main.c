@@ -106,7 +106,7 @@ static ULONG WINAPI src_reader_Release(IMFSourceReader *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -212,7 +212,7 @@ HRESULT WINAPI MFCreateSourceReaderFromByteStream(IMFByteStream *stream, IMFAttr
 
     TRACE("%p, %p, %p\n", stream, attributes, reader);
 
-    object = HeapAlloc( GetProcessHeap(), 0, sizeof(*object) );
+    object = heap_alloc( sizeof(*object) );
     if(!object)
         return E_OUTOFMEMORY;
 

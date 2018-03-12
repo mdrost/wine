@@ -96,7 +96,7 @@ static ULONG WINAPI MediaStreamFilterImpl_Release(IMediaStreamFilter *iface)
         }
         CoTaskMemFree(This->streams);
         BaseFilter_Destroy(&This->filter);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -343,7 +343,7 @@ HRESULT MediaStreamFilter_create(IUnknown *pUnkOuter, void **ppObj)
     if( pUnkOuter )
         return CLASS_E_NOAGGREGATION;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IMediaStreamFilterImpl));
+    object = heap_alloc_zero(sizeof(IMediaStreamFilterImpl));
     if (!object)
         return E_OUTOFMEMORY;
 

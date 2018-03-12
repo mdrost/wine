@@ -127,7 +127,7 @@ static ULONG WINAPI DirectDrawMediaStreamImpl_IAMMediaStream_Release(IAMMediaStr
         DeleteCriticalSection(&This->critical_section);
         if (This->ddraw)
             IDirectDraw7_Release(This->ddraw);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -608,7 +608,7 @@ HRESULT ddrawmediastream_create(IMultiMediaStream *parent, const MSPID *purpose_
 
     TRACE("(%p,%s,%p)\n", parent, debugstr_guid(purpose_id), media_stream);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DirectDrawMediaStreamImpl));
+    object = heap_alloc_zero(sizeof(DirectDrawMediaStreamImpl));
     if (!object)
         return E_OUTOFMEMORY;
 
@@ -1148,7 +1148,7 @@ HRESULT audiomediastream_create(IMultiMediaStream *parent, const MSPID *purpose_
 
     TRACE("(%p,%s,%p)\n", parent, debugstr_guid(purpose_id), media_stream);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(AudioMediaStreamImpl));
+    object = heap_alloc_zero(sizeof(AudioMediaStreamImpl));
     if (!object)
         return E_OUTOFMEMORY;
 
@@ -1240,7 +1240,7 @@ static ULONG WINAPI IDirectDrawStreamSampleImpl_Release(IDirectDrawStreamSample 
         if (This->surface)
             IDirectDrawSurface_Release(This->surface);
         IMediaStream_Release(This->parent);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1338,7 +1338,7 @@ static HRESULT ddrawstreamsample_create(IDirectDrawMediaStream *parent, IDirectD
 
     TRACE("(%p)\n", ddraw_stream_sample);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
@@ -1454,7 +1454,7 @@ static ULONG WINAPI IAudioStreamSampleImpl_Release(IAudioStreamSample *iface)
     TRACE("(%p)->(): new ref = %u\n", iface, ref);
 
     if (!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -1528,7 +1528,7 @@ static HRESULT audiostreamsample_create(IAudioMediaStream *parent, IAudioData *a
 
     TRACE("(%p)\n", audio_stream_sample);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IAudioStreamSampleImpl));
+    object = heap_alloc_zero(sizeof(IAudioStreamSampleImpl));
     if (!object)
         return E_OUTOFMEMORY;
 

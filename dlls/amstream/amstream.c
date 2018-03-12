@@ -60,7 +60,7 @@ HRESULT AM_create(IUnknown *pUnkOuter, LPVOID *ppObj)
     if( pUnkOuter )
         return CLASS_E_NOAGGREGATION;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IAMMultiMediaStreamImpl));
+    object = heap_alloc_zero(sizeof(IAMMultiMediaStreamImpl));
     if (!object)
         return E_OUTOFMEMORY;
 
@@ -125,7 +125,7 @@ static ULONG WINAPI IAMMultiMediaStreamImpl_Release(IAMMultiMediaStream* iface)
             IMediaControl_Release(This->media_control);
         if (This->pFilterGraph)
             IGraphBuilder_Release(This->pFilterGraph);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;

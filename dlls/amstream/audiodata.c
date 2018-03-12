@@ -83,7 +83,7 @@ static ULONG WINAPI IAudioDataImpl_Release(IAudioData* iface)
             CoTaskMemFree(This->data);
         }
 
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -228,7 +228,7 @@ HRESULT AMAudioData_create(IUnknown *pUnkOuter, LPVOID *ppObj)
     if (pUnkOuter)
         return CLASS_E_NOAGGREGATION;
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(AMAudioDataImpl));
+    object = heap_alloc_zero(sizeof(AMAudioDataImpl));
     if (!object)
         return E_OUTOFMEMORY;
 

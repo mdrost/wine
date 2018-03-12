@@ -265,11 +265,11 @@ static void test_GetPerformanceInfo(void)
         ok(size > 0, "incorrect length %d\n", size);
         while (status == STATUS_INFO_LENGTH_MISMATCH)
         {
-            sys_process_info = HeapAlloc(GetProcessHeap(), 0, size);
+            sys_process_info = heap_alloc(size);
             ok(sys_process_info != NULL, "failed to allocate memory\n");
             status = pNtQuerySystemInformation(SystemProcessInformation, sys_process_info, size, &size);
             if (status == STATUS_SUCCESS) break;
-            HeapFree(GetProcessHeap(), 0, sys_process_info);
+            heap_free(sys_process_info);
         }
         ok(status == STATUS_SUCCESS, "expected STATUS_SUCCESS, got %08x\n", status);
 
@@ -281,7 +281,7 @@ static void test_GetPerformanceInfo(void)
             thread_count += spi->dwThreadCount;
             if (spi->NextEntryOffset == 0) break;
         }
-        HeapFree(GetProcessHeap(), 0, sys_process_info);
+        heap_free(sys_process_info);
 
         ok(check_with_margin(info.HandleCount,  handle_count,  24),
            "expected approximately %d but got %d\n", info.HandleCount, handle_count);
@@ -330,7 +330,7 @@ static BOOL nt_get_mapped_file_name(HANDLE process, LPVOID addr, LPWSTR name, DW
     if (!pNtQueryVirtualMemory) return FALSE;
 
     buf_len = len * sizeof(WCHAR) + sizeof(MEMORY_SECTION_NAME);
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, buf_len);
+    buf = heap_alloc_zero(buf_len);
 
     ret_len = 0xdeadbeef;
     status = pNtQueryVirtualMemory(process, addr, MemorySectionName, buf, buf_len, &ret_len);
@@ -339,7 +339,7 @@ todo_wine
     /* FIXME: remove once Wine is fixed */
     if (status)
     {
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
         return FALSE;
     }
 
@@ -354,7 +354,7 @@ todo_wine
        section_name->SectionFileName.Length, lstrlenW(section_name->SectionFileName.Buffer));
 
     memcpy(name, section_name->SectionFileName.Buffer, section_name->SectionFileName.MaximumLength);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     return TRUE;
 }
 

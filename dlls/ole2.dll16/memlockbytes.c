@@ -100,7 +100,7 @@ HGLOBALLockBytesImpl16_Construct(HGLOBAL16 hGlobal,
 
 
   TRACE("(%x,%d)\n",hGlobal,fDeleteOnRelease);
-  newLockBytes = HeapAlloc(GetProcessHeap(), 0, sizeof(HGLOBALLockBytesImpl16));
+  newLockBytes = heap_alloc(sizeof(HGLOBALLockBytesImpl16));
   if (newLockBytes == NULL)
     return NULL;
 
@@ -169,7 +169,7 @@ static void HGLOBALLockBytesImpl16_Destroy(HGLOBALLockBytesImpl16* This)
   /*
    * Finally, free the memory used-up by the class.
    */
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This);
 }
 
 /******************************************************************************

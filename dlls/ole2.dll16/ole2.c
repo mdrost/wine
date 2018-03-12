@@ -147,18 +147,18 @@ HGLOBAL16 WINAPI OleMetafilePictFromIconAndLabel16(
     if (lpszLabel)
     {
         len = MultiByteToWideChar( CP_ACP, 0, lpszLabel, -1, NULL, 0 );
-        label = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        label = heap_alloc( len * sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, lpszLabel, -1, label, len );
     }
     if (lpszSourceFile)
     {
         len = MultiByteToWideChar( CP_ACP, 0, lpszSourceFile, -1, NULL, 0 );
-        source = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        source = heap_alloc( len * sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, lpszSourceFile, -1, source, len );
     }
     hmf = OleMetafilePictFromIconAndLabel( icon, label, source, iIconIndex );
-    HeapFree( GetProcessHeap(), 0, label );
-    HeapFree( GetProcessHeap(), 0, source );
+    heap_free( label );
+    heap_free( source );
     DestroyIcon( icon );
 
     if (!hmf) return 0;

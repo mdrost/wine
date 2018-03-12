@@ -135,7 +135,7 @@ SCODE WINAPI MAPIAllocateBuffer(ULONG cbSize, LPVOID *lppBuffer)
     if (!lppBuffer)
         return E_INVALIDARG;
 
-    lpBuff = HeapAlloc(GetProcessHeap(), 0, cbSize + sizeof(*lpBuff));
+    lpBuff = heap_alloc(cbSize + sizeof(*lpBuff));
     if (!lpBuff)
         return MAPI_E_NOT_ENOUGH_MEMORY;
 
@@ -223,7 +223,7 @@ ULONG WINAPI MAPIFreeBuffer(LPVOID lpBuffer)
             lpBuff = *lpBuff;
 
             TRACE("linked:%p->%p, freeing %p\n", lpFree, lpBuff, lpFree);
-            HeapFree(GetProcessHeap(), 0, lpFree);
+            heap_free(lpFree);
         }
     }
     return S_OK;
@@ -976,7 +976,7 @@ static void load_mapi_provider(HKEY hkeyMail, LPCWSTR valueName, HMODULE *mapi_p
     if ((RegQueryValueExW(hkeyMail, valueName, NULL, &dwType, NULL, &dwLen) == ERROR_SUCCESS) &&
         ((dwType == REG_SZ) || (dwType == REG_EXPAND_SZ)) && (dwLen > 0))
     {
-        dllPath = HeapAlloc(GetProcessHeap(), 0, dwLen);
+        dllPath = heap_alloc(dwLen);
 
         if (dllPath)
         {
@@ -992,13 +992,13 @@ static void load_mapi_provider(HKEY hkeyMail, LPCWSTR valueName, HMODULE *mapi_p
 
                     /* Expand the path if necessary */
                     dwExpandLen = ExpandEnvironmentStringsW(dllPath, NULL, 0);
-                    dllPathExpanded = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * dwExpandLen + 1);
+                    dllPathExpanded = heap_alloc(sizeof(WCHAR) * dwExpandLen + 1);
 
                     if (dllPathExpanded)
                     {
                         ExpandEnvironmentStringsW(dllPath, dllPathExpanded, dwExpandLen + 1);
 
-                        HeapFree(GetProcessHeap(), 0, dllPath);
+                        heap_free(dllPath);
                         dllPath = dllPathExpanded;
                     }
                 }
@@ -1008,7 +1008,7 @@ static void load_mapi_provider(HKEY hkeyMail, LPCWSTR valueName, HMODULE *mapi_p
                 *mapi_provider = LoadLibraryW(dllPath);
             }
 
-            HeapFree(GetProcessHeap(), 0, dllPath);
+            heap_free(dllPath);
         }
     }
 }
@@ -1046,7 +1046,7 @@ void load_mapi_providers(void)
         !((dwType == REG_SZ) || (dwType == REG_EXPAND_SZ)) || (dwLen == 0))
         goto cleanUp;
 
-    appName = HeapAlloc(GetProcessHeap(), 0, dwLen);
+    appName = heap_alloc(dwLen);
 
     if (!appName)
         goto cleanUp;
@@ -1056,7 +1056,7 @@ void load_mapi_providers(void)
 
     TRACE("appName: %s\n", debugstr_w(appName));
 
-    appKey = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * (lstrlenW(regkey_mail) +
+    appKey = heap_alloc(sizeof(WCHAR) * (lstrlenW(regkey_mail) +
         lstrlenW(regkey_backslash) + lstrlenW(appName) + 1));
 
     if (!appKey)
@@ -1124,8 +1124,8 @@ void load_mapi_providers(void)
 
 cleanUp:
     RegCloseKey(hkeyMail);
-    HeapFree(GetProcessHeap(), 0, appKey);
-    HeapFree(GetProcessHeap(), 0, appName);
+    heap_free(appKey);
+    heap_free(appName);
 }
 
 /**************************************************************************

@@ -59,7 +59,7 @@ static LPSTR convert_from_unicode(LPCWSTR wstr)
         return NULL;
 
     len = WideCharToMultiByte(CP_ACP, 0, wstr, -1, NULL, 0, NULL, NULL);
-    str = HeapAlloc(GetProcessHeap(), 0, len);
+    str = heap_alloc(len);
     WideCharToMultiByte(CP_ACP, 0, wstr, -1, str, len, NULL, NULL);
 
     return str;
@@ -74,7 +74,7 @@ static LPWSTR convert_to_unicode(LPSTR str)
         return NULL;
 
     len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-    wstr = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    wstr = heap_alloc(len * sizeof(WCHAR));
     MultiByteToWideChar(CP_ACP, 0, str, -1, wstr, len);
 
     return wstr;
@@ -380,7 +380,7 @@ static ULONG sendmail_extended_mapi(LHANDLE mapi_session, ULONG_PTR uiparam, lpM
                 CloseHandle(file);
                 IAttach_Release(attachment);
 
-                HeapFree(GetProcessHeap(), 0, filenameA);
+                heap_free(filenameA);
             }
         }
 
@@ -452,8 +452,8 @@ static ULONG sendmail_extended_mapi(LHANDLE mapi_session, ULONG_PTR uiparam, lpM
     if (folder) IMAPIFolder_Release(folder);
     IMsgStore_Release(msg_store);
 
-    HeapFree(GetProcessHeap(), 0, subjectA);
-    HeapFree(GetProcessHeap(), 0, bodyA);
+    heap_free(subjectA);
+    heap_free(bodyA);
 
 logoff: ;
     IMAPISession_Logoff(session, 0, 0, 0);
@@ -508,7 +508,7 @@ ULONG WINAPI MAPISendMail( LHANDLE session, ULONG_PTR uiparam,
             lpMapiFileDescW filesW;
             unsigned int i;
 
-            filesW = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MapiFileDescW) * message->nFileCount);
+            filesW = heap_alloc_zero(sizeof(MapiFileDescW) * message->nFileCount);
 
             for (i = 0; i < message->nFileCount; i++)
             {
@@ -528,15 +528,15 @@ ULONG WINAPI MAPISendMail( LHANDLE session, ULONG_PTR uiparam,
 
             for (i = 0; i < message->nFileCount; i++)
             {
-                HeapFree(GetProcessHeap(), 0, messageW.lpFiles[i].lpszPathName);
-                HeapFree(GetProcessHeap(), 0, messageW.lpFiles[i].lpszFileName);
+                heap_free(messageW.lpFiles[i].lpszPathName);
+                heap_free(messageW.lpFiles[i].lpszFileName);
             }
 
-            HeapFree(GetProcessHeap(), 0, messageW.lpFiles);
+            heap_free(messageW.lpFiles);
         }
 
-        HeapFree(GetProcessHeap(), 0, messageW.lpszSubject);
-        HeapFree(GetProcessHeap(), 0, messageW.lpszNoteText);
+        heap_free(messageW.lpszSubject);
+        heap_free(messageW.lpszNoteText);
 
         return ret;
     }
@@ -560,7 +560,7 @@ static lpMapiRecipDesc convert_recipient_from_unicode(lpMapiRecipDescW recipW, l
     if (dest)
         ret = dest;
     else
-        ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MapiRecipDesc));
+        ret = heap_alloc_zero(sizeof(MapiRecipDesc));
 
     ret->ulRecipClass = recipW->ulRecipClass;
     ret->lpszName = convert_from_unicode(recipW->lpszName);
@@ -627,7 +627,7 @@ ULONG WINAPI MAPISendMailW(LHANDLE session, ULONG_PTR uiparam,
             lpMapiRecipDesc recipsA;
             unsigned int i;
 
-            recipsA = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MapiRecipDesc) * message->nRecipCount);
+            recipsA = heap_alloc_zero(sizeof(MapiRecipDesc) * message->nRecipCount);
 
             for (i = 0; i < message->nRecipCount; i++)
             {
@@ -642,7 +642,7 @@ ULONG WINAPI MAPISendMailW(LHANDLE session, ULONG_PTR uiparam,
             lpMapiFileDesc filesA;
             unsigned int i;
 
-            filesA = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MapiFileDesc) * message->nFileCount);
+            filesA = heap_alloc_zero(sizeof(MapiFileDesc) * message->nFileCount);
 
             for (i = 0; i < message->nFileCount; i++)
             {
@@ -661,9 +661,9 @@ ULONG WINAPI MAPISendMailW(LHANDLE session, ULONG_PTR uiparam,
         /* Now free everything we allocated */
         if (message->lpOriginator)
         {
-            HeapFree(GetProcessHeap(), 0, messageA.lpOriginator->lpszName);
-            HeapFree(GetProcessHeap(), 0, messageA.lpOriginator->lpszAddress);
-            HeapFree(GetProcessHeap(), 0, messageA.lpOriginator);
+            heap_free(messageA.lpOriginator->lpszName);
+            heap_free(messageA.lpOriginator->lpszAddress);
+            heap_free(messageA.lpOriginator);
         }
 
         if (message->nRecipCount && message->lpRecips)
@@ -672,11 +672,11 @@ ULONG WINAPI MAPISendMailW(LHANDLE session, ULONG_PTR uiparam,
 
             for (i = 0; i < message->nRecipCount; i++)
             {
-                HeapFree(GetProcessHeap(), 0, messageA.lpRecips[i].lpszName);
-                HeapFree(GetProcessHeap(), 0, messageA.lpRecips[i].lpszAddress);
+                heap_free(messageA.lpRecips[i].lpszName);
+                heap_free(messageA.lpRecips[i].lpszAddress);
             }
 
-            HeapFree(GetProcessHeap(), 0, messageA.lpRecips);
+            heap_free(messageA.lpRecips);
         }
 
         if (message->nFileCount && message->lpFiles)
@@ -685,17 +685,17 @@ ULONG WINAPI MAPISendMailW(LHANDLE session, ULONG_PTR uiparam,
 
             for (i = 0; i < message->nFileCount; i++)
             {
-                HeapFree(GetProcessHeap(), 0, messageA.lpFiles[i].lpszPathName);
-                HeapFree(GetProcessHeap(), 0, messageA.lpFiles[i].lpszFileName);
+                heap_free(messageA.lpFiles[i].lpszPathName);
+                heap_free(messageA.lpFiles[i].lpszFileName);
             }
 
-            HeapFree(GetProcessHeap(), 0, messageA.lpFiles);
+            heap_free(messageA.lpFiles);
         }
 
-        HeapFree(GetProcessHeap(), 0, messageA.lpszSubject);
-        HeapFree(GetProcessHeap(), 0, messageA.lpszNoteText);
-        HeapFree(GetProcessHeap(), 0, messageA.lpszDateReceived);
-        HeapFree(GetProcessHeap(), 0, messageA.lpszConversationID);
+        heap_free(messageA.lpszSubject);
+        heap_free(messageA.lpszNoteText);
+        heap_free(messageA.lpszDateReceived);
+        heap_free(messageA.lpszConversationID);
 
         return ret;
     }

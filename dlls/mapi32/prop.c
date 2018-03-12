@@ -2260,7 +2260,7 @@ IPropData_fnHrAddObjProps(LPPROPDATA iface, LPSPropTagArray lpTags,
         lpValues[i].ulPropTag = lpTags->aulPropTag[i];
 
     hRet = IPropData_SetProps(iface, lpTags->cValues, lpValues, lppProbs);
-    HeapFree(GetProcessHeap(), 0, lpValues);
+    heap_free(lpValues);
     return hRet;
 #endif
 }

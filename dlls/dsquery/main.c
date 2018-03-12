@@ -82,7 +82,7 @@ static ULONG WINAPI ClassFactory_Release(IClassFactory *iface)
     TRACE("(%p) decreasing refcount to %u\n", iface, ref);
 
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -160,7 +160,7 @@ static ULONG WINAPI CommonQuery_Release(ICommonQuery *iface)
     TRACE("(%p) decreasing refcount to %u\n", iface, ref);
 
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -190,7 +190,7 @@ static HRESULT CommonQuery_create(IUnknown *outer, REFIID riid, void **out)
     if (outer)
         return CLASS_E_NOAGGREGATION;
 
-    if (!(query = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*query))))
+    if (!(query = heap_alloc_zero(sizeof(*query))))
         return E_OUTOFMEMORY;
 
     query->ICommonQuery_iface.lpVtbl = &CommonQuery_vtbl;
@@ -240,7 +240,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void **out)
 
     if (IsEqualGUID(&CLSID_CommonQuery, rclsid))
     {
-        struct query_class_factory *factory = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*factory));
+        struct query_class_factory *factory = heap_alloc_zero(sizeof(*factory));
         if (!factory) return E_OUTOFMEMORY;
 
         factory->IClassFactory_iface.lpVtbl = &query_class_factory_vtbl;

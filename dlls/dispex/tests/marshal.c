@@ -88,7 +88,7 @@ static DWORD CALLBACK host_object_proc(LPVOID p)
             DispatchMessageA(&msg);
     }
 
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     CoUninitialize();
 
@@ -99,7 +99,7 @@ static DWORD start_host_object2(IStream *stream, REFIID riid, IUnknown *object, 
 {
     DWORD tid = 0, ret;
     HANDLE events[2];
-    struct host_object_data *data = HeapAlloc(GetProcessHeap(), 0, sizeof(*data));
+    struct host_object_data *data = heap_alloc(sizeof(*data));
 
     data->stream = stream;
     data->iid = *riid;
@@ -182,7 +182,7 @@ static ULONG WINAPI dispex_Release(IDispatchEx* iface)
     trace("Release\n");
     if(!refs)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return refs;
 }
@@ -352,7 +352,7 @@ static IDispatchEx *dispex_create(void)
 {
     dispex *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    This = heap_alloc(sizeof(*This));
     if (!This) return NULL;
     This->IDispatchEx_iface.lpVtbl = &dispex_vtable;
     This->refs = 1;

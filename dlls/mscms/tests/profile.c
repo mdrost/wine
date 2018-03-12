@@ -351,7 +351,7 @@ static void test_GetColorProfileFromHandle( char *testprofile )
         ret = pGetColorProfileFromHandle( handle, NULL, &size );
         ok( !ret && size > 0, "GetColorProfileFromHandle() failed (%d)\n", GetLastError() );
 
-        buffer = HeapAlloc( GetProcessHeap(), 0, size );
+        buffer = heap_alloc( size );
 
         if (buffer)
         {
@@ -368,7 +368,7 @@ static void test_GetColorProfileFromHandle( char *testprofile )
 
             ok( !memcmp( buffer, expect, sizeof(expect) ), "Unexpected header data\n" );
 
-            HeapFree( GetProcessHeap(), 0, buffer );
+            heap_free( buffer );
         }
 
         pCloseColorProfile( handle );
@@ -662,7 +662,7 @@ static void test_EnumColorProfilesA( char *standardprofile )
     total = 0;
     ret = pEnumColorProfilesA( NULL, &record, NULL, &total, &number );
     ok( !ret, "EnumColorProfilesA() failed (%d)\n", GetLastError() );
-    buffer = HeapAlloc( GetProcessHeap(), 0, total );
+    buffer = heap_alloc( total );
 
     size = total;
     ret = pEnumColorProfilesA( machine, &record, buffer, &size, &number );
@@ -690,7 +690,7 @@ static void test_EnumColorProfilesA( char *standardprofile )
     todo_wine_if (!have_color_profile)
         ok( ret, "EnumColorProfilesA() failed (%d)\n", GetLastError() );
 
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
 }
 
 static void test_EnumColorProfilesW( WCHAR *standardprofileW )
@@ -712,7 +712,7 @@ static void test_EnumColorProfilesW( WCHAR *standardprofileW )
     total = 0;
     ret = pEnumColorProfilesW( NULL, &record, NULL, &total, &number );
     ok( !ret, "EnumColorProfilesW() failed (%d)\n", GetLastError() );
-    buffer = HeapAlloc( GetProcessHeap(), 0, total * sizeof(WCHAR) );
+    buffer = heap_alloc( total * sizeof(WCHAR) );
 
     size = total;
     ret = pEnumColorProfilesW( machineW, &record, buffer, &size, &number );
@@ -739,7 +739,7 @@ static void test_EnumColorProfilesW( WCHAR *standardprofileW )
     todo_wine_if (!have_color_profile)
         ok( ret, "EnumColorProfilesW() failed (%d)\n", GetLastError() );
 
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
 }
 
 static void test_InstallColorProfileA( char *standardprofile, char *testprofile )

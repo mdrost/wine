@@ -473,7 +473,7 @@ static void figure_add_span(struct figure *figure, unsigned int span)
     if (figure->span_count == figure->spans_size)
     {
         figure->spans_size *= 2;
-        figure->spans = HeapReAlloc(GetProcessHeap(), 0, figure->spans,
+        figure->spans = heap_realloc(figure->spans,
                 figure->spans_size * sizeof(*figure->spans));
     }
 
@@ -514,7 +514,7 @@ static void deserialize_figure(struct figure *figure, const BYTE *s)
 
     figure->span_count = 0;
     figure->spans_size = 64;
-    figure->spans = HeapAlloc(GetProcessHeap(), 0, figure->spans_size * sizeof(*figure->spans));
+    figure->spans = heap_alloc(figure->spans_size * sizeof(*figure->spans));
 
     for (ptr = s; *ptr; ptr += 4)
     {
@@ -562,7 +562,7 @@ static BOOL compare_figure(IDXGISurface *surface, unsigned int x, unsigned int y
 
     figure.span_count = 0;
     figure.spans_size = 64;
-    figure.spans = HeapAlloc(GetProcessHeap(), 0, figure.spans_size * sizeof(*figure.spans));
+    figure.spans = heap_alloc(figure.spans_size * sizeof(*figure.spans));
 
     read_figure(&figure, rb.map_desc.pData, rb.map_desc.RowPitch, x, y, w, h, prev);
 
@@ -606,8 +606,8 @@ static BOOL compare_figure(IDXGISurface *surface, unsigned int x, unsigned int y
         serialize_figure(&figure);
     }
 
-    HeapFree(GetProcessHeap(), 0, ref_figure.spans);
-    HeapFree(GetProcessHeap(), 0, figure.spans);
+    heap_free(ref_figure.spans);
+    heap_free(figure.spans);
     release_resource_readback(&rb);
 
     return diff <= max_diff;
@@ -868,9 +868,9 @@ static void geometry_sink_cleanup(struct geometry_sink *sink)
 
     for (i = 0; i < sink->figure_count; ++i)
     {
-        HeapFree(GetProcessHeap(), 0, sink->figures[i].segments);
+        heap_free(sink->figures[i].segments);
     }
-    HeapFree(GetProcessHeap(), 0, sink->figures);
+    heap_free(sink->figures);
 }
 
 #define geometry_sink_check(a, b, c, d, e) geometry_sink_check_(__LINE__, a, b, c, d, e)

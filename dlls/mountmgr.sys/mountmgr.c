@@ -49,9 +49,9 @@ static HKEY mount_key;
 
 void set_mount_point_id( struct mount_point *mount, const void *id, unsigned int id_len )
 {
-    RtlFreeHeap( GetProcessHeap(), 0, mount->id );
+    free( mount->id );
     mount->id_len = max( MIN_ID_LEN, id_len );
-    if ((mount->id = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, mount->id_len )))
+    if ((mount->id = calloc( 1,  mount->id_len )))
     {
         memcpy( mount->id, id, id_len );
         RegSetValueExW( mount_key, mount->link.Buffer, 0, REG_BINARY, mount->id, mount->id_len );
@@ -66,7 +66,7 @@ static struct mount_point *add_mount_point( DEVICE_OBJECT *device, UNICODE_STRIN
     WCHAR *str;
     UINT len = (strlenW(link) + 1) * sizeof(WCHAR) + device_name->Length + sizeof(WCHAR);
 
-    if (!(mount = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*mount) + len ))) return NULL;
+    if (!(mount = malloc( sizeof(*mount) + len ))) return NULL;
 
     str = (WCHAR *)(mount + 1);
     strcpyW( str, link );
@@ -121,8 +121,8 @@ void delete_mount_point( struct mount_point *mount )
     list_remove( &mount->entry );
     RegDeleteValueW( mount_key, mount->link.Buffer );
     IoDeleteSymbolicLink( &mount->link );
-    RtlFreeHeap( GetProcessHeap(), 0, mount->id );
-    RtlFreeHeap( GetProcessHeap(), 0, mount );
+    free( mount->id );
+    free( mount );
 }
 
 /* check if a given mount point matches the requested specs */
@@ -190,7 +190,7 @@ static NTSTATUS query_mount_points( void *buff, SIZE_T insize,
         return STATUS_MORE_ENTRIES;
     }
 
-    input = HeapAlloc( GetProcessHeap(), 0, insize );
+    input = heap_alloc( insize );
     if (!input)
         return STATUS_NO_MEMORY;
     memcpy( input, buff, insize );
@@ -221,7 +221,7 @@ static NTSTATUS query_mount_points( void *buff, SIZE_T insize,
     }
     info->Size = pos;
     iosb->Information = pos;
-    HeapFree( GetProcessHeap(), 0, input );
+    heap_free( input );
     return STATUS_SUCCESS;
 }
 
@@ -354,8 +354,8 @@ static NTSTATUS query_unix_drive( void *buff, SIZE_T insize,
 
     iosb->Information = ptr - (char *)output;
 done:
-    RtlFreeHeap( GetProcessHeap(), 0, device );
-    RtlFreeHeap( GetProcessHeap(), 0, mount_point );
+    free( device );
+    free( mount_point );
     return status;
 }
 

@@ -110,7 +110,7 @@ static char *get_dosdevices_path( char **device )
 {
     const char *config_dir = wine_get_config_dir();
     size_t len = strlen(config_dir) + sizeof("/dosdevices/com256");
-    char *path = HeapAlloc( GetProcessHeap(), 0, len );
+    char *path = heap_alloc( len );
     if (path)
     {
         strcpy( path, config_dir );
@@ -125,7 +125,7 @@ static char *strdupA( const char *str )
     char *ret;
 
     if (!str) return NULL;
-    if ((ret = RtlAllocateHeap( GetProcessHeap(), 0, strlen(str) + 1 ))) strcpy( ret, str );
+    if ((ret = malloc( strlen(str) + 1 ))) strcpy( ret, str );
     return ret;
 }
 
@@ -145,7 +145,7 @@ static char *read_symlink( const char *path )
 
     for (;;)
     {
-        if (!(buffer = RtlAllocateHeap( GetProcessHeap(), 0, size )))
+        if (!(buffer = malloc( size )))
         {
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
             return 0;
@@ -153,7 +153,7 @@ static char *read_symlink( const char *path )
         ret = readlink( path, buffer, size );
         if (ret == -1)
         {
-            RtlFreeHeap( GetProcessHeap(), 0, buffer );
+            free( buffer );
             return 0;
         }
         if (ret != size)
@@ -161,7 +161,7 @@ static char *read_symlink( const char *path )
             buffer[ret] = 0;
             return buffer;
         }
-        RtlFreeHeap( GetProcessHeap(), 0, buffer );
+        free( buffer );
         size *= 2;
     }
 }
@@ -240,7 +240,7 @@ static NTSTATUS create_disk_device( enum device_type type, struct disk_device **
     }
 
     name.MaximumLength = (strlenW(format) + 10) * sizeof(WCHAR);
-    name.Buffer = RtlAllocateHeap( GetProcessHeap(), 0, name.MaximumLength );
+    name.Buffer = malloc( name.MaximumLength );
     for (i = first; i < 32; i++)
     {
         sprintfW( name.Buffer, format, i );
@@ -263,7 +263,7 @@ static NTSTATUS create_disk_device( enum device_type type, struct disk_device **
             UNICODE_STRING symlink;
 
             symlink.MaximumLength = (strlenW(link_format) + 10) * sizeof(WCHAR);
-            if ((symlink.Buffer = RtlAllocateHeap( GetProcessHeap(), 0, symlink.MaximumLength)))
+            if ((symlink.Buffer = malloc( symlink.MaximumLength)))
             {
                 sprintfW( symlink.Buffer, link_format, i );
                 symlink.Length = strlenW(symlink.Buffer) * sizeof(WCHAR);
@@ -322,8 +322,8 @@ static void delete_disk_device( struct disk_device *device )
         IoDeleteSymbolicLink( &device->symlink );
         RtlFreeUnicodeString( &device->symlink );
     }
-    RtlFreeHeap( GetProcessHeap(), 0, device->unix_device );
-    RtlFreeHeap( GetProcessHeap(), 0, device->unix_mount );
+    free( device->unix_device );
+    free( device->unix_mount );
     RtlFreeUnicodeString( &device->name );
     IoDeleteDevice( device->dev_obj );
 }
@@ -347,7 +347,7 @@ static unsigned int release_volume( struct volume *volume )
         list_remove( &volume->entry );
         if (volume->mount) delete_mount_point( volume->mount );
         delete_disk_device( volume->device );
-        RtlFreeHeap( GetProcessHeap(), 0, volume );
+        free( volume );
     }
     return ret;
 }
@@ -363,7 +363,7 @@ static void set_volume_udi( struct volume *volume, const char *udi )
     }
     else if (volume->udi)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, volume->udi );
+        free( volume->udi );
         volume->udi = NULL;
         release_volume( volume );
     }
@@ -375,7 +375,7 @@ static NTSTATUS create_volume( const char *udi, enum device_type type, struct vo
     struct volume *volume;
     NTSTATUS status;
 
-    if (!(volume = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*volume) )))
+    if (!(volume = calloc( 1,  sizeof(*volume) )))
         return STATUS_NO_MEMORY;
 
     if (!(status = create_disk_device( type, &volume->device )))
@@ -384,7 +384,7 @@ static NTSTATUS create_volume( const char *udi, enum device_type type, struct vo
         list_add_tail( &volumes_list, &volume->entry );
         *volume_ret = grab_volume( volume );
     }
-    else RtlFreeHeap( GetProcessHeap(), 0, volume );
+    else free( volume );
 
     return status;
 }
@@ -396,7 +396,7 @@ static NTSTATUS create_dos_device( struct volume *volume, const char *udi, int l
     struct dos_drive *drive;
     NTSTATUS status;
 
-    if (!(drive = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*drive) ))) return STATUS_NO_MEMORY;
+    if (!(drive = malloc( sizeof(*drive) ))) return STATUS_NO_MEMORY;
     drive->drive = letter;
     drive->mount = NULL;
 
@@ -413,7 +413,7 @@ static NTSTATUS create_dos_device( struct volume *volume, const char *udi, int l
         list_add_tail( &drives_list, &drive->entry );
         *drive_ret = drive;
     }
-    else RtlFreeHeap( GetProcessHeap(), 0, drive );
+    else free( drive );
 
     return status;
 }
@@ -424,7 +424,7 @@ static void delete_dos_device( struct dos_drive *drive )
     list_remove( &drive->entry );
     if (drive->mount) delete_mount_point( drive->mount );
     release_volume( drive->volume );
-    RtlFreeHeap( GetProcessHeap(), 0, drive );
+    free( drive );
 }
 
 /* find a volume that matches the parameters */
@@ -490,8 +490,8 @@ static NTSTATUS set_volume_info( struct volume *volume, struct dos_drive *drive,
     }
     else
     {
-        RtlFreeHeap( GetProcessHeap(), 0, disk_device->unix_device );
-        RtlFreeHeap( GetProcessHeap(), 0, disk_device->unix_mount );
+        free( disk_device->unix_device );
+        free( disk_device->unix_mount );
     }
     disk_device->unix_device = strdupA( device );
     disk_device->unix_mount = strdupA( mount_point );
@@ -622,7 +622,7 @@ static int add_drive( const char *device, enum device_type type )
     drive = -1;
 
 done:
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( path );
     return drive;
 }
 
@@ -677,13 +677,13 @@ static void create_drive_devices(void)
         }
         else
         {
-            RtlFreeHeap( GetProcessHeap(), 0, link );
-            RtlFreeHeap( GetProcessHeap(), 0, device );
+            free( link );
+            free( device );
         }
         if (volume) release_volume( volume );
     }
     RegCloseKey( drives_key );
-    RtlFreeHeap( GetProcessHeap(), 0, path );
+    free( path );
 }
 
 /* create a new disk volume */
@@ -815,7 +815,7 @@ found:
 done:
     if (volume) release_volume( volume );
     LeaveCriticalSection( &device_section );
-    RtlFreeHeap( GetProcessHeap(), 0, path );
+    free( path );
     if (notify != -1) send_notify( notify, DBT_DEVICEARRIVAL );
     return status;
 }
@@ -845,7 +845,7 @@ NTSTATUS remove_dos_device( int letter, const char *udi )
             p[0] = 'a' + drive->drive;
             p[2] = 0;
             unlink( path );
-            RtlFreeHeap( GetProcessHeap(), 0, path );
+            free( path );
         }
 
         /* clear the registry key too */
@@ -1175,7 +1175,7 @@ static void create_port_devices( DRIVER_OBJECT *driver )
 
     RegCloseKey( wine_ports_key );
     RegCloseKey( windows_ports_key );
-    HeapFree( GetProcessHeap(), 0, dosdevices_path );
+    heap_free( dosdevices_path );
 }
 
 /* driver entry point for the serial port driver */

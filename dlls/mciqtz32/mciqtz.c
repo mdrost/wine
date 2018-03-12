@@ -82,7 +82,7 @@ static DWORD MCIQTZ_drvOpen(LPCWSTR str, LPMCI_OPEN_DRIVER_PARMSW modp)
     if (!modp)
         return 0xFFFFFFFF;
 
-    wma = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WINE_MCIQTZ));
+    wma = heap_alloc_zero(sizeof(WINE_MCIQTZ));
     if (!wma)
         return 0;
 
@@ -113,7 +113,7 @@ static DWORD MCIQTZ_drvClose(DWORD dwDevID)
         mciFreeCommandResource(wma->command_table);
         mciSetDriverData(dwDevID, 0);
         CloseHandle(wma->stop_event);
-        HeapFree(GetProcessHeap(), 0, wma);
+        heap_free(wma);
         return 1;
     }
 
@@ -1040,7 +1040,7 @@ static DWORD MCIQTZ_mciUpdate(UINT wDevID, DWORD dwFlags, LPMCI_DGV_UPDATE_PARMS
             WARN("Could not get image size (hr = %x)\n", hr);
             goto out;
         }
-        data = HeapAlloc(GetProcessHeap(), 0, size);
+        data = heap_alloc(size);
         info = (BITMAPINFO*)data;
         IBasicVideo_GetCurrentImage(wma->vidbasic, &size, (LONG*)data);
         data += info->bmiHeader.biSize;
@@ -1051,7 +1051,7 @@ static DWORD MCIQTZ_mciUpdate(UINT wDevID, DWORD dwFlags, LPMCI_DGV_UPDATE_PARMS
               dest.left, dest.top, dest.right + dest.left, dest.bottom + dest.top,
               src.left, src.top, src.right + src.left, src.bottom + src.top,
               data, info, DIB_RGB_COLORS, SRCCOPY);
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         res = 0;
 out:
         if (wma->parent)

@@ -1228,7 +1228,7 @@ static void test_dump(void)
     if (hFile == INVALID_HANDLE_VALUE)
       return;
 
-    pvData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 10000);
+    pvData = heap_alloc_zero(10000);
 
     if (!ReadFile(hFile, pvData, 10000, &cbSize, NULL))
     {
@@ -1269,7 +1269,7 @@ static void test_dump(void)
     CloseHandle(hFile);
 
 exit:
-    HeapFree(GetProcessHeap(), 0, pvData);
+    heap_free(pvData);
 }
 
 START_TEST(d3dxof)

@@ -54,7 +54,7 @@ static inline ActiveIMMApp *impl_from_IActiveIMMApp(IActiveIMMApp *iface)
 static void ActiveIMMApp_Destructor(ActiveIMMApp* This)
 {
     TRACE("\n");
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI ActiveIMMApp_QueryInterface (IActiveIMMApp* iface,
@@ -897,7 +897,7 @@ DECLSPEC_HIDDEN HRESULT ActiveIMMApp_Constructor(IUnknown *pUnkOuter, IUnknown *
     if (pUnkOuter)
         return CLASS_E_NOAGGREGATION;
 
-    This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(ActiveIMMApp));
+    This = heap_alloc_zero(sizeof(ActiveIMMApp));
     if (This == NULL)
         return E_OUTOFMEMORY;
 

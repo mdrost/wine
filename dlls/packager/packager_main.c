@@ -103,7 +103,7 @@ static ULONG WINAPI OleObject_Release(IOleObject *iface)
         if(*This->filename)
             DeleteFileW(This->filename);
 
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -615,7 +615,7 @@ static HRESULT WINAPI PackageCF_CreateInstance(IClassFactory *iface, IUnknown *o
 
     TRACE("(static)->(%p, %s, %p)\n", outer, wine_dbgstr_guid(iid), obj);
 
-    package = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*package));
+    package = heap_alloc_zero(sizeof(*package));
     if(!package)
         return E_OUTOFMEMORY;
 

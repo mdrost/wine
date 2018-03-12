@@ -90,10 +90,10 @@ twain_add_onedriver(const char *dsname) {
 		if (i < nrdevices)
 			break;
 		if (nrdevices)
-			devices = HeapReAlloc(GetProcessHeap(), 0, devices, sizeof(devices[0])*(nrdevices+1));
+			devices = heap_realloc(devices, sizeof(devices[0])*(nrdevices+1));
 		else
-			devices = HeapAlloc(GetProcessHeap(), 0, sizeof(devices[0]));
-		if ((devices[nrdevices].modname = HeapAlloc(GetProcessHeap(), 0, strlen(dsname) + 1)))
+			devices = heap_alloc(sizeof(devices[0]));
+		if ((devices[nrdevices].modname = heap_alloc(strlen(dsname) + 1)))
 			lstrcpyA(devices[nrdevices].modname, dsname);
 		devices[nrdevices].identity = sourceId;
 		nrdevices++;
@@ -133,7 +133,7 @@ TW_UINT16 TWAIN_ControlNull (pTW_IDENTITY pOrigin, pTW_IDENTITY pDest, activeDS 
         return TWRC_FAILURE;
     }
 
-    message = HeapAlloc(GetProcessHeap(), 0, sizeof(*message));
+    message = heap_alloc(sizeof(*message));
     if (!message)
     {
         DSM_twCC = TWCC_LOWMEMORY;
@@ -224,7 +224,7 @@ TW_UINT16 TWAIN_CloseDS (pTW_IDENTITY pOrigin, TW_MEMREF pData)
 		prevDS->next = currentDS->next;
 	else
 		activeSources = currentDS->next;
-	HeapFree (GetProcessHeap(), 0, currentDS);
+	heap_free(currentDS);
 	if (twRC == TWRC_SUCCESS)
 		DSM_twCC = TWCC_SUCCESS;
 	else /* FIXME: unclear how to get TWCC */
@@ -311,7 +311,7 @@ TW_UINT16 TWAIN_OpenDS (pTW_IDENTITY pOrigin, TW_MEMREF pData)
 	} /* else use the first device */
 
 	/* the source is found in the device list */
-	newSource = HeapAlloc (GetProcessHeap(), 0, sizeof (activeDS));
+	newSource = heap_alloc(sizeof (activeDS));
 	if (!newSource) {
 		DSM_twCC = TWCC_LOWMEMORY;
 		FIXME("Out of memory.\n");
@@ -321,7 +321,7 @@ TW_UINT16 TWAIN_OpenDS (pTW_IDENTITY pOrigin, TW_MEMREF pData)
 	if (!hmod) {
 		ERR("Failed to load TWAIN Source %s\n", modname);
 		DSM_twCC = TWCC_OPERATIONERROR;
-                HeapFree(GetProcessHeap(), 0, newSource);
+                heap_free(newSource);
 		return TWRC_FAILURE;
 	}
 	newSource->hmod = hmod; 
@@ -330,7 +330,7 @@ TW_UINT16 TWAIN_OpenDS (pTW_IDENTITY pOrigin, TW_MEMREF pData)
 	pIdentity->Id = DSM_sourceId ++;
 	if (TWRC_SUCCESS != newSource->dsEntry (pOrigin, DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, pIdentity)) {
 		DSM_twCC = TWCC_OPERATIONERROR;
-                HeapFree(GetProcessHeap(), 0, newSource);
+                heap_free(newSource);
                 DSM_sourceId--;
 		return TWRC_FAILURE;
 	}
@@ -469,7 +469,7 @@ TW_UINT16 TWAIN_CloseDSM (pTW_IDENTITY pOrigin, TW_MEMREF pData)
         {
             nextDS = currentDS->next;
 	    currentDS->dsEntry (pOrigin, DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, pData);
-            HeapFree (GetProcessHeap(), 0, currentDS);
+            heap_free(currentDS);
             currentDS = nextDS;
         }
         activeSources = NULL;

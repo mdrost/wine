@@ -246,7 +246,7 @@ static void find_joydevs(void)
             continue;
         }
 
-        if (!(joydev.device = HeapAlloc(GetProcessHeap(), 0, strlen(buf) + 1)))
+        if (!(joydev.device = heap_alloc(strlen(buf) + 1)))
         {
             close(fd);
             continue;
@@ -255,7 +255,7 @@ static void find_joydevs(void)
 
         buf[MAX_PATH - 1] = 0;
         if (ioctl(fd, EVIOCGNAME(MAX_PATH - 1), buf) != -1 &&
-            (joydev.name = HeapAlloc(GetProcessHeap(), 0, strlen(buf) + strlen(EVDEVDRIVER) + 1)))
+            (joydev.name = heap_alloc(strlen(buf) + strlen(EVDEVDRIVER) + 1)))
         {
             strcpy(joydev.name, buf);
             /* Append driver name */
@@ -266,9 +266,9 @@ static void find_joydevs(void)
 
         if (device_disabled_registry(joydev.name)) {
             close(fd);
-            HeapFree(GetProcessHeap(), 0, joydev.name);
+            heap_free(joydev.name);
             if (joydev.name != joydev.device)
-                HeapFree(GetProcessHeap(), 0, joydev.device);
+                heap_free(joydev.device);
             continue;
         }
 
@@ -325,9 +325,9 @@ static void find_joydevs(void)
         }
 
         if (!have_joydevs)
-            new_joydevs = HeapAlloc(GetProcessHeap(), 0, sizeof(struct JoyDev));
+            new_joydevs = heap_alloc(sizeof(struct JoyDev));
         else
-            new_joydevs = HeapReAlloc(GetProcessHeap(), 0, joydevs, (1 + have_joydevs) * sizeof(struct JoyDev));
+            new_joydevs = heap_realloc(joydevs, (1 + have_joydevs) * sizeof(struct JoyDev));
 
         if (!new_joydevs)
         {
@@ -456,7 +456,7 @@ static JoystickImpl *alloc_device(REFGUID rguid, IDirectInputImpl *dinput, unsig
     int default_axis_map[WINE_JOYSTICK_MAX_AXES + WINE_JOYSTICK_MAX_POVS*2];
     DIDEVICEINSTANCEW ddi;
 
-    newDevice = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(JoystickImpl));
+    newDevice = heap_alloc_zero(sizeof(JoystickImpl));
     if (!newDevice) return NULL;
 
     newDevice->generic.base.IDirectInputDevice8A_iface.lpVtbl = &JoystickAvt;
@@ -521,9 +521,9 @@ static JoystickImpl *alloc_device(REFGUID rguid, IDirectInputImpl *dinput, unsig
     if (setup_dinput_options(&newDevice->generic, default_axis_map) != DI_OK) goto failed;
 
     /* Create copy of default data format */
-    if (!(df = HeapAlloc(GetProcessHeap(), 0, c_dfDIJoystick2.dwSize))) goto failed;
+    if (!(df = heap_alloc(c_dfDIJoystick2.dwSize))) goto failed;
     memcpy(df, &c_dfDIJoystick2, c_dfDIJoystick2.dwSize);
-    if (!(df->rgodf = HeapAlloc(GetProcessHeap(), 0, df->dwNumObjs * df->dwObjSize))) goto failed;
+    if (!(df->rgodf = heap_alloc(df->dwNumObjs * df->dwObjSize))) goto failed;
 
 
     /* Construct internal data format */
@@ -591,10 +591,10 @@ static JoystickImpl *alloc_device(REFGUID rguid, IDirectInputImpl *dinput, unsig
     return newDevice;
 
 failed:
-    if (df) HeapFree(GetProcessHeap(), 0, df->rgodf);
-    HeapFree(GetProcessHeap(), 0, df);
-    HeapFree(GetProcessHeap(), 0, newDevice->generic.axis_map);
-    HeapFree(GetProcessHeap(), 0, newDevice);
+    if (df) heap_free(df->rgodf);
+    heap_free(df);
+    heap_free(newDevice->generic.axis_map);
+    heap_free(newDevice);
     return NULL;
 }
 
@@ -1056,13 +1056,13 @@ static HRESULT WINAPI JoystickWImpl_CreateEffect(LPDIRECTINPUTDEVICE8W iface, RE
     return DIERR_UNSUPPORTED;
 #else
 
-    if (!(new_effect = HeapAlloc(GetProcessHeap(), 0, sizeof(*new_effect))))
+    if (!(new_effect = heap_alloc(sizeof(*new_effect))))
         return DIERR_OUTOFMEMORY;
 
     retval = linuxinput_create_effect(&This->joyfd, rguid, &new_effect->entry, &new_effect->ref);
     if (retval != DI_OK)
     {
-        HeapFree(GetProcessHeap(), 0, new_effect);
+        heap_free(new_effect);
         return retval;
     }
 
@@ -1072,7 +1072,7 @@ static HRESULT WINAPI JoystickWImpl_CreateEffect(LPDIRECTINPUTDEVICE8W iface, RE
 
         if (retval != DI_OK && retval != DI_DOWNLOADSKIPPED)
         {
-            HeapFree(GetProcessHeap(), 0, new_effect);
+            heap_free(new_effect);
             return retval;
         }
     }

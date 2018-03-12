@@ -1051,7 +1051,7 @@ static HRESULT alloc_device(REFGUID rguid, IDirectInputImpl *dinput,
 
     TRACE("%s %p %p %hu\n", debugstr_guid(rguid), dinput, pdev, index);
 
-    newDevice = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(JoystickImpl));
+    newDevice = heap_alloc_zero(sizeof(JoystickImpl));
     if (newDevice == 0) {
         WARN("out of memory\n");
         *pdev = 0;
@@ -1070,7 +1070,7 @@ static HRESULT alloc_device(REFGUID rguid, IDirectInputImpl *dinput,
     TRACE("Name %s\n",name);
 
     /* copy the device name */
-    newDevice->generic.name = HeapAlloc(GetProcessHeap(),0,strlen(name) + 1);
+    newDevice->generic.name = heap_alloc(strlen(name) + 1);
     strcpy(newDevice->generic.name, name);
 
     list_init(&newDevice->effects);
@@ -1125,11 +1125,11 @@ static HRESULT alloc_device(REFGUID rguid, IDirectInputImpl *dinput,
     newDevice->generic.base.crit.DebugInfo->Spare[0] = (DWORD_PTR)(__FILE__ ": JoystickImpl*->generic.base.crit");
 
     /* Create copy of default data format */
-    if (!(df = HeapAlloc(GetProcessHeap(), 0, c_dfDIJoystick2.dwSize))) goto FAILED;
+    if (!(df = heap_alloc(c_dfDIJoystick2.dwSize))) goto FAILED;
     memcpy(df, &c_dfDIJoystick2, c_dfDIJoystick2.dwSize);
 
     df->dwNumObjs = newDevice->generic.devcaps.dwAxes + newDevice->generic.devcaps.dwPOVs + newDevice->generic.devcaps.dwButtons;
-    if (!(df->rgodf = HeapAlloc(GetProcessHeap(), 0, df->dwNumObjs * df->dwObjSize))) goto FAILED;
+    if (!(df->rgodf = heap_alloc(df->dwNumObjs * df->dwObjSize))) goto FAILED;
 
     for (i = 0; i < newDevice->generic.devcaps.dwAxes; i++)
     {
@@ -1225,11 +1225,11 @@ FAILED:
     hr = DIERR_OUTOFMEMORY;
     if (newDevice->ff) FFReleaseDevice(newDevice->ff);
     if (newDevice->elements) CFRelease(newDevice->elements);
-    if (df) HeapFree(GetProcessHeap(), 0, df->rgodf);
-    HeapFree(GetProcessHeap(), 0, df);
+    if (df) heap_free(df->rgodf);
+    heap_free(df);
     release_DataFormat(&newDevice->generic.base.data_format);
-    HeapFree(GetProcessHeap(),0,newDevice->generic.name);
-    HeapFree(GetProcessHeap(),0,newDevice);
+    heap_free(newDevice->generic.name);
+    heap_free(newDevice);
     *pdev = 0;
 
     return hr;
@@ -1410,7 +1410,7 @@ static HRESULT WINAPI JoystickWImpl_CreateEffect(IDirectInputDevice8W *iface,
     if(outer)
         WARN("aggregation not implemented\n");
 
-    effect = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*This));
+    effect = heap_alloc_zero(sizeof(*This));
     effect->IDirectInputEffect_iface.lpVtbl = &EffectVtbl;
     effect->ref = 1;
     effect->guid = *type;
@@ -1421,7 +1421,7 @@ static HRESULT WINAPI JoystickWImpl_CreateEffect(IDirectInputDevice8W *iface,
                 effect_win_to_mac(type), (FFEFFECT*)params, &effect->effect));
     if(FAILED(hr)){
         WARN("FFDeviceCreateEffect failed: %08x\n", hr);
-        HeapFree(GetProcessHeap(), 0, effect);
+        heap_free(effect);
         return hr;
     }
 
@@ -1587,7 +1587,7 @@ static ULONG WINAPI effect_Release(IDirectInputEffect *iface)
     if(!ref){
         list_remove(&This->entry);
         FFDeviceReleaseEffect(This->device->ff, This->effect);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;

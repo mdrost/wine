@@ -226,7 +226,7 @@ static INT find_joystick_devices(void)
             joydev.dev_axes_map = NULL;
         }
         else
-            if ((joydev.dev_axes_map = HeapAlloc(GetProcessHeap(), 0, joydev.axis_count * sizeof(int))))
+            if ((joydev.dev_axes_map = heap_alloc(joydev.axis_count * sizeof(int))))
             {
                 INT j, found_axes = 0;
 
@@ -286,9 +286,9 @@ static INT find_joystick_devices(void)
         close(fd);
 
         if (!joystick_devices_count)
-            new_joydevs = HeapAlloc(GetProcessHeap(), 0, sizeof(struct JoyDev));
+            new_joydevs = heap_alloc(sizeof(struct JoyDev));
         else
-            new_joydevs = HeapReAlloc(GetProcessHeap(), 0, joystick_devices,
+            new_joydevs = heap_realloc(joystick_devices,
                                       (joystick_devices_count + 1) * sizeof(struct JoyDev));
         if (!new_joydevs) continue;
 
@@ -430,7 +430,7 @@ static HRESULT alloc_device(REFGUID rguid, IDirectInputImpl *dinput,
 
     TRACE("%s %p %p %hu\n", debugstr_guid(rguid), dinput, pdev, index);
 
-    newDevice = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(JoystickImpl));
+    newDevice = heap_alloc_zero(sizeof(JoystickImpl));
     if (newDevice == 0) {
         WARN("out of memory\n");
         *pdev = 0;
@@ -470,11 +470,11 @@ static HRESULT alloc_device(REFGUID rguid, IDirectInputImpl *dinput,
         goto FAILED1;
 
     /* Create copy of default data format */
-    if (!(df = HeapAlloc(GetProcessHeap(), 0, c_dfDIJoystick2.dwSize))) goto FAILED;
+    if (!(df = heap_alloc(c_dfDIJoystick2.dwSize))) goto FAILED;
     memcpy(df, &c_dfDIJoystick2, c_dfDIJoystick2.dwSize);
 
     df->dwNumObjs = newDevice->generic.devcaps.dwAxes + newDevice->generic.devcaps.dwPOVs + newDevice->generic.devcaps.dwButtons;
-    if (!(df->rgodf = HeapAlloc(GetProcessHeap(), 0, df->dwNumObjs * df->dwObjSize))) goto FAILED;
+    if (!(df->rgodf = heap_alloc(df->dwNumObjs * df->dwObjSize))) goto FAILED;
 
     for (i = 0; i < newDevice->generic.device_axis_count; i++)
     {
@@ -542,11 +542,11 @@ static HRESULT alloc_device(REFGUID rguid, IDirectInputImpl *dinput,
 FAILED:
     hr = DIERR_OUTOFMEMORY;
 FAILED1:
-    if (df) HeapFree(GetProcessHeap(), 0, df->rgodf);
-    HeapFree(GetProcessHeap(), 0, df);
+    if (df) heap_free(df->rgodf);
+    heap_free(df);
     release_DataFormat(&newDevice->generic.base.data_format);
-    HeapFree(GetProcessHeap(),0,newDevice->generic.axis_map);
-    HeapFree(GetProcessHeap(),0,newDevice);
+    heap_free(newDevice->generic.axis_map);
+    heap_free(newDevice);
     *pdev = 0;
 
     return hr;

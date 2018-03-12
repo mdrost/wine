@@ -105,7 +105,7 @@ static void uninitialize_directinput_instance(IDirectInputImpl *This);
 
 static HRESULT create_directinput_instance(REFIID riid, LPVOID *ppDI, IDirectInputImpl **out)
 {
-    IDirectInputImpl *This = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectInputImpl) );
+    IDirectInputImpl *This = heap_alloc_zero( sizeof(IDirectInputImpl) );
     HRESULT hr;
 
     if (!This)
@@ -120,7 +120,7 @@ static HRESULT create_directinput_instance(REFIID riid, LPVOID *ppDI, IDirectInp
     hr = IDirectInput_QueryInterface( &This->IDirectInput7A_iface, riid, ppDI );
     if (FAILED(hr))
     {
-        HeapFree( GetProcessHeap(), 0, This );
+        heap_free( This );
         return hr;
     }
 
@@ -489,7 +489,7 @@ static ULONG WINAPI IDirectInputAImpl_Release(LPDIRECTINPUT7A iface)
     if (ref == 0)
     {
         uninitialize_directinput_instance( This );
-        HeapFree( GetProcessHeap(), 0, This );
+        heap_free( This );
     }
 
     return ref;
@@ -608,7 +608,7 @@ static void uninitialize_directinput_instance(IDirectInputImpl *This)
 
         LIST_FOR_EACH_ENTRY_SAFE( device_player, device_player2,
                 &This->device_players, struct DevicePlayer, entry )
-            HeapFree(GetProcessHeap(), 0, device_player);
+            heap_free(device_player);
 
         check_hook_thread();
 
@@ -1001,7 +1001,7 @@ static HRESULT WINAPI IDirectInput8AImpl_EnumDevicesBySemantics(
     {
         int len = MultiByteToWideChar(CP_ACP, 0, ptszUserName, -1, 0, 0);
 
-        username_w = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*len);
+        username_w = heap_alloc(sizeof(WCHAR)*len);
         MultiByteToWideChar(CP_ACP, 0, ptszUserName, -1, username_w, len);
     }
 
@@ -1022,9 +1022,9 @@ static HRESULT WINAPI IDirectInput8AImpl_EnumDevicesBySemantics(
                 should_enumerate_device(username_w, dwFlags, &This->device_players, &didevi.guidInstance))
             {
                 if (device_count++)
-                    didevis = HeapReAlloc(GetProcessHeap(), 0, didevis, sizeof(DIDEVICEINSTANCEA)*device_count);
+                    didevis = heap_realloc(didevis, sizeof(DIDEVICEINSTANCEA)*device_count);
                 else
-                    didevis = HeapAlloc(GetProcessHeap(), 0, sizeof(DIDEVICEINSTANCEA)*device_count);
+                    didevis = heap_alloc(sizeof(DIDEVICEINSTANCEA)*device_count);
                 didevis[device_count-1] = didevi;
             }
         }
@@ -1048,17 +1048,17 @@ static HRESULT WINAPI IDirectInput8AImpl_EnumDevicesBySemantics(
 
         if (lpCallback(&didevis[i], lpdid, callbackFlags, --remain, pvRef) == DIENUM_STOP)
         {
-            HeapFree(GetProcessHeap(), 0, didevis);
-            HeapFree(GetProcessHeap(), 0, username_w);
+            heap_free(didevis);
+            heap_free(username_w);
             return DI_OK;
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, didevis);
+    heap_free(didevis);
 
     if (dwFlags & DIEDBSFL_FORCEFEEDBACK)
     {
-        HeapFree(GetProcessHeap(), 0, username_w);
+        heap_free(username_w);
         return DI_OK;
     }
 
@@ -1074,13 +1074,13 @@ static HRESULT WINAPI IDirectInput8AImpl_EnumDevicesBySemantics(
 
             if (lpCallback(&didevi, lpdid, callbackFlags, --remain, pvRef) == DIENUM_STOP)
             {
-                HeapFree(GetProcessHeap(), 0, username_w);
+                heap_free(username_w);
                 return DI_OK;
             }
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, username_w);
+    heap_free(username_w);
     return DI_OK;
 }
 
@@ -1123,9 +1123,9 @@ static HRESULT WINAPI IDirectInput8WImpl_EnumDevicesBySemantics(
                 should_enumerate_device(ptszUserName, dwFlags, &This->device_players, &didevi.guidInstance))
             {
                 if (device_count++)
-                    didevis = HeapReAlloc(GetProcessHeap(), 0, didevis, sizeof(DIDEVICEINSTANCEW)*device_count);
+                    didevis = heap_realloc(didevis, sizeof(DIDEVICEINSTANCEW)*device_count);
                 else
-                    didevis = HeapAlloc(GetProcessHeap(), 0, sizeof(DIDEVICEINSTANCEW)*device_count);
+                    didevis = heap_alloc(sizeof(DIDEVICEINSTANCEW)*device_count);
                 didevis[device_count-1] = didevi;
             }
         }
@@ -1149,12 +1149,12 @@ static HRESULT WINAPI IDirectInput8WImpl_EnumDevicesBySemantics(
 
         if (lpCallback(&didevis[i], lpdid, callbackFlags, --remain, pvRef) == DIENUM_STOP)
         {
-            HeapFree(GetProcessHeap(), 0, didevis);
+            heap_free(didevis);
             return DI_OK;
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, didevis);
+    heap_free(didevis);
 
     if (dwFlags & DIEDBSFL_FORCEFEEDBACK) return DI_OK;
 
@@ -1208,7 +1208,7 @@ static HRESULT WINAPI IDirectInput8AImpl_ConfigureDevices(
     diCDParamsW.lprgFormats = &diafW;
     diCDParamsW.hwnd = lpdiCDParams->hwnd;
 
-    diafW.rgoAction = HeapAlloc(GetProcessHeap(), 0, sizeof(DIACTIONW)*lpdiCDParams->lprgFormats->dwNumActions);
+    diafW.rgoAction = heap_alloc(sizeof(DIACTIONW)*lpdiCDParams->lprgFormats->dwNumActions);
     _copy_diactionformatAtoW(&diafW, lpdiCDParams->lprgFormats);
 
     /* Copy action names */
@@ -1216,7 +1216,7 @@ static HRESULT WINAPI IDirectInput8AImpl_ConfigureDevices(
     {
         const char* from = lpdiCDParams->lprgFormats->rgoAction[i].u.lptszActionName;
         int len = MultiByteToWideChar(CP_ACP, 0, from , -1, NULL , 0);
-        WCHAR *to = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*len);
+        WCHAR *to = heap_alloc(sizeof(WCHAR)*len);
 
         MultiByteToWideChar(CP_ACP, 0, from , -1, to , len);
         diafW.rgoAction[i].u.lptszActionName = to;
@@ -1230,9 +1230,9 @@ static HRESULT WINAPI IDirectInput8AImpl_ConfigureDevices(
 
     /* Free memory */
     for (i=0; i < diafW.dwNumActions; i++)
-        HeapFree(GetProcessHeap(), 0, (void*) diafW.rgoAction[i].u.lptszActionName);
+        heap_free((void*) diafW.rgoAction[i].u.lptszActionName);
 
-    HeapFree(GetProcessHeap(), 0, diafW.rgoAction);
+    heap_free(diafW.rgoAction);
 
     return hr;
 }

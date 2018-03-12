@@ -226,7 +226,7 @@ static SysKeyboardImpl *alloc_device(REFGUID rguid, IDirectInputImpl *dinput)
     LPDIDATAFORMAT df = NULL;
     int i, idx = 0;
 
-    newDevice = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(SysKeyboardImpl));
+    newDevice = heap_alloc_zero(sizeof(SysKeyboardImpl));
     newDevice->base.IDirectInputDevice8A_iface.lpVtbl = &SysKeyboardAvt;
     newDevice->base.IDirectInputDevice8W_iface.lpVtbl = &SysKeyboardWvt;
     newDevice->base.ref = 1;
@@ -237,9 +237,9 @@ static SysKeyboardImpl *alloc_device(REFGUID rguid, IDirectInputImpl *dinput)
     newDevice->base.crit.DebugInfo->Spare[0] = (DWORD_PTR)(__FILE__ ": SysKeyboardImpl*->base.crit");
 
     /* Create copy of default data format */
-    if (!(df = HeapAlloc(GetProcessHeap(), 0, c_dfDIKeyboard.dwSize))) goto failed;
+    if (!(df = heap_alloc(c_dfDIKeyboard.dwSize))) goto failed;
     memcpy(df, &c_dfDIKeyboard, c_dfDIKeyboard.dwSize);
-    if (!(df->rgodf = HeapAlloc(GetProcessHeap(), 0, df->dwNumObjs * df->dwObjSize))) goto failed;
+    if (!(df->rgodf = heap_alloc(df->dwNumObjs * df->dwObjSize))) goto failed;
 
     for (i = 0; i < df->dwNumObjs; i++)
     {
@@ -263,9 +263,9 @@ static SysKeyboardImpl *alloc_device(REFGUID rguid, IDirectInputImpl *dinput)
     return newDevice;
 
 failed:
-    if (df) HeapFree(GetProcessHeap(), 0, df->rgodf);
-    HeapFree(GetProcessHeap(), 0, df);
-    HeapFree(GetProcessHeap(), 0, newDevice);
+    if (df) heap_free(df->rgodf);
+    heap_free(df);
+    heap_free(newDevice);
     return NULL;
 }
 
@@ -573,21 +573,21 @@ static HRESULT WINAPI SysKeyboardAImpl_BuildActionMap(LPDIRECTINPUTDEVICE8A ifac
     WCHAR *lpszUserNameW = NULL;
     int username_size;
 
-    diafW.rgoAction = HeapAlloc(GetProcessHeap(), 0, sizeof(DIACTIONW)*lpdiaf->dwNumActions);
+    diafW.rgoAction = heap_alloc(sizeof(DIACTIONW)*lpdiaf->dwNumActions);
     _copy_diactionformatAtoW(&diafW, lpdiaf);
 
     if (lpszUserName != NULL)
     {
         username_size = MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, NULL, 0);
-        lpszUserNameW = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*username_size);
+        lpszUserNameW = heap_alloc(sizeof(WCHAR)*username_size);
         MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, lpszUserNameW, username_size);
     }
 
     hr = SysKeyboardWImpl_BuildActionMap(&This->base.IDirectInputDevice8W_iface, &diafW, lpszUserNameW, dwFlags);
 
     _copy_diactionformatWtoA(lpdiaf, &diafW);
-    HeapFree(GetProcessHeap(), 0, diafW.rgoAction);
-    HeapFree(GetProcessHeap(), 0, lpszUserNameW);
+    heap_free(diafW.rgoAction);
+    heap_free(lpszUserNameW);
 
     return hr;
 }
@@ -613,20 +613,20 @@ static HRESULT WINAPI SysKeyboardAImpl_SetActionMap(LPDIRECTINPUTDEVICE8A iface,
     WCHAR *lpszUserNameW = NULL;
     int username_size;
 
-    diafW.rgoAction = HeapAlloc(GetProcessHeap(), 0, sizeof(DIACTIONW)*lpdiaf->dwNumActions);
+    diafW.rgoAction = heap_alloc(sizeof(DIACTIONW)*lpdiaf->dwNumActions);
     _copy_diactionformatAtoW(&diafW, lpdiaf);
 
     if (lpszUserName != NULL)
     {
         username_size = MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, NULL, 0);
-        lpszUserNameW = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*username_size);
+        lpszUserNameW = heap_alloc(sizeof(WCHAR)*username_size);
         MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, lpszUserNameW, username_size);
     }
 
     hr = SysKeyboardWImpl_SetActionMap(&This->base.IDirectInputDevice8W_iface, &diafW, lpszUserNameW, dwFlags);
 
-    HeapFree(GetProcessHeap(), 0, diafW.rgoAction);
-    HeapFree(GetProcessHeap(), 0, lpszUserNameW);
+    heap_free(diafW.rgoAction);
+    heap_free(lpszUserNameW);
 
     return hr;
 }

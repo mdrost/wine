@@ -200,7 +200,7 @@ static SysMouseImpl *alloc_device(REFGUID rguid, IDirectInputImpl *dinput)
     char buffer[20];
     HKEY hkey, appkey;
 
-    newDevice = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(SysMouseImpl));
+    newDevice = heap_alloc_zero(sizeof(SysMouseImpl));
     if (!newDevice) return NULL;
     newDevice->base.IDirectInputDevice8A_iface.lpVtbl = &SysMouseAvt;
     newDevice->base.IDirectInputDevice8W_iface.lpVtbl = &SysMouseWvt;
@@ -224,9 +224,9 @@ static SysMouseImpl *alloc_device(REFGUID rguid, IDirectInputImpl *dinput)
     if (hkey) RegCloseKey(hkey);
 
     /* Create copy of default data format */
-    if (!(df = HeapAlloc(GetProcessHeap(), 0, c_dfDIMouse2.dwSize))) goto failed;
+    if (!(df = heap_alloc(c_dfDIMouse2.dwSize))) goto failed;
     memcpy(df, &c_dfDIMouse2, c_dfDIMouse2.dwSize);
-    if (!(df->rgodf = HeapAlloc(GetProcessHeap(), 0, df->dwNumObjs * df->dwObjSize))) goto failed;
+    if (!(df->rgodf = heap_alloc(df->dwNumObjs * df->dwObjSize))) goto failed;
     memcpy(df->rgodf, c_dfDIMouse2.rgodf, df->dwNumObjs * df->dwObjSize);
 
     /* Because we don't do any detection yet just modify instance and type */
@@ -246,9 +246,9 @@ static SysMouseImpl *alloc_device(REFGUID rguid, IDirectInputImpl *dinput)
     return newDevice;
 
 failed:
-    if (df) HeapFree(GetProcessHeap(), 0, df->rgodf);
-    HeapFree(GetProcessHeap(), 0, df);
-    HeapFree(GetProcessHeap(), 0, newDevice);
+    if (df) heap_free(df->rgodf);
+    heap_free(df);
+    heap_free(newDevice);
     return NULL;
 }
 
@@ -809,21 +809,21 @@ static HRESULT WINAPI SysMouseAImpl_BuildActionMap(LPDIRECTINPUTDEVICE8A iface,
     WCHAR *lpszUserNameW = NULL;
     int username_size;
 
-    diafW.rgoAction = HeapAlloc(GetProcessHeap(), 0, sizeof(DIACTIONW)*lpdiaf->dwNumActions);
+    diafW.rgoAction = heap_alloc(sizeof(DIACTIONW)*lpdiaf->dwNumActions);
     _copy_diactionformatAtoW(&diafW, lpdiaf);
 
     if (lpszUserName != NULL)
     {
         username_size = MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, NULL, 0);
-        lpszUserNameW = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*username_size);
+        lpszUserNameW = heap_alloc(sizeof(WCHAR)*username_size);
         MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, lpszUserNameW, username_size);
     }
 
     hr = SysMouseWImpl_BuildActionMap(&This->base.IDirectInputDevice8W_iface, &diafW, lpszUserNameW, dwFlags);
 
     _copy_diactionformatWtoA(lpdiaf, &diafW);
-    HeapFree(GetProcessHeap(), 0, diafW.rgoAction);
-    HeapFree(GetProcessHeap(), 0, lpszUserNameW);
+    heap_free(diafW.rgoAction);
+    heap_free(lpszUserNameW);
 
     return hr;
 }
@@ -849,20 +849,20 @@ static HRESULT WINAPI SysMouseAImpl_SetActionMap(LPDIRECTINPUTDEVICE8A iface,
     WCHAR *lpszUserNameW = NULL;
     int username_size;
 
-    diafW.rgoAction = HeapAlloc(GetProcessHeap(), 0, sizeof(DIACTIONW)*lpdiaf->dwNumActions);
+    diafW.rgoAction = heap_alloc(sizeof(DIACTIONW)*lpdiaf->dwNumActions);
     _copy_diactionformatAtoW(&diafW, lpdiaf);
 
     if (lpszUserName != NULL)
     {
         username_size = MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, NULL, 0);
-        lpszUserNameW = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*username_size);
+        lpszUserNameW = heap_alloc(sizeof(WCHAR)*username_size);
         MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, lpszUserNameW, username_size);
     }
 
     hr = SysMouseWImpl_SetActionMap(&This->base.IDirectInputDevice8W_iface, &diafW, lpszUserNameW, dwFlags);
 
-    HeapFree(GetProcessHeap(), 0, diafW.rgoAction);
-    HeapFree(GetProcessHeap(), 0, lpszUserNameW);
+    heap_free(diafW.rgoAction);
+    heap_free(lpszUserNameW);
 
     return hr;
 }

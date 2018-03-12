@@ -764,8 +764,8 @@ static ULONG WINAPI LinuxInputEffectImpl_Release(LPDIRECTINPUTEFFECT iface)
         LinuxInputEffectImpl_Stop(iface);
         LinuxInputEffectImpl_Unload(iface);
         list_remove(This->entry);
-        HeapFree(GetProcessHeap(), 0, LIST_ENTRY(This->entry, effect_list_item, entry));
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(LIST_ENTRY(This->entry, effect_list_item, entry));
+        heap_free(This);
     }
     return ref;
 }
@@ -825,11 +825,11 @@ DECLSPEC_HIDDEN HRESULT linuxinput_create_effect(
 	    break;
 	case DIEFT_CUSTOMFORCE:
 	    FIXME("Custom forces are not supported.\n");
-	    HeapFree(GetProcessHeap(), 0, newEffect);
+	    heap_free(newEffect);
 	    return DIERR_INVALIDPARAM;
 	default:
             FIXME("Unknown force type 0x%x.\n", type);
-            HeapFree(GetProcessHeap(), 0, newEffect);
+            heap_free(newEffect);
 	    return DIERR_INVALIDPARAM;
     }
 

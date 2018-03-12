@@ -389,11 +389,11 @@ void release_DataFormat(DataFormat * format)
 {
     TRACE("Deleting DataFormat: %p\n", format);
 
-    HeapFree(GetProcessHeap(), 0, format->dt);
+    heap_free(format->dt);
     format->dt = NULL;
-    HeapFree(GetProcessHeap(), 0, format->offsets);
+    heap_free(format->offsets);
     format->offsets = NULL;
-    HeapFree(GetProcessHeap(), 0, format->user_df);
+    heap_free(format->user_df);
     format->user_df = NULL;
 }
 
@@ -436,14 +436,14 @@ static HRESULT create_DataFormat(LPCDIDATAFORMAT asked_format, DataFormat *forma
     DWORD next = 0;
 
     if (!format->wine_df) return DIERR_INVALIDPARAM;
-    done = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, asked_format->dwNumObjs * sizeof(int));
-    dt = HeapAlloc(GetProcessHeap(), 0, asked_format->dwNumObjs * sizeof(DataTransform));
+    done = heap_alloc_zero(asked_format->dwNumObjs * sizeof(int));
+    dt = heap_alloc(asked_format->dwNumObjs * sizeof(DataTransform));
     if (!dt || !done) goto failed;
 
-    if (!(format->offsets = HeapAlloc(GetProcessHeap(), 0, format->wine_df->dwNumObjs * sizeof(int))))
+    if (!(format->offsets = heap_alloc(format->wine_df->dwNumObjs * sizeof(int))))
         goto failed;
 
-    if (!(format->user_df = HeapAlloc(GetProcessHeap(), 0, asked_format->dwSize)))
+    if (!(format->user_df = heap_alloc(asked_format->dwSize)))
         goto failed;
     memcpy(format->user_df, asked_format, asked_format->dwSize);
 
@@ -548,22 +548,22 @@ static HRESULT create_DataFormat(LPCDIDATAFORMAT asked_format, DataFormat *forma
     format->internal_format_size = format->wine_df->dwDataSize;
     format->size = index;
     if (same) {
-	HeapFree(GetProcessHeap(), 0, dt);
+	heap_free(dt);
         dt = NULL;
     }
     format->dt = dt;
 
-    HeapFree(GetProcessHeap(), 0, done);
+    heap_free(done);
 
     return DI_OK;
 
 failed:
-    HeapFree(GetProcessHeap(), 0, done);
-    HeapFree(GetProcessHeap(), 0, dt);
+    heap_free(done);
+    heap_free(dt);
     format->dt = NULL;
-    HeapFree(GetProcessHeap(), 0, format->offsets);
+    heap_free(format->offsets);
     format->offsets = NULL;
-    HeapFree(GetProcessHeap(), 0, format->user_df);
+    heap_free(format->user_df);
     format->user_df = NULL;
 
     return DIERR_OUTOFMEMORY;
@@ -664,7 +664,7 @@ static HKEY get_mapping_key(const WCHAR *device, const WCHAR *username, const WC
     if (RegCreateKeyW(HKEY_CURRENT_USER, keyname, &hkey))
         hkey = 0;
 
-    HeapFree(GetProcessHeap(), 0, keyname);
+    heap_free(keyname);
 
     return hkey;
 }
@@ -849,12 +849,12 @@ HRESULT _set_action_map(LPDIRECTINPUTDEVICE8W iface, LPDIACTIONFORMATW lpdiaf, L
     This->num_actions = num_actions;
 
     /* Construct the dataformat and actionmap */
-    obj_df = HeapAlloc(GetProcessHeap(), 0, sizeof(DIOBJECTDATAFORMAT)*num_actions);
+    obj_df = heap_alloc(sizeof(DIOBJECTDATAFORMAT)*num_actions);
     data_format.rgodf = (LPDIOBJECTDATAFORMAT)obj_df;
     data_format.dwNumObjs = num_actions;
 
-    HeapFree(GetProcessHeap(), 0, This->action_map);
-    This->action_map = HeapAlloc(GetProcessHeap(), 0, sizeof(ActionMap)*num_actions);
+    heap_free(This->action_map);
+    This->action_map = heap_alloc(sizeof(ActionMap)*num_actions);
 
     for (i = 0; i < lpdiaf->dwNumActions; i++)
     {
@@ -882,7 +882,7 @@ HRESULT _set_action_map(LPDIRECTINPUTDEVICE8W iface, LPDIACTIONFORMATW lpdiaf, L
 
     IDirectInputDevice8_SetDataFormat(iface, &data_format);
 
-    HeapFree(GetProcessHeap(), 0, obj_df);
+    heap_free(obj_df);
 
     /* Set the device properties according to the action format */
     dpr.diph.dwSize = sizeof(DIPROPRANGE);
@@ -1144,15 +1144,15 @@ ULONG WINAPI IDirectInputDevice2WImpl_Release(LPDIRECTINPUTDEVICE8W iface)
     /* Reset the FF state, free all effects, etc */
     IDirectInputDevice8_SendForceFeedbackCommand(iface, DISFFC_RESET);
 
-    HeapFree(GetProcessHeap(), 0, This->data_queue);
+    heap_free(This->data_queue);
 
     /* Free data format */
-    HeapFree(GetProcessHeap(), 0, This->data_format.wine_df->rgodf);
-    HeapFree(GetProcessHeap(), 0, This->data_format.wine_df);
+    heap_free(This->data_format.wine_df->rgodf);
+    heap_free(This->data_format.wine_df);
     release_DataFormat(&This->data_format);
 
     /* Free action mapping */
-    HeapFree(GetProcessHeap(), 0, This->action_map);
+    heap_free(This->action_map);
 
     EnterCriticalSection( &This->dinput->crit );
     list_remove( &This->entry );
@@ -1162,7 +1162,7 @@ ULONG WINAPI IDirectInputDevice2WImpl_Release(LPDIRECTINPUTDEVICE8W iface)
     This->crit.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection(&This->crit);
 
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 
     return DI_OK;
 }
@@ -1390,7 +1390,7 @@ HRESULT WINAPI IDirectInputDevice2WImpl_SetProperty(
             TRACE("buffersize = %d\n", pd->dwData);
 
             EnterCriticalSection(&This->crit);
-            HeapFree(GetProcessHeap(), 0, This->data_queue);
+            heap_free(This->data_queue);
 
             This->data_queue = !pd->dwData ? NULL : HeapAlloc(GetProcessHeap(), 0,
                                 pd->dwData * sizeof(DIDEVICEOBJECTDATA));
@@ -1418,7 +1418,7 @@ HRESULT WINAPI IDirectInputDevice2WImpl_SetProperty(
                 }
             }
             if (!found && (device_player =
-                    HeapAlloc(GetProcessHeap(), 0, sizeof(struct DevicePlayer))))
+                    heap_alloc(sizeof(struct DevicePlayer))))
             {
                 list_add_tail(&This->dinput->device_players, &device_player->entry);
                 device_player->instance_guid = This->guid;

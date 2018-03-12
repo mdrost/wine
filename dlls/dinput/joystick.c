@@ -824,21 +824,21 @@ HRESULT WINAPI JoystickAGenericImpl_BuildActionMap(LPDIRECTINPUTDEVICE8A iface,
     WCHAR *lpszUserNameW = NULL;
     int username_size;
 
-    diafW.rgoAction = HeapAlloc(GetProcessHeap(), 0, sizeof(DIACTIONW)*lpdiaf->dwNumActions);
+    diafW.rgoAction = heap_alloc(sizeof(DIACTIONW)*lpdiaf->dwNumActions);
     _copy_diactionformatAtoW(&diafW, lpdiaf);
 
     if (lpszUserName != NULL)
     {
         username_size = MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, NULL, 0);
-        lpszUserNameW = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*username_size);
+        lpszUserNameW = heap_alloc(sizeof(WCHAR)*username_size);
         MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, lpszUserNameW, username_size);
     }
 
     hr = JoystickWGenericImpl_BuildActionMap(&This->base.IDirectInputDevice8W_iface, &diafW, lpszUserNameW, dwFlags);
 
     _copy_diactionformatWtoA(lpdiaf, &diafW);
-    HeapFree(GetProcessHeap(), 0, diafW.rgoAction);
-    HeapFree(GetProcessHeap(), 0, lpszUserNameW);
+    heap_free(diafW.rgoAction);
+    heap_free(lpszUserNameW);
 
     return hr;
 }
@@ -866,20 +866,20 @@ HRESULT WINAPI JoystickAGenericImpl_SetActionMap(LPDIRECTINPUTDEVICE8A iface,
     WCHAR *lpszUserNameW = NULL;
     int username_size;
 
-    diafW.rgoAction = HeapAlloc(GetProcessHeap(), 0, sizeof(DIACTIONW)*lpdiaf->dwNumActions);
+    diafW.rgoAction = heap_alloc(sizeof(DIACTIONW)*lpdiaf->dwNumActions);
     _copy_diactionformatAtoW(&diafW, lpdiaf);
 
     if (lpszUserName != NULL)
     {
         username_size = MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, NULL, 0);
-        lpszUserNameW = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*username_size);
+        lpszUserNameW = heap_alloc(sizeof(WCHAR)*username_size);
         MultiByteToWideChar(CP_ACP, 0, lpszUserName, -1, lpszUserNameW, username_size);
     }
 
     hr = JoystickWGenericImpl_SetActionMap(&This->base.IDirectInputDevice8W_iface, &diafW, lpszUserNameW, dwFlags);
 
-    HeapFree(GetProcessHeap(), 0, diafW.rgoAction);
-    HeapFree(GetProcessHeap(), 0, lpszUserNameW);
+    heap_free(diafW.rgoAction);
+    heap_free(lpszUserNameW);
 
     return hr;
 }
@@ -961,7 +961,7 @@ HRESULT setup_dinput_options(JoystickGenericImpl *This, const int *default_axis_
         TRACE("setting default deadzone to: \"%s\" %d\n", buffer, This->deadzone);
     }
 
-    This->axis_map = HeapAlloc(GetProcessHeap(), 0, This->device_axis_count * sizeof(int));
+    This->axis_map = heap_alloc(This->device_axis_count * sizeof(int));
     if (!This->axis_map) return DIERR_OUTOFMEMORY;
 
     if (!get_config_key(hkey, appkey, This->name, buffer, sizeof(buffer)))

@@ -870,7 +870,7 @@ static	LRESULT	G711_StreamOpen(PACMDRVSTREAMINSTANCE adsi)
 	G711_GetFormatIndex(adsi->pwfxDst) == 0xFFFFFFFF)
 	return ACMERR_NOTPOSSIBLE;
 
-    aad = HeapAlloc(GetProcessHeap(), 0, sizeof(AcmG711Data));
+    aad = heap_alloc(sizeof(AcmG711Data));
     if (aad == 0) return MMSYSERR_NOMEM;
 
     adsi->dwDriver = (DWORD_PTR)aad;
@@ -961,7 +961,7 @@ static	LRESULT	G711_StreamOpen(PACMDRVSTREAMINSTANCE adsi)
     return MMSYSERR_NOERROR;
 
  theEnd:
-    HeapFree(GetProcessHeap(), 0, aad);
+    heap_free(aad);
     adsi->dwDriver = 0L;
     return MMSYSERR_NOTSUPPORTED;
 }
@@ -972,7 +972,7 @@ static	LRESULT	G711_StreamOpen(PACMDRVSTREAMINSTANCE adsi)
  */
 static	LRESULT	G711_StreamClose(PACMDRVSTREAMINSTANCE adsi)
 {
-    HeapFree(GetProcessHeap(), 0, (void*)adsi->dwDriver);
+    heap_free((void*)adsi->dwDriver);
     return MMSYSERR_NOERROR;
 }
 

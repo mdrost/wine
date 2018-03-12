@@ -63,7 +63,7 @@ static void run_for_each_device(device_test *test)
     ZeroMemory(&interface_data, sizeof(interface_data));
     interface_data.cbSize = sizeof(interface_data);
 
-    data = HeapAlloc(GetProcessHeap(), 0, sizeof(*data) + detail_size);
+    data = heap_alloc(sizeof(*data) + detail_size);
     data->cbSize = sizeof(*data);
 
     info_set = SetupDiGetClassDevsW(&hid_guid, NULL, NULL, DIGCF_DEVICEINTERFACE);
@@ -85,7 +85,7 @@ static void run_for_each_device(device_test *test)
             CloseHandle(file);
         }
     }
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
     SetupDiDestroyDeviceInfoList(info_set);
 }
 
@@ -134,14 +134,14 @@ static HANDLE get_device(USHORT page, USHORT usages[], UINT usage_count, DWORD a
                 int j;
                 if (!usage_count)
                 {
-                    HeapFree(GetProcessHeap(), 0, data);
+                    heap_free(data);
                     SetupDiDestroyDeviceInfoList(info_set);
                     return file;
                 }
                 for (j = 0; j < usage_count; j++)
                     if (!usages[j] || usages[j] == Caps.Usage)
                     {
-                        HeapFree(GetProcessHeap(), 0, data);
+                        heap_free(data);
                         SetupDiDestroyDeviceInfoList(info_set);
                         return file;
                     }
@@ -149,7 +149,7 @@ static HANDLE get_device(USHORT page, USHORT usages[], UINT usage_count, DWORD a
             CloseHandle(file);
         }
     }
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
     SetupDiDestroyDeviceInfoList(info_set);
     return NULL;
 }
@@ -199,7 +199,7 @@ static void process_data(HIDP_CAPS Caps, PHIDP_PREPARSED_DATA ppd, CHAR *data, D
         USHORT length;
         HIDP_VALUE_CAPS *values = NULL;
 
-        values = HeapAlloc(GetProcessHeap(), 0, sizeof(HIDP_VALUE_CAPS) * Caps.NumberInputValueCaps);
+        values = heap_alloc(sizeof(HIDP_VALUE_CAPS) * Caps.NumberInputValueCaps);
         length = Caps.NumberInputValueCaps;
         status = HidP_GetValueCaps(HidP_Input, values, &length, ppd);
         ok(status == HIDP_STATUS_SUCCESS, "Failed to get value caps (%x)\n",status);
@@ -214,7 +214,7 @@ static void process_data(HIDP_CAPS Caps, PHIDP_PREPARSED_DATA ppd, CHAR *data, D
             trace("[%02x, %02x]: %u\n",values[i].UsagePage, values[i].Range.UsageMin, value);
         }
 
-        HeapFree(GetProcessHeap(), 0, values);
+        heap_free(values);
     }
 }
 
@@ -250,7 +250,7 @@ static void test_read_device(void)
     ok(rc, "Failed to get preparsed data(0x%x)\n", GetLastError());
     status = HidP_GetCaps(ppd, &Caps);
     ok(status == HIDP_STATUS_SUCCESS, "Failed to get Caps(0x%x)\n", status);
-    data = HeapAlloc(GetProcessHeap(), 0, Caps.InputReportByteLength);
+    data = heap_alloc(Caps.InputReportByteLength);
 
     memset(&overlapped, 0, sizeof(overlapped));
     overlapped.hEvent = CreateEventA(NULL, FALSE, FALSE, NULL);
@@ -263,7 +263,7 @@ static void test_read_device(void)
         max_time = timeout = 100;
     if (winetest_interactive)
         trace("Test your device for the next %i seconds\n", max_time/1000);
-    report = HeapAlloc(GetProcessHeap(), 0, 3 * Caps.InputReportByteLength);
+    report = heap_alloc(3 * Caps.InputReportByteLength);
     tick = GetTickCount();
     spent = 0;
     do
@@ -301,8 +301,8 @@ static void test_read_device(void)
     rc = HidD_FreePreparsedData(ppd);
     ok(rc, "Failed to free preparsed data(0x%x)\n", GetLastError());
     CloseHandle(device);
-    HeapFree(GetProcessHeap(), 0, data);
-    HeapFree(GetProcessHeap(), 0, report);
+    heap_free(data);
+    heap_free(report);
 }
 
 static void test_get_input_report(void)
@@ -335,7 +335,7 @@ static void test_get_input_report(void)
     ok(rc, "Failed to get preparsed data(0x%x)\n", GetLastError());
     status = HidP_GetCaps(ppd, &Caps);
     ok(status == HIDP_STATUS_SUCCESS, "Failed to get Caps(0x%x)\n", status);
-    data = HeapAlloc(GetProcessHeap(), 0, Caps.InputReportByteLength);
+    data = heap_alloc(Caps.InputReportByteLength);
 
     if (winetest_interactive)
         max_time = READ_MAX_TIME;
@@ -343,7 +343,7 @@ static void test_get_input_report(void)
         max_time = 100;
     if (winetest_interactive)
         trace("Test your device for the next %i seconds\n", max_time/1000);
-    report = HeapAlloc(GetProcessHeap(), 0, 3 * Caps.InputReportByteLength);
+    report = heap_alloc(3 * Caps.InputReportByteLength);
     tick = GetTickCount();
     spent = 0;
     do
@@ -377,8 +377,8 @@ static void test_get_input_report(void)
     rc = HidD_FreePreparsedData(ppd);
     ok(rc, "Failed to free preparsed data(0x%x)\n", GetLastError());
     CloseHandle(device);
-    HeapFree(GetProcessHeap(), 0, data);
-    HeapFree(GetProcessHeap(), 0, report);
+    heap_free(data);
+    heap_free(report);
 }
 
 START_TEST(device)

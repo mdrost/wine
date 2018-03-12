@@ -161,7 +161,7 @@ MMRESULT16 WINAPI timeSetEvent16(UINT16 wDelay, UINT16 wResol, LPTIMECALLBACK16 
         id = timeSetEvent(wDelay, wResol, (LPTIMECALLBACK)lpFunc, dwUser, wFlags);
         break;
     case TIME_CALLBACK_FUNCTION:
-        te = HeapAlloc(GetProcessHeap(), 0, sizeof(*te));
+        te = heap_alloc(sizeof(*te));
         if (!te) return 0;
         te->func16 = lpFunc;
         te->user = dwUser;
@@ -172,7 +172,7 @@ MMRESULT16 WINAPI timeSetEvent16(UINT16 wDelay, UINT16 wResol, LPTIMECALLBACK16 
             list_add_tail(&timer_list, &te->entry);
             LeaveCriticalSection(&mmdrv_cs);
         }
-        else HeapFree(GetProcessHeap(), 0, te);
+        else heap_free(te);
         break;
     default:
         id = 0;
@@ -197,7 +197,7 @@ MMRESULT16 WINAPI timeKillEvent16(UINT16 wID)
             if (wID == te->id)
             {
                 list_remove(&te->entry);
-                HeapFree(GetProcessHeap(), 0, te);
+                heap_free(te);
                 break;
             }
         }
@@ -505,7 +505,7 @@ UINT16 WINAPI mixerGetLineControls16(HMIXEROBJ16 hmix,
 	}
     }
 
-    HeapFree(GetProcessHeap(), 0, mlcA.pamxctrl);
+    heap_free(mlcA.pamxctrl);
 
     return ret;
 }

@@ -225,7 +225,7 @@ static	LPWINE_DRIVER	DRIVER_TryOpenDriver16(LPSTR lpFileName, LPARAM lParam2)
     if ((lpProc = (DRIVERPROC16)GetProcAddress16(hModule, "DRIVERPROC")) == NULL)
 	goto exit;
 
-    if ((lpDrv = HeapAlloc(GetProcessHeap(), 0, sizeof(WINE_DRIVER))) == NULL)
+    if ((lpDrv = heap_alloc(sizeof(WINE_DRIVER))) == NULL)
 	goto exit;
 
     lpDrv->dwDriverID  = 0;
@@ -240,7 +240,7 @@ static	LPWINE_DRIVER	DRIVER_TryOpenDriver16(LPSTR lpFileName, LPARAM lParam2)
  exit:
     TRACE("Unable to load 16 bit module (%s): %04x\n", lpFileName, hModule);
     if (hModule >= 32)	FreeLibrary16(hModule);
-    HeapFree(GetProcessHeap(), 0, lpDrv);
+    heap_free(lpDrv);
     return NULL;
 }
 
@@ -290,7 +290,7 @@ LRESULT WINAPI DrvClose16(HDRVR16 hDrvr, LPARAM lParam1, LPARAM lParam2)
 	DRIVER_SendMessage(lpDrv, DRV_CLOSE, lParam1, lParam2);
 
 	if (DRIVER_RemoveFromList(lpDrv)) {
-	    HeapFree(GetProcessHeap(), 0, lpDrv);
+	    heap_free(lpDrv);
 	    return TRUE;
 	}
     }

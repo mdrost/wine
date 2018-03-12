@@ -158,7 +158,7 @@ static MMSYSTEM_MapType	MMSYSTDRV_MidiOut_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 
     case MODM_GETDEVCAPS:
 	{
-            LPMIDIOUTCAPSW	moc32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPMIDIOUTCAPS16) + sizeof(MIDIOUTCAPSW));
+            LPMIDIOUTCAPSW	moc32 = heap_alloc(sizeof(LPMIDIOUTCAPS16) + sizeof(MIDIOUTCAPSW));
 	    LPMIDIOUTCAPS16	moc16 = MapSL(*lpParam1);
 
 	    if (moc32) {
@@ -175,7 +175,7 @@ static MMSYSTEM_MapType	MMSYSTDRV_MidiOut_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 	break;
     case MODM_PREPARE:
 	{
-	    LPMIDIHDR		mh32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPMIDIHDR) + sizeof(MIDIHDR));
+	    LPMIDIHDR		mh32 = heap_alloc(sizeof(LPMIDIHDR) + sizeof(MIDIHDR));
 	    LPMIDIHDR16		mh16 = MapSL(*lpParam1);
 
 	    if (mh32) {
@@ -259,7 +259,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_MidiOut_UnMap16To32W(UINT wMsg, DWORD_PTR* lp
 	    moc16->wNotes		= moc32->wNotes;
 	    moc16->wChannelMask		= moc32->wChannelMask;
 	    moc16->dwSupport		= moc32->dwSupport;
-	    HeapFree(GetProcessHeap(), 0, (LPSTR)moc32 - sizeof(LPMIDIOUTCAPS16));
+	    heap_free((LPSTR)moc32 - sizeof(LPMIDIOUTCAPS16));
 	    ret = MMSYSTEM_MAP_OK;
 	}
 	break;
@@ -274,7 +274,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_MidiOut_UnMap16To32W(UINT wMsg, DWORD_PTR* lp
 	    mh16->dwFlags = mh32->dwFlags;
 
 	    if (wMsg == MODM_UNPREPARE && fn_ret == MMSYSERR_NOERROR) {
-		HeapFree(GetProcessHeap(), 0, (LPSTR)mh32 - sizeof(LPMIDIHDR));
+		heap_free((LPSTR)mh32 - sizeof(LPMIDIHDR));
 		mh16->lpNext = 0;
 	    }
 	    ret = MMSYSTEM_MAP_OK;
@@ -344,7 +344,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveIn_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 	break;
     case WIDM_GETDEVCAPS:
 	{
-            LPWAVEINCAPSW	wic32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPWAVEINCAPS16) + sizeof(WAVEINCAPSW));
+            LPWAVEINCAPSW	wic32 = heap_alloc(sizeof(LPWAVEINCAPS16) + sizeof(WAVEINCAPSW));
 	    LPWAVEINCAPS16	wic16 = MapSL(*lpParam1);
 
 	    if (wic32) {
@@ -361,7 +361,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveIn_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 	break;
     case WIDM_GETPOS:
 	{
-            LPMMTIME		mmt32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPMMTIME16) + sizeof(MMTIME));
+            LPMMTIME		mmt32 = heap_alloc(sizeof(LPMMTIME16) + sizeof(MMTIME));
 	    LPMMTIME16		mmt16 = MapSL(*lpParam1);
 
 	    if (mmt32) {
@@ -380,7 +380,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveIn_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 	break;
     case WIDM_PREPARE:
 	{
-	    LPWAVEHDR		wh32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPWAVEHDR) + sizeof(WAVEHDR));
+	    LPWAVEHDR		wh32 = heap_alloc(sizeof(LPWAVEHDR) + sizeof(WAVEHDR));
 	    LPWAVEHDR		wh16 = MapSL(*lpParam1);
 
 	    if (wh32) {
@@ -464,7 +464,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveIn_UnMap16To32W(UINT wMsg, DWORD_PTR* lpP
                                  sizeof(wic16->szPname), NULL, NULL );
 	    wic16->dwFormats = wic32->dwFormats;
 	    wic16->wChannels = wic32->wChannels;
-	    HeapFree(GetProcessHeap(), 0, (LPSTR)wic32 - sizeof(LPWAVEINCAPS16));
+	    heap_free((LPSTR)wic32 - sizeof(LPWAVEINCAPS16));
 	    ret = MMSYSTEM_MAP_OK;
 	}
 	break;
@@ -474,7 +474,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveIn_UnMap16To32W(UINT wMsg, DWORD_PTR* lpP
 	    LPMMTIME16		mmt16 = *(LPMMTIME16*)((LPSTR)mmt32 - sizeof(LPMMTIME16));
 
 	    MMSYSTEM_MMTIME32to16(mmt16, mmt32);
-	    HeapFree(GetProcessHeap(), 0, (LPSTR)mmt32 - sizeof(LPMMTIME16));
+	    heap_free((LPSTR)mmt32 - sizeof(LPMMTIME16));
 	    ret = MMSYSTEM_MAP_OK;
 	}
 	break;
@@ -490,7 +490,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveIn_UnMap16To32W(UINT wMsg, DWORD_PTR* lpP
 	    wh16->dwFlags = wh32->dwFlags;
 
 	    if (wMsg == WIDM_UNPREPARE && fn_ret == MMSYSERR_NOERROR) {
-		HeapFree(GetProcessHeap(), 0, (LPSTR)wh32 - sizeof(LPWAVEHDR));
+		heap_free((LPSTR)wh32 - sizeof(LPWAVEHDR));
 		wh16->lpNext = 0;
 	    }
 	    ret = MMSYSTEM_MAP_OK;
@@ -564,7 +564,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_Map16To32W  (UINT wMsg, DWORD_PTR* lp
 
     case WODM_GETDEVCAPS:
 	{
-            LPWAVEOUTCAPSW		woc32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPWAVEOUTCAPS16) + sizeof(WAVEOUTCAPSW));
+            LPWAVEOUTCAPSW		woc32 = heap_alloc(sizeof(LPWAVEOUTCAPS16) + sizeof(WAVEOUTCAPSW));
 	    LPWAVEOUTCAPS16		woc16 = MapSL(*lpParam1);
 
 	    if (woc32) {
@@ -581,7 +581,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_Map16To32W  (UINT wMsg, DWORD_PTR* lp
 	break;
     case WODM_GETPOS:
 	{
-            LPMMTIME		mmt32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPMMTIME16) + sizeof(MMTIME));
+            LPMMTIME		mmt32 = heap_alloc(sizeof(LPMMTIME16) + sizeof(MMTIME));
 	    LPMMTIME16		mmt16 = MapSL(*lpParam1);
 
 	    if (mmt32) {
@@ -600,7 +600,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_Map16To32W  (UINT wMsg, DWORD_PTR* lp
 	break;
     case WODM_PREPARE:
 	{
-	    LPWAVEHDR		wh32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPWAVEHDR) + sizeof(WAVEHDR));
+	    LPWAVEHDR		wh32 = heap_alloc(sizeof(LPWAVEHDR) + sizeof(WAVEHDR));
 	    LPWAVEHDR		wh16 = MapSL(*lpParam1);
 
 	    if (wh32) {
@@ -694,7 +694,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_UnMap16To32W(UINT wMsg, DWORD_PTR* lp
 	    woc16->dwFormats = woc32->dwFormats;
 	    woc16->wChannels = woc32->wChannels;
 	    woc16->dwSupport = woc32->dwSupport;
-	    HeapFree(GetProcessHeap(), 0, (LPSTR)woc32 - sizeof(LPWAVEOUTCAPS16));
+	    heap_free((LPSTR)woc32 - sizeof(LPWAVEOUTCAPS16));
 	    ret = MMSYSTEM_MAP_OK;
 	}
 	break;
@@ -704,7 +704,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_UnMap16To32W(UINT wMsg, DWORD_PTR* lp
 	    LPMMTIME16		mmt16 = *(LPMMTIME16*)((LPSTR)mmt32 - sizeof(LPMMTIME16));
 
 	    MMSYSTEM_MMTIME32to16(mmt16, mmt32);
-	    HeapFree(GetProcessHeap(), 0, (LPSTR)mmt32 - sizeof(LPMMTIME16));
+	    heap_free((LPSTR)mmt32 - sizeof(LPMMTIME16));
 	    ret = MMSYSTEM_MAP_OK;
 	}
 	break;
@@ -719,7 +719,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_UnMap16To32W(UINT wMsg, DWORD_PTR* lp
 	    wh16->dwFlags = wh32->dwFlags;
 
 	    if (wMsg == WODM_UNPREPARE && fn_ret == MMSYSERR_NOERROR) {
-		HeapFree(GetProcessHeap(), 0, (LPSTR)wh32 - sizeof(LPWAVEHDR));
+		heap_free((LPSTR)wh32 - sizeof(LPWAVEHDR));
 		wh16->lpNext = 0;
 	    }
 	    ret = MMSYSTEM_MAP_OK;

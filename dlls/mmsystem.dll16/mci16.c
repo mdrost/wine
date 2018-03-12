@@ -121,7 +121,7 @@ static LPWSTR MCI_strdupAtoW( LPCSTR str )
 
     if (!str) return NULL;
     len = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
-    ret = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+    ret = heap_alloc( len * sizeof(WCHAR) );
     if (ret) MultiByteToWideChar( CP_ACP, 0, str, -1, ret, len );
     return ret;
 }
@@ -220,7 +220,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
         return MMSYSTEM_MAP_OKMEM;
     case MCI_WINDOW:
         {
-            LPMCI_OVLY_WINDOW_PARMSW mowp32w = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MCI_OVLY_WINDOW_PARMSW));
+            LPMCI_OVLY_WINDOW_PARMSW mowp32w = heap_alloc_zero(sizeof(MCI_OVLY_WINDOW_PARMSW));
             LPMCI_OVLY_WINDOW_PARMS16 mowp16 = MapSL(*lParam);
             if (mowp32w) {
                 mowp32w->dwCallback = mowp16->dwCallback;
@@ -236,7 +236,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
         return MMSYSTEM_MAP_OKMEM;
     case MCI_BREAK:
 	{
-            LPMCI_BREAK_PARMS		mbp32 = HeapAlloc(GetProcessHeap(), 0, sizeof(MCI_BREAK_PARMS));
+            LPMCI_BREAK_PARMS		mbp32 = heap_alloc(sizeof(MCI_BREAK_PARMS));
 	    LPMCI_BREAK_PARMS16		mbp16 = MapSL(*lParam);
 
 	    if (mbp32) {
@@ -251,7 +251,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 	return MMSYSTEM_MAP_OKMEM;
     case MCI_ESCAPE:
 	{
-            LPMCI_VD_ESCAPE_PARMSW	mvep32w = HeapAlloc(GetProcessHeap(), 0, sizeof(MCI_VD_ESCAPE_PARMSW));
+            LPMCI_VD_ESCAPE_PARMSW	mvep32w = heap_alloc(sizeof(MCI_VD_ESCAPE_PARMSW));
 	    LPMCI_VD_ESCAPE_PARMS16	mvep16  = MapSL(*lParam);
 
 	    if (mvep32w) {
@@ -265,14 +265,14 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 	return MMSYSTEM_MAP_OKMEM;
     case MCI_INFO:
 	{
-            LPMCI_DGV_INFO_PARMSW	mip32w = HeapAlloc(GetProcessHeap(), 0, sizeof(LPMCI_DGV_INFO_PARMS16) + sizeof(MCI_DGV_INFO_PARMSW));
+            LPMCI_DGV_INFO_PARMSW	mip32w = heap_alloc(sizeof(LPMCI_DGV_INFO_PARMS16) + sizeof(MCI_DGV_INFO_PARMSW));
 	    LPMCI_DGV_INFO_PARMS16	mip16  = MapSL(*lParam);
 
 	    if (mip32w) {
 		*(LPMCI_DGV_INFO_PARMS16*)(mip32w) = mip16;
 		mip32w = (LPMCI_DGV_INFO_PARMSW)((char*)mip32w + sizeof(LPMCI_DGV_INFO_PARMS16));
 		mip32w->dwCallback  = mip16->dwCallback;
-		mip32w->lpstrReturn = HeapAlloc(GetProcessHeap(), 0, mip16->dwRetSize * sizeof(WCHAR));
+		mip32w->lpstrReturn = heap_alloc(mip16->dwRetSize * sizeof(WCHAR));
 		mip32w->dwRetSize   = mip16->dwRetSize;
 		if (dwFlags & MCI_DGV_INFO_ITEM)
 		    mip32w->dwItem  = mip16->dwItem;
@@ -285,7 +285,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
     case MCI_OPEN:
     case MCI_OPEN_DRIVER:
 	{
-            LPMCI_OPEN_PARMSW	mop32w = HeapAlloc(GetProcessHeap(), 0, sizeof(LPMCI_OPEN_PARMS16) + sizeof(MCI_ANIM_OPEN_PARMSW));
+            LPMCI_OPEN_PARMSW	mop32w = heap_alloc(sizeof(LPMCI_OPEN_PARMS16) + sizeof(MCI_ANIM_OPEN_PARMSW));
 	    LPMCI_OPEN_PARMS16	mop16  = MapSL(*lParam);
 
 	    if (mop32w) {
@@ -324,7 +324,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
     case MCI_SYSINFO:
     {
         MCI_SYSINFO_PARMSW *origmsip32w;
-        MCI_SYSINFO_PARMSW *msip32w = HeapAlloc(GetProcessHeap(), 0, sizeof(MCI_OPEN_PARMS16 *) + sizeof(MCI_SYSINFO_PARMSW));
+        MCI_SYSINFO_PARMSW *msip32w = heap_alloc(sizeof(MCI_OPEN_PARMS16 *) + sizeof(MCI_SYSINFO_PARMSW));
         MCI_SYSINFO_PARMS16 *msip16 = MapSL(*lParam);
 
         if (!msip32w)
@@ -334,12 +334,12 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
         *(MCI_SYSINFO_PARMS16 **)msip32w = msip16;
         msip32w = (MCI_SYSINFO_PARMSW *)((char *)msip32w + sizeof(MCI_OPEN_PARMS16 *));
         msip32w->dwCallback       = msip16->dwCallback;
-        msip32w->lpstrReturn      = HeapAlloc(GetProcessHeap(), 0, (dwFlags & MCI_SYSINFO_QUANTITY) ?
+        msip32w->lpstrReturn      = heap_alloc((dwFlags & MCI_SYSINFO_QUANTITY) ?
                                                                     sizeof(DWORD) :
                                                                     msip16->dwRetSize * sizeof(WCHAR));
         if (!msip32w->lpstrReturn)
         {
-            HeapFree(GetProcessHeap(), 0, origmsip32w);
+            heap_free(origmsip32w);
             return MMSYSTEM_MAP_NOMEM;
         }
         msip32w->dwRetSize        = (dwFlags & MCI_SYSINFO_QUANTITY) ? sizeof(DWORD) : msip16->dwRetSize;
@@ -351,7 +351,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 	return MMSYSTEM_MAP_OKMEM;
     case MCI_SOUND:
 	{
-            LPMCI_SOUND_PARMSW		mbp32 = HeapAlloc(GetProcessHeap(), 0, sizeof(MCI_SOUND_PARMSW));
+            LPMCI_SOUND_PARMSW		mbp32 = heap_alloc(sizeof(MCI_SOUND_PARMSW));
 	    LPMCI_SOUND_PARMS16		mbp16 = MapSL(*lParam);
 
 	    if (mbp32) {
@@ -402,7 +402,7 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
             mdrp16->rc.top = mdrp32->rc.top;
             mdrp16->rc.right = mdrp32->rc.right;
             mdrp16->rc.bottom = mdrp32->rc.bottom;
-            HeapFree(GetProcessHeap(), 0, base);
+            heap_free(base);
         }
         break;
     case MCI_STATUS:
@@ -411,25 +411,25 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
             char *base = (char*)lParam - sizeof(LPMCI_DGV_STATUS_PARMS16);
             LPMCI_DGV_STATUS_PARMS16 mdsp16 = *(LPMCI_DGV_STATUS_PARMS16*)base;
             mdsp16->dwReturn = mdsp32w->dwReturn;
-            HeapFree(GetProcessHeap(), 0, (LPVOID)mdsp32w->lpstrDrive);
-            HeapFree(GetProcessHeap(), 0, base);
+            heap_free((LPVOID)mdsp32w->lpstrDrive);
+            heap_free(base);
         }
         break;
     case MCI_WINDOW:
         if (lParam) {
             LPMCI_OVLY_WINDOW_PARMSW mowp32w = (LPMCI_OVLY_WINDOW_PARMSW)lParam;
-            HeapFree(GetProcessHeap(), 0, (LPVOID)mowp32w->lpstrText);
-            HeapFree(GetProcessHeap(), 0, mowp32w);
+            heap_free((LPVOID)mowp32w->lpstrText);
+            heap_free(mowp32w);
         }
         break;
     case MCI_BREAK:
-	HeapFree(GetProcessHeap(), 0, (LPVOID)lParam);
+	heap_free((LPVOID)lParam);
         break;
     case MCI_ESCAPE:
         if (lParam) {
             LPMCI_VD_ESCAPE_PARMSW	mvep32W = (LPMCI_VD_ESCAPE_PARMSW)lParam;
-            HeapFree(GetProcessHeap(), 0, (LPVOID)mvep32W->lpstrCommand);
-            HeapFree(GetProcessHeap(), 0, (LPVOID)lParam);
+            heap_free((LPVOID)mvep32W->lpstrCommand);
+            heap_free((LPVOID)lParam);
         }
         break;
     case MCI_INFO:
@@ -444,8 +444,8 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
                                     MapSL(mip16->lpstrReturn), mip16->dwRetSize,
                                     NULL, NULL);
             mip16->dwRetSize = mip32w->dwRetSize; /* never update prior to NT? */
-            HeapFree(GetProcessHeap(), 0, mip32w->lpstrReturn);
-            HeapFree(GetProcessHeap(), 0, base);
+            heap_free(mip32w->lpstrReturn);
+            heap_free(base);
         }
         break;
     case MCI_SYSINFO:
@@ -466,15 +466,15 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
                                     NULL, NULL);
             }
 
-            HeapFree(GetProcessHeap(), 0, msip32w->lpstrReturn);
-            HeapFree(GetProcessHeap(), 0, base);
+            heap_free(msip32w->lpstrReturn);
+            heap_free(base);
         }
         break;
     case MCI_SOUND:
         if (lParam) {
             LPMCI_SOUND_PARMSW          msp32W = (LPMCI_SOUND_PARMSW)lParam;
-            HeapFree(GetProcessHeap(), 0, (LPVOID)msp32W->lpstrSoundName);
-            HeapFree(GetProcessHeap(), 0, (LPVOID)lParam);
+            heap_free((LPVOID)msp32W->lpstrSoundName);
+            heap_free((LPVOID)lParam);
         }
         break;
     case MCI_OPEN:
@@ -486,12 +486,12 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
 
 	    mop16->wDeviceID = mop32w->wDeviceID;
             if( ( dwFlags & ( MCI_OPEN_TYPE | MCI_OPEN_TYPE_ID)) == MCI_OPEN_TYPE)
-                HeapFree(GetProcessHeap(), 0, (LPWSTR)mop32w->lpstrDeviceType);
+                heap_free((LPWSTR)mop32w->lpstrDeviceType);
             if( ( dwFlags & ( MCI_OPEN_ELEMENT | MCI_OPEN_ELEMENT_ID)) == MCI_OPEN_ELEMENT)
-                HeapFree(GetProcessHeap(), 0, (LPWSTR)mop32w->lpstrElementName);
+                heap_free((LPWSTR)mop32w->lpstrElementName);
             if( ( dwFlags &  MCI_OPEN_ALIAS))
-                HeapFree(GetProcessHeap(), 0, (LPWSTR)mop32w->lpstrAlias);
-            HeapFree(GetProcessHeap(), 0, base);
+                heap_free((LPWSTR)mop32w->lpstrAlias);
+            heap_free(base);
 	}
         break;
     default:

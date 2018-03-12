@@ -115,7 +115,7 @@ static LPWSTR load_string(HINSTANCE hInstance, UINT uiResourceId)
     LPWSTR ret;
 
     LoadStringW(hInstance, uiResourceId, string, sizeof(string)/sizeof(string[0]));
-    ret = HeapAlloc(GetProcessHeap(), 0, (strlenW(string) + 1) * sizeof(WCHAR));
+    ret = heap_alloc((strlenW(string) + 1) * sizeof(WCHAR));
     strcpyW(ret, string);
     return ret;
 }

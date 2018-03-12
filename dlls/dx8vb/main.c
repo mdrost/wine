@@ -107,7 +107,7 @@ static ULONG WINAPI classfactory_Release(IClassFactory *iface)
     ULONG ref = InterlockedDecrement(&This->ref);
 
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -169,7 +169,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void **ppv)
         return CLASS_E_CLASSNOTAVAILABLE;
     }
 
-    factory = HeapAlloc(GetProcessHeap(), 0, sizeof(*factory));
+    factory = heap_alloc(sizeof(*factory));
     if (factory == NULL)
         return E_OUTOFMEMORY;
 

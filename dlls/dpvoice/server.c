@@ -117,7 +117,7 @@ static ULONG WINAPI dpvserver_Release(IDirectPlayVoiceServer *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -222,7 +222,7 @@ HRESULT DPVOICE_CreateDirectPlayVoiceServer(IClassFactory *iface, IUnknown *pUnk
 
     *ppobj = NULL;
 
-    server = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectPlayVoiceServerImpl));
+    server = heap_alloc_zero(sizeof(IDirectPlayVoiceServerImpl));
     if (!server)
         return E_OUTOFMEMORY;
 

@@ -90,7 +90,7 @@ static ULONG WINAPI dpvclient_Release(IDirectPlayVoiceClient *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -232,7 +232,7 @@ HRESULT DPVOICE_CreateDirectPlayVoiceClient(IClassFactory *iface, IUnknown *pUnk
 
     *ppobj = NULL;
 
-    client = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectPlayVoiceClientImpl));
+    client = heap_alloc_zero(sizeof(IDirectPlayVoiceClientImpl));
     if (!client)
         return E_OUTOFMEMORY;
 
@@ -277,7 +277,7 @@ static ULONG WINAPI dpvtest_Release(IDirectPlayVoiceTest *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -308,7 +308,7 @@ HRESULT DPVOICE_CreateDirectPlayVoiceTest(IClassFactory *iface, IUnknown *pUnkOu
 
     *ppobj = NULL;
 
-    test = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IDirectPlayVoiceTestImpl));
+    test = heap_alloc_zero(sizeof(IDirectPlayVoiceTestImpl));
     if (!test)
         return E_OUTOFMEMORY;
 

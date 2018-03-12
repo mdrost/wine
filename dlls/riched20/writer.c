@@ -961,7 +961,7 @@ static BOOL stream_out_graphics( ME_TextEditor *editor, ME_OutStream *stream,
     size = GetEnhMetaFileBits( med.u.hEnhMetaFile, 0, NULL );
     if (size < FIELD_OFFSET(ENHMETAHEADER, cbPixelFormat)) goto done;
 
-    emf_bits = HeapAlloc( GetProcessHeap(), 0, size );
+    emf_bits = heap_alloc( size );
     if (!emf_bits) goto done;
 
     size = GetEnhMetaFileBits( med.u.hEnhMetaFile, size, (BYTE *)emf_bits );
@@ -992,7 +992,7 @@ static BOOL stream_out_graphics( ME_TextEditor *editor, ME_OutStream *stream,
 
 done:
     ME_DestroyContext( &c );
-    HeapFree( GetProcessHeap(), 0, emf_bits );
+    heap_free( emf_bits );
     ReleaseStgMedium( &med );
     IDataObject_Release( data );
     return ret;

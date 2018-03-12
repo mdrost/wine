@@ -228,7 +228,7 @@ static WCHAR *atowstr(const char *str)
     WCHAR *ret;
     DWORD len;
     len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-    ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    ret = heap_alloc(len * sizeof(WCHAR));
     MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
     return ret;
 }
@@ -254,7 +254,7 @@ static void check_EM_FINDTEXT(HWND hwnd, const char *name, struct find_s *f, int
          "EM_FINDTEXTW(%s,%d,%u) '%s' in range(%d,%d), flags %08x, got start at %d, expected %d\n",
          name, id, unicode, f->needle, f->start, f->end, f->flags, findloc, f->expected_loc);
 
-      HeapFree(GetProcessHeap(), 0, (void*)ftw.lpstrText);
+      heap_free((void*)ftw.lpstrText);
   }else{
       FINDTEXTA fta;
       memset(&fta, 0, sizeof(fta));
@@ -293,7 +293,7 @@ static void check_EM_FINDTEXTEX(HWND hwnd, const char *name, struct find_s *f,
       ok(ftw.chrgText.cpMax == expected_end_loc,
           "EM_FINDTEXTEX(%s,%d) '%s' in range(%d,%d), flags %08x, end at %d, expected %d\n",
           name, id, f->needle, f->start, f->end, f->flags, ftw.chrgText.cpMax, expected_end_loc);
-      HeapFree(GetProcessHeap(), 0, (void*)ftw.lpstrText);
+      heap_free((void*)ftw.lpstrText);
   }else{
       FINDTEXTEXA fta;
       memset(&fta, 0, sizeof(fta));

@@ -1235,7 +1235,7 @@ static DWORD read_hex_data( RTF_Info *info, BYTE **out )
         return 0;
     }
 
-    buf = HeapAlloc( GetProcessHeap(), 0, size );
+    buf = heap_alloc( size );
     if (!buf) return 0;
 
     val = info->rtfMajor;
@@ -1244,7 +1244,7 @@ static DWORD read_hex_data( RTF_Info *info, BYTE **out )
         RTFGetToken( info );
         if (info->rtfClass == rtfEOF)
         {
-            HeapFree( GetProcessHeap(), 0, buf );
+            heap_free( buf );
             return 0;
         }
         if (info->rtfClass != rtfText) break;
@@ -1253,7 +1253,7 @@ static DWORD read_hex_data( RTF_Info *info, BYTE **out )
             if (read >= size)
             {
                 size *= 2;
-                buf = HeapReAlloc( GetProcessHeap(), 0, buf, size );
+                buf = heap_realloc( buf, size );
                 if (!buf) return 0;
             }
             buf[read++] = RTFCharToHex(val) * 16 + RTFCharToHex(info->rtfMajor);
@@ -1374,7 +1374,7 @@ static void ME_RTFReadPictGroup(RTF_Info *info)
             break;
         }
     }
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     RTFRouteToken( info ); /* feed "}" back to router */
     return;
 }
@@ -4737,11 +4737,11 @@ LRESULT ME_HandleMessage(ME_TextEditor *editor, UINT msg, WPARAM wParam,
           dwIndex = GCS_COMPSTR;
 
         dwBufLen = ImmGetCompositionStringW(hIMC, dwIndex, NULL, 0);
-        lpCompStr = HeapAlloc(GetProcessHeap(),0,dwBufLen + sizeof(WCHAR));
+        lpCompStr = heap_alloc(dwBufLen + sizeof(WCHAR));
         ImmGetCompositionStringW(hIMC, dwIndex, lpCompStr, dwBufLen);
         lpCompStr[dwBufLen/sizeof(WCHAR)] = 0;
         ME_InsertTextFromCursor(editor,0,lpCompStr,dwBufLen/sizeof(WCHAR),style);
-        HeapFree(GetProcessHeap(), 0, lpCompStr);
+        heap_free(lpCompStr);
 
         if (dwIndex == GCS_COMPSTR)
           ME_SetSelection(editor,editor->imeStartIndex,

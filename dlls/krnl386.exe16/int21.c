@@ -810,7 +810,7 @@ static HANDLE INT21_CreateMagicDeviceHandle( LPCWSTR name )
     len = MultiByteToWideChar( CP_UNIXCP, 0, dir, -1, NULL, 0 );
     nameW.Length = sizeof(prefixW) + (len + strlenW( name )) * sizeof(WCHAR);
     nameW.MaximumLength = nameW.Length + sizeof(WCHAR);
-    if (!(nameW.Buffer = HeapAlloc( GetProcessHeap(), 0, nameW.MaximumLength )))
+    if (!(nameW.Buffer = heap_alloc( nameW.MaximumLength )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return 0;
@@ -3718,7 +3718,7 @@ static BOOL INT21_FindFirst( CONTEXT *context )
     }
     WideCharToMultiByte(CP_OEMCP, 0, maskW, 12, dta->mask, sizeof(dta->mask), NULL, NULL);
 
-    dta->fullPath = HeapAlloc( GetProcessHeap(), 0, sizeof(wildcardW) + (p - pathW)*sizeof(WCHAR) );
+    dta->fullPath = heap_alloc( sizeof(wildcardW) + (p - pathW)*sizeof(WCHAR) );
     memcpy( dta->fullPath, pathW, (p - pathW) * sizeof(WCHAR) );
     memcpy( dta->fullPath + (p - pathW), wildcardW, sizeof(wildcardW) );
     /* we must have a fully qualified file name in dta->fullPath
@@ -3844,13 +3844,13 @@ static BOOL INT21_FindNext( CONTEXT *context )
              * be issued, and as a workaround in case file creation messes up
              * findnext, as sometimes happens with pkunzip
              */
-            HeapFree( GetProcessHeap(), 0, dta->fullPath );
+            heap_free( dta->fullPath );
             INT21_FindPath = dta->fullPath = NULL;
         }
         dta->count = n;
         return TRUE;
     }
-    HeapFree( GetProcessHeap(), 0, dta->fullPath );
+    heap_free( dta->fullPath );
     INT21_FindPath = dta->fullPath = NULL;
     return FALSE;
 }
@@ -3875,7 +3875,7 @@ static BOOL INT21_FindFirstFCB( CONTEXT *context )
     if (drive == MAX_DOS_DRIVES) return FALSE;
 
     p[0] = 'A' + drive;
-    pFCB->fullPath = HeapAlloc(GetProcessHeap(), 0, MAX_PATH * sizeof(WCHAR));
+    pFCB->fullPath = heap_alloc(MAX_PATH * sizeof(WCHAR));
     if (!pFCB->fullPath) return FALSE;
     GetLongPathNameW(p, pFCB->fullPath, MAX_PATH);
     pFCB->count = 0;
@@ -3913,7 +3913,7 @@ static BOOL INT21_FindNextFCB( CONTEXT *context )
                          pFCB->count, pFCB->filename, attr, &entry);
     if (!n)
     {
-        HeapFree( GetProcessHeap(), 0, pFCB->fullPath );
+        heap_free( pFCB->fullPath );
         INT21_FindPath = pFCB->fullPath = NULL;
         return FALSE;
     }
@@ -3970,11 +3970,11 @@ static void INT21_ParseFileNameIntoFCB( CONTEXT *context )
     len = filename - s;
 
     buffer_len = MultiByteToWideChar(CP_OEMCP, 0, filename, len, NULL, 0);
-    buffer = HeapAlloc( GetProcessHeap(), 0, (buffer_len + 1) * sizeof(WCHAR));
+    buffer = heap_alloc( (buffer_len + 1) * sizeof(WCHAR));
     len = MultiByteToWideChar(CP_OEMCP, 0, filename, len, buffer, buffer_len);
     buffer[len] = 0;
     INT21_ToDosFCBFormat(buffer, fcbW);
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
     WideCharToMultiByte(CP_OEMCP, 0, fcbW, 12, fcb + 1, 12, NULL, NULL);
     *fcb = 0;
     TRACE("FCB: '%s'\n", fcb + 1);

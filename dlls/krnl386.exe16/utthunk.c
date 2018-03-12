@@ -119,7 +119,7 @@ static DWORD WINAPI UTGlue32( FARPROC16 target, LPVOID lpBuff, DWORD dwUserDefin
 
     if ( nList )
     {
-        segptrList = HeapAlloc( GetProcessHeap(), 0, sizeof(SEGPTR)*nList );
+        segptrList = heap_alloc( sizeof(SEGPTR)*nList );
         if ( !segptrList )
         {
             FIXME("Unable to allocate segptrList!\n" );
@@ -150,7 +150,7 @@ static DWORD WINAPI UTGlue32( FARPROC16 target, LPVOID lpBuff, DWORD dwUserDefin
         for ( i = 0; i < nList; i++ )
             UnMapLS( segptrList[i] );
 
-        HeapFree( GetProcessHeap(), 0, segptrList );
+        heap_free( segptrList );
     }
 
     return retv;
@@ -172,7 +172,7 @@ static UTINFO *UTAlloc( HMODULE hModule, HMODULE16 hModule16,
         if ( !UTGlue16_Segptr ) return NULL;
     }
 
-    ut = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(UTINFO) );
+    ut = heap_alloc_zero( sizeof(UTINFO) );
     if ( !ut ) return NULL;
 
     ut->hModule   = hModule;
@@ -212,7 +212,7 @@ static void UTFree( UTINFO *ut )
             break;
         }
 
-    HeapFree( GetProcessHeap(), 0, ut );
+    heap_free( ut );
 }
 
 /****************************************************************************

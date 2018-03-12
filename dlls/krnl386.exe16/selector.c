@@ -470,10 +470,10 @@ SEGPTR WINAPI MapLS( LPCVOID ptr )
     {
         if (!free)  /* no free entry found, create a new one */
         {
-            if (!(free = HeapAlloc( GetProcessHeap(), 0, sizeof(*free) ))) goto done;
+            if (!(free = heap_alloc( sizeof(*free) ))) goto done;
             if (!(free->sel = SELECTOR_AllocBlock( base, 0x10000, WINE_LDT_FLAGS_DATA )))
             {
-                HeapFree( GetProcessHeap(), 0, free );
+                heap_free( free );
                 goto done;
             }
             free->count = 0;

@@ -120,7 +120,7 @@ static void EMS_alloc( CONTEXT *context )
     SET_AH( context, 0x85 ); /* status: no more handles available */
   } else {
     int   pages = BX_reg(context);
-    void *buffer = HeapAlloc( GetProcessHeap(), 0, pages * EMS_PAGE_SIZE );
+    void *buffer = heap_alloc( pages * EMS_PAGE_SIZE );
 
     if(!buffer) {
       SET_AH( context, 0x88 ); /* status: insufficient pages available */
@@ -271,7 +271,7 @@ static void EMS_free( CONTEXT *context )
       EMS_record->mapping[i].hindex = 0;
 
   /* free block */
-  HeapFree( GetProcessHeap(), 0, EMS_record->handle[hindex].address );
+  heap_free( EMS_record->handle[hindex].address );
   EMS_record->handle[hindex].address = 0;
 
   SET_AH( context, 0 );    /* status: ok */

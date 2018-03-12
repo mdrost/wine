@@ -1615,7 +1615,7 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
     }
     else
     {
-        if (!(name = HeapAlloc( GetProcessHeap(), 0, name_end - name_beg + 1 )))
+        if (!(name = heap_alloc( name_end - name_beg + 1 )))
             return ERROR_NOT_ENOUGH_MEMORY;
         memcpy( name, name_beg, name_end - name_beg );
         name[name_end - name_beg] = '\0';
@@ -1625,13 +1625,13 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
     {
         args++;
         arglen = strlen(args);
-        cmdline = HeapAlloc( GetProcessHeap(), 0, 2 + arglen );
+        cmdline = heap_alloc( 2 + arglen );
         cmdline[0] = (BYTE)arglen;
         strcpy( cmdline + 1, args );
     }
     else
     {
-        cmdline = HeapAlloc( GetProcessHeap(), 0, 2 );
+        cmdline = heap_alloc( 2 );
         cmdline[0] = cmdline[1] = 0;
     }
 
@@ -1661,8 +1661,8 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
     UnMapLS( params.cmdLine );
     UnMapLS( params.showCmd );
 
-    HeapFree( GetProcessHeap(), 0, cmdline );
-    if (name != lpCmdLine) HeapFree( GetProcessHeap(), 0, name );
+    heap_free( cmdline );
+    if (name != lpCmdLine) heap_free( name );
 
     if (ret == 21 || ret == ERROR_BAD_FORMAT)  /* 32-bit module or unknown executable*/
     {
@@ -1672,7 +1672,7 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
         showCmd[1] = nCmdShow;
 
         arglen = strlen( lpCmdLine );
-        cmdline = HeapAlloc( GetProcessHeap(), 0, arglen + 1 );
+        cmdline = heap_alloc( arglen + 1 );
         cmdline[0] = (BYTE)arglen;
         memcpy( cmdline + 1, lpCmdLine, arglen );
 

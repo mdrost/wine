@@ -574,7 +574,7 @@ static char IO_pp_init(void)
 	    ERR("Perhaps the device is already in use or nonexistent\n");
 	    continue;
 	  }
-	PPDeviceList[nports].devicename = HeapAlloc(GetProcessHeap(), 0, sizeof(buffer)+1);
+	PPDeviceList[nports].devicename = heap_alloc(sizeof(buffer)+1);
 	if (!PPDeviceList[nports].devicename)
 	  {
 	    ERR("No (more) space for devicename\n");

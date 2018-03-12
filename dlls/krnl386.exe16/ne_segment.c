@@ -849,10 +849,10 @@ static void add_to_init_list( struct ne_init_list *list, NE_MODULE *hModule )
         int newSize = list->size + 128;
 
 	if (list->module) 
-            newModule = HeapReAlloc( GetProcessHeap(), 0,
+            newModule = heap_realloc(
                                              list->module, newSize*sizeof(NE_MODULE *) );
 	else
-            newModule = HeapAlloc( GetProcessHeap(), 0,
+            newModule = heap_alloc(
                                              newSize*sizeof(NE_MODULE *) );
         if ( !newModule )
         {
@@ -871,7 +871,7 @@ static void free_init_list( struct ne_init_list *list )
 {
     if ( list->module )
     {
-        HeapFree( GetProcessHeap(), 0, list->module );
+        heap_free( list->module );
         memset( list, 0, sizeof(*list) );
     }
 }

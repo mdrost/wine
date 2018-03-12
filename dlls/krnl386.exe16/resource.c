@@ -79,7 +79,7 @@ static HRSRC16 MapHRsrc32To16( NE_MODULE *pModule, HRSRC hRsrc32, WORD type )
     /* On first call, initialize HRSRC map */
     if ( !map )
     {
-        if ( !(map = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(HRSRC_MAP) ) ) )
+        if ( !(map = heap_alloc_zero( sizeof(HRSRC_MAP) ) ) )
         {
             ERR("Cannot allocate HRSRC map\n" );
             return 0;
@@ -100,7 +100,7 @@ static HRSRC16 MapHRsrc32To16( NE_MODULE *pModule, HRSRC hRsrc32, WORD type )
     	    newElem = HeapReAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
                     map->elem, (map->nAlloc + HRSRC_MAP_BLOCKSIZE) * sizeof(HRSRC_ELEM) );
 	else
-    	    newElem = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
+    	    newElem = heap_alloc_zero(
                     (map->nAlloc + HRSRC_MAP_BLOCKSIZE) * sizeof(HRSRC_ELEM) );
 
         if ( !newElem )

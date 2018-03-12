@@ -860,7 +860,7 @@ struct thread_args
 static DWORD CALLBACK start_thread16( LPVOID threadArgs )
 {
     struct thread_args args = *(struct thread_args *)threadArgs;
-    HeapFree( GetProcessHeap(), 0, threadArgs );
+    heap_free( threadArgs );
     return K32WOWCallback16( (DWORD)args.proc, args.param );
 }
 
@@ -871,7 +871,7 @@ HANDLE WINAPI CreateThread16( SECURITY_ATTRIBUTES *sa, DWORD stack,
                               FARPROC16 start, SEGPTR param,
                               DWORD flags, LPDWORD id )
 {
-    struct thread_args *args = HeapAlloc( GetProcessHeap(), 0, sizeof(*args) );
+    struct thread_args *args = heap_alloc( sizeof(*args) );
     if (!args) return INVALID_HANDLE_VALUE;
     args->proc = start;
     args->param = param;

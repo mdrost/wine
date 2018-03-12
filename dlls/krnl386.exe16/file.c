@@ -196,7 +196,7 @@ static char *get_search_path(void)
            GetWindowsDirectoryA( NULL, 0 ) + 1 +            /* then windows dir */
            strlen( module ) + 1 +                           /* then module path */
            GetEnvironmentVariableA( "PATH", NULL, 0 ) + 1); /* then look in PATH */
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, len ))) return NULL;
+    if (!(ret = heap_alloc( len ))) return NULL;
     strcpy( ret, ".;" );
     p = ret + 2;
     GetSystemDirectory16( p, ret + len - p );
@@ -304,7 +304,7 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
             if (!path) goto error;
             found = SearchPathA( path, filename, NULL, sizeof(ofs->szPathName),
                                  ofs->szPathName, NULL );
-            HeapFree( GetProcessHeap(), 0, path );
+            heap_free( path );
             if (!found) goto error;
         }
 
@@ -506,14 +506,14 @@ UINT16 WINAPI GetTempFileName16( BYTE drive, LPCSTR prefix, UINT16 unique,
 
     if (prefix)
     {
-        prefix16 = HeapAlloc(GetProcessHeap(), 0, strlen(prefix) + 2);
+        prefix16 = heap_alloc(strlen(prefix) + 2);
         *prefix16 = '~';
         strcpy(prefix16 + 1, prefix);
     }
 
     ret = GetTempFileNameA( temppath, prefix16, unique, buffer );
 
-    HeapFree(GetProcessHeap(), 0, prefix16);
+    heap_free(prefix16);
     return ret;
 }
 
@@ -556,17 +556,17 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
 
         for (;;)
         {
-            if (!(data = HeapAlloc(GetProcessHeap(), 0, size ))) return 0;
+            if (!(data = heap_alloc(size ))) return 0;
             ret = GetPrivateProfileSectionA( section, data, size, filename );
             if (!ret)
             {
-                HeapFree( GetProcessHeap(), 0, data );
+                heap_free( data );
                 return GetPrivateProfileStringA( section, entry, def_val, buffer, len, filename );
             }
             if (ret != size - 2) break;
             /* overflow, try again */
             size *= 2;
-            HeapFree( GetProcessHeap(), 0, data );
+            heap_free( data );
         }
 
         src = data;
@@ -595,7 +595,7 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
                 len = 0;
             }
         }
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
 
         if (len)
         {

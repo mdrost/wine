@@ -1393,7 +1393,7 @@ HLOCAL16 WINAPI LocalReAlloc16( HLOCAL16 handle, WORD size, UINT16 flags )
     if (!hmem)
     {
         /* Remove the block from the heap and try again */
-        LPSTR buffer = HeapAlloc( GetProcessHeap(), 0, oldsize );
+        LPSTR buffer = heap_alloc( oldsize );
         if (!buffer) return 0;
         memcpy( buffer, ptr + arena + ARENA_HEADER_SIZE, oldsize );
         LOCAL_FreeArena( ds, arena );
@@ -1402,14 +1402,14 @@ HLOCAL16 WINAPI LocalReAlloc16( HLOCAL16 handle, WORD size, UINT16 flags )
             if (!(hmem = LOCAL_GetBlock( ds, oldsize, flags )))
             {
                 ERR("Can't restore saved block\n" );
-                HeapFree( GetProcessHeap(), 0, buffer );
+                heap_free( buffer );
                 return 0;
             }
             size = oldsize;
         }
         ptr = MapSL( MAKESEGPTR( ds, 0 ) );  /* Reload ptr */
         memcpy( ptr + hmem, buffer, oldsize );
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
     }
     else
     {
@@ -1816,7 +1816,7 @@ HANDLE WINAPI Local32Init16( WORD segment, DWORD tableSize,
         LPBYTE oldBase = (LPBYTE)GetSelectorBase( segment );
         memcpy( base, oldBase, segSize );
         GLOBAL_MoveBlock( segment, base, totSize );
-        HeapFree( GetProcessHeap(), 0, oldBase );
+        heap_free( oldBase );
     }
 
     return header;

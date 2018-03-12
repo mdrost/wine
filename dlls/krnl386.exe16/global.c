@@ -97,7 +97,7 @@ static GLOBALARENA *GLOBAL_GetArena( WORD sel, WORD selcount )
 
         if (!pGlobalArena)
         {
-            pGlobalArena = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
+            pGlobalArena = heap_alloc_zero(
                                       GLOBAL_MAX_COUNT * sizeof(GLOBALARENA) );
             if (!pGlobalArena) return 0;
             /* Hack: store a pointer to it in THHOOK instead of a handle */

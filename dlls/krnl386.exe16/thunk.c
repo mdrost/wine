@@ -369,7 +369,7 @@ UINT WINAPI ThunkConnect32(
 
                 SL32->data = SL16->fpData;
 
-                tdb = HeapAlloc(GetProcessHeap(), 0, sizeof(*tdb));
+                tdb = heap_alloc(sizeof(*tdb));
                 tdb->process = GetCurrentProcessId();
                 tdb->targetTable = (DWORD *)(thunkfun16 + SL32->offsetTargetTable);
 
@@ -1076,7 +1076,7 @@ AllocSLCallback(
 	DWORD finalizer,	/* [in] Finalizer function */
 	DWORD callback		/* [in] Callback function */
 ) {
-	LPBYTE	x,thunk = HeapAlloc( GetProcessHeap(), 0, 32 );
+	LPBYTE	x,thunk = heap_alloc( 32 );
 	WORD	sel;
 
 	x=thunk;
@@ -1385,7 +1385,7 @@ UINT WINAPI ThunkConnect16(
 
                 if (SL == NULL)
                 {
-                    SL = HeapAlloc(GetProcessHeap(), 0, sizeof(*SL));
+                    SL = heap_alloc(sizeof(*SL));
 
                     SL->common   = SL16->common;
                     SL->flags1   = SL16->flags1;
@@ -2190,11 +2190,11 @@ BOOL WINAPI k32CharToOemBuffA(LPCSTR s, LPSTR d, DWORD len)
 {
     WCHAR *bufW;
 
-    if ((bufW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+    if ((bufW = heap_alloc( len * sizeof(WCHAR) )))
     {
         MultiByteToWideChar( CP_ACP, 0, s, len, bufW, len );
         WideCharToMultiByte( CP_OEMCP, 0, bufW, len, d, len, NULL, NULL );
-        HeapFree( GetProcessHeap(), 0, bufW );
+        heap_free( bufW );
     }
     return TRUE;
 }
@@ -2215,11 +2215,11 @@ BOOL WINAPI k32OemToCharBuffA(LPCSTR s, LPSTR d, DWORD len)
 {
     WCHAR *bufW;
 
-    if ((bufW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+    if ((bufW = heap_alloc( len * sizeof(WCHAR) )))
     {
         MultiByteToWideChar( CP_OEMCP, 0, s, len, bufW, len );
         WideCharToMultiByte( CP_ACP, 0, bufW, len, d, len, NULL, NULL );
-        HeapFree( GetProcessHeap(), 0, bufW );
+        heap_free( bufW );
     }
     return TRUE;
 }

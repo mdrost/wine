@@ -437,7 +437,7 @@ static WIN16_SUBSYSTEM_TIB *allocate_win16_tib( TDB *pTask )
     UNICODE_STRING *curdir;
     NE_MODULE *pModule = NE_GetPtr( pTask->hModule );
 
-    if (!(tib = HeapAlloc( GetProcessHeap(), 0, sizeof(*tib) ))) return NULL;
+    if (!(tib = heap_alloc( sizeof(*tib) ))) return NULL;
     MultiByteToWideChar( CP_ACP, 0, NE_MODULE_NAME(pModule), -1, path, MAX_PATH );
     GetLongPathNameW( path, path, MAX_PATH );
     if (RtlCreateUnicodeString( &tib->exe_str, path )) tib->exe_name = &tib->exe_str;
@@ -461,7 +461,7 @@ static WIN16_SUBSYSTEM_TIB *allocate_win16_tib( TDB *pTask )
 static inline void free_win16_tib( WIN16_SUBSYSTEM_TIB *tib )
 {
     if (tib->exe_name) RtlFreeUnicodeString( tib->exe_name );
-    HeapFree( GetProcessHeap(), 0, tib );
+    heap_free( tib );
 }
 
 /* startup routine for a new 16-bit thread */
@@ -473,7 +473,7 @@ static DWORD CALLBACK task_start( LPVOID p )
 
     kernel_get_thread_data()->htask16 = pTask->hSelf;
     NtCurrentTeb()->Tib.SubSystemTib = data->tib;
-    HeapFree( GetProcessHeap(), 0, data );
+    heap_free( data );
 
     _EnterWin16Lock();
     TASK_LinkTask( pTask->hSelf );
@@ -498,7 +498,7 @@ HTASK16 TASK_SpawnTask( NE_MODULE *pModule, WORD cmdShow,
 
     if (!(pTask = TASK_Create( pModule, cmdShow, cmdline, len ))) return 0;
     if (!(tib = allocate_win16_tib( pTask ))) goto failed;
-    if (!(data = HeapAlloc( GetProcessHeap(), 0, sizeof(*data)))) goto failed;
+    if (!(data = heap_alloc( sizeof(*data)))) goto failed;
     data->task = pTask;
     data->tib = tib;
     if (!(*hThread = CreateThread( NULL, 0, task_start, data, 0, NULL ))) goto failed;
@@ -506,7 +506,7 @@ HTASK16 TASK_SpawnTask( NE_MODULE *pModule, WORD cmdShow,
 
 failed:
     if (tib) free_win16_tib( tib );
-    HeapFree( GetProcessHeap(), 0, data );
+    heap_free( data );
     TASK_DeleteTask( pTask->hSelf );
     return 0;
 }

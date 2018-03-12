@@ -125,7 +125,7 @@ static HANDLE open_vxd_handle( LPCWSTR name )
     len = MultiByteToWideChar( CP_UNIXCP, 0, dir, -1, NULL, 0 );
     nameW.Length = sizeof(prefixW) + (len + strlenW( name )) * sizeof(WCHAR);
     nameW.MaximumLength = nameW.Length + sizeof(WCHAR);
-    if (!(nameW.Buffer = HeapAlloc( GetProcessHeap(), 0, nameW.MaximumLength )))
+    if (!(nameW.Buffer = heap_alloc( nameW.MaximumLength )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return 0;

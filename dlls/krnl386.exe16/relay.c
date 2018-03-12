@@ -97,7 +97,7 @@ static const WCHAR **build_list( const WCHAR *buffer )
         p++;
     }
     /* allocate count+1 pointers, plus the space for a copy of the string */
-    if ((ret = RtlAllocateHeap( GetProcessHeap(), 0,
+    if ((ret = malloc(
                                 (count+1) * sizeof(WCHAR*) + (strlenW(buffer)+1) * sizeof(WCHAR) )))
     {
         WCHAR *str = (WCHAR *)(ret + count + 1);

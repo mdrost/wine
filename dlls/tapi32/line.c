@@ -367,7 +367,7 @@ DWORD WINAPI lineGetCountryA(DWORD dwCountryID, DWORD dwAPIVersion, LPLINECOUNTR
         dwOffset += num_countries * sizeof (LINECOUNTRYENTRY);
 
     max_subkey_len++;
-    subkey_name = HeapAlloc(GetProcessHeap(), 0, max_subkey_len);
+    subkey_name = heap_alloc(max_subkey_len);
     for(i = 0; i < num_countries; i++)
     {
         DWORD len, size, size_int, size_long, size_name, size_same;
@@ -468,7 +468,7 @@ DWORD WINAPI lineGetCountryA(DWORD dwCountryID, DWORD dwAPIVersion, LPLINECOUNTR
 
     TRACE("%d available %d required\n", dwAvailSize, dwOffset);
 
-    HeapFree(GetProcessHeap(), 0, subkey_name);
+    heap_free(subkey_name);
     RegCloseKey(hkey);
 
     return 0;
@@ -527,7 +527,7 @@ DWORD WINAPI lineGetCountryW(DWORD id, DWORD version, LPLINECOUNTRYLIST list)
     else offset += num_countries * sizeof(LINECOUNTRYENTRY);
 
     max_subkey_len++;
-    if (!(subkey_name = HeapAlloc(GetProcessHeap(), 0, max_subkey_len * sizeof(WCHAR))))
+    if (!(subkey_name = heap_alloc(max_subkey_len * sizeof(WCHAR))))
     {
         RegCloseKey(hkey);
         return LINEERR_NOMEM;
@@ -605,7 +605,7 @@ DWORD WINAPI lineGetCountryW(DWORD id, DWORD version, LPLINECOUNTRYLIST list)
 
     TRACE("%d available %d required\n", total_size, offset);
 
-    HeapFree(GetProcessHeap(), 0, subkey_name);
+    heap_free(subkey_name);
     RegCloseKey(hkey);
     return 0;
 }
@@ -836,7 +836,7 @@ DWORD WINAPI lineGetTranslateCapsA(HLINEAPP hLineApp, DWORD dwAPIVersion,
     maxlockeylen++;
     if( maxlockeylen < 10)
         maxlockeylen = 10; /* need this also if there is no key */
-    loc_key_name = HeapAlloc( GetProcessHeap(), 0, maxlockeylen);
+    loc_key_name = heap_alloc( maxlockeylen);
     /* first time through: calculate needed space */
     length=0;
     i=0;
@@ -901,7 +901,7 @@ DWORD WINAPI lineGetTranslateCapsA(HLINEAPP hLineApp, DWORD dwAPIVersion,
                 NULL, NULL, NULL, NULL, NULL, NULL) == ERROR_SUCCESS) {
             maxcardkeylen++;
             if( maxcardkeylen < 6) maxcardkeylen = 6;
-            card_key_name = HeapAlloc(GetProcessHeap(), 0, maxcardkeylen);
+            card_key_name = heap_alloc(maxcardkeylen);
             i=0;
             while( RegEnumKeyA(hkCards, i, card_key_name, maxcardkeylen) ==
                     ERROR_SUCCESS){
@@ -948,8 +948,8 @@ DWORD WINAPI lineGetTranslateCapsA(HLINEAPP hLineApp, DWORD dwAPIVersion,
     if ( lpTranslateCaps->dwNeededSize > lpTranslateCaps->dwTotalSize ) {
         RegCloseKey( hkLocations);
         if( hkCards) RegCloseKey( hkCards);
-        HeapFree(GetProcessHeap(), 0, loc_key_name);
-        HeapFree(GetProcessHeap(), 0, card_key_name);
+        heap_free(loc_key_name);
+        heap_free(card_key_name);
         lpTranslateCaps->dwUsedSize = sizeof(LINETRANSLATECAPS);
         TRACE("Insufficient space: total %d needed %d used %d\n",
                 lpTranslateCaps->dwTotalSize,
@@ -1126,8 +1126,8 @@ DWORD WINAPI lineGetTranslateCapsA(HLINEAPP hLineApp, DWORD dwAPIVersion,
     if(hkLocations) RegCloseKey(hkLocations);
     if(hkCards) RegCloseKey(hkCards);
     if(hkCardLocations) RegCloseKey(hkCardLocations);
-    HeapFree(GetProcessHeap(), 0, loc_key_name);
-    HeapFree(GetProcessHeap(), 0, card_key_name);
+    heap_free(loc_key_name);
+    heap_free(card_key_name);
     TRACE(" returning success tot %d needed %d used %d\n",
             lpTranslateCaps->dwTotalSize,
             lpTranslateCaps->dwNeededSize,

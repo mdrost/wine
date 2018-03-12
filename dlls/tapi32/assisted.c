@@ -106,17 +106,17 @@ DWORD WINAPI tapiGetLocationInfoA(LPSTR countrycode, LPSTR citycode)
     LPWSTR country, city;
 
     len = MultiByteToWideChar( CP_ACP, 0, countrycode, -1, NULL, 0 );
-    country = HeapAlloc( GetProcessHeap(), 0, len );
+    country = heap_alloc( len );
     MultiByteToWideChar( CP_ACP, 0, countrycode, -1, country, len );
 
     len = MultiByteToWideChar( CP_ACP, 0, citycode, -1, NULL, 0 );
-    city = HeapAlloc( GetProcessHeap(), 0, len );
+    city = heap_alloc( len );
     MultiByteToWideChar( CP_ACP, 0, citycode, -1, city, len );
 
     ret = tapiGetLocationInfoW(country, city);
 
-    HeapFree( GetProcessHeap(), 0, city );
-    HeapFree( GetProcessHeap(), 0, country );
+    heap_free( city );
+    heap_free( country );
     return ret;
 }
 

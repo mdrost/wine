@@ -199,8 +199,8 @@ static ULONG WINAPI AviMux_Release(IBaseFilter *iface)
             BaseInputPinImpl_Release(&This->in[i]->pin.pin.IPin_iface);
         }
 
-        HeapFree(GetProcessHeap(), 0, This->idx1);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->idx1);
+        heap_free(This);
         ObjectRefCount(FALSE);
     }
     return ref;
@@ -276,7 +276,7 @@ static HRESULT out_write(AviMux *This, const void *data, int size)
 static inline HRESULT idx1_add_entry(AviMux *avimux, DWORD ckid, DWORD flags, DWORD off, DWORD len)
 {
     if(avimux->idx1_entries == avimux->idx1_size) {
-        AVIINDEXENTRY *new_idx = HeapReAlloc(GetProcessHeap(), 0, avimux->idx1,
+        AVIINDEXENTRY *new_idx = heap_realloc(avimux->idx1,
                 sizeof(*avimux->idx1)*2*avimux->idx1_size);
         if(!new_idx)
             return E_OUTOFMEMORY;
@@ -645,7 +645,7 @@ static HRESULT WINAPI AviMux_Run(IBaseFilter *iface, REFERENCE_TIME tStart)
     This->idx1_entries = 0;
     if(!This->idx1_size) {
         This->idx1_size = 1024;
-        This->idx1 = HeapAlloc(GetProcessHeap(), 0, sizeof(*This->idx1)*This->idx1_size);
+        This->idx1 = heap_alloc(sizeof(*This->idx1)*This->idx1_size);
         if(!This->idx1)
             return E_OUTOFMEMORY;
     }
@@ -2366,7 +2366,7 @@ IUnknown* WINAPI QCAP_createAVIMux(IUnknown *pUnkOuter, HRESULT *phr)
         return NULL;
     }
 
-    avimux = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(AviMux));
+    avimux = heap_alloc_zero(sizeof(AviMux));
     if(!avimux) {
         *phr = E_OUTOFMEMORY;
         return NULL;
@@ -2387,7 +2387,7 @@ IUnknown* WINAPI QCAP_createAVIMux(IUnknown *pUnkOuter, HRESULT *phr)
             &AviMuxOut_BaseOutputFuncTable, &avimux->filter.csFilter, (IPin**)&avimux->out);
     if(FAILED(hr)) {
         BaseFilterImpl_Release(&avimux->filter.IBaseFilter_iface);
-        HeapFree(GetProcessHeap(), 0, avimux);
+        heap_free(avimux);
         *phr = hr;
         return NULL;
     }
@@ -2400,7 +2400,7 @@ IUnknown* WINAPI QCAP_createAVIMux(IUnknown *pUnkOuter, HRESULT *phr)
     if(FAILED(hr)) {
         BaseOutputPinImpl_Release(&avimux->out->pin.pin.IPin_iface);
         BaseFilterImpl_Release(&avimux->filter.IBaseFilter_iface);
-        HeapFree(GetProcessHeap(), 0, avimux);
+        heap_free(avimux);
         *phr = hr;
         return NULL;
     }

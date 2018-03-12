@@ -49,7 +49,7 @@ static HRESULT PROPVAR_ConvertFILETIME(const FILETIME *ft, PROPVARIANT *ppropvar
     switch (vt)
     {
         case VT_LPSTR:
-            ppropvarDest->u.pszVal = HeapAlloc(GetProcessHeap(), 0, 64);
+            ppropvarDest->u.pszVal = heap_alloc(64);
             if (!ppropvarDest->u.pszVal)
                 return E_OUTOFMEMORY;
 

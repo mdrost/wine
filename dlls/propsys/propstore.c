@@ -105,9 +105,9 @@ static void destroy_format(propstore_format *format)
     LIST_FOR_EACH_ENTRY_SAFE(cursor, cursor2, &format->values, propstore_value, entry)
     {
         PropVariantClear(&cursor->propvar);
-        HeapFree(GetProcessHeap(), 0, cursor);
+        heap_free(cursor);
     }
-    HeapFree(GetProcessHeap(), 0, format);
+    heap_free(format);
 }
 
 static ULONG WINAPI PropertyStore_Release(IPropertyStoreCache *iface)
@@ -124,7 +124,7 @@ static ULONG WINAPI PropertyStore_Release(IPropertyStoreCache *iface)
         DeleteCriticalSection(&This->lock);
         LIST_FOR_EACH_ENTRY_SAFE(cursor, cursor2, &This->formats, propstore_format, entry)
             destroy_format(cursor);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -231,7 +231,7 @@ static HRESULT PropertyStore_LookupValue(PropertyStore *This, REFPROPERTYKEY key
         if (!insert)
             return TYPE_E_ELEMENTNOTFOUND;
 
-        format = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*format));
+        format = heap_alloc_zero(sizeof(*format));
         if (!format)
             return E_OUTOFMEMORY;
 
@@ -254,7 +254,7 @@ static HRESULT PropertyStore_LookupValue(PropertyStore *This, REFPROPERTYKEY key
         if (!insert)
             return TYPE_E_ELEMENTNOTFOUND;
 
-        value = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*value));
+        value = heap_alloc_zero(sizeof(*value));
         if (!value)
             return E_OUTOFMEMORY;
 
@@ -461,7 +461,7 @@ HRESULT PropertyStore_CreateInstance(IUnknown *pUnkOuter, REFIID iid, void** ppv
 
     if (pUnkOuter) return CLASS_E_NOAGGREGATION;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(PropertyStore));
+    This = heap_alloc(sizeof(PropertyStore));
     if (!This) return E_OUTOFMEMORY;
 
     This->IPropertyStoreCache_iface.lpVtbl = &PropertyStore_Vtbl;

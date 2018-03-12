@@ -809,7 +809,7 @@ static void test_EnumCodePages(IMultiLanguage2 *iML2, DWORD flags)
     ok(ret == S_FALSE || ret == E_FAIL,
             "IEnumCodePage_Next: expected S_FALSE or E_FAIL, got %08x\n", ret);
 
-    cpinfo = HeapAlloc(GetProcessHeap(), 0, sizeof(*cpinfo) * total * 2);
+    cpinfo = heap_alloc(sizeof(*cpinfo) * total * 2);
 
     n = total * 2;
     ret = IEnumCodePage_Next(iEnumCP, 0, cpinfo, &n);
@@ -1004,7 +1004,7 @@ static void test_EnumCodePages(IMultiLanguage2 *iML2, DWORD flags)
         cpinfo_cmp(&cpinfo[i + 1], &cpinfo2);
     }
 
-    HeapFree(GetProcessHeap(), 0, cpinfo);
+    heap_free(cpinfo);
     IEnumCodePage_Release(iEnumCP);
 }
 
@@ -1088,7 +1088,7 @@ static void test_EnumScripts(IMultiLanguage2 *iML2, DWORD flags)
     ret = IEnumScript_Next(iEnumScript, 0, NULL, NULL);
     ok(ret == E_FAIL, "IEnumScript_Next: expected E_FAIL, got %08x\n", ret);
 
-    sinfo = HeapAlloc(GetProcessHeap(), 0, sizeof(*sinfo) * total * 2);
+    sinfo = heap_alloc(sizeof(*sinfo) * total * 2);
 
     n = total * 2;
     ret = IEnumScript_Next(iEnumScript, 0, sinfo, &n);
@@ -1154,7 +1154,7 @@ static void test_EnumScripts(IMultiLanguage2 *iML2, DWORD flags)
         scriptinfo_cmp(&sinfo[i + 1], &sinfo2);
     }
 
-    HeapFree(GetProcessHeap(), 0, sinfo);
+    heap_free(sinfo);
     IEnumScript_Release(iEnumScript);
 }
 
@@ -2206,7 +2206,7 @@ static void test_GetFontUnicodeRanges(IMLangFontLink2 *font_link)
     ok(hr == S_OK, "expected S_OK, got 0x%08x\n", hr);
     ok(count, "expected count > 0\n");
 
-    ur = HeapAlloc(GetProcessHeap(), 0, sizeof(*ur) * count);
+    ur = heap_alloc(sizeof(*ur) * count);
 
     hr = IMLangFontLink2_GetFontUnicodeRanges(font_link, hdc, &count, ur);
     ok(hr == S_OK, "expected S_OK, got 0x%08x\n", hr);
@@ -2215,7 +2215,7 @@ static void test_GetFontUnicodeRanges(IMLangFontLink2 *font_link)
     hr = IMLangFontLink2_GetFontUnicodeRanges(font_link, hdc, &count, ur);
     ok(hr == S_OK, "expected S_OK, got 0x%08x\n", hr);
 
-    HeapFree(GetProcessHeap(), 0, ur);
+    heap_free(ur);
 
     SelectObject(hdc, old_hfont);
     DeleteObject(hfont);

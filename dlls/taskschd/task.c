@@ -3954,10 +3954,10 @@ HRESULT TaskService_create(void **obj)
 
 void __RPC_FAR *__RPC_USER MIDL_user_allocate(SIZE_T n)
 {
-    return HeapAlloc(GetProcessHeap(), 0, n);
+    return heap_alloc(n);
 }
 
 void __RPC_USER MIDL_user_free(void __RPC_FAR *p)
 {
-    HeapFree(GetProcessHeap(), 0, p);
+    heap_free(p);
 }

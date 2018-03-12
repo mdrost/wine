@@ -1060,7 +1060,7 @@ static INT_PTR CALLBACK hyperlink_dlgproc(HWND hwnd, UINT msg, WPARAM wparam, LP
                     /* get string of currently selected hyperlink type */
                     item = SendMessageW((HWND)lparam, CB_GETCURSEL, 0, 0);
                     len = SendMessageW((HWND)lparam, CB_GETLBTEXTLEN, item, 0);
-                    type = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+                    type = heap_alloc((len + 1) * sizeof(WCHAR));
                     SendMessageW((HWND)lparam, CB_GETLBTEXT, item, (LPARAM)type);
 
                     if (!strcmpW(type, wszOther))
@@ -1068,7 +1068,7 @@ static INT_PTR CALLBACK hyperlink_dlgproc(HWND hwnd, UINT msg, WPARAM wparam, LP
 
                     /* get current URL */
                     len = GetWindowTextLengthW(hwndURL);
-                    url = HeapAlloc(GetProcessHeap(), 0, (len + strlenW(type) + 3) * sizeof(WCHAR));
+                    url = heap_alloc((len + strlenW(type) + 3) * sizeof(WCHAR));
                     GetWindowTextW(hwndURL, url, len + 1);
 
                     /* strip off old protocol */
@@ -1088,8 +1088,8 @@ static INT_PTR CALLBACK hyperlink_dlgproc(HWND hwnd, UINT msg, WPARAM wparam, LP
 
                     SetWindowTextW(hwndURL, url);
 
-                    HeapFree(GetProcessHeap(), 0, url);
-                    HeapFree(GetProcessHeap(), 0, type);
+                    heap_free(url);
+                    heap_free(type);
                     return TRUE;
                 }
             }

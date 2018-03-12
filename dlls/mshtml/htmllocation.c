@@ -201,7 +201,7 @@ static HRESULT WINAPI HTMLLocation_get_href(IHTMLLocation *iface, BSTR *p)
     case INTERNET_SCHEME_FILE:
         {
             /* prepend a slash */
-            url_path = HeapAlloc(GetProcessHeap(), 0, (url.dwUrlPathLength + 1) * sizeof(WCHAR));
+            url_path = heap_alloc((url.dwUrlPathLength + 1) * sizeof(WCHAR));
             if(!url_path)
                 return E_OUTOFMEMORY;
             url_path[0] = '/';
@@ -216,7 +216,7 @@ static HRESULT WINAPI HTMLLocation_get_href(IHTMLLocation *iface, BSTR *p)
     case INTERNET_SCHEME_FTP:
         if(!url.dwUrlPathLength) {
             /* add a slash if it's blank */
-            url_path = url.lpszUrlPath = HeapAlloc(GetProcessHeap(), 0, 1 * sizeof(WCHAR));
+            url_path = url.lpszUrlPath = heap_alloc(1 * sizeof(WCHAR));
             if(!url.lpszUrlPath)
                 return E_OUTOFMEMORY;
             url.lpszUrlPath[0] = '/';
@@ -247,7 +247,7 @@ static HRESULT WINAPI HTMLLocation_get_href(IHTMLLocation *iface, BSTR *p)
     }
     SetLastError(0);
 
-    buf = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    buf = heap_alloc(len * sizeof(WCHAR));
     if(!buf) {
         ret = E_OUTOFMEMORY;
         goto cleanup;
@@ -269,8 +269,8 @@ static HRESULT WINAPI HTMLLocation_get_href(IHTMLLocation *iface, BSTR *p)
     ret = S_OK;
 
 cleanup:
-    HeapFree(GetProcessHeap(), 0, buf);
-    HeapFree(GetProcessHeap(), 0, url_path);
+    heap_free(buf);
+    heap_free(url_path);
 
     return ret;
 }

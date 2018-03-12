@@ -376,7 +376,7 @@ static BOOL UIINSERTOBJECTDLG_PopulateObjectTypes(InsertObjectDlgInfo* pdlgInfo)
     len = sizeof(keydesc);
     if (ERROR_SUCCESS == RegQueryValueW(hkey, NULL, keydesc, &len))
     {
-       CLSID* lpclsid = HeapAlloc(GetProcessHeap(), 0, sizeof(CLSID));
+       CLSID* lpclsid = heap_alloc(sizeof(CLSID));
        *lpclsid = clsid;
 
        len = SendMessageW(pdlgInfo->hwndObjTypeLB, LB_ADDSTRING, 0, (LPARAM)keydesc);
@@ -405,7 +405,7 @@ static void UIINSERTOBJECTDLG_FreeObjectTypes(InsertObjectDlgInfo* pdlgInfo)
   {
       CLSID* lpclsid = (CLSID*) SendMessageA(pdlgInfo->hwndObjTypeLB, 
          LB_GETITEMDATA, i, 0);
-      HeapFree(GetProcessHeap(), 0, lpclsid);
+      heap_free(lpclsid);
   }
 }
 

@@ -85,7 +85,7 @@ static void test_encode(void)
     output_size = ICCompressGetFormatSize(hic, &input_header.header);
     ok(output_size == 1064, "output_size = %d\n", output_size);
 
-    output_header = HeapAlloc(GetProcessHeap(), 0, output_size);
+    output_header = heap_alloc(output_size);
     ICCompressGetFormat(hic, &input_header.header, output_header);
 
     flags = 0;
@@ -94,7 +94,7 @@ static void test_encode(void)
     test_output(buf, output_header->biSizeImage, output1, sizeof(output1));
     ok(flags == (AVIIF_TWOCC|AVIIF_KEYFRAME), "flags = %x\n", flags);
 
-    HeapFree(GetProcessHeap(), 0, output_header);
+    heap_free(output_header);
 
     ICClose(hic);
 }
@@ -124,9 +124,9 @@ static void test_raw_decompress(void)
     bih->biClrImportant = 0;
     biho = *bih;
 
-    bits = HeapAlloc(GetProcessHeap(), 0, bih->biSizeImage);
+    bits = heap_alloc(bih->biSizeImage);
     ok(bits != NULL, "Expected non-NULL value\n");
-    outbits = HeapAlloc(GetProcessHeap(), 0, bih->biSizeImage);
+    outbits = heap_alloc(bih->biSizeImage);
     ok(outbits != NULL, "Expected non-NULL value\n");
 
     for (i = 0; i < sizeof(codecs) / sizeof(codecs[0]); i++)
@@ -155,8 +155,8 @@ static void test_raw_decompress(void)
         hr = ICClose(hic);
         ok(hr == ICERR_OK, "Test[%d]: Expected ICERR_OK, got %d\n", i, hr);
     }
-    HeapFree(GetProcessHeap(), 0, bits);
-    HeapFree(GetProcessHeap(), 0, outbits);
+    heap_free(bits);
+    heap_free(outbits);
 }
 
 START_TEST(msrle)

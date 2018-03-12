@@ -496,7 +496,7 @@ LRESULT WINAPI CRAM_DriverProc( DWORD_PTR dwDriverId, HDRVR hdrvr, UINT msg,
 
         if (icinfo && compare_fourcc(icinfo->fccType, ICTYPE_VIDEO)) return 0;
 
-        info = HeapAlloc( GetProcessHeap(), 0, sizeof (Msvideo1Context) );
+        info = heap_alloc( sizeof (Msvideo1Context) );
         if( info )
         {
             memset( info, 0, sizeof *info );
@@ -507,7 +507,7 @@ LRESULT WINAPI CRAM_DriverProc( DWORD_PTR dwDriverId, HDRVR hdrvr, UINT msg,
     }
 
     case DRV_CLOSE:
-        HeapFree( GetProcessHeap(), 0, info );
+        heap_free( info );
         break;
 
     case DRV_DISABLE:

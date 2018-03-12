@@ -60,7 +60,7 @@ static ULONG WINAPI automatic_updates_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", automatic_updates);
-        HeapFree( GetProcessHeap(), 0, automatic_updates );
+        heap_free( automatic_updates );
     }
     return refs;
 }
@@ -209,7 +209,7 @@ HRESULT AutomaticUpdates_create( LPVOID *ppObj )
 
     TRACE("(%p)\n", ppObj);
 
-    updates = HeapAlloc( GetProcessHeap(), 0, sizeof(*updates) );
+    updates = heap_alloc( sizeof(*updates) );
     if (!updates) return E_OUTOFMEMORY;
 
     updates->IAutomaticUpdates_iface.lpVtbl = &automatic_updates_vtbl;

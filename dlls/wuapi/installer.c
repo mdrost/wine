@@ -60,7 +60,7 @@ static ULONG WINAPI update_installer_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", update_installer);
-        HeapFree( GetProcessHeap(), 0, update_installer );
+        heap_free( update_installer );
     }
     return refs;
 }
@@ -349,7 +349,7 @@ HRESULT UpdateInstaller_create( LPVOID *ppObj )
 
     TRACE("(%p)\n", ppObj);
 
-    installer = HeapAlloc( GetProcessHeap(), 0, sizeof(*installer) );
+    installer = heap_alloc( sizeof(*installer) );
     if (!installer) return E_OUTOFMEMORY;
 
     installer->IUpdateInstaller_iface.lpVtbl = &update_installer_vtbl;

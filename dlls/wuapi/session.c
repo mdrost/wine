@@ -60,7 +60,7 @@ static ULONG WINAPI update_session_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", update_session);
-        HeapFree( GetProcessHeap(), 0, update_session );
+        heap_free( update_session );
     }
     return refs;
 }
@@ -223,7 +223,7 @@ HRESULT UpdateSession_create( LPVOID *ppObj )
 
     TRACE("(%p)\n", ppObj);
 
-    session = HeapAlloc( GetProcessHeap(), 0, sizeof(*session) );
+    session = heap_alloc( sizeof(*session) );
     if (!session) return E_OUTOFMEMORY;
 
     session->IUpdateSession_iface.lpVtbl = &update_session_vtbl;

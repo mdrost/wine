@@ -60,7 +60,7 @@ static ULONG WINAPI update_searcher_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", update_searcher);
-        HeapFree( GetProcessHeap(), 0, update_searcher );
+        heap_free( update_searcher );
     }
     return refs;
 }
@@ -321,7 +321,7 @@ HRESULT UpdateSearcher_create( LPVOID *ppObj )
 
     TRACE("(%p)\n", ppObj);
 
-    searcher = HeapAlloc( GetProcessHeap(), 0, sizeof(*searcher) );
+    searcher = heap_alloc( sizeof(*searcher) );
     if (!searcher) return E_OUTOFMEMORY;
 
     searcher->IUpdateSearcher_iface.lpVtbl = &update_searcher_vtbl;

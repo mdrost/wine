@@ -61,7 +61,7 @@ static ULONG WINAPI update_downloader_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", update_downloader);
-        HeapFree( GetProcessHeap(), 0, update_downloader );
+        heap_free( update_downloader );
     }
     return refs;
 }
@@ -255,7 +255,7 @@ HRESULT UpdateDownloader_create( LPVOID *ppObj )
 
     TRACE("(%p)\n", ppObj);
 
-    downloader = HeapAlloc( GetProcessHeap(), 0, sizeof(*downloader) );
+    downloader = heap_alloc( sizeof(*downloader) );
     if (!downloader) return E_OUTOFMEMORY;
 
     downloader->IUpdateDownloader_iface.lpVtbl = &update_downloader_vtbl;

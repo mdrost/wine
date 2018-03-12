@@ -59,7 +59,7 @@ static ULONG WINAPI systeminfo_Release(ISystemInformation *iface)
     if (!refs)
     {
         TRACE("destroying %p\n", This);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return refs;
 }
@@ -150,7 +150,7 @@ HRESULT SystemInformation_create(LPVOID *ppObj)
 
     TRACE("(%p)\n", ppObj);
 
-    info = HeapAlloc(GetProcessHeap(), 0, sizeof(*info));
+    info = heap_alloc(sizeof(*info));
     if (!info)
         return E_OUTOFMEMORY;
 

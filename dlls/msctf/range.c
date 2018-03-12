@@ -62,7 +62,7 @@ static inline Range *impl_from_ITfRange(ITfRange *iface)
 static void Range_Destructor(Range *This)
 {
     TRACE("destroying %p\n", This);
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI Range_QueryInterface(ITfRange *iface, REFIID iid, LPVOID *ppvOut)
@@ -330,7 +330,7 @@ HRESULT Range_Constructor(ITfContext *context, ITextStoreACP *textstore, DWORD l
 {
     Range *This;
 
-    This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(Range));
+    This = heap_alloc_zero(sizeof(Range));
     if (This == NULL)
         return E_OUTOFMEMORY;
 

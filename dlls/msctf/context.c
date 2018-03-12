@@ -127,7 +127,7 @@ static void Context_Destructor(Context *This)
     if (This->defaultCookie)
     {
         cookie = remove_Cookie(This->defaultCookie);
-        HeapFree(GetProcessHeap(),0,cookie);
+        heap_free(cookie);
         This->defaultCookie = 0;
     }
 
@@ -138,7 +138,7 @@ static void Context_Destructor(Context *This)
     free_sinks(&This->pTextLayoutSink);
 
     CompartmentMgr_Destructor(This->CompartmentMgr);
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 }
 
 static HRESULT WINAPI Context_QueryInterface(ITfContext *iface, REFIID iid, LPVOID *ppvOut)
@@ -336,7 +336,7 @@ static HRESULT WINAPI Context_SetSelection (ITfContext *iface,
     if (get_Cookie_magic(ec)!=COOKIE_MAGIC_EDITCOOKIE)
         return TF_E_NOLOCK;
 
-    acp = HeapAlloc(GetProcessHeap(), 0, sizeof(TS_SELECTION_ACP) * ulCount);
+    acp = heap_alloc(sizeof(TS_SELECTION_ACP) * ulCount);
     if (!acp)
         return E_OUTOFMEMORY;
 
@@ -350,7 +350,7 @@ static HRESULT WINAPI Context_SetSelection (ITfContext *iface,
 
     hr = ITextStoreACP_SetSelection(This->pITextStoreACP, ulCount, acp);
 
-    HeapFree(GetProcessHeap(), 0, acp);
+    heap_free(acp);
 
     return hr;
 }
@@ -823,14 +823,14 @@ static HRESULT WINAPI TextStoreACPSink_OnLockGranted(ITextStoreACPSink *iface,
         return S_OK;
     }
 
-    cookie = HeapAlloc(GetProcessHeap(),0,sizeof(EditCookie));
+    cookie = heap_alloc(sizeof(EditCookie));
     if (!cookie)
         return E_OUTOFMEMORY;
 
-    sinkcookie = HeapAlloc(GetProcessHeap(),0,sizeof(EditCookie));
+    sinkcookie = heap_alloc(sizeof(EditCookie));
     if (!sinkcookie)
     {
-        HeapFree(GetProcessHeap(), 0, cookie);
+        heap_free(cookie);
         return E_OUTOFMEMORY;
     }
 
@@ -856,14 +856,14 @@ static HRESULT WINAPI TextStoreACPSink_OnLockGranted(ITextStoreACPSink *iface,
         }
         sinkcookie = remove_Cookie(sc);
     }
-    HeapFree(GetProcessHeap(),0,sinkcookie);
+    heap_free(sinkcookie);
 
     ITfEditSession_Release(This->currentEditSession);
     This->currentEditSession = NULL;
 
     /* Edit Cookie is only valid during the edit session */
     cookie = remove_Cookie(ec);
-    HeapFree(GetProcessHeap(),0,cookie);
+    heap_free(cookie);
 
     return hr;
 }
@@ -970,14 +970,14 @@ HRESULT Context_Constructor(TfClientId tidOwner, IUnknown *punk, ITfDocumentMgr 
     Context *This;
     EditCookie *cookie;
 
-    This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(Context));
+    This = heap_alloc_zero(sizeof(Context));
     if (This == NULL)
         return E_OUTOFMEMORY;
 
-    cookie = HeapAlloc(GetProcessHeap(),0,sizeof(EditCookie));
+    cookie = heap_alloc(sizeof(EditCookie));
     if (cookie == NULL)
     {
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
         return E_OUTOFMEMORY;
     }
 

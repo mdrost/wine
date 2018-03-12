@@ -70,7 +70,7 @@ static ULONG WINAPI UIRibbonFrameworkImpl_Release(IUIFramework *iface)
     TRACE("(%p/%p)->(): new ref %d\n", iface, This, ref);
 
     if (!ref)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -162,7 +162,7 @@ HRESULT UIRibbonFrameworkImpl_Create(IUnknown *pUnkOuter, void **ppObj)
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(UIRibbonFrameworkImpl));
+    object = heap_alloc_zero(sizeof(UIRibbonFrameworkImpl));
     if (!object)
         return E_OUTOFMEMORY;
 

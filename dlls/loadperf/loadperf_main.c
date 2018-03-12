@@ -54,7 +54,7 @@ static WCHAR *strdupAW(const char *str)
     if (str)
     {
         INT len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-        if (!(ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR)))) return NULL;
+        if (!(ret = heap_alloc(len * sizeof(WCHAR)))) return NULL;
         MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
     }
     return ret;
@@ -71,14 +71,14 @@ DWORD WINAPI InstallPerfDllA(LPCSTR computer, LPCSTR ini, ULONG_PTR flags)
     if (computer && !(computerW = strdupAW(computer))) return ERROR_OUTOFMEMORY;
     if (ini && !(iniW = strdupAW(ini)))
     {
-        HeapFree(GetProcessHeap(), 0, computerW);
+        heap_free(computerW);
         return ERROR_OUTOFMEMORY;
     }
 
     ret = InstallPerfDllW(computerW, iniW, flags);
 
-    HeapFree(GetProcessHeap(), 0, computerW);
-    HeapFree(GetProcessHeap(), 0, iniW);
+    heap_free(computerW);
+    heap_free(iniW);
 
     return ret;
 }
@@ -107,7 +107,7 @@ DWORD WINAPI LoadPerfCounterTextStringsA(LPCSTR cmdline, BOOL quiet)
 
     ret = LoadPerfCounterTextStringsW(cmdlineW, quiet);
 
-    HeapFree(GetProcessHeap(), 0, cmdlineW);
+    heap_free(cmdlineW);
 
     return ret;
 }
@@ -142,7 +142,7 @@ DWORD WINAPI UnloadPerfCounterTextStringsA(LPCSTR cmdline, BOOL quiet)
 
     ret = UnloadPerfCounterTextStringsW(cmdlineW, quiet);
 
-    HeapFree(GetProcessHeap(), 0, cmdlineW);
+    heap_free(cmdlineW);
 
     return ret;
 }

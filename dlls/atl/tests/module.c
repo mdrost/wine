@@ -35,7 +35,7 @@ static void test_StructSize(void)
     HRESULT hres;
     int i;
 
-    tst = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, MAXSIZE);
+    tst = heap_alloc_zero(MAXSIZE);
 
     for (i=0;i<MAXSIZE;i++) {
         tst->cbSize = i;
@@ -55,7 +55,7 @@ static void test_StructSize(void)
         }
     }
 
-    HeapFree (GetProcessHeap(), 0, tst);
+    heap_free(tst);
 }
 
 static void test_winmodule(void)

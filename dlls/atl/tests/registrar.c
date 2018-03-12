@@ -73,7 +73,7 @@ static void test_registrar(void)
     }
 
     count = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-    textW = HeapAlloc(GetProcessHeap(), 0, count * sizeof(WCHAR));
+    textW = heap_alloc(count * sizeof(WCHAR));
     if (textW)
     {
         DWORD dword;
@@ -132,7 +132,7 @@ static void test_registrar(void)
         ok(SUCCEEDED(hr), "IRegistrar_StringUnregister failed, hr = 0x%08X\n", hr);
         RegCloseKey(key);
 
-        HeapFree(GetProcessHeap(), 0, textW);
+        heap_free(textW);
     }
     else
         skip("allocating memory failed\n");

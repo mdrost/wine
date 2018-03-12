@@ -1008,13 +1008,13 @@ static HKEY open_driver_reg(LPCWSTR pEnvironment)
     env = validate_envW(pEnvironment);
     if (!env) return NULL;
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(fmt_driversW) +
+    buffer = heap_alloc(sizeof(fmt_driversW) +
                 (lstrlenW(env->envname) + lstrlenW(env->versionregpath)) * sizeof(WCHAR));
 
     if (buffer) {
         wsprintfW(buffer, fmt_driversW, env->envname, env->versionregpath);
         RegCreateKeyW(HKEY_LOCAL_MACHINE, buffer, &retval);
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     }
     return retval;
 }
@@ -1388,7 +1388,7 @@ static BOOL myAddPrinterDriverEx(DWORD level, LPBYTE pDriverInfo, DWORD dwFileCo
     if (di.pDependentFiles && *di.pDependentFiles)
     {
         WCHAR *reg, *reg_ptr, *in_ptr;
-        reg = reg_ptr = HeapAlloc( GetProcessHeap(), 0, multi_sz_lenW( di.pDependentFiles ) );
+        reg = reg_ptr = heap_alloc( multi_sz_lenW( di.pDependentFiles ) );
 
         for (in_ptr = di.pDependentFiles; *in_ptr; in_ptr += strlenW( in_ptr ) + 1)
         {
@@ -1401,7 +1401,7 @@ static BOOL myAddPrinterDriverEx(DWORD level, LPBYTE pDriverInfo, DWORD dwFileCo
         *reg_ptr = 0;
 
         RegSetValueExW( hdrv, dependent_filesW, 0, REG_MULTI_SZ, (LPBYTE)reg, (reg_ptr - reg + 1) * sizeof(WCHAR) );
-        HeapFree( GetProcessHeap(), 0, reg );
+        heap_free( reg );
     }
     else
         RegSetValueExW(hdrv, dependent_filesW, 0, REG_MULTI_SZ, (const BYTE*)emptyW, sizeof(emptyW));

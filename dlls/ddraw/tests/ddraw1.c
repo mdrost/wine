@@ -848,7 +848,7 @@ static void test_clipper_blt(void)
     ok(SUCCEEDED(hr), "Failed to set clipper window, hr %#x.\n", hr);
     hr = IDirectDrawClipper_GetClipList(clipper, NULL, NULL, &ret);
     ok(SUCCEEDED(hr), "Failed to get clip list size, hr %#x.\n", hr);
-    rgn_data = HeapAlloc(GetProcessHeap(), 0, ret);
+    rgn_data = heap_alloc(ret);
     hr = IDirectDrawClipper_GetClipList(clipper, NULL, rgn_data, &ret);
     ok(SUCCEEDED(hr), "Failed to get clip list, hr %#x.\n", hr);
     ok(rgn_data->rdh.dwSize == sizeof(rgn_data->rdh), "Got unexpected structure size %#x.\n", rgn_data->rdh.dwSize);
@@ -857,7 +857,7 @@ static void test_clipper_blt(void)
     ok(EqualRect(&rgn_data->rdh.rcBound, &client_rect),
             "Got unexpected bounding rect %s, expected %s.\n",
             wine_dbgstr_rect(&rgn_data->rdh.rcBound), wine_dbgstr_rect(&client_rect));
-    HeapFree(GetProcessHeap(), 0, rgn_data);
+    heap_free(rgn_data);
 
     r1 = CreateRectRgn(0, 0, 320, 240);
     ok(!!r1, "Failed to create region.\n");
@@ -865,7 +865,7 @@ static void test_clipper_blt(void)
     ok(!!r2, "Failed to create region.\n");
     CombineRgn(r1, r1, r2, RGN_OR);
     ret = GetRegionData(r1, 0, NULL);
-    rgn_data = HeapAlloc(GetProcessHeap(), 0, ret);
+    rgn_data = heap_alloc(ret);
     ret = GetRegionData(r1, ret, rgn_data);
     ok(!!ret, "Failed to get region data.\n");
 
@@ -879,7 +879,7 @@ static void test_clipper_blt(void)
     hr = IDirectDrawClipper_SetClipList(clipper, rgn_data, 0);
     ok(SUCCEEDED(hr), "Failed to set clip list, hr %#x.\n", hr);
 
-    HeapFree(GetProcessHeap(), 0, rgn_data);
+    heap_free(rgn_data);
 
     memset(&surface_desc, 0, sizeof(surface_desc));
     surface_desc.dwSize = sizeof(surface_desc);
@@ -5204,7 +5204,7 @@ static void test_create_surface_pitch(void)
     hr = IDirectDraw_SetCooperativeLevel(ddraw, window, DDSCL_NORMAL);
     ok(SUCCEEDED(hr), "Failed to set cooperative level, hr %#x.\n", hr);
 
-    mem = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, ((63 * 4) + 8) * 63);
+    mem = heap_alloc_zero(((63 * 4) + 8) * 63);
 
     for (i = 0; i < ARRAY_SIZE(test_data); ++i)
     {
@@ -5258,7 +5258,7 @@ static void test_create_surface_pitch(void)
         IDirectDrawSurface_Release(surface);
     }
 
-    HeapFree(GetProcessHeap(), 0, mem);
+    heap_free(mem);
     refcount = IDirectDraw_Release(ddraw);
     ok(!refcount, "Got unexpected refcount %u.\n", refcount);
     DestroyWindow(window);
@@ -7467,7 +7467,7 @@ static void test_color_fill(void)
         else if (fourcc_codes[i] == MAKEFOURCC('U', 'Y', 'V', 'Y'))
             support_uyvy = TRUE;
     }
-    HeapFree(GetProcessHeap(), 0, fourcc_codes);
+    heap_free(fourcc_codes);
 
     memset(&hal_caps, 0, sizeof(hal_caps));
     hal_caps.dwSize = sizeof(hal_caps);

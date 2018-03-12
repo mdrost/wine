@@ -68,7 +68,7 @@ void * CDECL MSVCRTD_operator_new_dbg(MSVCRT_size_t nSize, int nBlockUse,
         return NULL;
     }
 
-    retval = HeapAlloc(GetProcessHeap(), 0, nSize);
+    retval = heap_alloc(nSize);
 
     if (!retval)
         _callnewh(nSize);

@@ -150,10 +150,10 @@ static char *get_user_sid(void)
     OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token);
     GetTokenInformation(token, TokenUser, NULL, size, &size);
 
-    user = HeapAlloc(GetProcessHeap(), 0, size);
+    user = heap_alloc(size);
     GetTokenInformation(token, TokenUser, user, size, &size);
     pConvertSidToStringSidA(user->User.Sid, &usersid);
-    HeapFree(GetProcessHeap(), 0, user);
+    heap_free(user);
 
     CloseHandle(token);
     return usersid;

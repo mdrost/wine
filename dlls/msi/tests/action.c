@@ -2104,7 +2104,7 @@ static LSTATUS action_RegDeleteTreeA(HKEY hKey, LPCSTR lpszSubKey, REGSAM access
     if (dwMaxLen > sizeof(szNameBuf))
     {
         /* Name too big: alloc a buffer for it */
-        if (!(lpszName = HeapAlloc( GetProcessHeap(), 0, dwMaxLen)))
+        if (!(lpszName = heap_alloc( dwMaxLen)))
         {
             ret = ERROR_NOT_ENOUGH_MEMORY;
             goto cleanup;
@@ -2142,7 +2142,7 @@ static LSTATUS action_RegDeleteTreeA(HKEY hKey, LPCSTR lpszSubKey, REGSAM access
 
 cleanup:
     if (lpszName != szNameBuf)
-        HeapFree(GetProcessHeap(), 0, lpszName);
+        heap_free(lpszName);
     if(lpszSubKey)
         RegCloseKey(hSubKey);
     return ret;
@@ -2158,12 +2158,12 @@ cleanup:
 
 static void * CDECL mem_alloc(ULONG cb)
 {
-    return HeapAlloc(GetProcessHeap(), 0, cb);
+    return heap_alloc(cb);
 }
 
 static void CDECL mem_free(void *memory)
 {
-    HeapFree(GetProcessHeap(), 0, memory);
+    heap_free(memory);
 }
 
 static BOOL CDECL get_next_cabinet(PCCAB pccab, ULONG  cbPrevCab, void *pv)
@@ -2340,10 +2340,10 @@ static char *get_user_sid(void)
     OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token);
     GetTokenInformation(token, TokenUser, NULL, size, &size);
 
-    user = HeapAlloc(GetProcessHeap(), 0, size);
+    user = heap_alloc(size);
     GetTokenInformation(token, TokenUser, user, size, &size);
     pConvertSidToStringSidA(user->User.Sid, &usersid);
-    HeapFree(GetProcessHeap(), 0, user);
+    heap_free(user);
 
     CloseHandle(token);
     return usersid;
@@ -2353,17 +2353,17 @@ static BOOL CDECL get_temp_file(char *pszTempName, int cbTempName, void *pv)
 {
     LPSTR tempname;
 
-    tempname = HeapAlloc(GetProcessHeap(), 0, MAX_PATH);
+    tempname = heap_alloc(MAX_PATH);
     GetTempFileNameA(".", "xx", 0, tempname);
 
     if (tempname && (strlen(tempname) < (unsigned)cbTempName))
     {
         lstrcpyA(pszTempName, tempname);
-        HeapFree(GetProcessHeap(), 0, tempname);
+        heap_free(tempname);
         return TRUE;
     }
 
-    HeapFree(GetProcessHeap(), 0, tempname);
+    heap_free(tempname);
 
     return FALSE;
 }
@@ -2633,7 +2633,7 @@ static void create_database_wordcount(const CHAR *name, const msi_table *tables,
     int j, len;
 
     len = MultiByteToWideChar( CP_ACP, 0, name, -1, NULL, 0 );
-    if (!(nameW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) ))) return;
+    if (!(nameW = heap_alloc( len * sizeof(WCHAR) ))) return;
     MultiByteToWideChar( CP_ACP, 0, name, -1, nameW, len );
 
     r = MsiOpenDatabaseW(nameW, MSIDBOPEN_CREATE, &db);
@@ -2658,7 +2658,7 @@ static void create_database_wordcount(const CHAR *name, const msi_table *tables,
     ok(r == ERROR_SUCCESS, "Expected ERROR_SUCCESS, got %u\n", r);
 
     MsiCloseHandle(db);
-    HeapFree( GetProcessHeap(), 0, nameW );
+    heap_free( nameW );
 }
 
 static BOOL notify_system_change(DWORD event_type, STATEMGRSTATUS *status)
@@ -3139,7 +3139,7 @@ error:
     DeleteFileA(msifile);
     DeleteFileA("msitest\\maximus");
     RemoveDirectoryA("msitest");
-    HeapFree(GetProcessHeap(), 0, usersid);
+    heap_free(usersid);
 }
 
 static void test_publish_product(void)
@@ -3380,7 +3380,7 @@ error:
     DeleteFileA(msifile);
     DeleteFileA("msitest\\maximus");
     RemoveDirectoryA("msitest");
-    HeapFree(GetProcessHeap(), 0, usersid);
+    heap_free(usersid);
 }
 
 static void test_publish_features(void)
@@ -3505,7 +3505,7 @@ error:
     DeleteFileA(msifile);
     DeleteFileA("msitest\\maximus");
     RemoveDirectoryA("msitest");
-    HeapFree(GetProcessHeap(), 0, usersid);
+    heap_free(usersid);
 }
 
 static LPSTR reg_get_val_str(HKEY hkey, LPCSTR name)
@@ -3519,7 +3519,7 @@ static LPSTR reg_get_val_str(HKEY hkey, LPCSTR name)
         return NULL;
 
     len += sizeof (WCHAR);
-    val = HeapAlloc(GetProcessHeap(), 0, len);
+    val = heap_alloc(len);
     if (!val) return NULL;
     val[0] = 0;
     RegQueryValueExA(hkey, name, NULL, NULL, (LPBYTE)val, &len);
@@ -3659,8 +3659,8 @@ static void test_register_user(void)
     delete_key(HKEY_LOCAL_MACHINE, keypath, access);
 
 error:
-    HeapFree(GetProcessHeap(), 0, company);
-    HeapFree(GetProcessHeap(), 0, owner);
+    heap_free(company);
+    heap_free(owner);
 
     DeleteFileA(msifile);
     DeleteFileA("msitest\\maximus");
@@ -5949,7 +5949,7 @@ static void test_publish_components(void)
     res = RegQueryValueExA(key, "english.txt", NULL, NULL, NULL, &size);
     ok(res == ERROR_SUCCESS, "value not found %d\n", res);
 
-    data = HeapAlloc(GetProcessHeap(), 0, size);
+    data = heap_alloc(size);
     res = RegQueryValueExA(key, "english.txt", NULL, NULL, data, &size);
     ok(res == ERROR_SUCCESS, "value not found %d\n", res);
     RegCloseKey(key);
@@ -5980,7 +5980,7 @@ static void test_publish_components(void)
 
     res = RegSetValueExA(key, "english.txt", 0, REG_MULTI_SZ, data, size);
     ok(res == ERROR_SUCCESS, "RegSetValueEx failed %d\n", res);
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
     RegCloseKey(key);
 
     r = MsiInstallProductA(msifile, "REMOVE=ALL");

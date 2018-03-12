@@ -2004,12 +2004,12 @@ static const msi_table da_tables[] =
 
 static void * CDECL mem_alloc(ULONG cb)
 {
-    return HeapAlloc(GetProcessHeap(), 0, cb);
+    return heap_alloc(cb);
 }
 
 static void CDECL mem_free(void *memory)
 {
-    HeapFree(GetProcessHeap(), 0, memory);
+    heap_free(memory);
 }
 
 static BOOL CDECL get_next_cabinet(PCCAB pccab, ULONG  cbPrevCab, void *pv)
@@ -2185,17 +2185,17 @@ static BOOL CDECL get_temp_file(char *pszTempName, int cbTempName, void *pv)
 {
     LPSTR tempname;
 
-    tempname = HeapAlloc(GetProcessHeap(), 0, MAX_PATH);
+    tempname = heap_alloc(MAX_PATH);
     GetTempFileNameA(".", "xx", 0, tempname);
 
     if (tempname && (strlen(tempname) < (unsigned)cbTempName))
     {
         lstrcpyA(pszTempName, tempname);
-        HeapFree(GetProcessHeap(), 0, tempname);
+        heap_free(tempname);
         return TRUE;
     }
 
-    HeapFree(GetProcessHeap(), 0, tempname);
+    heap_free(tempname);
 
     return FALSE;
 }
@@ -2436,12 +2436,12 @@ static BOOL compare_pf_data(const char *filename, const char *data, DWORD size)
     lstrcatA(path, filename);
 
     handle = CreateFileA(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    buffer = HeapAlloc(GetProcessHeap(), 0, size);
+    buffer = heap_alloc(size);
     if (buffer)
     {
         ReadFile(handle, buffer, size, &read, NULL);
         if (read == size && !memcmp(data, buffer, size)) ret = TRUE;
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     }
     CloseHandle(handle);
     return ret;
@@ -2536,7 +2536,7 @@ static void create_database_wordcount(const CHAR *name, const msi_table *tables,
     int j, len;
 
     len = MultiByteToWideChar( CP_ACP, 0, name, -1, NULL, 0 );
-    if (!(nameW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) ))) return;
+    if (!(nameW = heap_alloc( len * sizeof(WCHAR) ))) return;
     MultiByteToWideChar( CP_ACP, 0, name, -1, nameW, len );
 
     r = MsiOpenDatabaseW(nameW, MSIDBOPEN_CREATE, &db);
@@ -2561,7 +2561,7 @@ static void create_database_wordcount(const CHAR *name, const msi_table *tables,
     ok(r == ERROR_SUCCESS, "Expected ERROR_SUCCESS, got %u\n", r);
 
     MsiCloseHandle(db);
-    HeapFree( GetProcessHeap(), 0, nameW );
+    heap_free( nameW );
 }
 
 static void check_service_is_installed(void)
@@ -5157,8 +5157,8 @@ static void process_pending_renames(HKEY hkey)
     ret = RegQueryValueExA(hkey, rename_ops, NULL, NULL, NULL, &size);
     ok(!ret, "RegQueryValueExA failed %d\n", ret);
 
-    buf = HeapAlloc(GetProcessHeap(), 0, size + 1);
-    buf2ptr = buf2 = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size + 1);
+    buf = heap_alloc(size + 1);
+    buf2ptr = buf2 = heap_alloc_zero(size + 1);
 
     ret = RegQueryValueExA(hkey, rename_ops, NULL, NULL, (LPBYTE)buf, &size);
     buf[size] = 0;
@@ -5209,8 +5209,8 @@ static void process_pending_renames(HKEY hkey)
     else
         RegDeleteValueA(hkey, rename_ops);
 
-    HeapFree(GetProcessHeap(), 0, buf);
-    HeapFree(GetProcessHeap(), 0, buf2);
+    heap_free(buf);
+    heap_free(buf2);
 }
 
 static BOOL file_matches_data(LPCSTR file, LPCSTR data)

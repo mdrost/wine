@@ -156,10 +156,10 @@ static char *get_user_sid(void)
     OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token);
     GetTokenInformation(token, TokenUser, NULL, size, &size);
 
-    user = HeapAlloc(GetProcessHeap(), 0, size);
+    user = heap_alloc(size);
     GetTokenInformation(token, TokenUser, user, size, &size);
     pConvertSidToStringSidA(user->User.Sid, &usersid);
-    HeapFree(GetProcessHeap(), 0, user);
+    heap_free(user);
 
     CloseHandle(token);
     return usersid;
@@ -190,7 +190,7 @@ static LSTATUS package_RegDeleteTreeW(HKEY hKey, LPCWSTR lpszSubKey, REGSAM acce
     if (dwMaxLen > sizeof(szNameBuf)/sizeof(WCHAR))
     {
         /* Name too big: alloc a buffer for it */
-        if (!(lpszName = HeapAlloc( GetProcessHeap(), 0, dwMaxLen*sizeof(WCHAR))))
+        if (!(lpszName = heap_alloc( dwMaxLen*sizeof(WCHAR))))
         {
             ret = ERROR_NOT_ENOUGH_MEMORY;
             goto cleanup;
@@ -228,7 +228,7 @@ static LSTATUS package_RegDeleteTreeW(HKEY hKey, LPCWSTR lpszSubKey, REGSAM acce
 
 cleanup:
     if (lpszName != szNameBuf)
-        HeapFree(GetProcessHeap(), 0, lpszName);
+        heap_free(lpszName);
     if(lpszSubKey)
         RegCloseKey(hSubKey);
     return ret;
@@ -757,10 +757,10 @@ static inline UINT add_entry(const char *file, int line, const char *type, MSIHA
     UINT sz, r;
 
     sz = strlen(values) + strlen(insert) + 1;
-    query = HeapAlloc(GetProcessHeap(), 0, sz);
+    query = heap_alloc(sz);
     sprintf(query, insert, values);
     r = run_query(hdb, query);
-    HeapFree(GetProcessHeap(), 0, query);
+    heap_free(query);
     ok_(file, line)(r == ERROR_SUCCESS, "failed to insert into %s table: %u\n", type, r);
     return r;
 }
@@ -864,10 +864,10 @@ static UINT add_reglocator_entry( MSIHANDLE hdb, const char *sig, UINT root, con
     UINT sz, r;
 
     sz = strlen( sig ) + 10 + strlen( path ) + strlen( name ) + 10 + sizeof( insert );
-    query = HeapAlloc( GetProcessHeap(), 0, sz );
+    query = heap_alloc( sz );
     sprintf( query, insert, sig, root, path, name, type );
     r = run_query( hdb, query );
-    HeapFree( GetProcessHeap(), 0, query );
+    heap_free( query );
     ok(r == ERROR_SUCCESS, "failed to insert into reglocator table: %u\n", r); \
     return r;
 }
@@ -1025,7 +1025,7 @@ static BOOL create_file_with_version(const CHAR *name, LONG ms, LONG ls)
     CopyFileA(path, name, FALSE);
 
     size = GetFileVersionInfoSizeA(path, &handle);
-    buffer = HeapAlloc(GetProcessHeap(), 0, size);
+    buffer = heap_alloc(size);
 
     GetFileVersionInfoA(path, 0, size, buffer);
 
@@ -1052,7 +1052,7 @@ static BOOL create_file_with_version(const CHAR *name, LONG ms, LONG ls)
     ret = TRUE;
 
 done:
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
     return ret;
 }
 
@@ -4648,21 +4648,21 @@ static void test_appsearch_reglocator(void)
     if (S(U(si)).wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL)
     {
         size = ExpandEnvironmentStringsA("%PATH%", NULL, 0);
-        pathvar = HeapAlloc(GetProcessHeap(), 0, size);
+        pathvar = heap_alloc(size);
         ExpandEnvironmentStringsA("%PATH%", pathvar, size);
 
         size = 0;
         r = MsiGetPropertyA(hpkg, "SIGPROP4", NULL, &size);
         ok(r == ERROR_SUCCESS, "Expected ERROR_SUCCESS, got %d\n", r);
 
-        pathdata = HeapAlloc(GetProcessHeap(), 0, ++size);
+        pathdata = heap_alloc(++size);
         r = MsiGetPropertyA(hpkg, "SIGPROP4", pathdata, &size);
         ok(r == ERROR_SUCCESS, "Expected ERROR_SUCCESS, got %d\n", r);
         ok(!lstrcmpA(pathdata, pathvar),
             "Expected \"%s\", got \"%s\"\n", pathvar, pathdata);
 
-        HeapFree(GetProcessHeap(), 0, pathvar);
-        HeapFree(GetProcessHeap(), 0, pathdata);
+        heap_free(pathvar);
+        heap_free(pathdata);
     }
 
     size = MAX_PATH;
@@ -8867,12 +8867,12 @@ static void add_message(const struct externalui_message *msg)
     if (!sequence)
     {
         sequence_size = 10;
-        sequence = HeapAlloc(GetProcessHeap(), 0, sequence_size * sizeof(*sequence));
+        sequence = heap_alloc(sequence_size * sizeof(*sequence));
     }
     if (sequence_count == sequence_size)
     {
         sequence_size *= 2;
-        sequence = HeapReAlloc(GetProcessHeap(), 0, sequence, sequence_size * sizeof(*sequence));
+        sequence = heap_realloc(sequence, sequence_size * sizeof(*sequence));
     }
 
     assert(sequence);
@@ -8882,7 +8882,7 @@ static void add_message(const struct externalui_message *msg)
 
 static void flush_sequence(void)
 {
-    HeapFree(GetProcessHeap(), 0, sequence);
+    heap_free(sequence);
     sequence = NULL;
     sequence_count = sequence_size = 0;
 }

@@ -60,7 +60,7 @@ static ULONG WINAPI fw_service_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", fw_service);
-        HeapFree( GetProcessHeap(), 0, fw_service );
+        heap_free( fw_service );
     }
     return refs;
 }
@@ -292,7 +292,7 @@ static HRESULT NetFwService_create( IUnknown *pUnkOuter, LPVOID *ppObj )
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    fp = HeapAlloc( GetProcessHeap(), 0, sizeof(*fp) );
+    fp = heap_alloc( sizeof(*fp) );
     if (!fp) return E_OUTOFMEMORY;
 
     fp->INetFwService_iface.lpVtbl = &fw_service_vtbl;
@@ -330,7 +330,7 @@ static ULONG WINAPI fw_services_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", fw_services);
-        HeapFree( GetProcessHeap(), 0, fw_services );
+        heap_free( fw_services );
     }
     return refs;
 }
@@ -466,7 +466,7 @@ HRESULT NetFwServices_create( IUnknown *pUnkOuter, LPVOID *ppObj )
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    fp = HeapAlloc( GetProcessHeap(), 0, sizeof(*fp) );
+    fp = heap_alloc( sizeof(*fp) );
     if (!fp) return E_OUTOFMEMORY;
 
     fp->INetFwServices_iface.lpVtbl = &fw_services_vtbl;

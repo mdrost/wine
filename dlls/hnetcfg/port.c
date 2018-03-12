@@ -64,7 +64,7 @@ static ULONG WINAPI fw_port_Release(
     {
         TRACE("destroying %p\n", fw_port);
         SysFreeString( fw_port->name );
-        HeapFree( GetProcessHeap(), 0, fw_port );
+        heap_free( fw_port );
     }
     return refs;
 }
@@ -363,7 +363,7 @@ HRESULT NetFwOpenPort_create( IUnknown *pUnkOuter, LPVOID *ppObj )
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    fp = HeapAlloc( GetProcessHeap(), 0, sizeof(*fp) );
+    fp = heap_alloc( sizeof(*fp) );
     if (!fp) return E_OUTOFMEMORY;
 
     fp->INetFwOpenPort_iface.lpVtbl = &fw_port_vtbl;
@@ -404,7 +404,7 @@ static ULONG WINAPI fw_ports_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", fw_ports);
-        HeapFree( GetProcessHeap(), 0, fw_ports );
+        heap_free( fw_ports );
     }
     return refs;
 }
@@ -592,7 +592,7 @@ HRESULT NetFwOpenPorts_create( IUnknown *pUnkOuter, LPVOID *ppObj )
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    fp = HeapAlloc( GetProcessHeap(), 0, sizeof(*fp) );
+    fp = heap_alloc( sizeof(*fp) );
     if (!fp) return E_OUTOFMEMORY;
 
     fp->INetFwOpenPorts_iface.lpVtbl = &fw_ports_vtbl;

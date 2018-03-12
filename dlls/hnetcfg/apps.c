@@ -60,7 +60,7 @@ static ULONG WINAPI fw_app_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", fw_app);
-        HeapFree( GetProcessHeap(), 0, fw_app );
+        heap_free( fw_app );
     }
     return refs;
 }
@@ -380,7 +380,7 @@ HRESULT NetFwAuthorizedApplication_create( IUnknown *pUnkOuter, LPVOID *ppObj )
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    fa = HeapAlloc( GetProcessHeap(), 0, sizeof(*fa) );
+    fa = heap_alloc( sizeof(*fa) );
     if (!fa) return E_OUTOFMEMORY;
 
     fa->INetFwAuthorizedApplication_iface.lpVtbl = &fw_app_vtbl;
@@ -417,7 +417,7 @@ static ULONG WINAPI fw_apps_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", fw_apps);
-        HeapFree( GetProcessHeap(), 0, fw_apps );
+        heap_free( fw_apps );
     }
     return refs;
 }
@@ -592,7 +592,7 @@ HRESULT NetFwAuthorizedApplications_create( IUnknown *pUnkOuter, LPVOID *ppObj )
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    fa = HeapAlloc( GetProcessHeap(), 0, sizeof(*fa) );
+    fa = heap_alloc( sizeof(*fa) );
     if (!fa) return E_OUTOFMEMORY;
 
     fa->INetFwAuthorizedApplications_iface.lpVtbl = &fw_apps_vtbl;

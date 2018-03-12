@@ -107,7 +107,7 @@ static ULONG WINAPI netfw_rules_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", This);
-        HeapFree( GetProcessHeap(), 0, This );
+        heap_free( This );
     }
     return refs;
 }
@@ -263,7 +263,7 @@ static HRESULT create_INetFwRules(INetFwRules **object)
 
     TRACE("(%p)\n", object);
 
-    rules = HeapAlloc( GetProcessHeap(), 0, sizeof(*rules) );
+    rules = heap_alloc( sizeof(*rules) );
     if (!rules) return E_OUTOFMEMORY;
 
     rules->INetFwRules_iface.lpVtbl = &fw_rules_vtbl;
@@ -290,7 +290,7 @@ static ULONG WINAPI fw_policy_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", fw_policy);
-        HeapFree( GetProcessHeap(), 0, fw_policy );
+        heap_free( fw_policy );
     }
     return refs;
 }
@@ -433,7 +433,7 @@ HRESULT NetFwPolicy_create( IUnknown *pUnkOuter, LPVOID *ppObj )
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    fp = HeapAlloc( GetProcessHeap(), 0, sizeof(*fp) );
+    fp = heap_alloc( sizeof(*fp) );
     if (!fp) return E_OUTOFMEMORY;
 
     fp->INetFwPolicy_iface.lpVtbl = &fw_policy_vtbl;
@@ -485,7 +485,7 @@ static ULONG WINAPI fwpolicy2_Release(INetFwPolicy2 *iface)
     {
         INetFwRules_Release(fw_policy->fw_policy2_rules);
         TRACE("destroying %p\n", fw_policy);
-        HeapFree( GetProcessHeap(), 0, fw_policy );
+        heap_free( fw_policy );
     }
     return refs;
 }
@@ -769,7 +769,7 @@ HRESULT NetFwPolicy2_create( IUnknown *outer, void **obj )
 
     TRACE("(%p,%p)\n", outer, obj);
 
-    fp = HeapAlloc( GetProcessHeap(), 0, sizeof(*fp) );
+    fp = heap_alloc( sizeof(*fp) );
     if (!fp) return E_OUTOFMEMORY;
 
     fp->INetFwPolicy2_iface.lpVtbl = &fw_policy2_vtbl;
@@ -779,7 +779,7 @@ HRESULT NetFwPolicy2_create( IUnknown *outer, void **obj )
 
     if (FAILED(create_INetFwRules(&fp->fw_policy2_rules)))
     {
-        HeapFree( GetProcessHeap(), 0, fp );
+        heap_free( fp );
         return E_OUTOFMEMORY;
     }
 

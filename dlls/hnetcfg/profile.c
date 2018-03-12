@@ -60,7 +60,7 @@ static ULONG WINAPI fw_profile_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", fw_profile);
-        HeapFree( GetProcessHeap(), 0, fw_profile );
+        heap_free( fw_profile );
     }
     return refs;
 }
@@ -336,7 +336,7 @@ HRESULT NetFwProfile_create( IUnknown *pUnkOuter, LPVOID *ppObj )
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    fp = HeapAlloc( GetProcessHeap(), 0, sizeof(*fp) );
+    fp = heap_alloc( sizeof(*fp) );
     if (!fp) return E_OUTOFMEMORY;
 
     fp->INetFwProfile_iface.lpVtbl = &fw_profile_vtbl;

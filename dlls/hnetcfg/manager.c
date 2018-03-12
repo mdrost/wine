@@ -61,7 +61,7 @@ static ULONG WINAPI fw_manager_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", fw_manager);
-        HeapFree( GetProcessHeap(), 0, fw_manager );
+        heap_free( fw_manager );
     }
     return refs;
 }
@@ -247,7 +247,7 @@ HRESULT NetFwMgr_create( IUnknown *pUnkOuter, LPVOID *ppObj )
 
     TRACE("(%p,%p)\n", pUnkOuter, ppObj);
 
-    fm = HeapAlloc( GetProcessHeap(), 0, sizeof(*fm) );
+    fm = heap_alloc( sizeof(*fm) );
     if (!fm) return E_OUTOFMEMORY;
 
     fm->INetFwMgr_iface.lpVtbl = &fw_manager_vtbl;

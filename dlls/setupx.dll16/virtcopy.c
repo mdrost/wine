@@ -162,7 +162,7 @@ INT16 WINAPI vsmStringDelete16(VHSTR vhstr)
 	vhstrlist[vhstr]->refcount--;
 	if (!vhstrlist[vhstr]->refcount)
 	{
-	    HeapFree(GetProcessHeap(), 0, (LPSTR)vhstrlist[vhstr]->pStr);
+	    heap_free((LPSTR)vhstrlist[vhstr]->pStr);
 	    vhstrlist[vhstr]->pStr = NULL;
 	}
 	return VCPN_OK;

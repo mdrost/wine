@@ -390,7 +390,7 @@ static RETERR16 SETUPX_DelLdd(LOGDISKID16 ldid)
 
     if (pCurr == pFirstLDD)
 	pFirstLDD = NULL;
-    HeapFree(GetProcessHeap(), 0, pCurr);
+    heap_free(pCurr);
 
     return OK;
 }

@@ -40,7 +40,7 @@ RETERR16 WINAPI DiGetClassDevs16(LPLPDEVICE_INFO16 lplpdi,
 
     FIXME("(%p, '%s', %04x, %04x), semi-stub.\n",
           lplpdi, lpszClassName, hwndParent, iFlags);
-    lpdi = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DEVICE_INFO16));
+    lpdi = heap_alloc_zero(sizeof(DEVICE_INFO16));
     lpdi->cbSize = sizeof(DEVICE_INFO16);
     *lplpdi = (LPDEVICE_INFO16)MapLS(lpdi);
     return OK;
@@ -107,7 +107,7 @@ RETERR16 WINAPI DiCreateDeviceInfo16(LPLPDEVICE_INFO16 lplpdi,
     FIXME("(%p %s %08x %x %s %s %x): stub\n", lplpdi,
           debugstr_a(lpszDescription), dnDevnode, hkey,
           debugstr_a(lpszRegsubkey), debugstr_a(lpszClassName), hwndParent);
-    lpdi = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(DEVICE_INFO16));
+    lpdi = heap_alloc_zero(sizeof(DEVICE_INFO16));
     lpdi->cbSize = sizeof(DEVICE_INFO16);
     strcpy(lpdi->szClassName, lpszClassName);
     lpdi->hwndParent = hwndParent;

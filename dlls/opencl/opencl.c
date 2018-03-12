@@ -178,7 +178,7 @@ cl_context WINAPI wine_clCreateContext(const cl_context_properties * properties,
      * the use count for a context, its destruction can come much later and therefore there is a risk
      * that the callback could be invoked after the user_data memory has been free()d.
      */
-    ccb = HeapAlloc(GetProcessHeap(), 0, sizeof(CONTEXT_CALLBACK));
+    ccb = heap_alloc(sizeof(CONTEXT_CALLBACK));
     ccb->pfn_notify = pfn_notify;
     ccb->user_data = user_data;
     ret = clCreateContext(properties, num_devices, devices, context_fn_notify, ccb, errcode_ret);
@@ -199,7 +199,7 @@ cl_context WINAPI wine_clCreateContextFromType(const cl_context_properties * pro
      * the use count for a context, its destruction can come much later and therefore there is a risk
      * that the callback could be invoked after the user_data memory has been free()d.
      */
-    ccb = HeapAlloc(GetProcessHeap(), 0, sizeof(CONTEXT_CALLBACK));
+    ccb = heap_alloc(sizeof(CONTEXT_CALLBACK));
     ccb->pfn_notify = pfn_notify;
     ccb->user_data = user_data;
     ret = clCreateContextFromType(properties, device_type, context_fn_notify, ccb, errcode_ret);
@@ -446,7 +446,7 @@ static void program_fn_notify(cl_program program, void * user_data)
     TRACE("(%p, %p)\n", program, user_data);
     pcb = (PROGRAM_CALLBACK *) user_data;
     pcb->pfn_notify(program, pcb->user_data);
-    HeapFree(GetProcessHeap(), 0, pcb);
+    heap_free(pcb);
     TRACE("Callback COMPLETED\n");
 }
 
@@ -460,7 +460,7 @@ cl_int WINAPI wine_clBuildProgram(cl_program program, cl_uint num_devices, const
     {
         /* When pfn_notify is provided, clBuildProgram is asynchronous */
         PROGRAM_CALLBACK *pcb;
-        pcb = HeapAlloc(GetProcessHeap(), 0, sizeof(PROGRAM_CALLBACK));
+        pcb = heap_alloc(sizeof(PROGRAM_CALLBACK));
         pcb->pfn_notify = pfn_notify;
         pcb->user_data = user_data;
         ret = clBuildProgram(program, num_devices, device_list, options, program_fn_notify, pcb);

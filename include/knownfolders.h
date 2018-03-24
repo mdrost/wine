@@ -26,18 +26,18 @@
 #ifdef INITGUID
 #ifdef __cplusplus
 #define DEFINE_KNOWN_FOLDER(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
-        EXTERN_C const GUID name DECLSPEC_HIDDEN; \
+        EXTERN_C const GUID name; \
         EXTERN_C const GUID name = \
     { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
 #else
 #define DEFINE_KNOWN_FOLDER(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
-        const GUID name DECLSPEC_HIDDEN; \
+        const GUID name; \
         const GUID name = \
     { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
 #endif
 #else
 #define DEFINE_KNOWN_FOLDER(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
-    EXTERN_C const GUID name DECLSPEC_HIDDEN
+    EXTERN_C const GUID name
 #endif
 
 DEFINE_KNOWN_FOLDER(FOLDERID_AddNewPrograms,        0xde61d971, 0x5ebc, 0x4f02, 0xa3, 0xa9, 0x6c, 0x82, 0x89, 0x5e, 0x5c, 0x04);

@@ -31,6 +31,7 @@
 #include "olectl.h"
 #include "oledlg.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
@@ -104,7 +105,7 @@ static ULONG WINAPI PropertyPageSite_Release(IPropertyPageSite* iface)
 
     TRACE("(%p) ref=%d\n", this, ref);
     if(!ref)
-        HeapFree(GetProcessHeap(), 0, this);
+        heap_free(this);
     return ref;
 }
 
@@ -246,16 +247,13 @@ HRESULT WINAPI OleCreatePropertyFrameIndirect(LPOCPFIPARAMS lpParams)
         property_sheet.pszCaption = lpParams->lpszCaption;
     }
 
-    property_sheet.u3.phpage = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-            lpParams->cPages*sizeof(HPROPSHEETPAGE));
-    property_page = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-            lpParams->cPages*sizeof(IPropertyPage*));
-    dialogs = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-            lpParams->cPages*sizeof(*dialogs));
+    property_sheet.u3.phpage = heap_alloc_zero(lpParams->cPages*sizeof(HPROPSHEETPAGE));
+    property_page = heap_alloc_zero(lpParams->cPages*sizeof(IPropertyPage*));
+    dialogs = heap_alloc_zero(lpParams->cPages*sizeof(*dialogs));
     if(!property_sheet.u3.phpage || !property_page || !dialogs) {
-        HeapFree(GetProcessHeap(), 0, property_sheet.u3.phpage);
-        HeapFree(GetProcessHeap(), 0, property_page);
-        HeapFree(GetProcessHeap(), 0, dialogs);
+        heap_free(property_sheet.u3.phpage);
+        heap_free(property_page);
+        heap_free(dialogs);
         return E_OUTOFMEMORY;
     }
 
@@ -272,7 +270,7 @@ HRESULT WINAPI OleCreatePropertyFrameIndirect(LPOCPFIPARAMS lpParams)
         if(FAILED(res))
             continue;
 
-        property_page_site = HeapAlloc(GetProcessHeap(), 0, sizeof(PropertyPageSite));
+        property_page_site = heap_alloc(sizeof(PropertyPageSite));
         if(!property_page_site)
             continue;
         property_page_site->IPropertyPageSite_iface.lpVtbl = &PropertyPageSiteVtbl;
@@ -312,9 +310,9 @@ HRESULT WINAPI OleCreatePropertyFrameIndirect(LPOCPFIPARAMS lpParams)
             IPropertyPage_Release(property_page[i]);
     }
 
-    HeapFree(GetProcessHeap(), 0, dialogs);
-    HeapFree(GetProcessHeap(), 0, property_page);
-    HeapFree(GetProcessHeap(), 0, property_sheet.u3.phpage);
+    heap_free(dialogs);
+    heap_free(property_page);
+    heap_free(property_sheet.u3.phpage);
     return S_OK;
 }
 

@@ -264,6 +264,7 @@ HRESULT WINAPI OleCreateFromFileEx(REFCLSID clsid, const OLECHAR *filename, REFI
     IMoniker_Release( mon );
     if (FAILED(hr)) return hr;
 
+#if 0
     hr = get_storage( data, stg, NULL, FALSE );
     if (FAILED(hr)) goto end;
 
@@ -301,6 +302,9 @@ end:
     if (unk) IUnknown_Release( unk );
     IDataObject_Release( data );
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /******************************************************************************
@@ -351,12 +355,11 @@ HANDLE WINAPI OleDuplicateData(HANDLE hSrc, CLIPFORMAT cfFormat,
             LOGPALETTE * logpalette;
             UINT nEntries = GetPaletteEntries(hSrc, 0, 0, NULL);
             if (!nEntries) return NULL;
-            logpalette = HeapAlloc(GetProcessHeap(), 0,
-                FIELD_OFFSET(LOGPALETTE, palPalEntry[nEntries]));
+            logpalette = heap_alloc(FIELD_OFFSET(LOGPALETTE, palPalEntry[nEntries]));
             if (!logpalette) return NULL;
             if (!GetPaletteEntries(hSrc, 0, nEntries, logpalette->palPalEntry))
             {
-                HeapFree(GetProcessHeap(), 0, logpalette);
+                heap_free(logpalette);
                 return NULL;
             }
             logpalette->palVersion = 0x300;
@@ -364,7 +367,7 @@ HANDLE WINAPI OleDuplicateData(HANDLE hSrc, CLIPFORMAT cfFormat,
 
             hDst = CreatePalette(logpalette);
 
-            HeapFree(GetProcessHeap(), 0, logpalette);
+            heap_free(logpalette);
             break;
         }
     case CF_BITMAP:
@@ -375,15 +378,16 @@ HANDLE WINAPI OleDuplicateData(HANDLE hSrc, CLIPFORMAT cfFormat,
                 return NULL;
             size = GetBitmapBits(hSrc, 0, NULL);
             if (!size) return NULL;
-            bm.bmBits = HeapAlloc(GetProcessHeap(), 0, size);
+            bm.bmBits = heap_alloc(size);
             if (!bm.bmBits) return NULL;
             if (GetBitmapBits(hSrc, size, bm.bmBits))
                 hDst = CreateBitmapIndirect(&bm);
-            HeapFree(GetProcessHeap(), 0, bm.bmBits);
+            heap_free(bm.bmBits);
             break;
         }
     default:
         {
+#if 0
             SIZE_T size = GlobalSize(hSrc);
             LPVOID pvSrc = NULL;
             LPVOID pvDst = NULL;
@@ -413,6 +417,9 @@ HANDLE WINAPI OleDuplicateData(HANDLE hSrc, CLIPFORMAT cfFormat,
             /* cleanup */
             GlobalUnlock(hDst);
             GlobalUnlock(hSrc);
+#else
+            return NULL;
+#endif
         }
     }
 

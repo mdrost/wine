@@ -70,6 +70,7 @@ BOOL WINAPI DdePostAdvise(DWORD idInst, HSZ hszTopic, HSZ hszItem)
 
     TRACE("(%d,%p,%p)\n", idInst, hszTopic, hszItem);
 
+#if 0
     pInstance = WDML_GetInstance(idInst);
 
     if (pInstance == NULL)
@@ -147,6 +148,9 @@ BOOL WINAPI DdePostAdvise(DWORD idInst, HSZ hszTopic, HSZ hszItem)
  theError:
     GlobalDeleteAtom(atom);
     return FALSE;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -172,6 +176,7 @@ HDDEDATA WINAPI DdeNameService(DWORD idInst, HSZ hsz1, HSZ hsz2, UINT afCmd)
 
     TRACE("(%d,%p,%p,%x)\n", idInst, hsz1, hsz2, afCmd);
 
+#if 0
     /*  First check instance
      */
     pInstance = WDML_GetInstance(idInst);
@@ -282,6 +287,9 @@ HDDEDATA WINAPI DdeNameService(DWORD idInst, HSZ hsz1, HSZ hsz2, UINT afCmd)
 	}
     }
     return (HDDEDATA)TRUE;
+#else
+    return NULL;
+#endif
 }
 
 /******************************************************************
@@ -545,6 +553,7 @@ static	WDML_XACT*	WDML_ServerQueueRequest(WDML_CONV* pConv, LPARAM lParam)
  */
 static	WDML_QUEUE_STATE WDML_ServerHandleRequest(WDML_CONV* pConv, WDML_XACT* pXAct)
 {
+#if 0
     HDDEDATA		hDdeData = 0;
     BOOL		fAck = TRUE;
 
@@ -586,6 +595,9 @@ static	WDML_QUEUE_STATE WDML_ServerHandleRequest(WDML_CONV* pConv, WDML_XACT* pX
     WDML_DecHSZ(pConv->instance, pXAct->hszItem);
 
     return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -621,6 +633,7 @@ static	WDML_XACT*	WDML_ServerQueueAdvise(WDML_CONV* pConv, LPARAM lParam)
  */
 static	WDML_QUEUE_STATE WDML_ServerHandleAdvise(WDML_CONV* pConv, WDML_XACT* pXAct)
 {
+#if 0
     UINT		uType;
     WDML_LINK*		pLink;
     DDEADVISE*		pDdeAdvise;
@@ -679,6 +692,9 @@ static	WDML_QUEUE_STATE WDML_ServerHandleAdvise(WDML_CONV* pConv, WDML_XACT* pXA
     WDML_DecHSZ(pConv->instance, pXAct->hszItem);
 
     return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -813,6 +829,7 @@ static HDDEDATA map_W_to_A( DWORD instance, void *ptr, DWORD size )
  */
 static	WDML_QUEUE_STATE WDML_ServerHandleExecute(WDML_CONV* pConv, WDML_XACT* pXAct)
 {
+#if 0
     HDDEDATA	hDdeData = DDE_FNOTPROCESSED;
     BOOL	fAck = FALSE, fBusy = FALSE;
 
@@ -855,6 +872,9 @@ static	WDML_QUEUE_STATE WDML_ServerHandleExecute(WDML_CONV* pConv, WDML_XACT* pX
     WDML_PostAck(pConv, WDML_SERVER_SIDE, 0, fBusy, fAck, (UINT_PTR)pXAct->hMem, 0, 0);
 
     return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -886,6 +906,7 @@ static	WDML_XACT* WDML_ServerQueuePoke(WDML_CONV* pConv, LPARAM lParam)
  */
 static	WDML_QUEUE_STATE WDML_ServerHandlePoke(WDML_CONV* pConv, WDML_XACT* pXAct)
 {
+#if 0
     DDEPOKE*		pDdePoke;
     HDDEDATA		hDdeData;
     BOOL		fBusy = FALSE, fAck = FALSE;
@@ -936,6 +957,9 @@ static	WDML_QUEUE_STATE WDML_ServerHandlePoke(WDML_CONV* pConv, WDML_XACT* pXAct
     WDML_DecHSZ(pConv->instance, pXAct->hszItem);
 
     return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -958,6 +982,7 @@ static	WDML_XACT*	WDML_ServerQueueTerminate(WDML_CONV* pConv, LPARAM lParam)
  */
 static	WDML_QUEUE_STATE WDML_ServerHandleTerminate(WDML_CONV* pConv, WDML_XACT* pXAct)
 {
+#if 0
     /* billx: two things to remove: the conv, and associated links.
      * Respond with another WM_DDE_TERMINATE iMsg.
      */
@@ -970,6 +995,9 @@ static	WDML_QUEUE_STATE WDML_ServerHandleTerminate(WDML_CONV* pConv, WDML_XACT* 
     WDML_RemoveConv(pConv, WDML_SERVER_SIDE);
 
     return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -1033,6 +1061,7 @@ static LRESULT CALLBACK WDML_ServerConvProc(HWND hwndServer, UINT iMsg, WPARAM w
 
     TRACE("%p %04x %08lx %08lx\n", hwndServer, iMsg, wParam, lParam);
 
+#if 0
     if (iMsg == WM_DESTROY)
     {
 	pConv = WDML_GetConvFromWnd(hwndServer);
@@ -1121,6 +1150,7 @@ static LRESULT CALLBACK WDML_ServerConvProc(HWND hwndServer, UINT iMsg, WPARAM w
     }
     else
         pConv->instance->lastError = DMLERR_MEMORY_ERROR;
+#endif
 
     return 0;
 }

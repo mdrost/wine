@@ -36,6 +36,8 @@
 
 /* Function ptrs for ordinal calls */
 static HMODULE hShlwapi;
+static BOOL is_win2k_and_lower;
+static BOOL is_win9x;
 
 static int (WINAPI *pSHSearchMapInt)(const int*,const int*,int,int);
 static HRESULT (WINAPI *pGetAcceptLanguagesA)(LPSTR,LPDWORD);
@@ -87,6 +89,12 @@ typedef struct SHELL_USER_PERMISSION {
 
 static SECURITY_DESCRIPTOR* (WINAPI *pGetShellSecurityDescriptor)(const SHELL_USER_PERMISSION**,int);
 
+static HMODULE hmlang;
+static HRESULT (WINAPI *pLcidToRfc1766A)(LCID, LPSTR, INT);
+
+static HMODULE hshell32;
+static HRESULT (WINAPI *pSHGetDesktopFolder)(IShellFolder**);
+
 static const CHAR ie_international[] = {
     'S','o','f','t','w','a','r','e','\\',
     'M','i','c','r','o','s','o','f','t','\\',
@@ -117,12 +125,12 @@ static void init_call_trace(call_trace_t *ctrace)
 {
     ctrace->alloc = 10;
     ctrace->count = 0;
-    ctrace->calls = HeapAlloc(GetProcessHeap(), 0, sizeof(call_entry_t) * ctrace->alloc);
+    ctrace->calls = heap_alloc(sizeof(call_entry_t) * ctrace->alloc);
 }
 
 static void free_call_trace(const call_trace_t *ctrace)
 {
-    HeapFree(GetProcessHeap(), 0, ctrace->calls);
+    heap_free(ctrace->calls);
 }
 
 static void add_call(call_trace_t *ctrace, int id, const void *arg0,
@@ -140,7 +148,7 @@ static void add_call(call_trace_t *ctrace, int id, const void *arg0,
     if (ctrace->count == ctrace->alloc)
     {
         ctrace->alloc *= 2;
-        ctrace->calls = HeapReAlloc(GetProcessHeap(),0, ctrace->calls, ctrace->alloc*sizeof(call_entry_t));
+        ctrace->calls = heap_realloc( ctrace->calls, ctrace->alloc*sizeof(call_entry_t));
     }
 
     ctrace->calls[ctrace->count++] = call;
@@ -199,6 +207,11 @@ static void test_GetAcceptLanguagesA(void)
     LPCSTR entry;
     INT i = 0;
 
+    if (!pGetAcceptLanguagesA) {
+        win_skip("GetAcceptLanguagesA is not available\n");
+        return;
+    }
+
     lcid = GetUserDefaultLCID();
 
     /* Get the original Value */
@@ -244,8 +257,10 @@ static void test_GetAcceptLanguagesA(void)
     if (lstrcmpA(buffer, language)) {
         /* some windows versions use "lang" or "lang-country" as default */
         language[0] = 0;
-        hr = LcidToRfc1766A(lcid, language, sizeof(language));
-        ok(hr == S_OK, "LcidToRfc1766A returned 0x%x and %s\n", hr, language);
+        if (pLcidToRfc1766A) {
+            hr = pLcidToRfc1766A(lcid, language, sizeof(language));
+            ok(hr == S_OK, "LcidToRfc1766A returned 0x%x and %s\n", hr, language);
+        }
     }
 
     ok(!lstrcmpA(buffer, language),
@@ -612,7 +627,7 @@ static void test_fdsa(void)
     pFDSA_InsertItem = (void *)GetProcAddress(hShlwapi, (LPSTR)210);
     pFDSA_DeleteItem = (void *)GetProcAddress(hShlwapi, (LPSTR)211);
 
-    mem = HeapAlloc(GetProcessHeap(), 0, block_size * init_blocks);
+    mem = heap_alloc(block_size * init_blocks);
     memset(&info, 0, sizeof(info));
 
     ok(pFDSA_Initialize(block_size, inc, &info, mem, init_blocks), "FDSA_Initialize rets FALSE\n");
@@ -681,7 +696,7 @@ static void test_fdsa(void)
     ok(pFDSA_Destroy(&info), "FDSA_Destroy rets FALSE\n");
 
 
-    HeapFree(GetProcessHeap(), 0, mem);
+    heap_free(mem);
 }
 
 static void test_GetShellSecurityDescriptor(void)
@@ -699,20 +714,40 @@ static void test_GetShellSecurityDescriptor(void)
         &supCurrentUserFull, &supEveryoneDenied,
     };
     SECURITY_DESCRIPTOR* psd;
+    void *pChrCmpIW = GetProcAddress(hShlwapi, "ChrCmpIW");
 
-    if(!pGetShellSecurityDescriptor) /* vista and later */
+    if(!pGetShellSecurityDescriptor)
     {
         win_skip("GetShellSecurityDescriptor not available\n");
         return;
     }
 
+    if(pChrCmpIW && pChrCmpIW == pGetShellSecurityDescriptor) /* win2k */
+    {
+        win_skip("Skipping for GetShellSecurityDescriptor, same ordinal used for ChrCmpIW\n");
+        return;
+    }
+
     psd = pGetShellSecurityDescriptor(NULL, 2);
-    ok(psd==NULL, "GetShellSecurityDescriptor should fail\n");
+    ok(psd==NULL ||
+       broken(psd==INVALID_HANDLE_VALUE), /* IE5 */
+       "GetShellSecurityDescriptor should fail\n");
     psd = pGetShellSecurityDescriptor(rgsup, 0);
     ok(psd==NULL, "GetShellSecurityDescriptor should fail, got %p\n", psd);
 
     SetLastError(0xdeadbeef);
     psd = pGetShellSecurityDescriptor(rgsup, 2);
+    if (psd == NULL && GetLastError() == ERROR_CALL_NOT_IMPLEMENTED)
+    {
+        /* The previous calls to GetShellSecurityDescriptor don't set the last error */
+        win_skip("GetShellSecurityDescriptor is not implemented\n");
+        return;
+    }
+    if (psd == INVALID_HANDLE_VALUE)
+    {
+        win_skip("GetShellSecurityDescriptor is broken on IE5\n");
+        return;
+    }
     ok(psd!=NULL, "GetShellSecurityDescriptor failed\n");
     if (psd!=NULL)
     {
@@ -786,6 +821,9 @@ static void test_SHPackDispParams(void)
     DISPPARAMS params;
     VARIANT vars[10];
     HRESULT hres;
+
+    if(!pSHPackDispParams)
+        win_skip("SHPackSidpParams not available\n");
 
     memset(&params, 0xc0, sizeof(params));
     memset(vars, 0xc0, sizeof(vars));
@@ -930,7 +968,7 @@ static ULONG WINAPI Disp_Release(IDispatch* This)
 
     ret = InterlockedDecrement(&iface->refCount);
     if (ret == 0)
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     return ret;
 }
 
@@ -1046,7 +1084,7 @@ static ULONG WINAPI Enum_Release(IEnumConnections* This)
 
     ret = InterlockedDecrement(&iface->refCount);
     if (ret == 0)
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     return ret;
 }
 
@@ -1149,9 +1187,9 @@ static ULONG WINAPI ConPt_Release(
                 if (iface->sink[i])
                     IUnknown_Release(iface->sink[i]);
             }
-            HeapFree(GetProcessHeap(),0,iface->sink);
+            heap_free(iface->sink);
         }
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     }
     return ret;
 }
@@ -1190,9 +1228,9 @@ static HRESULT WINAPI ConPt_Advise(
     ConPt *iface = impl_from_IConnectionPoint(This);
 
     if (iface->sinkCount == 0)
-        iface->sink = HeapAlloc(GetProcessHeap(),0,sizeof(IUnknown*));
+        iface->sink = heap_alloc(sizeof(IUnknown*));
     else
-        iface->sink = HeapReAlloc(GetProcessHeap(),0,iface->sink,sizeof(IUnknown*)*(iface->sinkCount+1));
+        iface->sink = heap_realloc(iface->sink,sizeof(IUnknown*)*(iface->sinkCount+1));
     iface->sink[iface->sinkCount] = pUnkSink;
     IUnknown_AddRef(pUnkSink);
     iface->sinkCount++;
@@ -1222,7 +1260,7 @@ static HRESULT WINAPI ConPt_EnumConnections(
 {
     EnumCon *ec;
 
-    ec = HeapAlloc(GetProcessHeap(),0,sizeof(EnumCon));
+    ec = heap_alloc(sizeof(EnumCon));
     ec->IEnumConnections_iface.lpVtbl = &enum_vtbl;
     ec->refCount = 1;
     ec->pt = impl_from_IConnectionPoint(This);
@@ -1279,7 +1317,7 @@ static ULONG WINAPI EnumPt_Release(IEnumConnectionPoints* This)
 
     ret = InterlockedDecrement(&iface->refCount);
     if (ret == 0)
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     return ret;
 }
 
@@ -1378,9 +1416,9 @@ static ULONG WINAPI Contain_Release(
             int i;
             for (i = 0; i < iface->ptCount; i++)
                 IConnectionPoint_Release(iface->pt[i]);
-            HeapFree(GetProcessHeap(),0,iface->pt);
+            heap_free(iface->pt);
         }
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     }
     return ret;
 }
@@ -1391,7 +1429,7 @@ static HRESULT WINAPI Contain_EnumConnectionPoints(
 {
     EnumPt *ec;
 
-    ec = HeapAlloc(GetProcessHeap(),0,sizeof(EnumPt));
+    ec = heap_alloc(sizeof(EnumPt));
     ec->IEnumConnectionPoints_iface.lpVtbl = &enumpt_vtbl;
     ec->refCount = 1;
     ec->idx= 0;
@@ -1411,7 +1449,7 @@ static HRESULT WINAPI Contain_FindConnectionPoint(
 
     if (!IsEqualIID(riid, &IID_NULL) || iface->ptCount ==0)
     {
-        pt = HeapAlloc(GetProcessHeap(),0,sizeof(ConPt));
+        pt = heap_alloc(sizeof(ConPt));
         pt->IConnectionPoint_iface.lpVtbl = &point_vtbl;
         pt->refCount = 1;
         pt->sinkCount = 0;
@@ -1420,9 +1458,9 @@ static HRESULT WINAPI Contain_FindConnectionPoint(
         pt->id = IID_IDispatch;
 
         if (iface->ptCount == 0)
-            iface->pt =HeapAlloc(GetProcessHeap(),0,sizeof(IUnknown*));
+            iface->pt =heap_alloc(sizeof(IUnknown*));
         else
-            iface->pt = HeapReAlloc(GetProcessHeap(),0,iface->pt,sizeof(IUnknown*)*(iface->ptCount+1));
+            iface->pt = heap_realloc(iface->pt,sizeof(IUnknown*)*(iface->ptCount+1));
         iface->pt[iface->ptCount] = &pt->IConnectionPoint_iface;
         iface->ptCount++;
 
@@ -1457,13 +1495,19 @@ static void test_IConnectionPoint(void)
     DISPPARAMS params;
     VARIANT vars[10];
 
-    container = HeapAlloc(GetProcessHeap(),0,sizeof(Contain));
+    if (!pIConnectionPoint_SimpleInvoke || !pConnectToConnectionPoint)
+    {
+        win_skip("IConnectionPoint Apis not present\n");
+        return;
+    }
+
+    container = heap_alloc(sizeof(Contain));
     container->IConnectionPointContainer_iface.lpVtbl = &contain_vtbl;
     container->refCount = 1;
     container->ptCount = 0;
     container->pt = NULL;
 
-    dispatch = HeapAlloc(GetProcessHeap(),0,sizeof(Disp));
+    dispatch = heap_alloc(sizeof(Disp));
     dispatch->IDispatch_iface.lpVtbl = &disp_vtbl;
     dispatch->refCount = 1;
 
@@ -1475,13 +1519,18 @@ static void test_IConnectionPoint(void)
     rc = pIConnectionPoint_SimpleInvoke(point,0xa0,NULL);
     ok(rc == S_OK, "pConnectToConnectionPoint failed with %x\n",rc);
 
-    memset(&params, 0xc0, sizeof(params));
-    memset(vars, 0xc0, sizeof(vars));
-    rc = pSHPackDispParams(&params, vars, 2, VT_I4, 0xdeadbeef, VT_BSTR, 0xdeadcafe);
-    ok(rc == S_OK, "SHPackDispParams failed: %08x\n", rc);
+    if (pSHPackDispParams)
+    {
+        memset(&params, 0xc0, sizeof(params));
+        memset(vars, 0xc0, sizeof(vars));
+        rc = pSHPackDispParams(&params, vars, 2, VT_I4, 0xdeadbeef, VT_BSTR, 0xdeadcafe);
+        ok(rc == S_OK, "SHPackDispParams failed: %08x\n", rc);
 
-    rc = pIConnectionPoint_SimpleInvoke(point,0xa1,&params);
-    ok(rc == S_OK, "pConnectToConnectionPoint failed with %x\n",rc);
+        rc = pIConnectionPoint_SimpleInvoke(point,0xa1,&params);
+        ok(rc == S_OK, "pConnectToConnectionPoint failed with %x\n",rc);
+    }
+    else
+        win_skip("pSHPackDispParams not present\n");
 
     rc = pConnectToConnectionPoint(NULL, &IID_NULL, FALSE, (IUnknown*)container, &cookie, NULL);
     ok(rc == S_OK, "pConnectToConnectionPoint failed with %x\n",rc);
@@ -1545,7 +1594,7 @@ static ULONG WINAPI Prop_Release(
 
     ret = InterlockedDecrement(&iface->refCount);
     if (ret == 0)
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     return ret;
 }
 
@@ -1585,7 +1634,13 @@ static void test_SHPropertyBag_ReadLONG(void)
     LONG out;
     static const WCHAR szName1[] = {'n','a','m','e','1',0};
 
-    pb = HeapAlloc(GetProcessHeap(),0,sizeof(PropBag));
+    if (!pSHPropertyBag_ReadLONG)
+    {
+        win_skip("SHPropertyBag_ReadLONG not present\n");
+        return;
+    }
+
+    pb = heap_alloc(sizeof(PropBag));
     pb->refCount = 1;
     pb->IPropertyBag_iface.lpVtbl = &prop_vtbl;
 
@@ -1610,6 +1665,12 @@ static void test_SHSetWindowBits(void)
     DWORD style, styleold;
     WNDCLASSA clsA;
 
+    if(!pSHSetWindowBits)
+    {
+        win_skip("SHSetWindowBits is not available\n");
+        return;
+    }
+
     clsA.style = 0;
     clsA.lpfnWndProc = DefWindowProcA;
     clsA.cbClsExtra = 0;
@@ -1630,7 +1691,8 @@ static void test_SHSetWindowBits(void)
     SetLastError(0xdeadbeef);
     style = pSHSetWindowBits(NULL, GWL_STYLE, 0, 0);
     ok(style == 0, "expected 0 retval, got %d\n", style);
-    ok(GetLastError() == ERROR_INVALID_WINDOW_HANDLE,
+    ok(GetLastError() == ERROR_INVALID_WINDOW_HANDLE ||
+        broken(GetLastError() == 0xdeadbeef), /* Win9x/WinMe */
         "expected ERROR_INVALID_WINDOW_HANDLE, got %d\n", GetLastError());
 
     /* zero mask, zero flags */
@@ -1680,6 +1742,12 @@ static void test_SHFormatDateTimeA(void)
     DWORD flags;
     INT ret;
 
+    if(!pSHFormatDateTimeA)
+    {
+        win_skip("pSHFormatDateTimeA isn't available\n");
+        return;
+    }
+
 if (0)
 {
     /* crashes on native */
@@ -1724,7 +1792,8 @@ if (0)
     SetLastError(0xdeadbeef);
     ret = pSHFormatDateTimeA(&filetime, &flags, buff, sizeof(buff));
     ok(ret == lstrlenA(buff)+1, "got %d\n", ret);
-    ok(GetLastError() == 0xdeadbeef,
+    ok(GetLastError() == 0xdeadbeef ||
+        broken(GetLastError() == ERROR_INVALID_FLAGS), /* Win9x/WinMe */
         "expected 0xdeadbeef, got %d\n", GetLastError());
 
     /* now check returned strings */
@@ -1835,6 +1904,12 @@ static void test_SHFormatDateTimeW(void)
 #define UNICODE_LTR_MARK 0x200e
 #define UNICODE_RTL_MARK 0x200f
 
+    if(!pSHFormatDateTimeW)
+    {
+        win_skip("pSHFormatDateTimeW isn't available\n");
+        return;
+    }
+
 if (0)
 {
     /* crashes on native */
@@ -1880,7 +1955,8 @@ if (0)
     ret = pSHFormatDateTimeW(&filetime, &flags, buff, sizeof(buff)/sizeof(WCHAR));
     ok(ret == lstrlenW(buff)+1 || ret == lstrlenW(buff),
        "expected %d or %d, got %d\n", lstrlenW(buff)+1, lstrlenW(buff), ret);
-    ok(GetLastError() == 0xdeadbeef,
+    ok(GetLastError() == 0xdeadbeef ||
+        broken(GetLastError() == ERROR_INVALID_FLAGS), /* Win9x/WinMe/NT4 */
         "expected 0xdeadbeef, got %d\n", GetLastError());
 
     /* now check returned strings */
@@ -1890,6 +1966,11 @@ if (0)
        "expected %d or %d, got %d\n", lstrlenW(buff)+1, lstrlenW(buff), ret);
     SetLastError(0xdeadbeef);
     ret = GetTimeFormatW(LOCALE_USER_DEFAULT, TIME_NOSECONDS, &st, NULL, buff2, sizeof(buff2)/sizeof(WCHAR));
+    if (ret == 0 && GetLastError() == ERROR_CALL_NOT_IMPLEMENTED)
+    {
+        win_skip("Needed W-functions are not implemented\n");
+        return;
+    }
     ok(ret == lstrlenW(buff2)+1, "expected %d, got %d\n", lstrlenW(buff2)+1, ret);
     ok(lstrcmpW(buff, buff2) == 0, "expected equal strings\n");
 
@@ -2037,10 +2118,23 @@ static void test_SHGetObjectCompatFlags(void)
     };
 
     static const char compat_path[] = "Software\\Microsoft\\Windows\\CurrentVersion\\ShellCompatibility\\Objects";
+    void *pColorAdjustLuma = GetProcAddress(hShlwapi, "ColorAdjustLuma");
     CHAR keyA[39]; /* {CLSID} */
     HKEY root;
     DWORD ret;
     int i;
+
+    if (!pSHGetObjectCompatFlags)
+    {
+        win_skip("SHGetObjectCompatFlags isn't available\n");
+        return;
+    }
+
+    if (pColorAdjustLuma && pColorAdjustLuma == pSHGetObjectCompatFlags) /* win2k */
+    {
+        win_skip("Skipping SHGetObjectCompatFlags, same ordinal used for ColorAdjustLuma\n");
+        return;
+    }
 
     /* null args */
     ret = pSHGetObjectCompatFlags(NULL, NULL);
@@ -2105,7 +2199,7 @@ static IOleCommandTarget* IOleCommandTargetImpl_Construct(void)
 {
     IOleCommandTargetImpl *obj;
 
-    obj = HeapAlloc(GetProcessHeap(), 0, sizeof(*obj));
+    obj = heap_alloc(sizeof(*obj));
     obj->IOleCommandTarget_iface.lpVtbl = &IOleCommandTargetImpl_Vtbl;
     obj->ref = 1;
 
@@ -2144,7 +2238,7 @@ static ULONG WINAPI IOleCommandTargetImpl_Release(IOleCommandTarget *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return 0;
     }
     return ref;
@@ -2205,7 +2299,7 @@ static IServiceProvider* IServiceProviderImpl_Construct(void)
 {
     IServiceProviderImpl *obj;
 
-    obj = HeapAlloc(GetProcessHeap(), 0, sizeof(*obj));
+    obj = heap_alloc(sizeof(*obj));
     obj->IServiceProvider_iface.lpVtbl = &IServiceProviderImpl_Vtbl;
     obj->ref = 1;
 
@@ -2216,7 +2310,7 @@ static IProfferService* IProfferServiceImpl_Construct(void)
 {
     IProfferServiceImpl *obj;
 
-    obj = HeapAlloc(GetProcessHeap(), 0, sizeof(*obj));
+    obj = heap_alloc(sizeof(*obj));
     obj->IProfferService_iface.lpVtbl = &IProfferServiceImpl_Vtbl;
     obj->ref = 1;
 
@@ -2258,7 +2352,7 @@ static ULONG WINAPI IServiceProviderImpl_Release(IServiceProvider *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return 0;
     }
     return ref;
@@ -2297,6 +2391,14 @@ static void test_IUnknown_QueryServiceExec(void)
     static const GUID dummy_groupid = { 0xbeefbeef };
     call_trace_t trace_expected;
     HRESULT hr;
+
+    /* on <=W2K platforms same ordinal used for another export with different
+       prototype, so skipping using this indirect condition */
+    if (is_win2k_and_lower)
+    {
+        win_skip("IUnknown_QueryServiceExec is not available\n");
+        return;
+    }
 
     provider = IServiceProviderImpl_Construct();
 
@@ -2369,7 +2471,7 @@ static ULONG WINAPI IProfferServiceImpl_Release(IProfferService *iface)
 
     if (!ref)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return 0;
     }
     return ref;
@@ -2406,6 +2508,14 @@ static void test_IUnknown_ProfferService(void)
     call_trace_t trace_expected;
     HRESULT hr;
     DWORD cookie;
+
+    /* on <=W2K platforms same ordinal used for another export with different
+       prototype, so skipping using this indirect condition */
+    if (is_win2k_and_lower)
+    {
+        win_skip("IUnknown_ProfferService is not available\n");
+        return;
+    }
 
     provider = IServiceProviderImpl_Construct();
     proff = IProfferServiceImpl_Construct();
@@ -2469,6 +2579,12 @@ static void test_SHCreateWorkerWindowA(void)
     HWND hwnd;
     LONG_PTR ret;
     BOOL res;
+
+    if (is_win2k_and_lower)
+    {
+        win_skip("SHCreateWorkerWindowA not available\n");
+        return;
+    }
 
     hwnd = pSHCreateWorkerWindowA(0, NULL, 0, 0, 0, 0);
     ok(hwnd != 0, "expected window\n");
@@ -2630,7 +2746,7 @@ static void test_SHIShellFolder_EnumObjects(void)
     HRESULT hres;
     IShellFolder *folder;
 
-    if(!pSHIShellFolder_EnumObjects){ /* win7 and later */
+    if(!pSHIShellFolder_EnumObjects || is_win2k_and_lower){
         win_skip("SHIShellFolder_EnumObjects not available\n");
         return;
     }
@@ -2647,7 +2763,7 @@ static void test_SHIShellFolder_EnumObjects(void)
     ok(enm == (IEnumIDList*)0xcafebabe, "Didn't get expected enumerator location, instead: %p\n", enm);
 
     /* SHIShellFolder_EnumObjects isn't strict about the IShellFolder object */
-    hres = SHGetDesktopFolder(&folder);
+    hres = pSHGetDesktopFolder(&folder);
     ok(hres == S_OK, "SHGetDesktopFolder failed: 0x%08x\n", hres);
 
     enm = NULL;
@@ -2716,6 +2832,11 @@ static void test_SHGetIniString(void)
     static const WCHAR testpathW[] = {'C',':','\\','t','e','s','t','.','i','n','i',0};
     WCHAR pathW[MAX_PATH];
 
+    if(!pSHGetIniStringW || is_win2k_and_lower){
+        win_skip("SHGetIniStringW is not available\n");
+        return;
+    }
+
     lstrcpyW(pathW, testpathW);
 
     if (!write_inifile(pathW))
@@ -2766,6 +2887,11 @@ static void test_SHSetIniString(void)
     static const WCHAR NewKeyW[] = {'N','e','w','K','e','y',0};
     static const WCHAR AValueW[] = {'A','V','a','l','u','e',0};
 
+    if(!pSHSetIniStringW || is_win2k_and_lower){
+        win_skip("SHSetIniStringW is not available\n");
+        return;
+    }
+
     if (!write_inifile(TestIniW))
         return;
 
@@ -2810,9 +2936,29 @@ static void test_SHGetShellKey(void)
     static const WCHAR ShellFoldersW[] = { 'S','h','e','l','l',' ','F','o','l','d','e','r','s',0 };
     static const WCHAR WineTestW[] = { 'W','i','n','e','T','e','s','t',0 };
 
+    void *pPathBuildRootW = GetProcAddress(hShlwapi, "PathBuildRootW");
     DWORD *alloc_data, data, size;
     HKEY hkey;
     HRESULT hres;
+
+    if (!pSHGetShellKey)
+    {
+        win_skip("SHGetShellKey(ordinal 491) isn't available\n");
+        return;
+    }
+
+    /* some win2k */
+    if (pPathBuildRootW && pPathBuildRootW == pSHGetShellKey)
+    {
+        win_skip("SHGetShellKey(ordinal 491) used for PathBuildRootW\n");
+        return;
+    }
+
+    if (is_win9x || is_win2k_and_lower)
+    {
+        win_skip("Ordinal 491 used for another call, skipping SHGetShellKey tests\n");
+        return;
+    }
 
     /* Vista+ limits SHKEY enumeration values */
     SetLastError(0xdeadbeef);
@@ -2851,6 +2997,12 @@ static void test_SHGetShellKey(void)
     }
     ok(hkey != NULL, "Can't create key\n");
     RegCloseKey(hkey);
+
+    if (!pSKGetValueW || !pSKSetValueW || !pSKDeleteValueW || !pSKAllocValueW)
+    {
+        win_skip("SKGetValueW, SKSetValueW, SKDeleteValueW or SKAllocValueW not available\n");
+        return;
+    }
 
     size = sizeof(data);
     hres = pSKGetValueW(SHKEY_Root_HKLM, WineTestW, NULL, NULL, &data, &size);
@@ -2938,6 +3090,12 @@ static void test_SHSetParentHwnd(void)
 {
     HWND hwnd, hwnd2, ret;
     DWORD style;
+
+    if (!pSHSetParentHwnd)
+    {
+        win_skip("SHSetParentHwnd not available\n");
+        return;
+    }
 
     hwnd = CreateWindowA("Button", "", WS_VISIBLE, 0, 0, 10, 10, NULL, NULL, NULL, NULL);
     ok(hwnd != NULL, "got %p\n", hwnd);
@@ -3113,6 +3271,14 @@ START_TEST(ordinal)
     int argc;
 
     hShlwapi = GetModuleHandleA("shlwapi.dll");
+    is_win2k_and_lower = GetProcAddress(hShlwapi, "StrChrNW") == 0;
+    is_win9x = GetProcAddress(hShlwapi, (LPSTR)99) == 0; /* StrCpyNXA */
+
+    /* SHCreateStreamOnFileEx was introduced in shlwapi v6.0 */
+    if(!GetProcAddress(hShlwapi, "SHCreateStreamOnFileEx")){
+        win_skip("Too old shlwapi version\n");
+        return;
+    }
 
     init_pointers();
 
@@ -3126,6 +3292,12 @@ START_TEST(ordinal)
         test_alloc_shared_remote(procid, hmem);
         return;
     }
+
+    hmlang = LoadLibraryA("mlang.dll");
+    pLcidToRfc1766A = (void *)GetProcAddress(hmlang, "LcidToRfc1766A");
+
+    hshell32 = LoadLibraryA("shell32.dll");
+    pSHGetDesktopFolder = (void *)GetProcAddress(hshell32, "SHGetDesktopFolder");
 
     test_GetAcceptLanguagesA();
     test_SHSearchMapInt();
@@ -3149,4 +3321,7 @@ START_TEST(ordinal)
     test_SHSetParentHwnd();
     test_IUnknown_GetClassID();
     test_DllGetVersion();
+
+    FreeLibrary(hshell32);
+    FreeLibrary(hmlang);
 }

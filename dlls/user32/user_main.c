@@ -29,6 +29,7 @@
 #include "controls.h"
 #include "user_private.h"
 #include "win.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -81,14 +82,17 @@ void USER_Unlock(void)
  */
 void USER_CheckNotLock(void)
 {
+#if 0
     if (RtlIsCriticalSectionLockedByThread(&user_section))
     {
         ERR( "BUG: holding USER lock\n" );
         DebugBreak();
     }
+#endif
 }
 
 
+#if 0
 /***********************************************************************
  *		UserSelectPalette (Not a Windows API)
  */
@@ -227,7 +231,7 @@ static void winstation_init(void)
     GetStartupInfoW( &info );
     if (info.lpDesktop && *info.lpDesktop)
     {
-        buffer = HeapAlloc( GetProcessHeap(), 0, (strlenW(info.lpDesktop) + 1) * sizeof(WCHAR) );
+        buffer = heap_alloc( (strlenW(info.lpDesktop) + 1) * sizeof(WCHAR) );
         strcpyW( buffer, info.lpDesktop );
         if ((desktop = strchrW( buffer, '\\' )))
         {
@@ -261,7 +265,7 @@ static void winstation_init(void)
                                  NULL, NULL, 0, DESKTOP_ALL_ACCESS, NULL );
         if (handle) SetThreadDesktop( handle );
     }
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
 
     register_desktop_class();
 }
@@ -282,6 +286,7 @@ static BOOL process_attach(void)
 
     return TRUE;
 }
+#endif
 
 
 /**********************************************************************
@@ -293,6 +298,7 @@ BOOL USER_IsExitingThread( DWORD tid )
 }
 
 
+#if 0
 /**********************************************************************
  *           thread_detach
  */
@@ -308,9 +314,9 @@ static void thread_detach(void)
     if (thread_info->top_window) WIN_DestroyThreadWindows( thread_info->top_window );
     if (thread_info->msg_window) WIN_DestroyThreadWindows( thread_info->msg_window );
     CloseHandle( thread_info->server_queue );
-    HeapFree( GetProcessHeap(), 0, thread_info->wmchar_data );
-    HeapFree( GetProcessHeap(), 0, thread_info->key_state );
-    HeapFree( GetProcessHeap(), 0, thread_info->rawinput );
+    heap_free( thread_info->wmchar_data );
+    heap_free( thread_info->key_state );
+    heap_free( thread_info->rawinput );
 
     exiting_thread_id = 0;
 }
@@ -391,6 +397,7 @@ BOOL WINAPI ExitWindowsEx( UINT flags, DWORD reason )
     CloseHandle( pi.hThread );
     return TRUE;
 }
+#endif
 
 /***********************************************************************
  *		LockWorkStation (USER32.@)

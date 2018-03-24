@@ -18,7 +18,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include "wine/heap.h"
 #include "wine/unicode.h"
 
 extern HINSTANCE hwldap32 DECLSPEC_HIDDEN;
@@ -32,16 +31,22 @@ ULONG map_error( int ) DECLSPEC_HIDDEN;
 static inline char *strdupU( const char *src )
 {
     char *dst;
+
     if (!src) return NULL;
-    if ((dst = heap_alloc( (strlen( src ) + 1) * sizeof(char) ))) strcpy( dst, src );
+    dst = heap_alloc( (strlen( src ) + 1) * sizeof(char) );
+    if (dst)
+        strcpy( dst, src );
     return dst;
 }
 
 static inline WCHAR *strdupW( const WCHAR *src )
 {
     WCHAR *dst;
+
     if (!src) return NULL;
-    if ((dst = heap_alloc( (strlenW( src ) + 1) * sizeof(WCHAR) ))) strcpyW( dst, src );
+    dst = heap_alloc( (strlenW( src ) + 1) * sizeof(WCHAR) );
+    if (dst)
+        strcpyW( dst, src );
     return dst;
 }
 
@@ -137,7 +142,9 @@ static inline LPWSTR *strarrayAtoW( LPSTR *strarray )
     if (strarray)
     {
         size  = sizeof(WCHAR*) * (strarraylenA( strarray ) + 1);
-        if ((strarrayW = heap_alloc( size )))
+        strarrayW = heap_alloc( size );
+
+        if (strarrayW)
         {
             LPSTR *p = strarray;
             LPWSTR *q = strarrayW;
@@ -157,7 +164,9 @@ static inline LPSTR *strarrayWtoA( LPWSTR *strarray )
     if (strarray)
     {
         size = sizeof(LPSTR) * (strarraylenW( strarray ) + 1);
-        if ((strarrayA = heap_alloc( size )))
+        strarrayA = heap_alloc( size );
+
+        if (strarrayA)
         {
             LPWSTR *p = strarray;
             LPSTR *q = strarrayA;
@@ -177,7 +186,9 @@ static inline char **strarrayWtoU( LPWSTR *strarray )
     if (strarray)
     {
         size = sizeof(char*) * (strarraylenW( strarray ) + 1);
-        if ((strarrayU = heap_alloc( size )))
+        strarrayU = heap_alloc( size );
+
+        if (strarrayU)
         {
             LPWSTR *p = strarray;
             char **q = strarrayU;
@@ -197,7 +208,9 @@ static inline LPWSTR *strarrayUtoW( char **strarray )
     if (strarray)
     {
         size = sizeof(WCHAR*) * (strarraylenU( strarray ) + 1);
-        if ((strarrayW = heap_alloc( size )))
+        strarrayW = heap_alloc( size );
+
+        if (strarrayW)
         {
             char **p = strarray;
             LPWSTR *q = strarrayW;
@@ -246,7 +259,8 @@ static inline struct berval *bvdup( struct berval *bv )
     struct berval *berval;
     DWORD size = sizeof(struct berval) + bv->bv_len;
 
-    if ((berval = heap_alloc( size )))
+    berval = heap_alloc( size );
+    if (berval)
     {
         char *val = (char *)berval + sizeof(struct berval);
 
@@ -272,7 +286,9 @@ static inline struct berval **bvarraydup( struct berval **bv )
     if (bv)
     {
         size = sizeof(struct berval *) * (bvarraylen( bv ) + 1);
-        if ((berval = heap_alloc( size )))
+        berval = heap_alloc( size );
+
+        if (berval)
         {
             struct berval **p = bv;
             struct berval **q = berval;
@@ -295,7 +311,8 @@ static inline LDAPModW *modAtoW( LDAPModA *mod )
 {
     LDAPModW *modW;
 
-    if ((modW = heap_alloc( sizeof(LDAPModW) )))
+    modW = heap_alloc( sizeof(LDAPModW) );
+    if (modW)
     {
         modW->mod_op = mod->mod_op;
         modW->mod_type = strAtoW( mod->mod_type );
@@ -312,7 +329,8 @@ static inline LDAPMod *modWtoU( LDAPModW *mod )
 {
     LDAPMod *modU;
 
-    if ((modU = heap_alloc( sizeof(LDAPMod) )))
+    modU = heap_alloc( sizeof(LDAPMod) );
+    if (modU)
     {
         modU->mod_op = mod->mod_op;
         modU->mod_type = strWtoU( mod->mod_type );
@@ -365,7 +383,9 @@ static inline LDAPModW **modarrayAtoW( LDAPModA **modarray )
     if (modarray)
     {
         size = sizeof(LDAPModW*) * (modarraylenA( modarray ) + 1);
-        if ((modarrayW = heap_alloc( size )))
+        modarrayW = heap_alloc( size );
+
+        if (modarrayW)
         {
             LDAPModA **p = modarray;
             LDAPModW **q = modarrayW;
@@ -385,7 +405,9 @@ static inline LDAPMod **modarrayWtoU( LDAPModW **modarray )
     if (modarray)
     {
         size = sizeof(LDAPMod*) * (modarraylenW( modarray ) + 1);
-        if ((modarrayU = heap_alloc( size )))
+        modarrayU = heap_alloc( size );
+
+        if (modarrayU)
         {
             LDAPModW **p = modarray;
             LDAPMod **q = modarrayU;
@@ -425,11 +447,13 @@ static inline LDAPControlW *controlAtoW( LDAPControlA *control )
 
     if (control->ldctl_value.bv_val)
     {
-        if (!(val = heap_alloc( len ))) return NULL;
+        val = heap_alloc( len );
+        if (!val) return NULL;
         memcpy( val, control->ldctl_value.bv_val, len );
     }
 
-    if (!(controlW = heap_alloc( sizeof(LDAPControlW) )))
+    controlW = heap_alloc( sizeof(LDAPControlW) );
+    if (!controlW)
     {
         heap_free( val );
         return NULL;
@@ -451,11 +475,13 @@ static inline LDAPControlA *controlWtoA( LDAPControlW *control )
 
     if (control->ldctl_value.bv_val)
     {
-        if (!(val = heap_alloc( len ))) return NULL;
+        val = heap_alloc( len );
+        if (!val) return NULL;
         memcpy( val, control->ldctl_value.bv_val, len );
     }
 
-    if (!(controlA = heap_alloc( sizeof(LDAPControlA) )))
+    controlA = heap_alloc( sizeof(LDAPControlA) );
+    if (!controlA)
     {
         heap_free( val );
         return NULL;
@@ -477,11 +503,13 @@ static inline LDAPControl *controlWtoU( LDAPControlW *control )
 
     if (control->ldctl_value.bv_val)
     {
-        if (!(val = heap_alloc( len ))) return NULL;
+        val = heap_alloc( len );
+        if (!val) return NULL;
         memcpy( val, control->ldctl_value.bv_val, len );
     }
 
-    if (!(controlU = heap_alloc( sizeof(LDAPControl) )))
+    controlU = heap_alloc( sizeof(LDAPControl) );
+    if (!controlU)
     {
         heap_free( val );
         return NULL;
@@ -503,11 +531,13 @@ static inline LDAPControlW *controlUtoW( LDAPControl *control )
 
     if (control->ldctl_value.bv_val)
     {
-        if (!(val = heap_alloc( len ))) return NULL;
+        val = heap_alloc( len );
+        if (!val) return NULL;
         memcpy( val, control->ldctl_value.bv_val, len );
     }
 
-    if (!(controlW = heap_alloc( sizeof(LDAPControlW) )))
+    controlW = heap_alloc( sizeof(LDAPControlW) );
+    if (!controlW)
     {
         heap_free( val );
         return NULL;
@@ -517,7 +547,7 @@ static inline LDAPControlW *controlUtoW( LDAPControl *control )
     controlW->ldctl_value.bv_len = len; 
     controlW->ldctl_value.bv_val = val; 
     controlW->ldctl_iscritical = control->ldctl_iscritical;
-
+ 
     return controlW;
 }
 
@@ -580,7 +610,9 @@ static inline LDAPControlW **controlarrayAtoW( LDAPControlA **controlarray )
     if (controlarray)
     {
         size = sizeof(LDAPControlW*) * (controlarraylenA( controlarray ) + 1);
-        if ((controlarrayW = heap_alloc( size )))
+        controlarrayW = heap_alloc( size );
+
+        if (controlarrayW)
         {
             LDAPControlA **p = controlarray;
             LDAPControlW **q = controlarrayW;
@@ -600,7 +632,9 @@ static inline LDAPControlA **controlarrayWtoA( LDAPControlW **controlarray )
     if (controlarray)
     {
         size = sizeof(LDAPControl*) * (controlarraylenW( controlarray ) + 1);
-        if ((controlarrayA = heap_alloc( size )))
+        controlarrayA = heap_alloc( size );
+
+        if (controlarrayA)
         {
             LDAPControlW **p = controlarray;
             LDAPControlA **q = controlarrayA;
@@ -620,7 +654,9 @@ static inline LDAPControl **controlarrayWtoU( LDAPControlW **controlarray )
     if (controlarray)
     {
         size = sizeof(LDAPControl*) * (controlarraylenW( controlarray ) + 1);
-        if ((controlarrayU = heap_alloc( size )))
+        controlarrayU = heap_alloc( size );
+
+        if (controlarrayU)
         {
             LDAPControlW **p = controlarray;
             LDAPControl **q = controlarrayU;
@@ -640,7 +676,9 @@ static inline LDAPControlW **controlarrayUtoW( LDAPControl **controlarray )
     if (controlarray)
     {
         size = sizeof(LDAPControlW*) * (controlarraylenU( controlarray ) + 1);
-        if ((controlarrayW = heap_alloc( size )))
+        controlarrayW = heap_alloc( size );
+
+        if (controlarrayW)
         {
             LDAPControl **p = controlarray;
             LDAPControlW **q = controlarrayW;
@@ -686,7 +724,8 @@ static inline LDAPSortKeyW *sortkeyAtoW( LDAPSortKeyA *sortkey )
 {
     LDAPSortKeyW *sortkeyW;
 
-    if ((sortkeyW = heap_alloc( sizeof(LDAPSortKeyW) )))
+    sortkeyW = heap_alloc( sizeof(LDAPSortKeyW) );
+    if (sortkeyW)
     {
         sortkeyW->sk_attrtype = strAtoW( sortkey->sk_attrtype );
         sortkeyW->sk_matchruleoid = strAtoW( sortkey->sk_matchruleoid );
@@ -699,7 +738,8 @@ static inline LDAPSortKeyA *sortkeyWtoA( LDAPSortKeyW *sortkey )
 {
     LDAPSortKeyA *sortkeyA;
 
-    if ((sortkeyA = heap_alloc( sizeof(LDAPSortKeyA) )))
+    sortkeyA = heap_alloc( sizeof(LDAPSortKeyA) );
+    if (sortkeyA)
     {
         sortkeyA->sk_attrtype = strWtoA( sortkey->sk_attrtype );
         sortkeyA->sk_matchruleoid = strWtoA( sortkey->sk_matchruleoid );
@@ -712,7 +752,8 @@ static inline LDAPSortKey *sortkeyWtoU( LDAPSortKeyW *sortkey )
 {
     LDAPSortKey *sortkeyU;
 
-    if ((sortkeyU = heap_alloc( sizeof(LDAPSortKey) )))
+    sortkeyU = heap_alloc( sizeof(LDAPSortKey) );
+    if (sortkeyU)
     {
         sortkeyU->attributeType = strWtoU( sortkey->sk_attrtype );
         sortkeyU->orderingRule = strWtoU( sortkey->sk_matchruleoid );
@@ -773,7 +814,9 @@ static inline LDAPSortKeyW **sortkeyarrayAtoW( LDAPSortKeyA **sortkeyarray )
     if (sortkeyarray)
     {
         size = sizeof(LDAPSortKeyW*) * (sortkeyarraylenA( sortkeyarray ) + 1);
-        if ((sortkeyarrayW = heap_alloc( size )))
+        sortkeyarrayW = heap_alloc( size );
+
+        if (sortkeyarrayW)
         {
             LDAPSortKeyA **p = sortkeyarray;
             LDAPSortKeyW **q = sortkeyarrayW;
@@ -793,7 +836,9 @@ static inline LDAPSortKey **sortkeyarrayWtoU( LDAPSortKeyW **sortkeyarray )
     if (sortkeyarray)
     {
         size = sizeof(LDAPSortKey*) * (sortkeyarraylenW( sortkeyarray ) + 1);
-        if ((sortkeyarrayU = heap_alloc( size )))
+        sortkeyarrayU = heap_alloc( size );
+
+        if (sortkeyarrayU)
         {
             LDAPSortKeyW **p = sortkeyarray;
             LDAPSortKey **q = sortkeyarrayU;

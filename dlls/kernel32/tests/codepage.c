@@ -44,7 +44,7 @@ static void test_destination_buffer(void)
         needed, GetLastError());
 
     maxsize = needed*2;
-    buffer = HeapAlloc(GetProcessHeap(), 0, maxsize);
+    buffer = heap_alloc(maxsize);
     if (buffer == NULL) return;
 
     maxsize--;
@@ -89,7 +89,7 @@ static void test_destination_buffer(void)
         "returned %d with %u (expected '0' with "
         "ERROR_INVALID_PARAMETER)\n", len, GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 }
 
 
@@ -894,7 +894,7 @@ static void test_utf7_decoding(void)
             expected[1] = 0;
             expected[2] = 0;
         }
-        expected[expected_len] = 0x2323;
+        expected[expected_len] = 0x23232323;
 
         ok(len == expected_len, "i=0x%02x: expected len=%i, got len=%i\n", i, expected_len, len);
         ok(memcmp(output, expected, (expected_len + 1) * sizeof(WCHAR)) == 0,
@@ -947,7 +947,7 @@ static void test_utf7_decoding(void)
             expected[1] = 0x0400;
             expected[2] = 0;
         }
-        expected[expected_len] = 0x2323;
+        expected[expected_len] = 0x23232323;
 
         ok(len == expected_len, "i=0x%02x: expected len=%i, got len=%i\n", i, expected_len, len);
         ok(memcmp(output, expected, (expected_len + 1) * sizeof(WCHAR)) == 0,
@@ -964,7 +964,7 @@ static void test_utf7_decoding(void)
         len = MultiByteToWideChar(CP_UTF7, 0, tests[i].src, tests[i].srclen,
                                   tests[i].dst, tests[i].dstlen);
 
-        tests[i].expected_dst[tests[i].chars_written] = 0x2323;
+        tests[i].expected_dst[tests[i].chars_written] = 0x23232323;
 
         if (!tests[i].len && tests[i].chars_written)
         {
@@ -1112,7 +1112,7 @@ static void test_threadcp(void)
 
         cp = 0xdeadbeef;
         GetLocaleInfoA(lcids[i].lcid, LOCALE_IDEFAULTANSICODEPAGE|LOCALE_RETURN_NUMBER, (LPSTR)&cp, sizeof(cp));
-        ok(cp == lcids[i].threadcp, "wrong codepage %u for lcid %04x, should be %u\n", cp, lcids[i].threadcp, cp);
+        ok(cp == lcids[i].threadcp, "wrong codepage %u for lcid %04x, should be %u\n", cp, lcids[i].lcid, lcids[i].threadcp);
 
         /* GetCPInfoEx/GetCPInfo - CP_ACP */
         SetLastError(0xdeadbeef);
@@ -1203,7 +1203,7 @@ static void test_dbcs_to_widechar(void)
         ok(count == 1, "%04x: returned %d (expected 1)\n", flags[i], count);
         ok(count2 == 1, "%04x: returned %d (expected 1)\n", flags[i], count2);
         ok(wbuf[0] == 0x770b, "%04x: returned %04x (expected 770b)\n", flags[i], wbuf[0]);
-        ok(wbuf[1] == 0xffff, "%04x: returned %04x (expected ffff)\n", flags[i], wbuf[1]);
+        ok(wbuf[1] == ~0, "%04x: returned %04x (expected ff...ff)\n", flags[i], wbuf[1]);
     }
 
     for (i = 0; i < sizeof(flags)/sizeof(DWORD); ++i)
@@ -1227,7 +1227,7 @@ static void test_dbcs_to_widechar(void)
             ok(wbuf[0] == 0x770b, "%04x: returned %04x (expected 770b)\n", flags[i], wbuf[0]);
             ok(wbuf[1] == 0x003f || broken(wbuf[1] == 0), /*windows xp*/
                "%04x: wrong wide char: %04x\n", flags[i], wbuf[1]);
-            ok(wbuf[2] == 0xffff, "%04x: returned %04x (expected ffff)\n", flags[i], wbuf[2]);
+            ok(wbuf[2] == ~0, "%04x: returned %04x (expected ff...ff)\n", flags[i], wbuf[2]);
         }
     }
 
@@ -1248,8 +1248,8 @@ static void test_dbcs_to_widechar(void)
         }
         else
         {
-            WCHAR wbuf_ok[]     = { 0x770b, 0x003f, '\0', 0xffff };
-            WCHAR wbuf_broken[] = { 0x770b, '\0', 0xffff, 0xffff };
+            WCHAR wbuf_ok[]     = { 0x770b, 0x003f, '\0', ~0 };
+            WCHAR wbuf_broken[] = { 0x770b, '\0', ~0, ~0 };
             ok(count == 3 || broken(count == 2 /*windows xp*/),
                "%04x: returned %d (expected 3)\n", flags[i], count);
             ok(!memcmp(wbuf, wbuf_ok, sizeof(wbuf_ok))
@@ -1277,8 +1277,8 @@ static void test_dbcs_to_widechar(void)
         }
         else
         {
-            WCHAR wbuf_ok[]     = { 0x770b, 0x003f, '\0', 'x', 0xffff };
-            WCHAR wbuf_broken[] = { 0x770b, '\0', 'x', 0xffff, 0xffff };
+            WCHAR wbuf_ok[]     = { 0x770b, 0x003f, '\0', 'x', ~0 };
+            WCHAR wbuf_broken[] = { 0x770b, '\0', 'x', ~0, ~0 };
             ok(count == 4 || broken(count == 3),
                "%04x: returned %d (expected 4)\n", flags[i], count);
             ok(!memcmp(wbuf, wbuf_ok, sizeof(wbuf_ok))

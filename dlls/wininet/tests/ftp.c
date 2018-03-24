@@ -368,10 +368,10 @@ static void trace_extended_error(DWORD error)
     if (error != ERROR_INTERNET_EXTENDED_ERROR) return;
     if (!InternetGetLastResponseInfoA(&code, NULL, &buflen) && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
     {
-        char *text = HeapAlloc(GetProcessHeap(), 0, ++buflen);
+        char *text = heap_alloc(++buflen);
         InternetGetLastResponseInfoA(&code, text, &buflen);
         trace("%u %s\n", code, text);
-        HeapFree(GetProcessHeap(), 0, text);
+        heap_free(text);
     }
 }
 

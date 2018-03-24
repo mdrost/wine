@@ -87,7 +87,7 @@ static ULONG WINAPI ComponentFactory_Release(IWICComponentFactory *iface)
     TRACE("(%p) refcount=%u\n", iface, ref);
 
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -850,7 +850,7 @@ static HRESULT WINAPI ComponentFactory_CreateBitmapFromHICON(IWICComponentFactor
         {
             BYTE *mask;
 
-            mask = HeapAlloc(GetProcessHeap(), 0, size);
+            mask = heap_alloc(size);
             if (!mask)
             {
                 IWICBitmapLock_Release(lock);
@@ -877,7 +877,7 @@ static HRESULT WINAPI ComponentFactory_CreateBitmapFromHICON(IWICComponentFactor
                 }
             }
 
-            HeapFree(GetProcessHeap(), 0, mask);
+            heap_free(mask);
         }
         else
         {
@@ -1165,7 +1165,7 @@ HRESULT ComponentFactory_CreateInstance(REFIID iid, void** ppv)
 
     *ppv = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(ComponentFactory));
+    This = heap_alloc(sizeof(ComponentFactory));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICComponentFactory_iface.lpVtbl = &ComponentFactory_Vtbl;

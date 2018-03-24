@@ -878,7 +878,7 @@ static void test_redirection(void)
 START_TEST(directory)
 {
     WCHAR sysdir[MAX_PATH];
-    HMODULE hntdll = GetModuleHandleA("ntdll.dll");
+    HMODULE hntdll = GetModuleHandleA("libwinapi-ntdll.so");
     if (!hntdll)
     {
         skip("not running on NT, skipping test\n");
@@ -899,7 +899,15 @@ START_TEST(directory)
     pRtlWow64EnableFsRedirection = (void *)GetProcAddress(hntdll,"RtlWow64EnableFsRedirection");
     pRtlWow64EnableFsRedirectionEx = (void *)GetProcAddress(hntdll,"RtlWow64EnableFsRedirectionEx");
 
+#if 0
     GetSystemDirectoryW( sysdir, MAX_PATH );
+#else
+    sysdir[0] = '/';
+    sysdir[1] = 't';
+    sysdir[2] = 'm';
+    sysdir[3] = 'p';
+    sysdir[4] = '\0';
+#endif
     test_directory_sort( sysdir );
     test_NtQueryDirectoryFile();
     test_NtQueryDirectoryFile_case();

@@ -226,7 +226,11 @@ typedef struct _OFSTRUCT
 #define DRIVE_CDROM                5
 #define DRIVE_RAMDISK              6
 
+#if 0
 #define MAX_COMPUTERNAME_LENGTH    15
+#else
+#define MAX_COMPUTERNAME_LENGTH    64
+#endif
 
 /* The security attributes structure */
 typedef struct _SECURITY_ATTRIBUTES
@@ -988,7 +992,9 @@ DECL_WINELIB_TYPE_AW(ENUMRESNAMEPROC)
 DECL_WINELIB_TYPE_AW(ENUMRESLANGPROC)
 
 /* flags that can be passed to LoadLibraryEx */
+#if 0
 #define DONT_RESOLVE_DLL_REFERENCES         0x00000001
+#endif
 #define LOAD_LIBRARY_AS_DATAFILE            0x00000002
 #define LOAD_WITH_ALTERED_SEARCH_PATH       0x00000008
 #define LOAD_IGNORE_CODE_AUTHZ_LEVEL        0x00000010
@@ -998,7 +1004,9 @@ DECL_WINELIB_TYPE_AW(ENUMRESLANGPROC)
 #define LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR    0x00000100
 #define LOAD_LIBRARY_SEARCH_APPLICATION_DIR 0x00000200
 #define LOAD_LIBRARY_SEARCH_USER_DIRS       0x00000400
+#if 0
 #define LOAD_LIBRARY_SEARCH_SYSTEM32        0x00000800
+#endif
 #define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS    0x00001000
 
 #define GET_MODULE_HANDLE_EX_FLAG_PIN                 1
@@ -2210,9 +2218,11 @@ WINBASEAPI VOID        WINAPI GetStartupInfoA(LPSTARTUPINFOA);
 WINBASEAPI VOID        WINAPI GetStartupInfoW(LPSTARTUPINFOW);
 #define                       GetStartupInfo WINELIB_NAME_AW(GetStartupInfo)
 WINBASEAPI HANDLE      WINAPI GetStdHandle(DWORD);
+#if 0
 WINBASEAPI UINT        WINAPI GetSystemDirectoryA(LPSTR,UINT);
 WINBASEAPI UINT        WINAPI GetSystemDirectoryW(LPWSTR,UINT);
 #define                       GetSystemDirectory WINELIB_NAME_AW(GetSystemDirectory)
+#endif
 WINBASEAPI UINT        WINAPI GetSystemFirmwareTable(DWORD,DWORD,PVOID,DWORD);
 WINBASEAPI VOID        WINAPI GetSystemInfo(LPSYSTEM_INFO);
 WINBASEAPI BOOL        WINAPI GetSystemPowerStatus(LPSYSTEM_POWER_STATUS);
@@ -2221,12 +2231,14 @@ WINBASEAPI VOID        WINAPI GetSystemTime(LPSYSTEMTIME);
 WINBASEAPI BOOL        WINAPI GetSystemTimeAdjustment(PDWORD,PDWORD,PBOOL);
 WINBASEAPI VOID        WINAPI GetSystemTimeAsFileTime(LPFILETIME);
 WINBASEAPI VOID        WINAPI GetSystemTimePreciseAsFileTime(LPFILETIME);
+#if 0
 WINBASEAPI UINT        WINAPI GetSystemWindowsDirectoryA(LPSTR,UINT);
 WINBASEAPI UINT        WINAPI GetSystemWindowsDirectoryW(LPWSTR,UINT);
 #define                       GetSystemWindowsDirectory WINELIB_NAME_AW(GetSystemWindowsDirectory)
 WINBASEAPI UINT        WINAPI GetSystemWow64DirectoryA(LPSTR,UINT);
 WINBASEAPI UINT        WINAPI GetSystemWow64DirectoryW(LPWSTR,UINT);
 #define                       GetSystemWow64Directory WINELIB_NAME_AW(GetSystemWow64Directory)
+#endif
 WINBASEAPI DWORD       WINAPI GetTapeParameters(HANDLE,DWORD,LPDWORD,LPVOID);
 WINBASEAPI DWORD       WINAPI GetTapePosition(HANDLE,DWORD,LPDWORD,LPDWORD,LPDWORD);
 WINBASEAPI DWORD       WINAPI GetTapeStatus(HANDLE);
@@ -2252,9 +2264,15 @@ WINBASEAPI BOOL        WINAPI GetUmsCompletionListEvent(PUMS_COMPLETION_LIST, PH
 WINADVAPI  BOOL        WINAPI GetUserNameA(LPSTR,LPDWORD);
 WINADVAPI  BOOL        WINAPI GetUserNameW(LPWSTR,LPDWORD);
 #define                       GetUserName WINELIB_NAME_AW(GetUserName)
+#if 0
 WINBASEAPI DWORD       WINAPI GetVersion(void);
 WINBASEAPI BOOL        WINAPI GetVersionExA(OSVERSIONINFOA*);
 WINBASEAPI BOOL        WINAPI GetVersionExW(OSVERSIONINFOW*);
+#else
+WINBASEAPI DWORD       WINAPI GetVersion(void) __attribute__((deprecated));
+WINBASEAPI BOOL        WINAPI GetVersionExA(OSVERSIONINFOA*) __attribute__((deprecated));
+WINBASEAPI BOOL        WINAPI GetVersionExW(OSVERSIONINFOW*) __attribute__((deprecated));
+#endif
 #define                       GetVersionEx WINELIB_NAME_AW(GetVersionEx)
 WINBASEAPI BOOL        WINAPI GetVolumeInformationA(LPCSTR,LPSTR,DWORD,LPDWORD,LPDWORD,LPDWORD,LPSTR,DWORD);
 WINBASEAPI BOOL        WINAPI GetVolumeInformationW(LPCWSTR,LPWSTR,DWORD,LPDWORD,LPDWORD,LPDWORD,LPWSTR,DWORD);
@@ -2284,7 +2302,7 @@ WINBASEAPI ATOM        WINAPI GlobalFindAtomA(LPCSTR);
 WINBASEAPI ATOM        WINAPI GlobalFindAtomW(LPCWSTR);
 #define                       GlobalFindAtom WINELIB_NAME_AW(GlobalFindAtom)
 WINBASEAPI VOID        WINAPI GlobalFix(HGLOBAL);
-WINBASEAPI UINT        WINAPI GlobalFlags(HGLOBAL);
+WINBASEAPI UINT        WINAPI GlobalFlags(HGLOBAL) __attribute__((deprecated));
 WINBASEAPI HGLOBAL     WINAPI GlobalFree(HGLOBAL);
 WINBASEAPI UINT        WINAPI GlobalGetAtomNameA(ATOM,LPSTR,INT);
 WINBASEAPI UINT        WINAPI GlobalGetAtomNameW(ATOM,LPWSTR,INT);
@@ -2662,8 +2680,13 @@ WINBASEAPI BOOL        WINAPI UpdateProcThreadAttribute(struct _PROC_THREAD_ATTR
 WINBASEAPI BOOL        WINAPI UpdateResourceA(HANDLE,LPCSTR,LPCSTR,WORD,LPVOID,DWORD);
 WINBASEAPI BOOL        WINAPI UpdateResourceW(HANDLE,LPCWSTR,LPCWSTR,WORD,LPVOID,DWORD);
 #define                       UpdateResource WINELIB_NAME_AW(UpdateResource)
+#if 0
 WINBASEAPI BOOL        WINAPI VerifyVersionInfoA(LPOSVERSIONINFOEXA,DWORD,DWORDLONG);
 WINBASEAPI BOOL        WINAPI VerifyVersionInfoW(LPOSVERSIONINFOEXW,DWORD,DWORDLONG);
+#else
+WINBASEAPI BOOL        WINAPI VerifyVersionInfoA(LPOSVERSIONINFOEXA,DWORD,DWORDLONG) __attribute__((deprecated));
+WINBASEAPI BOOL        WINAPI VerifyVersionInfoW(LPOSVERSIONINFOEXW,DWORD,DWORDLONG) __attribute__((deprecated));
+#endif
 #define                       VerifyVersionInfo WINELIB_NAME_AW(VerifyVersionInfo)
 WINBASEAPI LPVOID      WINAPI VirtualAlloc(LPVOID,SIZE_T,DWORD,DWORD);
 WINBASEAPI LPVOID      WINAPI VirtualAllocEx(HANDLE,LPVOID,SIZE_T,DWORD,DWORD);
@@ -3010,6 +3033,7 @@ static FORCEINLINE LONG WINAPI InterlockedDecrement( LONG volatile *dest )
 
 #if defined(__GNUC__) && !defined(__MINGW32__) && (defined(__i386__) || defined(__x86_64__)) && ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 2)))
 
+#if 0
 static FORCEINLINE DWORD WINAPI GetLastError(void)
 {
     DWORD ret;
@@ -3093,6 +3117,15 @@ static FORCEINLINE HANDLE WINAPI GetProcessHeap(void)
     return pdb[0x18 / sizeof(HANDLE)];  /* get dword at offset 0x18 in pdb */
 #endif
 }
+#else
+
+WINBASEAPI DWORD       WINAPI GetCurrentProcessId(void);
+WINBASEAPI DWORD       WINAPI GetCurrentThreadId(void);
+WINBASEAPI DWORD       WINAPI GetLastError(void);
+WINBASEAPI HANDLE      WINAPI GetProcessHeap(void);
+WINBASEAPI VOID        WINAPI SetLastError(DWORD);
+
+#endif
 
 #else  /* __GNUC__ */
 

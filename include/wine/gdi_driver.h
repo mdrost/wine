@@ -100,14 +100,22 @@ struct gdi_dc_funcs
     BOOL     (*pGdiComment)(PHYSDEV,UINT,const BYTE*);
     UINT     (*pGetBoundsRect)(PHYSDEV,RECT*,UINT);
     BOOL     (*pGetCharABCWidths)(PHYSDEV,UINT,UINT,LPABC);
+#if 0
     BOOL     (*pGetCharABCWidthsI)(PHYSDEV,UINT,UINT,WORD*,LPABC);
+#else
+    BOOL     (*pGetCharABCWidthsI)(PHYSDEV,UINT,UINT,DWORD*,LPABC);
+#endif
     BOOL     (*pGetCharWidth)(PHYSDEV,UINT,UINT,LPINT);
     INT      (*pGetDeviceCaps)(PHYSDEV,INT);
     BOOL     (*pGetDeviceGammaRamp)(PHYSDEV,LPVOID);
     DWORD    (*pGetFontData)(PHYSDEV,DWORD,DWORD,LPVOID,DWORD);
     BOOL     (*pGetFontRealizationInfo)(PHYSDEV,void*);
     DWORD    (*pGetFontUnicodeRanges)(PHYSDEV,LPGLYPHSET);
+#if 0
     DWORD    (*pGetGlyphIndices)(PHYSDEV,LPCWSTR,INT,LPWORD,DWORD);
+#else
+    DWORD    (*pGetGlyphIndices)(PHYSDEV,LPCWSTR,INT,LPDWORD,DWORD);
+#endif
     DWORD    (*pGetGlyphOutline)(PHYSDEV,UINT,UINT,LPGLYPHMETRICS,DWORD,LPVOID,const MAT2*);
     BOOL     (*pGetICMProfile)(PHYSDEV,LPDWORD,LPWSTR);
     DWORD    (*pGetImage)(PHYSDEV,BITMAPINFO*,struct gdi_image_bits*,struct bitblt_coords*);
@@ -118,7 +126,11 @@ struct gdi_dc_funcs
     UINT     (*pGetSystemPaletteEntries)(PHYSDEV,UINT,UINT,LPPALETTEENTRY);
     UINT     (*pGetTextCharsetInfo)(PHYSDEV,LPFONTSIGNATURE,DWORD);
     BOOL     (*pGetTextExtentExPoint)(PHYSDEV,LPCWSTR,INT,LPINT);
+#if 0
     BOOL     (*pGetTextExtentExPointI)(PHYSDEV,const WORD*,INT,LPINT);
+#else
+    BOOL     (*pGetTextExtentExPointI)(PHYSDEV,const DWORD*,INT,LPINT);
+#endif
     INT      (*pGetTextFace)(PHYSDEV,INT,LPWSTR);
     BOOL     (*pGetTextMetrics)(PHYSDEV,TEXTMETRICW*);
     BOOL     (*pGradientFill)(PHYSDEV,TRIVERTEX*,ULONG,void*,ULONG,ULONG);

@@ -172,6 +172,7 @@ static const IMAGE_RESOURCE_DIRECTORY *find_entry_by_name( const IMAGE_RESOURCE_
 }
 
 
+#if 0
 /**********************************************************************
  *  find_entry
  *
@@ -254,6 +255,7 @@ done:
     *ret = resdirptr;
     return STATUS_SUCCESS;
 }
+#endif
 
 
 /**********************************************************************
@@ -262,6 +264,7 @@ done:
 NTSTATUS WINAPI LdrFindResourceDirectory_U( HMODULE hmod, const LDR_RESOURCE_INFO *info,
                                             ULONG level, const IMAGE_RESOURCE_DIRECTORY **dir )
 {
+#if 0
     const void *res;
     NTSTATUS status;
 
@@ -281,6 +284,9 @@ NTSTATUS WINAPI LdrFindResourceDirectory_U( HMODULE hmod, const LDR_RESOURCE_INF
     }
     __ENDTRY;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -290,6 +296,7 @@ NTSTATUS WINAPI LdrFindResourceDirectory_U( HMODULE hmod, const LDR_RESOURCE_INF
 NTSTATUS WINAPI LdrFindResource_U( HMODULE hmod, const LDR_RESOURCE_INFO *info,
                                    ULONG level, const IMAGE_RESOURCE_DATA_ENTRY **entry )
 {
+#if 0
     const void *res;
     NTSTATUS status;
 
@@ -309,6 +316,9 @@ NTSTATUS WINAPI LdrFindResource_U( HMODULE hmod, const LDR_RESOURCE_INFO *info,
     }
     __ENDTRY;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -323,8 +333,10 @@ static inline NTSTATUS access_resource( HMODULE hmod, const IMAGE_RESOURCE_DATA_
 {
     NTSTATUS status;
 
+#if 0
     __TRY
     {
+#endif
         ULONG dirsize;
 
         if (!RtlImageDirectoryEntryToData( hmod, TRUE, IMAGE_DIRECTORY_ENTRY_RESOURCE, &dirsize ))
@@ -343,12 +355,14 @@ static inline NTSTATUS access_resource( HMODULE hmod, const IMAGE_RESOURCE_DATA_
             if (size) *size = entry->Size;
             status = STATUS_SUCCESS;
         }
+#if 0
     }
     __EXCEPT_PAGE_FAULT
     {
         return GetExceptionCode();
     }
     __ENDTRY;
+#endif
     return status;
 }
 

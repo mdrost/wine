@@ -114,7 +114,7 @@ static ULONG WINAPI RecordInfo_Release(IRecordInfo *iface)
   ULONG ref = InterlockedDecrement(&This->ref);
 
   if (!ref)
-      HeapFree(GetProcessHeap(), 0, This);
+      heap_free(This);
 
   return ref;
 }
@@ -259,7 +259,7 @@ static IRecordInfoImpl *IRecordInfoImpl_Construct(void)
 {
   IRecordInfoImpl *rec;
 
-  rec = HeapAlloc(GetProcessHeap(), 0, sizeof(IRecordInfoImpl));
+  rec = heap_alloc(sizeof(IRecordInfoImpl));
   rec->IRecordInfo_iface.lpVtbl = &RecordInfoVtbl;
   rec->ref = START_REF_COUNT;
   rec->clearCalled = 0;

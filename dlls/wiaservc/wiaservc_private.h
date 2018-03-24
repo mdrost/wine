@@ -41,7 +41,7 @@ static inline char *
 wiaservc_strdup(const char *s)
 {
     size_t n = strlen(s) + 1;
-    char *d = HeapAlloc(GetProcessHeap(), 0, n);
+    char *d = heap_alloc(n);
     return d ? memcpy(d, s, n) : NULL;
 }
 

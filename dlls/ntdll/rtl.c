@@ -111,6 +111,7 @@ static const DWORD CRC_table[256] =
  *	resource functions
  */
 
+#if 0
 /***********************************************************************
  *           RtlInitializeResource	(NTDLL.@)
  *
@@ -286,6 +287,7 @@ wake_exclusive:
     }
     RtlLeaveCriticalSection( &rwl->rtlCS );
 }
+#endif
 
 
 /***********************************************************************
@@ -366,6 +368,7 @@ NTSTATUS WINAPI vDbgPrintExWithPrefix( LPCSTR prefix, ULONG id, ULONG level, LPC
     return STATUS_SUCCESS;
 }
 
+#if 0
 /******************************************************************************
  *  RtlAcquirePebLock		[NTDLL.@]
  */
@@ -381,6 +384,7 @@ VOID WINAPI RtlReleasePebLock(void)
 {
     RtlLeaveCriticalSection( NtCurrentTeb()->Peb->FastPebLock );
 }
+#endif
 
 /******************************************************************************
  *  RtlNewSecurityObject		[NTDLL.@]
@@ -1572,11 +1576,15 @@ NTSTATUS WINAPI RtlSetThreadErrorMode( DWORD mode, LPDWORD oldmode )
     if (mode & ~0x70)
         return STATUS_INVALID_PARAMETER_1;
 
+#if 0
     if (oldmode)
         *oldmode = NtCurrentTeb()->HardErrorDisabled;
 
     NtCurrentTeb()->HardErrorDisabled = mode;
     return STATUS_SUCCESS;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /***********************************************************************
@@ -1592,7 +1600,11 @@ NTSTATUS WINAPI RtlSetThreadErrorMode( DWORD mode, LPDWORD oldmode )
  */
 DWORD WINAPI RtlGetThreadErrorMode( void )
 {
+#if 0
     return NtCurrentTeb()->HardErrorDisabled;
+#else
+    return 0;
+#endif
 }
 
 /******************************************************************************

@@ -30,6 +30,7 @@
 #include "objbase.h"
 #include "winreg.h"
 #include "shlwapi.h"
+#include "wine/heap.h"
 
 #include "wine/debug.h"
 
@@ -133,9 +134,9 @@ static ULONG WINAPI IStream_fnRelease(IStream *iface)
 	    RegCloseKey(This->hKey);
 	  }
 
-	  HeapFree(GetProcessHeap(),0,This->u.keyNameA);
-	  HeapFree(GetProcessHeap(),0,This->pbBuffer);
-	  HeapFree(GetProcessHeap(),0,This);
+	  heap_free(This->u.keyNameA);
+	  heap_free(This->pbBuffer);
+	  heap_free(This);
 	  return 0;
 	}
 
@@ -185,7 +186,11 @@ static HRESULT WINAPI IStream_fnWrite (IStream * iface, const void* pv, ULONG cb
 
 	if (newLen > This->dwLength)
 	{
+#if 0
 	  LPBYTE newBuf = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, This->pbBuffer, newLen);
+#else
+      LPBYTE newBuf = NULL;
+#endif
 	  if (!newBuf)
 	    return STG_E_INSUFFICIENTMEMORY;
 
@@ -244,7 +249,11 @@ static HRESULT WINAPI IStream_fnSetSize (IStream * iface, ULARGE_INTEGER libNewS
 
 	/* we cut off the high part here */
 	newLen = libNewSize.u.LowPart;
+#if 0
 	newBuf = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, This->pbBuffer, newLen);
+#else
+    newBuf = NULL;
+#endif
 	if (!newBuf)
 	  return STG_E_INSUFFICIENTMEMORY;
 
@@ -442,7 +451,7 @@ static ISHRegStream *IStream_Create(HKEY hKey, LPBYTE pbBuffer, DWORD dwLength)
 {
  ISHRegStream* regStream;
 
- regStream = HeapAlloc(GetProcessHeap(), 0, sizeof(ISHRegStream));
+ regStream = heap_alloc(sizeof(ISHRegStream));
 
  if (regStream)
  {
@@ -499,13 +508,13 @@ IStream * WINAPI SHOpenRegStream2A(HKEY hKey, LPCSTR pszSubkey,
       ret = RegQueryValueExA(hStrKey, pszValue, 0, 0, 0, &dwLength);
       if (ret == ERROR_SUCCESS && dwLength)
       {
-        lpBuff = HeapAlloc(GetProcessHeap(), 0, dwLength);
+        lpBuff = heap_alloc(dwLength);
         RegQueryValueExA(hStrKey, pszValue, 0, 0, lpBuff, &dwLength);
       }
     }
 
     if (!dwLength)
-      lpBuff = HeapAlloc(GetProcessHeap(), 0, dwLength);
+      lpBuff = heap_alloc(dwLength);
 
     tmp = IStream_Create(hStrKey, lpBuff, dwLength);
     if(tmp)
@@ -513,7 +522,7 @@ IStream * WINAPI SHOpenRegStream2A(HKEY hKey, LPCSTR pszSubkey,
       if(pszValue)
       {
         int len = lstrlenA(pszValue) + 1;
-        tmp->u.keyNameA = HeapAlloc(GetProcessHeap(), 0, len);
+        tmp->u.keyNameA = heap_alloc(len);
         memcpy(tmp->u.keyNameA, pszValue, len);
       }
 
@@ -523,7 +532,7 @@ IStream * WINAPI SHOpenRegStream2A(HKEY hKey, LPCSTR pszSubkey,
     }
   }
 
-  HeapFree(GetProcessHeap(), 0, lpBuff);
+  heap_free(lpBuff);
   if (hStrKey)
     RegCloseKey(hStrKey);
   return NULL;
@@ -559,13 +568,13 @@ IStream * WINAPI SHOpenRegStream2W(HKEY hKey, LPCWSTR pszSubkey,
       ret = RegQueryValueExW(hStrKey, pszValue, 0, 0, 0, &dwLength);
       if (ret == ERROR_SUCCESS && dwLength)
       {
-        lpBuff = HeapAlloc(GetProcessHeap(), 0, dwLength);
+        lpBuff = heap_alloc(dwLength);
         RegQueryValueExW(hStrKey, pszValue, 0, 0, lpBuff, &dwLength);
       }
     }
 
     if (!dwLength)
-      lpBuff = HeapAlloc(GetProcessHeap(), 0, dwLength);
+      lpBuff = heap_alloc(dwLength);
 
     tmp = IStream_Create(hStrKey, lpBuff, dwLength);
     if(tmp)
@@ -573,7 +582,7 @@ IStream * WINAPI SHOpenRegStream2W(HKEY hKey, LPCWSTR pszSubkey,
       if(pszValue)
       {
         int len = lstrlenW(pszValue) + 1;
-        tmp->u.keyNameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        tmp->u.keyNameW = heap_alloc(len * sizeof(WCHAR));
         memcpy(tmp->u.keyNameW, pszValue, len * sizeof(WCHAR));
       }
 
@@ -583,7 +592,7 @@ IStream * WINAPI SHOpenRegStream2W(HKEY hKey, LPCWSTR pszSubkey,
     }
   }
 
-  HeapFree(GetProcessHeap(), 0, lpBuff);
+  heap_free(lpBuff);
   if (hStrKey)
     RegCloseKey(hStrKey);
   return NULL;
@@ -659,7 +668,7 @@ IStream * WINAPI SHCreateMemStream(const BYTE *lpbData, UINT dwDataLen)
   if (!lpbData)
     dwDataLen = 0;
 
-  lpbDup = HeapAlloc(GetProcessHeap(), 0, dwDataLen);
+  lpbDup = heap_alloc(dwDataLen);
 
   if (lpbDup)
   {
@@ -667,7 +676,7 @@ IStream * WINAPI SHCreateMemStream(const BYTE *lpbData, UINT dwDataLen)
     strm = IStream_Create(NULL, lpbDup, dwDataLen);
 
     if (!strm)
-      HeapFree(GetProcessHeap(), 0, lpbDup);
+      heap_free(lpbDup);
   }
   return &strm->IStream_iface;
 }

@@ -88,14 +88,14 @@ static HINSTANCE16 load_dll16( LPCWSTR dll )
 {
     HINSTANCE16 ret = 0;
     DWORD len = WideCharToMultiByte( CP_ACP, 0, dll, -1, NULL, 0, NULL, NULL );
-    char *dllA = HeapAlloc( GetProcessHeap(), 0, len );
+    char *dllA = heap_alloc( len );
 
     if (dllA)
     {
         WideCharToMultiByte( CP_ACP, 0, dll, -1, dllA, len, NULL, NULL );
         pLoadLibrary16 = (void *)GetProcAddress( GetModuleHandleW(kernel32), (LPCSTR)35 );
         if (pLoadLibrary16) ret = pLoadLibrary16( dllA );
-        HeapFree( GetProcessHeap(), 0, dllA );
+        heap_free( dllA );
     }
     return ret;
 }
@@ -104,14 +104,14 @@ static FARPROC16 get_entry_point16( HINSTANCE16 inst, LPCWSTR entry )
 {
     FARPROC16 ret = 0;
     DWORD len = WideCharToMultiByte( CP_ACP, 0, entry, -1, NULL, 0, NULL, NULL );
-    char *entryA = HeapAlloc( GetProcessHeap(), 0, len );
+    char *entryA = heap_alloc( len );
 
     if (entryA)
     {
         WideCharToMultiByte( CP_ACP, 0, entry, -1, entryA, len, NULL, NULL );
         pGetProcAddress16 = (void *)GetProcAddress( GetModuleHandleW(kernel32), (LPCSTR)37 );
         if (pGetProcAddress16) ret = pGetProcAddress16( inst, entryA );
-        HeapFree( GetProcessHeap(), 0, entryA );
+        heap_free( entryA );
     }
     return ret;
 }
@@ -133,7 +133,7 @@ static void *get_entry_point32( HMODULE module, LPCWSTR entry, BOOL *unicode )
     else
     {
         DWORD len = WideCharToMultiByte( CP_ACP, 0, entry, -1, NULL, 0, NULL, NULL );
-        char *entryA = HeapAlloc( GetProcessHeap(), 0, len + 1 );
+        char *entryA = heap_alloc( len + 1 );
 
         if (!entryA)
             return NULL;
@@ -155,7 +155,7 @@ static void *get_entry_point32( HMODULE module, LPCWSTR entry, BOOL *unicode )
                 ret = GetProcAddress( module, entryA );
             }
         }
-        HeapFree( GetProcessHeap(), 0, entryA );
+        heap_free( entryA );
     }
     return ret;
 }
@@ -189,7 +189,7 @@ static LPWSTR get_next_arg(LPWSTR *cmdline)
         s++;
         len++;
     }
-    arg=HeapAlloc(GetProcessHeap(), 0, (len+1)*sizeof(WCHAR));
+    arg=heap_alloc((len+1)*sizeof(WCHAR));
     if (!arg)
         return NULL;
 
@@ -315,7 +315,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE hOldInstance, LPWSTR szCmdLine
     else
     {
         DWORD len = WideCharToMultiByte( CP_ACP, 0, szCmdLine, -1, NULL, 0, NULL, NULL );
-        char *cmdline = HeapAlloc( GetProcessHeap(), 0, len );
+        char *cmdline = heap_alloc( len );
 
         if (!cmdline)
             goto CLEANUP;
@@ -337,7 +337,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE hOldInstance, LPWSTR szCmdLine
             EntryPointA pEntryPointA = entry_point;
             pEntryPointA( hWnd, instance, cmdline, info.wShowWindow );
         }
-        HeapFree( GetProcessHeap(), 0, cmdline );
+        heap_free( cmdline );
     }
 
 CLEANUP:
@@ -345,6 +345,6 @@ CLEANUP:
         DestroyWindow(hWnd);
     if (hDll)
         FreeLibrary(hDll);
-    HeapFree(GetProcessHeap(),0,szDllName);
+    heap_free(szDllName);
     return 0; /* rundll32 always returns 0! */
 }

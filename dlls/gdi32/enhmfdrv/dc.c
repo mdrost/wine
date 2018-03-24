@@ -219,7 +219,7 @@ INT EMFDRV_ExtSelectClipRgn( PHYSDEV dev, HRGN hrgn, INT mode )
     else rgnsize = GetRegionData( hrgn, 0, NULL );
 
     size = rgnsize + offsetof(EMREXTSELECTCLIPRGN,RgnData);
-    emr = HeapAlloc( GetProcessHeap(), 0, size );
+    emr = heap_alloc( size );
     if (rgnsize) GetRegionData( hrgn, rgnsize, (RGNDATA *)&emr->RgnData );
 
     emr->emr.iType = EMR_EXTSELECTCLIPRGN;
@@ -228,7 +228,7 @@ INT EMFDRV_ExtSelectClipRgn( PHYSDEV dev, HRGN hrgn, INT mode )
     emr->iMode     = mode;
 
     ret = EMFDRV_WriteRecord( dev, &emr->emr );
-    HeapFree( GetProcessHeap(), 0, emr );
+    heap_free( emr );
     return ret ? next->funcs->pExtSelectClipRgn( next, hrgn, mode ) : ERROR;
 }
 

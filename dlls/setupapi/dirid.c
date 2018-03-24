@@ -62,7 +62,7 @@ static const WCHAR *get_unknown_dirid(void)
     if (!unknown_dirid)
     {
         UINT len = GetSystemDirectoryW( NULL, 0 ) + strlenW(unknown_str);
-        if (!(unknown_dirid = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) ))) return NULL;
+        if (!(unknown_dirid = heap_alloc( len * sizeof(WCHAR) ))) return NULL;
         GetSystemDirectoryW( unknown_dirid, len );
         strcatW( unknown_dirid, unknown_str );
     }
@@ -153,7 +153,7 @@ static const WCHAR *create_system_dirid( int dirid )
         return get_unknown_dirid();
     }
     len = (strlenW(buffer) + 1) * sizeof(WCHAR);
-    if ((str = HeapAlloc( GetProcessHeap(), 0, len ))) memcpy( str, buffer, len );
+    if ((str = heap_alloc( len ))) memcpy( str, buffer, len );
     return str;
 }
 
@@ -168,7 +168,7 @@ static const WCHAR *get_csidl_dir( DWORD csidl )
         return get_unknown_dirid();
     }
     len = (strlenW(buffer) + 1) * sizeof(WCHAR);
-    if ((str = HeapAlloc( GetProcessHeap(), 0, len ))) memcpy( str, buffer, len );
+    if ((str = heap_alloc( len ))) memcpy( str, buffer, len );
     return str;
 }
 
@@ -208,7 +208,7 @@ static BOOL store_user_dirid( HINF hinf, int id, WCHAR *str )
 
     for (i = 0; i < nb_user_dirids; i++) if (user_dirids[i].id == id) break;
 
-    if (i < nb_user_dirids) HeapFree( GetProcessHeap(), 0, user_dirids[i].str );
+    if (i < nb_user_dirids) heap_free( user_dirids[i].str );
     else
     {
         if (nb_user_dirids >= alloc_user_dirids)
@@ -218,10 +218,10 @@ static BOOL store_user_dirid( HINF hinf, int id, WCHAR *str )
 	    struct user_dirid *new;
 
 	    if (user_dirids)
-                new = HeapReAlloc( GetProcessHeap(), 0, user_dirids,
+                new = heap_realloc( user_dirids,
                                                   new_size * sizeof(*new) );
 	    else
-                new = HeapAlloc( GetProcessHeap(), 0, 
+                new = heap_alloc( 
                                                   new_size * sizeof(*new) );
 
             if (!new) return FALSE;
@@ -247,7 +247,7 @@ BOOL WINAPI SetupSetDirectoryIdA( HINF hinf, DWORD id, PCSTR dir )
 
     if (!id)  /* clear everything */
     {
-        for (i = 0; i < nb_user_dirids; i++) HeapFree( GetProcessHeap(), 0, user_dirids[i].str );
+        for (i = 0; i < nb_user_dirids; i++) heap_free( user_dirids[i].str );
         nb_user_dirids = 0;
         return TRUE;
     }
@@ -277,7 +277,7 @@ BOOL WINAPI SetupSetDirectoryIdW( HINF hinf, DWORD id, PCWSTR dir )
 
     if (!id)  /* clear everything */
     {
-        for (i = 0; i < nb_user_dirids; i++) HeapFree( GetProcessHeap(), 0, user_dirids[i].str );
+        for (i = 0; i < nb_user_dirids; i++) heap_free( user_dirids[i].str );
         nb_user_dirids = 0;
         return TRUE;
     }
@@ -289,7 +289,7 @@ BOOL WINAPI SetupSetDirectoryIdW( HINF hinf, DWORD id, PCWSTR dir )
 
     /* duplicate the string */
     len = (strlenW(dir)+1) * sizeof(WCHAR);
-    if (!(str = HeapAlloc( GetProcessHeap(), 0, len ))) return FALSE;
+    if (!(str = heap_alloc( len ))) return FALSE;
     memcpy( str, dir, len );
     return store_user_dirid( hinf, id, str );
 }

@@ -676,7 +676,7 @@ void output_module( DLLSPEC *spec )
     if (target_platform == PLATFORM_APPLE)
         output( "\t.lcomm %s,4\n", asm_name("_end") );
 
-    output_asm_constructor( "__wine_spec_init_ctor" );
+    output_asm_constructor( "__wine_spec_init_ctor@plt" );
 }
 
 

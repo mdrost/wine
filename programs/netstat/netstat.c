@@ -189,9 +189,9 @@ static void NETSTAT_eth_stats(void)
     size = sizeof(MIB_IFTABLE);
     do
     {
-        table = HeapAlloc(GetProcessHeap(), 0, size);
+        table = heap_alloc(size);
         err = GetIfTable(table, &size, FALSE);
-        if (err != NO_ERROR) HeapFree(GetProcessHeap(), 0, table);
+        if (err != NO_ERROR) heap_free(table);
     } while (err == ERROR_INSUFFICIENT_BUFFER);
 
     if (err) return;
@@ -231,7 +231,7 @@ static void NETSTAT_eth_stats(void)
     NETSTAT_wprintf(fmtethout, NETSTAT_load_message(IDS_ETH_ERRORS), errors[0], errors[1]);
     NETSTAT_wprintf(fmtethoutu, NETSTAT_load_message(IDS_ETH_UNKNOWN), unknown);
 
-    HeapFree(GetProcessHeap(), 0, table);
+    heap_free(table);
 }
 
 static void NETSTAT_tcp_table(void)
@@ -246,9 +246,9 @@ static void NETSTAT_tcp_table(void)
     size = sizeof(MIB_TCPTABLE);
     do
     {
-        table = HeapAlloc(GetProcessHeap(), 0, size);
+        table = heap_alloc(size);
         err = GetTcpTable(table, &size, TRUE);
-        if (err != NO_ERROR) HeapFree(GetProcessHeap(), 0, table);
+        if (err != NO_ERROR) heap_free(table);
     } while (err == ERROR_INSUFFICIENT_BUFFER);
 
     if (err) return;
@@ -269,7 +269,7 @@ static void NETSTAT_tcp_table(void)
             NETSTAT_wprintf(fmttcpout, tcpW, Host, Remote, tcpstatesW[table->table[i].u.dwState]);
         }
     }
-    HeapFree(GetProcessHeap(), 0, table);
+    heap_free(table);
 }
 
 static void NETSTAT_tcp_stats(void)
@@ -301,9 +301,9 @@ static void NETSTAT_udp_table(void)
     size = sizeof(MIB_UDPTABLE);
     do
     {
-        table = HeapAlloc(GetProcessHeap(), 0, size);
+        table = heap_alloc(size);
         err = GetUdpTable(table, &size, TRUE);
-        if (err != NO_ERROR) HeapFree(GetProcessHeap(), 0, table);
+        if (err != NO_ERROR) heap_free(table);
     } while (err == ERROR_INSUFFICIENT_BUFFER);
 
     if (err) return;
@@ -316,7 +316,7 @@ static void NETSTAT_udp_table(void)
         sprintfW(Host, fmtcolon, HostIp, HostPort);
         NETSTAT_wprintf(fmtudpout, udpW, Host);
     }
-    HeapFree(GetProcessHeap(), 0, table);
+    heap_free(table);
 }
 
 static void NETSTAT_udp_stats(void)

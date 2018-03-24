@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "windef.h"
+#include "winbase.h"
 #include "winternl.h"
 #include "ntdll_misc.h"
 #include "wine/unicode.h"
@@ -307,7 +308,7 @@ static void pf_integer_conv( char *buf, int buf_len, pf_flags *flags,
 
     if( buf_len > sizeof number )
     {
-        if (!(tmp = RtlAllocateHeap( GetProcessHeap(), 0, buf_len )))
+        if (!(tmp = malloc( buf_len )))
         {
             buf[0] = '\0';
             return;
@@ -366,7 +367,7 @@ static void pf_integer_conv( char *buf, int buf_len, pf_flags *flags,
     flags->Precision = strlen( buf );
 
     if( tmp != number )
-        RtlFreeHeap( GetProcessHeap(), 0, tmp );
+        free( tmp );
 
     return;
 }
@@ -605,14 +606,14 @@ static int pf_vsnprintf( pf_output *out, const WCHAR *format, __ms_va_list valis
                         flags.FieldLength : flags.Precision) + 10;
 
             if( x_len >= sizeof number)
-                if (!(x = RtlAllocateHeap( GetProcessHeap(), 0, x_len )))
+                if (!(x = malloc( x_len )))
                     return -1;
 
             pf_integer_conv( x, x_len, &flags, va_arg(valist, LONGLONG) );
 
             r = pf_output_format_A( out, x, -1, &flags );
             if( x != number )
-                RtlFreeHeap( GetProcessHeap(), 0, x );
+                free( x );
         }
 
         /* deal with integers and floats using libc's printf */
@@ -629,7 +630,7 @@ static int pf_vsnprintf( pf_output *out, const WCHAR *format, __ms_va_list valis
                         flags.FieldLength : flags.Precision) + 10;
 
             if( x_len >= sizeof number)
-                if (!(x = RtlAllocateHeap( GetProcessHeap(), 0, x_len )))
+                if (!(x = malloc( x_len )))
                     return -1;
 
             pf_rebuild_format_string( fmt, &flags );
@@ -645,7 +646,7 @@ static int pf_vsnprintf( pf_output *out, const WCHAR *format, __ms_va_list valis
 
             r = pf_output_stringA( out, x, -1 );
             if( x != number )
-                RtlFreeHeap( GetProcessHeap(), 0, x );
+                free( x );
         }
         else
             continue;
@@ -681,11 +682,11 @@ int CDECL NTDLL__vsnprintf( char *str, SIZE_T len, const char *format, __ms_va_l
     if (format)
     {
         RtlMultiByteToUnicodeSize( &sz, format, strlen(format) + 1 );
-        if (!(formatW = RtlAllocateHeap( GetProcessHeap(), 0, sz ))) return -1;
+        if (!(formatW = malloc( sz ))) return -1;
         RtlMultiByteToUnicodeN( formatW, sz, NULL, format, strlen(format) + 1 );
     }
     r = pf_vsnprintf( &out, formatW, args );
-    RtlFreeHeap( GetProcessHeap(), 0, formatW );
+    free( formatW );
     return r;
 }
 

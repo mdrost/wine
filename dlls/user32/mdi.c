@@ -93,6 +93,7 @@
 #include "wingdi.h"
 #include "winuser.h"
 #include "wownt32.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "win.h"
 #include "controls.h"
@@ -265,7 +266,7 @@ static HWND MDI_GetWindow(MDICLIENTINFO *clientInfo, HWND hWnd, BOOL bNext,
         if (bNext) goto found;
     }
  found:
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return last;
 }
 
@@ -564,11 +565,11 @@ static LRESULT MDIDestroyChild( HWND client, MDICLIENTINFO *ci,
     {
         if (ci->child[i] == child)
         {
-            HWND *new_child = HeapAlloc(GetProcessHeap(), 0, (ci->nActiveChildren - 1) * sizeof(HWND));
+            HWND *new_child = heap_alloc((ci->nActiveChildren - 1) * sizeof(HWND));
             memcpy(new_child, ci->child, i * sizeof(HWND));
             if (i + 1 < ci->nActiveChildren)
                 memcpy(new_child + i, ci->child + i + 1, (ci->nActiveChildren - i - 1) * sizeof(HWND));
-            HeapFree(GetProcessHeap(), 0, ci->child);
+            heap_free(ci->child);
             ci->child = new_child;
 
             ci->nActiveChildren--;
@@ -726,7 +727,7 @@ static LONG MDICascade( HWND client, MDICLIENTINFO *ci )
                            posOptions);
         }
     }
-    HeapFree( GetProcessHeap(), 0, win_array );
+    heap_free( win_array );
 
     if (has_icons) ArrangeIconicWindows( client );
     return 0;
@@ -814,7 +815,7 @@ static void MDITile( HWND client, MDICLIENTINFO *ci, WPARAM wParam )
             x += xsize;
         }
     }
-    HeapFree( GetProcessHeap(), 0, win_array );
+    heap_free( win_array );
     if (has_icons) ArrangeIconicWindows( client );
 }
 
@@ -986,8 +987,8 @@ static void MDI_UpdateFrameText( HWND frame, HWND hClient, BOOL repaint, LPCWSTR
     /* store new "default" title if lpTitle is not NULL */
     if (lpTitle)
     {
-	HeapFree( GetProcessHeap(), 0, ci->frameTitle );
-	if ((ci->frameTitle = HeapAlloc( GetProcessHeap(), 0, (strlenW(lpTitle)+1)*sizeof(WCHAR))))
+	heap_free( ci->frameTitle );
+	if ((ci->frameTitle = heap_alloc( (strlenW(lpTitle)+1)*sizeof(WCHAR))))
             strcpyW( ci->frameTitle, lpTitle );
     }
 
@@ -1082,8 +1083,8 @@ LRESULT MDIClientWndProc_common( HWND hwnd, UINT message, WPARAM wParam, LPARAM 
           ci->nActiveChildren = 0;
           MDI_RefreshMenu(ci);
 
-          HeapFree( GetProcessHeap(), 0, ci->child );
-          HeapFree( GetProcessHeap(), 0, ci->frameTitle );
+          heap_free( ci->child );
+          heap_free( ci->frameTitle );
 
           return 0;
       }
@@ -1197,9 +1198,9 @@ LRESULT MDIClientWndProc_common( HWND hwnd, UINT message, WPARAM wParam, LPARAM 
                 ci->nActiveChildren++;
 
                 if (!ci->child)
-                    ci->child = HeapAlloc(GetProcessHeap(), 0, sizeof(HWND));
+                    ci->child = heap_alloc(sizeof(HWND));
                 else
-                    ci->child = HeapReAlloc(GetProcessHeap(), 0, ci->child, sizeof(HWND) * ci->nActiveChildren);
+                    ci->child = heap_realloc(ci->child, sizeof(HWND) * ci->nActiveChildren);
 
                 TRACE("Adding MDI child %p, # of children %d\n",
                       (HWND)lParam, ci->nActiveChildren);
@@ -1270,10 +1271,10 @@ LRESULT WINAPI DefFrameProcA( HWND hwnd, HWND hwndMDIClient,
         case WM_SETTEXT:
             {
                 DWORD len = MultiByteToWideChar( CP_ACP, 0, (LPSTR)lParam, -1, NULL, 0 );
-                LPWSTR text = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+                LPWSTR text = heap_alloc( len * sizeof(WCHAR) );
                 MultiByteToWideChar( CP_ACP, 0, (LPSTR)lParam, -1, text, len );
                 MDI_UpdateFrameText( hwnd, hwndMDIClient, FALSE, text );
-                HeapFree( GetProcessHeap(), 0, text );
+                heap_free( text );
             }
             return 1; /* success. FIXME: check text length */
 
@@ -1704,7 +1705,7 @@ void WINAPI CalcChildScroll( HWND hwnd, INT scroll )
             style = GetWindowLongW( list[i], GWL_STYLE );
             if (style & WS_MAXIMIZE)
             {
-                HeapFree( GetProcessHeap(), 0, list );
+                heap_free( list );
                 ShowScrollBar( hwnd, SB_BOTH, FALSE );
                 return;
             }
@@ -1715,7 +1716,7 @@ void WINAPI CalcChildScroll( HWND hwnd, INT scroll )
                 UnionRect( &childRect, &rect, &childRect );
             }
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
     }
     UnionRect( &childRect, &clientRect, &childRect );
 

@@ -169,7 +169,7 @@ static void AddOrUpdateHwnd(HWND hWnd, WCHAR *wszTitle, HICON hIcon, BOOL bHung)
     /* It is not already in the list so add it */
     else
     {
-        pAPLI = HeapAlloc(GetProcessHeap(), 0, sizeof(APPLICATION_PAGE_LIST_ITEM));
+        pAPLI = heap_alloc(sizeof(APPLICATION_PAGE_LIST_ITEM));
 
         pAPLI->hWnd = hWnd;
         pAPLI->hIcon = hIcon;
@@ -208,7 +208,7 @@ static void AddOrUpdateHwnd(HWND hWnd, WCHAR *wszTitle, HICON hIcon, BOOL bHung)
             ImageList_Remove(hImageListSmall, item.iItem);
 
             SendMessageW(hApplicationPageListCtrl, LVM_DELETEITEM, item.iItem, 0);
-            HeapFree(GetProcessHeap(), 0, pAPLI);
+            heap_free(pAPLI);
             bItemRemoved = TRUE;
         }
     }
@@ -601,7 +601,7 @@ void ApplicationPage_OnWindowsTileHorizontally(void)
         }
     }
     TileWindows(NULL, MDITILE_HORIZONTAL, NULL, nWndCount, hWndArray);
-    HeapFree(GetProcessHeap(), 0, hWndArray);
+    heap_free(hWndArray);
 }
 
 void ApplicationPage_OnWindowsTileVertically(void)
@@ -634,7 +634,7 @@ void ApplicationPage_OnWindowsTileVertically(void)
     }
 
     TileWindows(NULL, MDITILE_VERTICAL, NULL, nWndCount, hWndArray);
-    HeapFree(GetProcessHeap(), 0, hWndArray);
+    heap_free(hWndArray);
 }
 
 void ApplicationPage_OnWindowsMinimize(void)
@@ -709,7 +709,7 @@ void ApplicationPage_OnWindowsCascade(void)
         }
     }
     CascadeWindows(NULL, 0, NULL, nWndCount, hWndArray);
-    HeapFree(GetProcessHeap(), 0, hWndArray);
+    heap_free(hWndArray);
 }
 
 void ApplicationPage_OnWindowsBringToFront(void)

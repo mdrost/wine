@@ -189,7 +189,9 @@ extern	HDDEDATA 	WDML_InvokeCallback(WDML_INSTANCE* pInst, UINT uType, UINT uFmt
 					    HSZ hsz1, HSZ hsz2, HDDEDATA hdata,
 					    ULONG_PTR dwData1, ULONG_PTR dwData2) DECLSPEC_HIDDEN;
 extern	WDML_SERVER*	WDML_AddServer(WDML_INSTANCE* pInstance, HSZ hszService, HSZ hszTopic) DECLSPEC_HIDDEN;
+#if 0
 extern	void		WDML_RemoveServer(WDML_INSTANCE* pInstance, HSZ hszService, HSZ hszTopic) DECLSPEC_HIDDEN;
+#endif
 extern	WDML_SERVER*	WDML_FindServer(WDML_INSTANCE* pInstance, HSZ hszService, HSZ hszTopic) DECLSPEC_HIDDEN;
 /* transaction handler on the server side */
 extern WDML_QUEUE_STATE WDML_ServerHandle(WDML_CONV* pConv, WDML_XACT* pXAct) DECLSPEC_HIDDEN;
@@ -198,7 +200,9 @@ HDDEDATA WDML_ClientHandle(WDML_CONV *pConv, WDML_XACT *pXAct, DWORD dwTimeout, 
 /* called both in DdeClientTransaction and server side. */
 extern	WDML_CONV* 	WDML_AddConv(WDML_INSTANCE* pInstance, WDML_SIDE side,
 				     HSZ hszService, HSZ hszTopic, HWND hwndClient, HWND hwndServer) DECLSPEC_HIDDEN;
+#if 0
 extern	void		WDML_RemoveConv(WDML_CONV* pConv, WDML_SIDE side) DECLSPEC_HIDDEN;
+#endif
 extern	WDML_CONV*	WDML_GetConv(HCONV hConv, BOOL checkConnected) DECLSPEC_HIDDEN;
 extern	WDML_CONV*	WDML_GetConvFromWnd(HWND hWnd) DECLSPEC_HIDDEN;
 extern	WDML_CONV*	WDML_FindConv(WDML_INSTANCE* pInstance, WDML_SIDE side,
@@ -220,7 +224,9 @@ extern	HSZ		WDML_MakeHszFromAtom(const WDML_INSTANCE* pInstance, ATOM atom) DECL
 extern	WDML_XACT*	WDML_AllocTransaction(WDML_INSTANCE* pInstance, UINT ddeMsg, UINT wFmt, HSZ hszItem) DECLSPEC_HIDDEN;
 extern	void		WDML_QueueTransaction(WDML_CONV* pConv, WDML_XACT* pXAct) DECLSPEC_HIDDEN;
 extern	BOOL		WDML_UnQueueTransaction(WDML_CONV* pConv, WDML_XACT*  pXAct) DECLSPEC_HIDDEN;
+#if 0
 extern	void		WDML_FreeTransaction(WDML_INSTANCE* pInstance, WDML_XACT* pXAct, BOOL doFreePmt) DECLSPEC_HIDDEN;
+#endif
 extern	HGLOBAL		WDML_DataHandle2Global(HDDEDATA hDdeData, BOOL fResponse, BOOL fRelease,
 					       BOOL fDeferUpd, BOOL dAckReq) DECLSPEC_HIDDEN;
 extern	HDDEDATA	WDML_Global2DataHandle(WDML_CONV* pConv, HGLOBAL hMem, WINE_DDEHEAD* da) DECLSPEC_HIDDEN;

@@ -23,6 +23,9 @@
 #include <assert.h>
 #include <stdarg.h>
 
+#define __USE_GNU
+#include <unistd.h>
+
 #include "ntstatus.h"
 #define WIN32_NO_STATUS
 #include "windef.h"
@@ -56,6 +59,7 @@ NTSYSAPI NTSTATUS WINAPI NtQuerySystemEnvironmentValueEx(PUNICODE_STRING name, L
     return STATUS_NOT_IMPLEMENTED;
 }
 
+#if 0
 /******************************************************************************
  *  RtlCreateEnvironment		[NTDLL.@]
  */
@@ -108,21 +112,101 @@ NTSTATUS WINAPI RtlDestroyEnvironment(PWSTR env)
 
     return NtFreeVirtualMemory(NtCurrentProcess(), (void**)&env, &size, MEM_RELEASE);
 }
+#endif
 
+#if 0
 static LPCWSTR ENV_FindVariable(PCWSTR var, PCWSTR name, unsigned namelen)
+#else
+static LPCSTR ENV_FindVariable(PCSTR var, PCSTR name, unsigned namelen)
+#endif
 {
+#if 0
     for (; *var; var += strlenW(var) + 1)
+#else
+    for (; *var; var += strlen(var) + 1)
+#endif
     {
         /* match var names, but avoid setting a var with a name including a '='
          * (a starting '=' is valid though)
          */
+#if 0
         if (strncmpiW(var, name, namelen) == 0 && var[namelen] == '=' &&
             strchrW(var + 1, '=') == var + namelen) 
+#else
+        if (strncmp(var, name, namelen) == 0 && var[namelen] == '=' &&
+            strchr(var + 1, '=') == var + namelen) 
+#endif
         {
             return var + namelen + 1;
         }
     }
     return NULL;
+}
+
+static PSTR alloc_environ(void)
+{
+    PSTR ret, ptr;
+    int i;
+    int len = 0;
+
+    for (i = 0; environ[i] != NULL; ++i)
+        len += strlen(environ[i]);
+    len += (i + 2);
+
+    if (!(ret = malloc(len))) return NULL;
+
+    ptr = ret;
+    for (i = 0; environ[i] != NULL; i++)
+    {
+        ptr = stpcpy(ptr, environ[i]);
+        ptr += 1;
+    }
+    stpncpy(ptr, "\0", 1);
+    
+    return ret;
+}
+
+
+/******************************************************************
+ *		RtlQueryEnvironmentVariable_A   [NTDLL.@]
+ *
+ */
+NTSTATUS WINAPI RtlQueryEnvironmentVariable_A(PSTR env,
+                                              PANSI_STRING name,
+                                              PANSI_STRING value)
+{
+    NTSTATUS    nts = STATUS_VARIABLE_NOT_FOUND;
+    PCSTR       var;
+    unsigned    namelen;
+
+    TRACE("%p %s %p\n", env, debugstr_as(name), value);
+
+    value->Length = 0;
+    namelen = name->Length / sizeof(CHAR);
+    if (!namelen) return nts;
+
+    if (!env)
+    {
+        if (!(var = alloc_environ())) return STATUS_NO_MEMORY;
+    }
+    else var = env;
+
+    var = ENV_FindVariable(var, name->Buffer, namelen);
+    if (var != NULL)
+    {
+        value->Length = strlen(var) * sizeof(*var);
+
+        if (value->Length <= value->MaximumLength)
+        {
+            memmove(value->Buffer, var, min(value->Length + sizeof(*var), value->MaximumLength));
+            nts = STATUS_SUCCESS;
+        }
+        else nts = STATUS_BUFFER_TOO_SMALL;
+    }
+
+    free(var);
+
+    return nts;
 }
 
 /******************************************************************
@@ -137,6 +221,7 @@ NTSTATUS WINAPI RtlQueryEnvironmentVariable_U(PWSTR env,
                                               PUNICODE_STRING name,
                                               PUNICODE_STRING value)
 {
+#if 0
     NTSTATUS    nts = STATUS_VARIABLE_NOT_FOUND;
     PCWSTR      var;
     unsigned    namelen;
@@ -157,11 +242,11 @@ NTSTATUS WINAPI RtlQueryEnvironmentVariable_U(PWSTR env,
     var = ENV_FindVariable(var, name->Buffer, namelen);
     if (var != NULL)
     {
-        value->Length = strlenW(var) * sizeof(WCHAR);
+        value->Length = strlenW(var) * sizeof(*var);
 
         if (value->Length <= value->MaximumLength)
         {
-            memmove(value->Buffer, var, min(value->Length + sizeof(WCHAR), value->MaximumLength));
+            memmove(value->Buffer, var, min(value->Length + sizeof(*var), value->MaximumLength));
             nts = STATUS_SUCCESS;
         }
         else nts = STATUS_BUFFER_TOO_SMALL;
@@ -170,6 +255,9 @@ NTSTATUS WINAPI RtlQueryEnvironmentVariable_U(PWSTR env,
     if (!env) RtlReleasePebLock();
 
     return nts;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -180,12 +268,14 @@ void WINAPI RtlSetCurrentEnvironment(PWSTR new_env, PWSTR* old_env)
 {
     TRACE("(%p %p)\n", new_env, old_env);
 
+#if 0
     RtlAcquirePebLock();
 
     if (old_env) *old_env = NtCurrentTeb()->Peb->ProcessParameters->Environment;
     NtCurrentTeb()->Peb->ProcessParameters->Environment = new_env;
 
     RtlReleasePebLock();
+#endif
 }
 
 
@@ -211,6 +301,7 @@ NTSTATUS WINAPI RtlSetEnvironmentVariable(PWSTR* penv, PUNICODE_STRING name,
     for (p = name->Buffer + 1; p < name->Buffer + len; p++)
         if (*p == '=') return STATUS_INVALID_PARAMETER;
 
+#if 0
     if (!penv)
     {
         RtlAcquirePebLock();
@@ -279,6 +370,98 @@ done:
     if (!penv) RtlReleasePebLock();
 
     return nts;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
+}
+
+/******************************************************************
+ *		RtlExpandEnvironmentStrings_A (NTDLL.@)
+ *
+ */
+NTSTATUS WINAPI RtlExpandEnvironmentStrings_A(PCSTR renv, const ANSI_STRING* as_src,
+                                              PANSI_STRING as_dst, PULONG plen)
+{
+    DWORD src_len, len, count, total_size = 1;  /* 1 for terminating '\0' */
+    LPCSTR     env, src, p, var;
+    LPSTR      dst;
+
+    src = as_src->Buffer;
+    src_len = as_src->Length / sizeof(CHAR);
+    count = as_dst->MaximumLength / sizeof(CHAR);
+    dst = count ? as_dst->Buffer : NULL;
+
+    if (!renv)
+    {
+#if 0
+        RtlAcquirePebLock();
+        env = NtCurrentTeb()->Peb->ProcessParameters->Environment;
+#else
+        env = alloc_environ();
+#endif
+    }
+    else env = renv;
+
+    while (src_len)
+    {
+        if (*src != '%')
+        {
+            if ((p = memchr( src, '%', src_len ))) len = p - src;
+            else len = src_len;
+            var = src;
+            src += len;
+            src_len -= len;
+        }
+        else  /* we are at the start of a variable */
+        {
+            if ((p = memchr( src + 1, '%', src_len - 1 )))
+            {
+                len = p - src - 1;  /* Length of the variable name */
+                if ((var = ENV_FindVariable( env, src + 1, len )))
+                {
+                    src += len + 2;  /* Skip the variable name */
+                    src_len -= len + 2;
+                    len = strlen(var);
+                }
+                else
+                {
+                    var = src;  /* Copy original name instead */
+                    len += 2;
+                    src += len;
+                    src_len -= len;
+                }
+            }
+            else  /* unfinished variable name, ignore it */
+            {
+                var = src;
+                len = src_len;  /* Copy whole string */
+                src += len;
+                src_len = 0;
+            }
+        }
+        total_size += len;
+        if (dst)
+        {
+            if (count < len) len = count;
+            memcpy(dst, var, len * sizeof(CHAR));
+            count -= len;
+            dst += len;
+        }
+    }
+
+#if 0
+    if (!renv) RtlReleasePebLock();
+#else
+    if (!renv) free(env);
+#endif
+
+    /* Null-terminate the string */
+    if (dst && count) *dst = '\0';
+
+    as_dst->Length = (dst) ? (dst - as_dst->Buffer) * sizeof(CHAR) : 0;
+    if (plen) *plen = total_size * sizeof(CHAR);
+
+    return (count) ? STATUS_SUCCESS : STATUS_BUFFER_TOO_SMALL;
 }
 
 /******************************************************************
@@ -288,6 +471,7 @@ done:
 NTSTATUS WINAPI RtlExpandEnvironmentStrings_U(PCWSTR renv, const UNICODE_STRING* us_src,
                                               PUNICODE_STRING us_dst, PULONG plen)
 {
+#if 0
     DWORD src_len, len, count, total_size = 1;  /* 1 for terminating '\0' */
     LPCWSTR     env, src, p, var;
     LPWSTR      dst;
@@ -360,6 +544,9 @@ NTSTATUS WINAPI RtlExpandEnvironmentStrings_U(PCWSTR renv, const UNICODE_STRING*
     if (plen) *plen = total_size * sizeof(WCHAR);
 
     return (count) ? STATUS_SUCCESS : STATUS_BUFFER_TOO_SMALL;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -441,6 +628,7 @@ NTSTATUS WINAPI RtlCreateProcessParameters( RTL_USER_PROCESS_PARAMETERS **result
                                             const UNICODE_STRING *ShellInfo,
                                             const UNICODE_STRING *RuntimeInfo )
 {
+#if 0
     static WCHAR empty[] = {0};
     static const UNICODE_STRING empty_str = { 0, sizeof(empty), empty };
     static const UNICODE_STRING null_str = { 0, 0, NULL };
@@ -503,6 +691,9 @@ NTSTATUS WINAPI RtlCreateProcessParameters( RTL_USER_PROCESS_PARAMETERS **result
     }
     RtlReleasePebLock();
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 

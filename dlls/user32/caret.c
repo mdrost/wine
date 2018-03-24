@@ -30,7 +30,10 @@
 #include "winbase.h"
 #include "wingdi.h"
 #include "winuser.h"
+#include "wine/heap.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(caret);
@@ -75,6 +78,7 @@ static void CARET_DisplayCaret( HWND hwnd, const RECT *r )
  */
 static void CALLBACK CARET_Callback( HWND hwnd, UINT msg, UINT_PTR id, DWORD ctime)
 {
+#if 0
     BOOL ret;
     RECT r;
     int hidden = 0;
@@ -100,6 +104,7 @@ static void CALLBACK CARET_Callback( HWND hwnd, UINT msg, UINT_PTR id, DWORD cti
     SERVER_END_REQ;
 
     if (ret && !hidden) CARET_DisplayCaret( hwnd, &r );
+#endif
 }
 
 
@@ -108,6 +113,7 @@ static void CALLBACK CARET_Callback( HWND hwnd, UINT msg, UINT_PTR id, DWORD cti
  */
 BOOL WINAPI CreateCaret( HWND hwnd, HBITMAP bitmap, INT width, INT height )
 {
+#if 0
     BOOL ret;
     RECT r;
     int old_state = 0;
@@ -130,10 +136,10 @@ BOOL WINAPI CreateCaret( HWND hwnd, HBITMAP bitmap, INT width, INT height )
 	if (hBmp)
 	{
 	    /* copy the bitmap */
-	    LPBYTE buf = HeapAlloc(GetProcessHeap(), 0, bmp.bmWidthBytes * bmp.bmHeight);
+	    LPBYTE buf = heap_alloc(bmp.bmWidthBytes * bmp.bmHeight);
 	    GetBitmapBits(bitmap, bmp.bmWidthBytes * bmp.bmHeight, buf);
 	    SetBitmapBits(hBmp, bmp.bmWidthBytes * bmp.bmHeight, buf);
-	    HeapFree(GetProcessHeap(), 0, buf);
+	    heap_free(buf);
 	}
     }
     else
@@ -194,6 +200,10 @@ BOOL WINAPI CreateCaret( HWND hwnd, HBITMAP bitmap, INT width, INT height )
     Caret.hBmp = hBmp;
     Caret.timeout = GetProfileIntA( "windows", "CursorBlinkRate", 500 );
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -202,6 +212,7 @@ BOOL WINAPI CreateCaret( HWND hwnd, HBITMAP bitmap, INT width, INT height )
  */
 BOOL WINAPI DestroyCaret(void)
 {
+#if 0
     BOOL ret;
     HWND prev = 0;
     RECT r;
@@ -235,6 +246,10 @@ BOOL WINAPI DestroyCaret(void)
     if (Caret.hBmp) DeleteObject( Caret.hBmp );
     Caret.hBmp = 0;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -243,6 +258,7 @@ BOOL WINAPI DestroyCaret(void)
  */
 BOOL WINAPI SetCaretPos( INT x, INT y )
 {
+#if 0
     BOOL ret;
     HWND hwnd = 0;
     RECT r;
@@ -280,6 +296,10 @@ BOOL WINAPI SetCaretPos( INT x, INT y )
         SetSystemTimer( hwnd, TIMERID, Caret.timeout, CARET_Callback );
     }
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -288,6 +308,7 @@ BOOL WINAPI SetCaretPos( INT x, INT y )
  */
 BOOL WINAPI HideCaret( HWND hwnd )
 {
+#if 0
     BOOL ret;
     RECT r;
     int old_state = 0;
@@ -320,6 +341,10 @@ BOOL WINAPI HideCaret( HWND hwnd )
         KillSystemTimer( hwnd, TIMERID );
     }
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -328,6 +353,7 @@ BOOL WINAPI HideCaret( HWND hwnd )
  */
 BOOL WINAPI ShowCaret( HWND hwnd )
 {
+#if 0
     BOOL ret;
     RECT r;
     int hidden = 0;
@@ -358,6 +384,10 @@ BOOL WINAPI ShowCaret( HWND hwnd )
         SetSystemTimer( hwnd, TIMERID, Caret.timeout, CARET_Callback );
     }
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -366,6 +396,7 @@ BOOL WINAPI ShowCaret( HWND hwnd )
  */
 BOOL WINAPI GetCaretPos( LPPOINT pt )
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( set_caret_info )
@@ -384,6 +415,10 @@ BOOL WINAPI GetCaretPos( LPPOINT pt )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 

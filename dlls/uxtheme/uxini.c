@@ -27,7 +27,6 @@
 #include "winnls.h"
 
 #include "wine/debug.h"
-#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(uxtheme);
 
@@ -76,7 +75,7 @@ PUXINI_FILE UXINI_LoadINI(HMODULE hTheme, LPCWSTR lpName) {
     }
 
     dwIniSize = SizeofResource(hTheme, hrsc) / sizeof(WCHAR);
-    uf = heap_alloc(sizeof(*uf));
+    uf = heap_alloc(sizeof(UXINI_FILE));
     uf->lpIni = lpThemesIni;
     uf->lpCurLoc = lpThemesIni;
     uf->lpEnd = lpThemesIni + dwIniSize;

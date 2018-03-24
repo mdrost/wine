@@ -184,7 +184,7 @@ static void wave_in_test_deviceIn(int device, WAVEFORMATEX *pwfx, DWORD format, 
     /* Check that the position is 0 at start */
     check_position(device, win, 0, pwfx);
 
-    frag.lpData=HeapAlloc(GetProcessHeap(), 0, pwfx->nAvgBytesPerSec);
+    frag.lpData=heap_alloc(pwfx->nAvgBytesPerSec);
     frag.dwBufferLength=pwfx->nAvgBytesPerSec;
     frag.dwBytesRecorded=0;
     frag.dwUser=0;
@@ -291,7 +291,7 @@ static void wave_in_test_deviceIn(int device, WAVEFORMATEX *pwfx, DWORD format, 
             trace("Unable to play back the recorded sound\n");
     }
 
-    HeapFree(GetProcessHeap(), 0, frag.lpData);
+    heap_free(frag.lpData);
     CloseHandle(hevent);
 }
 
@@ -372,7 +372,7 @@ static void wave_in_test_device(UINT_PTR device)
        "waveInMessage(%s): failed to get interface size: rc=%s\n",
        dev_name(device),wave_in_error(rc));
     if (rc==MMSYSERR_NOERROR) {
-        nameW = HeapAlloc(GetProcessHeap(), 0, size);
+        nameW = heap_alloc(size);
         rc=waveInMessage((HWAVEIN)device, DRV_QUERYDEVICEINTERFACE,
                          (DWORD_PTR)nameW, size);
         ok(rc==MMSYSERR_NOERROR,"waveInMessage(%s): failed to get interface "
@@ -380,13 +380,13 @@ static void wave_in_test_device(UINT_PTR device)
         ok(lstrlenW(nameW)+1==size/sizeof(WCHAR),
            "got an incorrect size %d\n", size);
         if (rc==MMSYSERR_NOERROR) {
-            nameA = HeapAlloc(GetProcessHeap(), 0, size/sizeof(WCHAR));
+            nameA = heap_alloc(size/sizeof(WCHAR));
             WideCharToMultiByte(CP_ACP, 0, nameW, size/sizeof(WCHAR),
                                 nameA, size/sizeof(WCHAR), NULL, NULL);
         }
-        HeapFree(GetProcessHeap(), 0, nameW);
+        heap_free(nameW);
     } else if (rc==MMSYSERR_NOTSUPPORTED) {
-        nameA=HeapAlloc(GetProcessHeap(), 0, sizeof("not supported"));
+        nameA=heap_alloc(sizeof("not supported"));
         strcpy(nameA, "not supported");
     }
 
@@ -396,7 +396,7 @@ static void wave_in_test_device(UINT_PTR device)
     trace("     channels=%d formats=%05x\n",
           capsA.wChannels,capsA.dwFormats);
 
-    HeapFree(GetProcessHeap(), 0, nameA);
+    heap_free(nameA);
 
     for (f=0;f<NB_WIN_FORMATS;f++) {
         format.wFormatTag=WAVE_FORMAT_PCM;

@@ -61,11 +61,14 @@
 #define WIN32_NO_STATUS
 #define NONAMELESSUNION
 #include "windef.h"
+#include "winbase.h"
 #include "winternl.h"
 #include "winioctl.h"
 #include "ddk/ntddser.h"
 #include "ntdll_misc.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/library.h"
 #include "wine/debug.h"
 
@@ -390,6 +393,7 @@ static NTSTATUS get_status(int fd, SERIAL_STATUS* ss)
     return status;
 }
 
+#if 0
 static void stop_waiting( HANDLE handle )
 {
     NTSTATUS status;
@@ -403,9 +407,11 @@ static void stop_waiting( HANDLE handle )
     }
     SERVER_END_REQ;
 }
+#endif
 
 static NTSTATUS get_wait_mask(HANDLE hDevice, DWORD *mask, DWORD *cookie, DWORD *pending_write, BOOL start_wait)
 {
+#if 0
     NTSTATUS    status;
 
     SERVER_START_REQ( get_serial_info )
@@ -422,6 +428,9 @@ static NTSTATUS get_wait_mask(HANDLE hDevice, DWORD *mask, DWORD *cookie, DWORD 
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 static NTSTATUS purge(int fd, DWORD flags)
@@ -917,6 +926,7 @@ static DWORD check_events(int fd, DWORD mask,
     return ret & mask;
 }
 
+#if 0
 /***********************************************************************
  *             wait_for_event      (INTERNAL)
  *
@@ -981,19 +991,21 @@ static DWORD CALLBACK wait_for_event(LPVOID arg)
     }
     stop_waiting(commio->hDevice);
     if (commio->hEvent) NtSetEvent(commio->hEvent, NULL);
-    RtlFreeHeap(GetProcessHeap(), 0, commio);
+    free(commio);
     return 0;
 }
+#endif
 
 static NTSTATUS wait_on(HANDLE hDevice, int fd, HANDLE hEvent, PIO_STATUS_BLOCK piosb, DWORD* events)
 {
+#if 0
     async_commio*       commio;
     NTSTATUS            status;
 
     if ((status = NtResetEvent(hEvent, NULL)))
         return status;
 
-    commio = RtlAllocateHeap(GetProcessHeap(), 0, sizeof (async_commio));
+    commio = malloc(sizeof (async_commio));
     if (!commio) return STATUS_NO_MEMORY;
 
     commio->hDevice = hDevice;
@@ -1004,7 +1016,7 @@ static NTSTATUS wait_on(HANDLE hDevice, int fd, HANDLE hEvent, PIO_STATUS_BLOCK 
     status = get_wait_mask(commio->hDevice, &commio->evtmask, &commio->cookie, (commio->evtmask & EV_TXEMPTY) ? &commio->pending_write : NULL, TRUE);
     if (status)
     {
-        RtlFreeHeap(GetProcessHeap(), 0, commio);
+        free(commio);
         return status;
     }
 
@@ -1072,8 +1084,11 @@ error_caps:
 #endif
 out_now:
     stop_waiting(commio->hDevice);
-    RtlFreeHeap(GetProcessHeap(), 0, commio);
+    free(commio);
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 static NTSTATUS xmit_immediate(HANDLE hDevice, int fd, const char* ptr)
@@ -1098,6 +1113,7 @@ static inline NTSTATUS io_control(HANDLE hDevice,
                                   LPVOID lpInBuffer, DWORD nInBufferSize,
                                   LPVOID lpOutBuffer, DWORD nOutBufferSize)
 {
+#if 0
     DWORD       sz = 0, access = FILE_READ_DATA;
     NTSTATUS    status = STATUS_SUCCESS;
     int         fd = -1, needs_close = 0;
@@ -1308,6 +1324,9 @@ static inline NTSTATUS io_control(HANDLE hDevice,
     piosb->Information = sz;
     if (hEvent && status != STATUS_PENDING) NtSetEvent(hEvent, NULL);
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 NTSTATUS COMM_DeviceIoControl(HANDLE hDevice, 

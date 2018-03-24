@@ -95,7 +95,7 @@ static ULONG WINAPI IWSDUdpAddressImpl_Release(IWSDUdpAddress *iface)
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -358,7 +358,7 @@ HRESULT WINAPI WSDCreateUdpAddress(IWSDUdpAddress **ppAddress)
 
     *ppAddress = NULL;
 
-    obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*obj));
+    obj = heap_alloc_zero(sizeof(*obj));
 
     if (!obj)
     {

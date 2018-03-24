@@ -248,8 +248,8 @@ static DWORD WINAPI test_ports_client(LPVOID arg)
     if (is_wow64)
     {
         size = FIELD_OFFSET(LPC_MESSAGE64, Data[MAX_MESSAGE_LEN]);
-        LpcMessage = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
-        out = HeapAlloc(GetProcessHeap(), 0, size);
+        LpcMessage = heap_alloc_zero(size);
+        out = heap_alloc(size);
 
         LpcMessage->msg64.DataSize = strlen(REQUEST1) + 1;
         LpcMessage->msg64.MessageSize = FIELD_OFFSET(LPC_MESSAGE64, Data[LpcMessage->msg64.DataSize]);
@@ -276,8 +276,8 @@ static DWORD WINAPI test_ports_client(LPVOID arg)
     else
     {
         size = FIELD_OFFSET(LPC_MESSAGE, Data[MAX_MESSAGE_LEN]);
-        LpcMessage = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
-        out = HeapAlloc(GetProcessHeap(), 0, size);
+        LpcMessage = heap_alloc_zero(size);
+        out = heap_alloc(size);
 
         LpcMessage->msg.DataSize = strlen(REQUEST1) + 1;
         LpcMessage->msg.MessageSize = FIELD_OFFSET(LPC_MESSAGE, Data[LpcMessage->msg.DataSize]);
@@ -302,8 +302,8 @@ static DWORD WINAPI test_ports_client(LPVOID arg)
         ok(out->msg.MessageType == LPC_REPLY, "Expected LPC_REPLY, got %d\n", out->msg.MessageType);
     }
 
-    HeapFree(GetProcessHeap(), 0, out);
-    HeapFree(GetProcessHeap(), 0, LpcMessage);
+    heap_free(out);
+    heap_free(LpcMessage);
 
     return 0;
 }
@@ -317,7 +317,7 @@ static void test_ports_server( HANDLE PortHandle )
     BOOL done = FALSE;
 
     size = FIELD_OFFSET(LPC_MESSAGE, Data) + MAX_MESSAGE_LEN;
-    LpcMessage = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    LpcMessage = heap_alloc_zero(size);
 
     while (TRUE)
     {
@@ -354,7 +354,7 @@ static void test_ports_server( HANDLE PortHandle )
 
             case LPC_CLIENT_DIED:
                 ok(done, "Expected LPC request to be completed!\n");
-                HeapFree(GetProcessHeap(), 0, LpcMessage);
+                heap_free(LpcMessage);
                 return;
 
             default:
@@ -364,7 +364,7 @@ static void test_ports_server( HANDLE PortHandle )
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, LpcMessage);
+    heap_free(LpcMessage);
 }
 
 START_TEST(port)

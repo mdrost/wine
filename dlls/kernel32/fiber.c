@@ -37,6 +37,7 @@
 #include "winerror.h"
 #include "winternl.h"
 #include "wine/exception.h"
+#include "wine/heap.h"
 #include "wine/library.h"
 
 struct fiber_data
@@ -53,6 +54,7 @@ struct fiber_data
 };
 
 
+#if 0
 /* call the fiber initial function once we have switched stack */
 static void start_fiber( void *arg )
 {
@@ -71,6 +73,7 @@ static void start_fiber( void *arg )
     }
     __ENDTRY
 }
+#endif
 
 
 /***********************************************************************
@@ -90,7 +93,7 @@ LPVOID WINAPI CreateFiberEx( SIZE_T stack_commit, SIZE_T stack_reserve, DWORD fl
 {
     struct fiber_data *fiber;
 
-    if (!(fiber = HeapAlloc( GetProcessHeap(), 0, sizeof(*fiber) )))
+    if (!(fiber = heap_alloc( sizeof(*fiber) )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return NULL;
@@ -100,7 +103,7 @@ LPVOID WINAPI CreateFiberEx( SIZE_T stack_commit, SIZE_T stack_reserve, DWORD fl
     if (!stack_reserve) stack_reserve = 1024*1024;
     if(!(fiber->stack_allocation = VirtualAlloc( 0, stack_reserve, MEM_COMMIT, PAGE_READWRITE )))
     {
-        HeapFree( GetProcessHeap(), 0, fiber );
+        heap_free( fiber );
         return NULL;
     }
     fiber->stack_base  = (char *)fiber->stack_allocation + stack_reserve;
@@ -124,12 +127,12 @@ void WINAPI DeleteFiber( LPVOID fiber_ptr )
     if (!fiber) return;
     if (fiber == NtCurrentTeb()->Tib.u.FiberData)
     {
-        HeapFree( GetProcessHeap(), 0, fiber );
+        heap_free( fiber );
         ExitThread(1);
     }
     VirtualFree( fiber->stack_allocation, 0, MEM_RELEASE );
-    HeapFree( GetProcessHeap(), 0, fiber->fls_slots );
-    HeapFree( GetProcessHeap(), 0, fiber );
+    heap_free( fiber->fls_slots );
+    heap_free( fiber );
 }
 
 
@@ -149,7 +152,7 @@ LPVOID WINAPI ConvertThreadToFiberEx( LPVOID param, DWORD flags )
 {
     struct fiber_data *fiber;
 
-    if (!(fiber = HeapAlloc( GetProcessHeap(), 0, sizeof(*fiber) )))
+    if (!(fiber = heap_alloc( sizeof(*fiber) )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return NULL;
@@ -177,12 +180,13 @@ BOOL WINAPI ConvertFiberToThread(void)
     if (fiber)
     {
         NtCurrentTeb()->Tib.u.FiberData = NULL;
-        HeapFree( GetProcessHeap(), 0, fiber );
+        heap_free( fiber );
     }
     return TRUE;
 }
 
 
+#if 0
 /***********************************************************************
  *           SwitchToFiber   (KERNEL32.@)
  */
@@ -211,6 +215,7 @@ void WINAPI SwitchToFiber( LPVOID fiber )
             siglongjmp( new_fiber->jmpbuf, 1 );
     }
 }
+#endif
 
 /***********************************************************************
  *           FlsAlloc   (KERNEL32.@)
@@ -222,8 +227,7 @@ DWORD WINAPI FlsAlloc( PFLS_CALLBACK_FUNCTION callback )
 
     RtlAcquirePebLock();
     if (!peb->FlsCallback &&
-        !(peb->FlsCallback = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                        8 * sizeof(peb->FlsBitmapBits) * sizeof(void*) )))
+        !(peb->FlsCallback = heap_alloc_zero( 8 * sizeof(peb->FlsBitmapBits) * sizeof(void*) )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         index = FLS_OUT_OF_INDEXES;
@@ -234,8 +238,7 @@ DWORD WINAPI FlsAlloc( PFLS_CALLBACK_FUNCTION callback )
         if (index != ~0U)
         {
             if (!NtCurrentTeb()->FlsSlots &&
-                !(NtCurrentTeb()->FlsSlots = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                                        8 * sizeof(peb->FlsBitmapBits) * sizeof(void*) )))
+                !(NtCurrentTeb()->FlsSlots = heap_alloc_zero( 8 * sizeof(peb->FlsBitmapBits) * sizeof(void*) )))
             {
                 RtlClearBits( peb->FlsBitmap, index, 1 );
                 index = FLS_OUT_OF_INDEXES;
@@ -299,8 +302,7 @@ BOOL WINAPI FlsSetValue( DWORD index, PVOID data )
         return FALSE;
     }
     if (!NtCurrentTeb()->FlsSlots &&
-        !(NtCurrentTeb()->FlsSlots = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                        8 * sizeof(NtCurrentTeb()->Peb->FlsBitmapBits) * sizeof(void*) )))
+        !(NtCurrentTeb()->FlsSlots = heap_alloc_zero( 8 * sizeof(NtCurrentTeb()->Peb->FlsBitmapBits) * sizeof(void*) )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return FALSE;

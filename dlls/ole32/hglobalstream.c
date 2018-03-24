@@ -120,7 +120,7 @@ static ULONG WINAPI HGLOBALStreamImpl_Release(
       This->supportHandle = NULL;
     }
 
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
   }
 
   return ref;
@@ -587,7 +587,7 @@ HRESULT WINAPI CreateStreamOnHGlobal(
   if (!ppstm)
     return E_INVALIDARG;
 
-  This = HeapAlloc(GetProcessHeap(), 0, sizeof(HGLOBALStreamImpl));
+  This = heap_alloc(sizeof(HGLOBALStreamImpl));
   if (!This) return E_OUTOFMEMORY;
 
   This->IStream_iface.lpVtbl = &HGLOBALStreamImplVtbl;

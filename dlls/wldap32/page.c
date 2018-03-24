@@ -99,13 +99,15 @@ static ULONG create_page_control( ULONG pagesize, struct WLDAP32_berval *cookie,
         return WLDAP32_LDAP_NO_MEMORY;
 
     /* copy the berval so it can be properly freed by the caller */
-    if (!(val = heap_alloc( berval->bv_len ))) return WLDAP32_LDAP_NO_MEMORY;
+    val = heap_alloc( berval->bv_len );
+    if (!val) return WLDAP32_LDAP_NO_MEMORY;
 
     len = berval->bv_len;
     memcpy( val, berval->bv_val, len );
     ber_bvfree( berval );
 
-    if (!(ctrl = heap_alloc( sizeof(LDAPControlW) )))
+    ctrl = heap_alloc( sizeof(LDAPControlW) );
+    if (!ctrl)
     {
         heap_free( val );
         return WLDAP32_LDAP_NO_MEMORY;

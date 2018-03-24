@@ -106,7 +106,7 @@ static ULONG WINAPI IExplorerBrowserEventsImpl_fnRelease(IExplorerBrowserEvents 
     IExplorerBrowserEventsImpl *This = impl_from_IExplorerBrowserEvents(iface);
     ULONG ref = InterlockedDecrement(&This->ref);
     if(!ref)
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     return ref;
 }
 
@@ -317,7 +317,7 @@ static IExplorerBrowserEventsVtbl vt_IExplorerBrowserEvents =
 static IExplorerBrowserEvents *make_explorer_events(explorer_info *info)
 {
     IExplorerBrowserEventsImpl *ret
-        = HeapAlloc(GetProcessHeap(), 0, sizeof(IExplorerBrowserEventsImpl));
+        = heap_alloc(sizeof(IExplorerBrowserEventsImpl));
     ret->IExplorerBrowserEvents_iface.lpVtbl = &vt_IExplorerBrowserEvents;
     ret->info = info;
     ret->ref = 1;
@@ -359,7 +359,7 @@ static void make_explorer_window(IShellFolder* startFolder)
     default_width = MulDiv(DEFAULT_WIDTH, dpix, USER_DEFAULT_SCREEN_DPI);
     default_height = MulDiv(DEFAULT_HEIGHT, dpiy, USER_DEFAULT_SCREEN_DPI);
 
-    info = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(explorer_info));
+    info = heap_alloc_zero(sizeof(explorer_info));
     if(!info)
     {
         WINE_ERR("Could not allocate an explorer_info struct\n");
@@ -370,7 +370,7 @@ static void make_explorer_window(IShellFolder* startFolder)
     if(FAILED(hres))
     {
         WINE_ERR("Could not obtain an instance of IExplorerBrowser\n");
-        HeapFree(GetProcessHeap(),0,info);
+        heap_free(info);
         return;
     }
     info->rebar_height=0;
@@ -576,7 +576,7 @@ static LRESULT CALLBACK explorer_wnd_proc(HWND hwnd, UINT uMsg, WPARAM wParam, L
         IExplorerBrowser_Release(browser);
         ILFree(info->pidl);
         IImageList_Release(info->icon_list);
-        HeapFree(GetProcessHeap(),0,info);
+        heap_free(info);
         SetWindowLongPtrW(hwnd,EXPLORER_INFO_INDEX,0);
         PostQuitMessage(0);
         break;

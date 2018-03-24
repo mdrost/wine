@@ -238,8 +238,12 @@ BOOL WINAPI VirtualProtectEx( HANDLE process, LPVOID addr, SIZE_T size,
     NTSTATUS status;
     DWORD prot;
 
+#if 0
     /* Win9x allows passing NULL as old_prot while this fails on NT */
     if (!old_prot && (GetVersion() & 0x80000000)) old_prot = &prot;
+#else
+    old_prot = &prot;
+#endif
 
     status = NtProtectVirtualMemory( process, &addr, &size, new_prot, old_prot );
     if (status) SetLastError( RtlNtStatusToDosError(status) );
@@ -388,7 +392,9 @@ BOOL WINAPI UnmapViewOfFile( LPCVOID addr )
 {
     NTSTATUS status;
 
+#if 0
     if (GetVersion() & 0x80000000)
+#endif
     {
         MEMORY_BASIC_INFORMATION info;
         if (!VirtualQuery( addr, &info, sizeof(info) ) || info.AllocationBase != addr)
@@ -472,6 +478,7 @@ BOOL WINAPI IsBadReadPtr( LPCVOID ptr, UINT_PTR size )
 {
     if (!size) return FALSE;  /* handle 0 size case w/o reference */
     if (!ptr) return TRUE;
+#if 0
     __TRY
     {
         volatile const char *p = ptr;
@@ -493,6 +500,7 @@ BOOL WINAPI IsBadReadPtr( LPCVOID ptr, UINT_PTR size )
         return TRUE;
     }
     __ENDTRY
+#endif
     return FALSE;
 }
 
@@ -514,6 +522,7 @@ BOOL WINAPI IsBadWritePtr( LPVOID ptr, UINT_PTR size )
 {
     if (!size) return FALSE;  /* handle 0 size case w/o reference */
     if (!ptr) return TRUE;
+#if 0
     __TRY
     {
         volatile char *p = ptr;
@@ -534,6 +543,7 @@ BOOL WINAPI IsBadWritePtr( LPVOID ptr, UINT_PTR size )
         return TRUE;
     }
     __ENDTRY
+#endif
     return FALSE;
 }
 
@@ -649,6 +659,7 @@ BOOL WINAPI IsBadStringPtrW( LPCWSTR str, UINT_PTR max )
     return FALSE;
 }
 
+#if 0
 /***********************************************************************
  *           K32GetMappedFileNameA (KERNEL32.@)
  */
@@ -721,3 +732,4 @@ BOOL WINAPI K32InitializeProcessForWsWatch(HANDLE process)
 
     return TRUE;
 }
+#endif

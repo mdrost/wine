@@ -1389,7 +1389,7 @@ BOOL X11DRV_KeyEvent( HWND hwnd, XEvent *xev )
         TRACE_(key)("XmbLookupString needs %i byte(s)\n", ascii_chars);
         if (status == XBufferOverflow)
         {
-            Str = HeapAlloc(GetProcessHeap(), 0, ascii_chars);
+            Str = heap_alloc(ascii_chars);
             if (Str == NULL)
             {
                 ERR_(key)("Failed to allocate memory!\n");
@@ -1407,7 +1407,7 @@ BOOL X11DRV_KeyEvent( HWND hwnd, XEvent *xev )
     {
         X11DRV_XIMLookupChars( Str, ascii_chars );
         if (buf != Str)
-            HeapFree(GetProcessHeap(), 0, Str);
+            heap_free(Str);
         return TRUE;
     }
 
@@ -1436,7 +1436,7 @@ BOOL X11DRV_KeyEvent( HWND hwnd, XEvent *xev )
                     keysym, ksname, ascii_chars, debugstr_an(Str, ascii_chars));
     }
     if (buf != Str)
-        HeapFree(GetProcessHeap(), 0, Str);
+        heap_free(Str);
 
     vkey = EVENT_event_to_vkey(xic,event);
     /* X returns keycode 0 for composed characters */
@@ -2602,7 +2602,7 @@ INT CDECL X11DRV_ToUnicodeEx(UINT virtKey, UINT scanCode, const BYTE *lpKeyState
         TRACE_(key)("XmbLookupString needs %d byte(s)\n", ret);
         if (status == XBufferOverflow)
         {
-            lpChar = HeapAlloc(GetProcessHeap(), 0, ret);
+            lpChar = heap_alloc(ret);
             if (lpChar == NULL)
             {
                 ERR_(key)("Failed to allocate memory!\n");
@@ -2756,7 +2756,7 @@ INT CDECL X11DRV_ToUnicodeEx(UINT virtKey, UINT scanCode, const BYTE *lpKeyState
 
 found:
     if (buf != lpChar)
-        HeapFree(GetProcessHeap(), 0, lpChar);
+        heap_free(lpChar);
 
     LeaveCriticalSection( &kbd_section );
 

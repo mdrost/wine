@@ -270,7 +270,7 @@ static void test_WNetUseConnection(void)
         win_skip("WNetUseConnection() is not supported.\n");
         return;
     }
-    netRes = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(NETRESOURCEA) + sizeof("\\\\127.0.0.1\\c$") + sizeof("J:"));
+    netRes = heap_alloc_zero(sizeof(NETRESOURCEA) + sizeof("\\\\127.0.0.1\\c$") + sizeof("J:"));
     netRes->dwType        = RESOURCETYPE_DISK;
     netRes->dwDisplayType = RESOURCEDISPLAYTYPE_SHARE;
     netRes->dwUsage       = RESOURCEUSAGE_CONNECTABLE;
@@ -312,7 +312,7 @@ static void test_WNetUseConnection(void)
     if (ret == WN_SUCCESS) WNetCancelConnectionA(drive, TRUE);
 
 end:
-    HeapFree(GetProcessHeap(), 0, netRes);
+    heap_free(netRes);
 }
 
 START_TEST(mpr)

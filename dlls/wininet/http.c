@@ -2222,14 +2222,22 @@ static DWORD HTTPREQ_QueryOption(object_header_t *hdr, DWORD option, void *buffe
             info->ftStart = context->pCertInfo->NotBefore;
             len = CertNameToStrA(context->dwCertEncodingType,
                      &context->pCertInfo->Subject, CERT_SIMPLE_NAME_STR|CERT_NAME_STR_CRLF_FLAG, NULL, 0);
+#if 0
             info->lpszSubjectInfo = LocalAlloc(0, len);
+#else
+            info->lpszSubjectInfo = NULL;
+#endif
             if(info->lpszSubjectInfo)
                 CertNameToStrA(context->dwCertEncodingType,
                          &context->pCertInfo->Subject, CERT_SIMPLE_NAME_STR|CERT_NAME_STR_CRLF_FLAG,
                          info->lpszSubjectInfo, len);
             len = CertNameToStrA(context->dwCertEncodingType,
                      &context->pCertInfo->Issuer, CERT_SIMPLE_NAME_STR|CERT_NAME_STR_CRLF_FLAG, NULL, 0);
+#if 0
             info->lpszIssuerInfo = LocalAlloc(0, len);
+#else
+            info->lpszIssuerInfo = NULL;
+#endif
             if(info->lpszIssuerInfo)
                 CertNameToStrA(context->dwCertEncodingType,
                          &context->pCertInfo->Issuer, CERT_SIMPLE_NAME_STR|CERT_NAME_STR_CRLF_FLAG,
@@ -6159,7 +6167,11 @@ static DWORD HTTP_ProcessHeader(http_request_t *request, LPCWSTR field, LPCWSTR 
 
         len = origlen + valuelen + ((ch > 0) ? 2 : 0);
 
+#if 0
         lpsztmp = heap_realloc(lphttpHdr->lpszValue, (len+1)*sizeof(WCHAR));
+#else
+        lpsztmp = NULL;
+#endif
         if (lpsztmp)
         {
             lphttpHdr->lpszValue = lpsztmp;
@@ -6238,7 +6250,11 @@ static DWORD HTTP_InsertCustomHeader(http_request_t *request, LPHTTPHEADERW lpHd
     TRACE("--> %s: %s\n", debugstr_w(lpHdr->lpszField), debugstr_w(lpHdr->lpszValue));
     count = request->nCustHeaders + 1;
     if (count > 1)
+#if 0
 	lph = heap_realloc_zero(request->custHeaders, sizeof(HTTPHEADERW) * count);
+#else
+	lph = NULL;
+#endif
     else
 	lph = heap_alloc_zero(sizeof(HTTPHEADERW) * count);
 

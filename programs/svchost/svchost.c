@@ -81,13 +81,13 @@ static LPWSTR GetRegValue(HKEY service_key, const WCHAR *value_name)
     /* Add space for potentially missing NULL terminators in initial alloc.
      * The worst case REG_MULTI_SZ requires two NULL terminators. */
     size = reg_size + (2 * sizeof(WCHAR));
-    value = HeapAlloc(GetProcessHeap(), 0, size);
+    value = heap_alloc(size);
 
     ret = RegQueryValueExW(service_key, value_name, NULL, &type,
             (LPBYTE)value, &reg_size);
     if (ret != ERROR_SUCCESS)
     {
-        HeapFree(GetProcessHeap(), 0, value);
+        heap_free(value);
         return NULL;
     }
 
@@ -120,7 +120,7 @@ static LPWSTR ExpandEnv(LPWSTR string)
     {
         WINE_ERR("cannot expand env vars in %s: %u\n",
                 wine_dbgstr_w(string), GetLastError());
-        HeapFree(GetProcessHeap(), 0, expanded_string);
+        heap_free(expanded_string);
         return NULL;
     }
     return expanded_string;
@@ -148,7 +148,7 @@ static BOOL AddServiceElem(LPWSTR service_name,
     size = (lstrlenW(service_reg_path) + lstrlenW(reg_separator) +
             lstrlenW(service_name) + lstrlenW(reg_separator) +
             lstrlenW(parameters) + 1);
-    service_param_key = HeapAlloc(GetProcessHeap(), 0, size * sizeof(WCHAR));
+    service_param_key = heap_alloc(size * sizeof(WCHAR));
     lstrcpyW(service_param_key, service_reg_path);
     lstrcatW(service_param_key, reg_separator);
     lstrcatW(service_param_key, service_name);
@@ -191,7 +191,7 @@ static BOOL AddServiceElem(LPWSTR service_name,
         /* Add space for potentially missing NULL terminator, allocate, and
          * fill with the registry value */
         size = reg_size + 1;
-        dll_service_main = HeapAlloc(GetProcessHeap(), 0, size);
+        dll_service_main = heap_alloc(size);
         ret = RegQueryValueExA(service_hkey, service_main, NULL, NULL,
                 (LPBYTE)dll_service_main, &reg_size);
         if (ret != ERROR_SUCCESS)
@@ -241,10 +241,10 @@ static BOOL AddServiceElem(LPWSTR service_name,
     success = TRUE;
 
 cleanup:
-    HeapFree(GetProcessHeap(), 0, service_param_key);
-    HeapFree(GetProcessHeap(), 0, dll_name_short);
-    HeapFree(GetProcessHeap(), 0, dll_name_long);
-    HeapFree(GetProcessHeap(), 0, dll_service_main);
+    heap_free(service_param_key);
+    heap_free(dll_name_short);
+    heap_free(dll_name_long);
+    heap_free(dll_service_main);
     return success;
 }
 
@@ -276,7 +276,7 @@ static BOOL StartGroupServices(LPWSTR services)
     {
         if (!AddServiceElem(service_name, &service_table[service_count]))
         {
-            HeapFree(GetProcessHeap(), 0, service_table);
+            heap_free(service_table);
             return FALSE;
         }
         ++service_count;
@@ -291,7 +291,7 @@ static BOOL StartGroupServices(LPWSTR services)
         WINE_ERR("StartServiceCtrlDispatcherW failed to start %s: %u\n",
                 wine_dbgstr_w(services), GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, service_table);
+    heap_free(service_table);
     return ret;
 }
 
@@ -327,7 +327,7 @@ static BOOL LoadGroup(PWCHAR group_name)
     if (!(ret = StartGroupServices(services)))
         WINE_TRACE("Failed to start service group\n");
 
-    HeapFree(GetProcessHeap(), 0, services);
+    heap_free(services);
     return ret;
 }
 

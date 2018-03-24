@@ -102,8 +102,8 @@ static void sc_notify_release(struct sc_notify_handle *notify)
     if (r == 0)
     {
         CloseHandle(notify->event);
-        HeapFree(GetProcessHeap(), 0, notify->params_list);
-        HeapFree(GetProcessHeap(), 0, notify);
+        heap_free(notify->params_list);
+        heap_free(notify);
     }
 }
 
@@ -197,22 +197,22 @@ static void free_service_strings(struct service_entry *old, struct service_entry
     QUERY_SERVICE_CONFIGW *new_cfg = &new->config;
 
     if (old_cfg->lpBinaryPathName != new_cfg->lpBinaryPathName)
-        HeapFree(GetProcessHeap(), 0, old_cfg->lpBinaryPathName);
+        heap_free(old_cfg->lpBinaryPathName);
 
     if (old_cfg->lpLoadOrderGroup != new_cfg->lpLoadOrderGroup)
-        HeapFree(GetProcessHeap(), 0, old_cfg->lpLoadOrderGroup);
+        heap_free(old_cfg->lpLoadOrderGroup);
 
     if (old_cfg->lpServiceStartName != new_cfg->lpServiceStartName)
-        HeapFree(GetProcessHeap(), 0, old_cfg->lpServiceStartName);
+        heap_free(old_cfg->lpServiceStartName);
 
     if (old_cfg->lpDisplayName != new_cfg->lpDisplayName)
-        HeapFree(GetProcessHeap(), 0, old_cfg->lpDisplayName);
+        heap_free(old_cfg->lpDisplayName);
 
     if (old->dependOnServices != new->dependOnServices)
-        HeapFree(GetProcessHeap(), 0, old->dependOnServices);
+        heap_free(old->dependOnServices);
 
     if (old->dependOnGroups != new->dependOnGroups)
-        HeapFree(GetProcessHeap(), 0, old->dependOnGroups);
+        heap_free(old->dependOnGroups);
 }
 
 /* Check if the given handle is of the required type and allows the requested access. */
@@ -281,7 +281,7 @@ DWORD __cdecl svcctl_OpenSCManagerW(
             return ERROR_INVALID_NAME;
     }
 
-    if (!(manager = HeapAlloc(GetProcessHeap(), 0, sizeof(*manager))))
+    if (!(manager = heap_alloc(sizeof(*manager))))
         return ERROR_NOT_ENOUGH_SERVER_MEMORY;
 
     manager->hdr.type = SC_HTYPE_MANAGER;
@@ -304,7 +304,7 @@ static void SC_RPC_HANDLE_destroy(SC_RPC_HANDLE handle)
         case SC_HTYPE_MANAGER:
         {
             struct sc_manager_handle *manager = (struct sc_manager_handle *)hdr;
-            HeapFree(GetProcessHeap(), 0, manager);
+            heap_free(manager);
             break;
         }
         case SC_HTYPE_SERVICE:
@@ -320,7 +320,7 @@ static void SC_RPC_HANDLE_destroy(SC_RPC_HANDLE handle)
             }
             service_unlock(service->service_entry);
             release_service(service->service_entry);
-            HeapFree(GetProcessHeap(), 0, service);
+            heap_free(service);
             break;
         }
         default:
@@ -419,7 +419,7 @@ static DWORD create_handle_for_service(struct service_entry *entry, DWORD dwDesi
 {
     struct sc_service_handle *service;
 
-    if (!(service = HeapAlloc(GetProcessHeap(), 0, sizeof(*service))))
+    if (!(service = heap_alloc(sizeof(*service))))
     {
         release_service(entry);
         return ERROR_NOT_ENOUGH_SERVER_MEMORY;
@@ -489,7 +489,7 @@ static DWORD parse_dependencies(const WCHAR *dependencies, struct service_entry 
     if (!len_services) entry->dependOnServices = NULL;
     else
     {
-        services = HeapAlloc(GetProcessHeap(), 0, (len_services + 1) * sizeof(WCHAR));
+        services = heap_alloc((len_services + 1) * sizeof(WCHAR));
         if (!services)
             return ERROR_OUTOFMEMORY;
 
@@ -511,10 +511,10 @@ static DWORD parse_dependencies(const WCHAR *dependencies, struct service_entry 
     if (!len_groups) entry->dependOnGroups = NULL;
     else
     {
-        groups = HeapAlloc(GetProcessHeap(), 0, (len_groups + 1) * sizeof(WCHAR));
+        groups = heap_alloc((len_groups + 1) * sizeof(WCHAR));
         if (!groups)
         {
-            HeapFree(GetProcessHeap(), 0, services);
+            heap_free(services);
             return ERROR_OUTOFMEMORY;
         }
         s = groups;
@@ -931,7 +931,7 @@ DWORD __cdecl svcctl_ChangeServiceConfig2W( SC_RPC_HANDLE hService, SC_RPC_CONFI
 
             WINE_TRACE( "changing service %p descr to %s\n", service, wine_dbgstr_w(descr) );
             service_lock( service->service_entry );
-            HeapFree( GetProcessHeap(), 0, service->service_entry->description );
+            heap_free( service->service_entry->description );
             service->service_entry->description = descr;
             save_service_config( service->service_entry );
             service_unlock( service->service_entry );
@@ -1183,7 +1183,7 @@ BOOL process_send_control(struct process_entry *process, BOOL shared_process, co
     /* calculate how much space we need to send the startup info */
     len = (strlenW(name) + 1) * sizeof(WCHAR) + data_size;
 
-    ssi = HeapAlloc(GetProcessHeap(),0,FIELD_OFFSET(service_start_info, data[len]));
+    ssi = heap_alloc(FIELD_OFFSET(service_start_info, data[len]));
     ssi->magic = SERVICE_PROTOCOL_MAGIC;
     ssi->control = control;
     ssi->total_size = FIELD_OFFSET(service_start_info, data[len]);
@@ -1192,7 +1192,7 @@ BOOL process_send_control(struct process_entry *process, BOOL shared_process, co
     if (data_size) memcpy(&ssi->data[ssi->name_size * sizeof(WCHAR)], data, data_size);
 
     r = process_send_command(process, ssi, ssi->total_size, result);
-    HeapFree( GetProcessHeap(), 0, ssi );
+    heap_free( ssi );
     return r;
 }
 
@@ -1353,7 +1353,7 @@ static void SC_RPC_LOCK_destroy(SC_RPC_LOCK hLock)
 {
     struct sc_lock *lock = hLock;
     scmdatabase_unlock_startup(lock->db);
-    HeapFree(GetProcessHeap(), 0, lock);
+    heap_free(lock);
 }
 
 void __RPC_USER SC_RPC_LOCK_rundown(SC_RPC_LOCK hLock)
@@ -1377,7 +1377,7 @@ DWORD __cdecl svcctl_LockServiceDatabase(
     if (!scmdatabase_lock_startup(manager->db))
         return ERROR_SERVICE_DATABASE_LOCKED;
 
-    lock = HeapAlloc(GetProcessHeap(), 0, sizeof(struct sc_lock));
+    lock = heap_alloc(sizeof(struct sc_lock));
     if (!lock)
     {
         scmdatabase_unlock_startup(manager->db);
@@ -1723,7 +1723,7 @@ DWORD __cdecl svcctl_NotifyServiceStatusChange(
         return ERROR_CALL_NOT_IMPLEMENTED;
     }
 
-    notify = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*notify));
+    notify = heap_alloc_zero(sizeof(*notify));
     if (!notify)
         return ERROR_NOT_ENOUGH_SERVER_MEMORY;
 
@@ -1741,7 +1741,7 @@ DWORD __cdecl svcctl_NotifyServiceStatusChange(
     if (service->service_entry->notify)
     {
         service_unlock(service->service_entry);
-        HeapFree(GetProcessHeap(), 0, notify);
+        heap_free(notify);
         return ERROR_ALREADY_REGISTERED;
     }
 
@@ -2180,10 +2180,10 @@ void __RPC_USER SC_NOTIFY_RPC_HANDLE_rundown(SC_NOTIFY_RPC_HANDLE handle)
 
 void  __RPC_FAR * __RPC_USER MIDL_user_allocate(SIZE_T len)
 {
-    return HeapAlloc(GetProcessHeap(), 0, len);
+    return heap_alloc(len);
 }
 
 void __RPC_USER MIDL_user_free(void __RPC_FAR * ptr)
 {
-    HeapFree(GetProcessHeap(), 0, ptr);
+    heap_free(ptr);
 }

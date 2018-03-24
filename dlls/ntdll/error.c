@@ -99,10 +99,13 @@ no_mapping:
  */
 ULONG WINAPI RtlNtStatusToDosError( NTSTATUS status )
 {
+#if 0
     NtCurrentTeb()->LastStatusValue = status;
+#endif
     return RtlNtStatusToDosErrorNoTeb( status );
 }
 
+#if 0
 /**********************************************************************
  *      RtlGetLastNtStatus (NTDLL.@)
  *
@@ -172,6 +175,7 @@ void WINAPI RtlSetLastWin32ErrorAndNtStatusFromNtStatus( NTSTATUS status )
 {
     NtCurrentTeb()->LastErrorValue = RtlNtStatusToDosError( status );
 }
+#endif
 
 /* conversion tables */
 

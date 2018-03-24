@@ -394,7 +394,7 @@ static SEGPTR alloc_segptr_bits( HBITMAP bmp, void *bits32 )
     unsigned int i, size;
     struct dib_segptr_bits *bits;
 
-    if (!(bits = HeapAlloc( GetProcessHeap(), 0, sizeof(*bits) ))) return 0;
+    if (!(bits = heap_alloc( sizeof(*bits) ))) return 0;
 
     GetObjectW( bmp, sizeof(dib), &dib );
     size = dib.dsBm.bmHeight * dib.dsBm.bmWidthBytes;
@@ -425,7 +425,7 @@ static void free_segptr_bits( HBITMAP16 bmp )
         for (i = 0; i < bits->count; i++) FreeSelector16( bits->sel + (i << __AHSHIFT) );
 
         list_remove( &bits->entry );
-        HeapFree( GetProcessHeap(), 0, bits );
+        heap_free( bits );
         return;
     }
 }
@@ -915,7 +915,7 @@ BOOL16 WINAPI Polygon16( HDC16 hdc, const POINT16* pt, INT16 count )
 {
     int i;
     BOOL ret;
-    LPPOINT pt32 = HeapAlloc( GetProcessHeap(), 0, count*sizeof(POINT) );
+    LPPOINT pt32 = heap_alloc( count*sizeof(POINT) );
 
     if (!pt32) return FALSE;
     for (i=count;i--;)
@@ -924,7 +924,7 @@ BOOL16 WINAPI Polygon16( HDC16 hdc, const POINT16* pt, INT16 count )
         pt32[i].y = pt[i].y;
     }
     ret = Polygon(HDC_32(hdc),pt32,count);
-    HeapFree( GetProcessHeap(), 0, pt32 );
+    heap_free( pt32 );
     return ret;
 }
 
@@ -936,7 +936,7 @@ BOOL16 WINAPI Polyline16( HDC16 hdc, const POINT16* pt, INT16 count )
 {
     int i;
     BOOL16 ret;
-    LPPOINT pt32 = HeapAlloc( GetProcessHeap(), 0, count*sizeof(POINT) );
+    LPPOINT pt32 = heap_alloc( count*sizeof(POINT) );
 
     if (!pt32) return FALSE;
     for (i=count;i--;)
@@ -945,7 +945,7 @@ BOOL16 WINAPI Polyline16( HDC16 hdc, const POINT16* pt, INT16 count )
         pt32[i].y = pt[i].y;
     }
     ret = Polyline(HDC_32(hdc),pt32,count);
-    HeapFree( GetProcessHeap(), 0, pt32 );
+    heap_free( pt32 );
     return ret;
 }
 
@@ -1474,7 +1474,7 @@ BOOL16 WINAPI DeleteDC16( HDC16 hdc )
             if (saved->hdc != HDC_32(hdc)) continue;
             list_remove( &saved->entry );
             DeleteObject( saved->hrgn );
-            HeapFree( GetProcessHeap(), 0, saved );
+            heap_free( saved );
         }
         return TRUE;
     }
@@ -2123,13 +2123,13 @@ void WINAPI SetRectRgn16( HRGN16 hrgn, INT16 left, INT16 top, INT16 right, INT16
  */
 void WINAPI PlayMetaFileRecord16( HDC16 hdc, HANDLETABLE16 *ht, METARECORD *mr, UINT16 handles )
 {
-    HANDLETABLE *ht32 = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET(HANDLETABLE, objectHandle[handles] ));
+    HANDLETABLE *ht32 = heap_alloc( FIELD_OFFSET(HANDLETABLE, objectHandle[handles] ));
     unsigned int i;
 
     for (i = 0; i < handles; i++) ht32->objectHandle[i] = HGDIOBJ_32(ht->objectHandle[i]);
     PlayMetaFileRecord( HDC_32(hdc), ht32, mr, handles );
     for (i = 0; i < handles; i++) ht->objectHandle[i] = HGDIOBJ_16(ht32->objectHandle[i]);
-    HeapFree( GetProcessHeap(), 0, ht32 );
+    heap_free( ht32 );
 }
 
 
@@ -2308,7 +2308,7 @@ BOOL16 WINAPI GetCharABCWidths16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, 
 {
     BOOL ret;
     UINT i;
-    LPABC abc32 = HeapAlloc( GetProcessHeap(), 0, sizeof(ABC) * (lastChar - firstChar + 1) );
+    LPABC abc32 = heap_alloc( sizeof(ABC) * (lastChar - firstChar + 1) );
 
     if ((ret = GetCharABCWidthsA( HDC_32(hdc), firstChar, lastChar, abc32 )))
     {
@@ -2319,7 +2319,7 @@ BOOL16 WINAPI GetCharABCWidths16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, 
             abc[i-firstChar].abcC = abc32[i-firstChar].abcC;
         }
     }
-    HeapFree( GetProcessHeap(), 0, abc32 );
+    heap_free( abc32 );
     return ret;
 }
 
@@ -2435,7 +2435,7 @@ INT16 WINAPI GetKerningPairs16( HDC16 hdc, INT16 count, LPKERNINGPAIR16 pairs )
 
     if (!count) return 0;
 
-    if (!(pairs32 = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*pairs32) ))) return 0;
+    if (!(pairs32 = heap_alloc( count * sizeof(*pairs32) ))) return 0;
     if ((ret = GetKerningPairsA( HDC_32(hdc), count, pairs32 )))
     {
         for (i = 0; i < ret; i++)
@@ -2445,7 +2445,7 @@ INT16 WINAPI GetKerningPairs16( HDC16 hdc, INT16 count, LPKERNINGPAIR16 pairs )
             pairs->iKernAmount = pairs32->iKernAmount;
         }
     }
-    HeapFree( GetProcessHeap(), 0, pairs32 );
+    heap_free( pairs32 );
     return ret;
 }
 
@@ -2498,7 +2498,7 @@ BOOL16 WINAPI GetCharWidth16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, LPIN
 
     if( firstChar != lastChar )
     {
-        LPINT buf32 = HeapAlloc(GetProcessHeap(), 0, sizeof(INT)*(1 + (lastChar - firstChar)));
+        LPINT buf32 = heap_alloc(sizeof(INT)*(1 + (lastChar - firstChar)));
         if( buf32 )
         {
             LPINT obuf32 = buf32;
@@ -2509,7 +2509,7 @@ BOOL16 WINAPI GetCharWidth16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, LPIN
             {
                 for (i = firstChar; i <= lastChar; i++) *buffer++ = *buf32++;
             }
-            HeapFree(GetProcessHeap(), 0, obuf32);
+            heap_free(obuf32);
         }
     }
     else /* happens quite often to warrant a special treatment */
@@ -2547,7 +2547,7 @@ BOOL16 WINAPI ExtTextOut16( HDC16 hdc, INT16 x, INT16 y, UINT16 flags,
         rect32.bottom = lprect->bottom;
     }
     ret = ExtTextOutA(HDC_32(hdc),x,y,flags,lprect?&rect32:NULL,str,count,lpdx32);
-    HeapFree( GetProcessHeap(), 0, lpdx32 );
+    heap_free( lpdx32 );
     return ret;
 }
 
@@ -2929,23 +2929,23 @@ BOOL16 WINAPI PolyPolygon16( HDC16 hdc, const POINT16* pt, const INT16* counts,
     nrpts=0;
     for (i=polygons;i--;)
         nrpts+=counts[i];
-    pt32 = HeapAlloc( GetProcessHeap(), 0, sizeof(POINT)*nrpts);
+    pt32 = heap_alloc( sizeof(POINT)*nrpts);
     if(pt32 == NULL) return FALSE;
     for (i=nrpts;i--;)
     {
         pt32[i].x = pt[i].x;
         pt32[i].y = pt[i].y;
     }
-    counts32 = HeapAlloc( GetProcessHeap(), 0, polygons*sizeof(INT) );
+    counts32 = heap_alloc( polygons*sizeof(INT) );
     if(counts32 == NULL) {
-        HeapFree( GetProcessHeap(), 0, pt32 );
+        heap_free( pt32 );
         return FALSE;
     }
     for (i=polygons;i--;) counts32[i]=counts[i];
 
     ret = PolyPolygon(HDC_32(hdc),pt32,counts32,polygons);
-    HeapFree( GetProcessHeap(), 0, counts32 );
-    HeapFree( GetProcessHeap(), 0, pt32 );
+    heap_free( counts32 );
+    heap_free( pt32 );
     return ret;
 }
 
@@ -2962,18 +2962,18 @@ HRGN16 WINAPI CreatePolyPolygonRgn16( const POINT16 *points,
     POINT *points32;
 
     for (i = 0; i < nbpolygons; i++) npts += count[i];
-    points32 = HeapAlloc( GetProcessHeap(), 0, npts * sizeof(POINT) );
+    points32 = heap_alloc( npts * sizeof(POINT) );
     for (i = 0; i < npts; i++)
     {
         points32[i].x = points[i].x;
         points32[i].y = points[i].y;
     }
 
-    count32 = HeapAlloc( GetProcessHeap(), 0, nbpolygons * sizeof(INT) );
+    count32 = heap_alloc( nbpolygons * sizeof(INT) );
     for (i = 0; i < nbpolygons; i++) count32[i] = count[i];
     hrgn = CreatePolyPolygonRgn( points32, count32, nbpolygons, mode );
-    HeapFree( GetProcessHeap(), 0, count32 );
-    HeapFree( GetProcessHeap(), 0, points32 );
+    heap_free( count32 );
+    heap_free( points32 );
     return HRGN_16(hrgn);
 }
 
@@ -3368,7 +3368,7 @@ BOOL16 WINAPI PolyBezier16( HDC16 hdc, const POINT16* lppt, INT16 cPoints )
 {
     int i;
     BOOL16 ret;
-    LPPOINT pt32 = HeapAlloc( GetProcessHeap(), 0, cPoints*sizeof(POINT) );
+    LPPOINT pt32 = heap_alloc( cPoints*sizeof(POINT) );
     if(!pt32) return FALSE;
     for (i=cPoints;i--;)
     {
@@ -3376,7 +3376,7 @@ BOOL16 WINAPI PolyBezier16( HDC16 hdc, const POINT16* lppt, INT16 cPoints )
         pt32[i].y = lppt[i].y;
     }
     ret= PolyBezier(HDC_32(hdc), pt32, cPoints);
-    HeapFree( GetProcessHeap(), 0, pt32 );
+    heap_free( pt32 );
     return ret;
 }
 
@@ -3388,7 +3388,7 @@ BOOL16 WINAPI PolyBezierTo16( HDC16 hdc, const POINT16* lppt, INT16 cPoints )
 {
     int i;
     BOOL16 ret;
-    LPPOINT pt32 = HeapAlloc( GetProcessHeap(), 0,
+    LPPOINT pt32 = heap_alloc(
                                            cPoints*sizeof(POINT) );
     if(!pt32) return FALSE;
     for (i=cPoints;i--;)
@@ -3397,7 +3397,7 @@ BOOL16 WINAPI PolyBezierTo16( HDC16 hdc, const POINT16* lppt, INT16 cPoints )
         pt32[i].y = lppt[i].y;
     }
     ret= PolyBezierTo(HDC_32(hdc), pt32, cPoints);
-    HeapFree( GetProcessHeap(), 0, pt32 );
+    heap_free( pt32 );
     return ret;
 }
 
@@ -3719,7 +3719,7 @@ BOOL16 WINAPI DPtoLP16( HDC16 hdc, LPPOINT16 points, INT16 count )
 
     if (count > 8)
     {
-        if (!(pt32 = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*pt32) ))) return FALSE;
+        if (!(pt32 = heap_alloc( count * sizeof(*pt32) ))) return FALSE;
     }
     for (i = 0; i < count; i++)
     {
@@ -3734,7 +3734,7 @@ BOOL16 WINAPI DPtoLP16( HDC16 hdc, LPPOINT16 points, INT16 count )
             points[i].y = pt32[i].y;
         }
     }
-    if (pt32 != points32) HeapFree( GetProcessHeap(), 0, pt32 );
+    if (pt32 != points32) heap_free( pt32 );
     return ret;
 }
 
@@ -3750,7 +3750,7 @@ BOOL16 WINAPI LPtoDP16( HDC16 hdc, LPPOINT16 points, INT16 count )
 
     if (count > 8)
     {
-        if (!(pt32 = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*pt32) ))) return FALSE;
+        if (!(pt32 = heap_alloc( count * sizeof(*pt32) ))) return FALSE;
     }
     for (i = 0; i < count; i++)
     {
@@ -3765,7 +3765,7 @@ BOOL16 WINAPI LPtoDP16( HDC16 hdc, LPPOINT16 points, INT16 count )
             points[i].y = pt32[i].y;
         }
     }
-    if (pt32 != points32) HeapFree( GetProcessHeap(), 0, pt32 );
+    if (pt32 != points32) heap_free( pt32 );
     return ret;
 }
 

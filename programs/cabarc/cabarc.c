@@ -85,12 +85,12 @@ static WCHAR **opt_files;
 
 static void * CDECL cab_alloc( ULONG size )
 {
-    return HeapAlloc( GetProcessHeap(), 0, size );
+    return heap_alloc( size );
 }
 
 static void CDECL cab_free( void *ptr )
 {
-    HeapFree( GetProcessHeap(), 0, ptr );
+    heap_free( ptr );
 }
 
 static WCHAR *strdupAtoW( UINT cp, const char *str )

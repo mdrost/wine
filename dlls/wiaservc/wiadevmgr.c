@@ -79,7 +79,7 @@ static ULONG WINAPI enumwiadevinfo_Release(IEnumWIA_DEV_INFO *iface)
     TRACE("(%p)->(%u)\n", This, ref);
 
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return ref;
 }
 
@@ -173,7 +173,7 @@ static ULONG WINAPI wiadevmgr_Release(IWiaDevMgr *iface)
 
     ref = InterlockedDecrement(&This->ref);
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return ref;
 }
 
@@ -186,7 +186,7 @@ static HRESULT WINAPI wiadevmgr_EnumDeviceInfo(IWiaDevMgr *iface, LONG flag, IEn
 
     *ret = NULL;
 
-    enuminfo = HeapAlloc(GetProcessHeap(), 0, sizeof(*enuminfo));
+    enuminfo = heap_alloc(sizeof(*enuminfo));
     if (!enuminfo)
         return E_OUTOFMEMORY;
 
@@ -289,7 +289,7 @@ HRESULT wiadevmgr_Constructor(IWiaDevMgr **ppObj)
 {
     wiadevmgr *This;
     TRACE("(%p)\n", ppObj);
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(wiadevmgr));
+    This = heap_alloc(sizeof(wiadevmgr));
     if (This)
     {
         This->IWiaDevMgr_iface.lpVtbl = &WIASERVC_IWiaDevMgr_Vtbl;

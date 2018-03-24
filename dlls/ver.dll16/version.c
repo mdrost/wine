@@ -105,7 +105,7 @@ static const IMAGE_RESOURCE_DIRECTORY *find_entry_by_name( const IMAGE_RESOURCE_
     }
 
     namelen = MultiByteToWideChar( CP_ACP, 0, name, -1, NULL, 0 );
-    if ((nameW = HeapAlloc( GetProcessHeap(), 0, namelen * sizeof(WCHAR) )))
+    if ((nameW = heap_alloc( namelen * sizeof(WCHAR) )))
     {
         const IMAGE_RESOURCE_DIRECTORY_ENTRY *entry;
         const IMAGE_RESOURCE_DIR_STRING_U *str;
@@ -129,7 +129,7 @@ static const IMAGE_RESOURCE_DIRECTORY *find_entry_by_name( const IMAGE_RESOURCE_
             if (res < 0) max = pos - 1;
             else min = pos + 1;
         }
-        HeapFree( GetProcessHeap(), 0, nameW );
+        heap_free( nameW );
     }
     return ret;
 }
@@ -191,13 +191,13 @@ static BOOL find_ne_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
     }
 
     /* Read in resource table */
-    resTab = HeapAlloc( GetProcessHeap(), 0, resTabSize );
+    resTab = heap_alloc( resTabSize );
     if ( !resTab ) return FALSE;
 
     LZSeek( lzfd, nehd.ne_rsrctab + nehdoffset, SEEK_SET );
     if ( resTabSize != LZRead( lzfd, (char*)resTab, resTabSize ) )
     {
-        HeapFree( GetProcessHeap(), 0, resTab );
+        heap_free( resTab );
         return FALSE;
     }
 
@@ -229,7 +229,7 @@ static BOOL find_ne_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
         }
     }
     TRACE("No typeid entry found for %p\n", typeid );
-    HeapFree( GetProcessHeap(), 0, resTab );
+    heap_free( resTab );
     return FALSE;
 
  found_type:
@@ -252,7 +252,7 @@ static BOOL find_ne_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
             if (nameInfo->id == id) goto found_name;
     }
     TRACE("No resid entry found for %p\n", typeid );
-    HeapFree( GetProcessHeap(), 0, resTab );
+    heap_free( resTab );
     return FALSE;
 
  found_name:
@@ -260,7 +260,7 @@ static BOOL find_ne_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
     if ( resLen ) *resLen = nameInfo->length << *(WORD *)resTab;
     if ( resOff ) *resOff = nameInfo->offset << *(WORD *)resTab;
 
-    HeapFree( GetProcessHeap(), 0, resTab );
+    heap_free( resTab );
     return TRUE;
 }
 
@@ -295,7 +295,7 @@ static BOOL find_pe_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
 
     /* Read in section table */
     nSections = pehd.FileHeader.NumberOfSections;
-    sections = HeapAlloc( GetProcessHeap(), 0,
+    sections = heap_alloc(
                           nSections * sizeof(IMAGE_SECTION_HEADER) );
     if ( !sections ) return FALSE;
 
@@ -307,7 +307,7 @@ static BOOL find_pe_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
     if ( nSections * sizeof(IMAGE_SECTION_HEADER) !=
          LZRead( lzfd, (LPSTR)sections, nSections * sizeof(IMAGE_SECTION_HEADER) ) )
     {
-        HeapFree( GetProcessHeap(), 0, sections );
+        heap_free( sections );
         return FALSE;
     }
 
@@ -320,17 +320,17 @@ static BOOL find_pe_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
 
     if ( i == nSections )
     {
-        HeapFree( GetProcessHeap(), 0, sections );
+        heap_free( sections );
         TRACE("Couldn't find resource section\n" );
         return FALSE;
     }
 
     /* Read in resource section */
     resSectionSize = sections[i].SizeOfRawData;
-    resSection = HeapAlloc( GetProcessHeap(), 0, resSectionSize );
+    resSection = heap_alloc( resSectionSize );
     if ( !resSection )
     {
-        HeapFree( GetProcessHeap(), 0, sections );
+        heap_free( sections );
         return FALSE;
     }
 
@@ -381,8 +381,8 @@ static BOOL find_pe_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
     ret = TRUE;
 
  done:
-    HeapFree( GetProcessHeap(), 0, resSection );
-    HeapFree( GetProcessHeap(), 0, sections );
+    heap_free( resSection );
+    heap_free( sections );
     return ret;
 }
 

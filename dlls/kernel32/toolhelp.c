@@ -37,6 +37,7 @@
 #include "tlhelp32.h"
 #include "winnls.h"
 #include "winternl.h"
+#include "wine/heap.h"
 
 #include "wine/debug.h"
 
@@ -60,12 +61,12 @@ static WCHAR *fetch_string( HANDLE hProcess, UNICODE_STRING* us)
 {
     WCHAR*      local;
 
-    local = HeapAlloc( GetProcessHeap(), 0, us->Length );
+    local = heap_alloc( us->Length );
     if (local)
     {
         if (!ReadProcessMemory( hProcess, us->Buffer, local, us->Length, NULL))
         {
-            HeapFree( GetProcessHeap(), 0, local );
+            heap_free( local );
             local = NULL;
         }
     }
@@ -109,10 +110,9 @@ static BOOL fetch_module( DWORD process, DWORD flags, LDR_MODULE** ldr_mod, ULON
             while (curr != head)
             {
                 if (!*num)
-                    *ldr_mod = HeapAlloc( GetProcessHeap(), 0, sizeof(LDR_MODULE) );
+                    *ldr_mod = heap_alloc( sizeof(LDR_MODULE) );
                 else
-                    *ldr_mod = HeapReAlloc( GetProcessHeap(), 0, *ldr_mod,
-                                            (*num + 1) * sizeof(LDR_MODULE) );
+                    *ldr_mod = heap_realloc( *ldr_mod, (*num + 1) * sizeof(LDR_MODULE) );
                 if (!*ldr_mod) break;
                 if (!ReadProcessMemory( hProcess,
                                         CONTAINING_RECORD(curr, LDR_MODULE,
@@ -128,7 +128,7 @@ static BOOL fetch_module( DWORD process, DWORD flags, LDR_MODULE** ldr_mod, ULON
                 if (fetch_string( hProcess, &(*ldr_mod)[*num].FullDllName ))
                     (*num)++;
                 else
-                    HeapFree( GetProcessHeap(), 0, (*ldr_mod)[*num].BaseDllName.Buffer );
+                    heap_free( (*ldr_mod)[*num].BaseDllName.Buffer );
             }
             ret = TRUE;
         }
@@ -187,7 +187,7 @@ static BOOL fetch_process_thread( DWORD flags, SYSTEM_PROCESS_INFORMATION** pspi
     *num_pcs = *num_thd = 0;
     if (!(flags & (TH32CS_SNAPPROCESS | TH32CS_SNAPTHREAD))) return TRUE;
 
-    *pspi = HeapAlloc( GetProcessHeap(), 0, size = 4096 );
+    *pspi = heap_alloc( size = 4096 );
     for (;;)
     {
         status = NtQuerySystemInformation( SystemProcessInformation, *pspi,
@@ -205,7 +205,7 @@ static BOOL fetch_process_thread( DWORD flags, SYSTEM_PROCESS_INFORMATION** pspi
             } while ((offset = spi->NextEntryOffset));
             return TRUE;
         case STATUS_INFO_LENGTH_MISMATCH:
-            *pspi = HeapReAlloc( GetProcessHeap(), 0, *pspi, size *= 2 );
+            *pspi = heap_realloc( *pspi, size *= 2 );
             break;
         default:
             SetLastError( RtlNtStatusToDosError( status ) );
@@ -214,7 +214,7 @@ static BOOL fetch_process_thread( DWORD flags, SYSTEM_PROCESS_INFORMATION** pspi
     }
 }
 
-static void fill_process( struct snapshot* snap, ULONG* offset, 
+static void fill_process( struct snapshot* snap, ULONG* offset,
                           SYSTEM_PROCESS_INFORMATION* spi, ULONG num )
 {
     PROCESSENTRY32W*            pcs_entry;
@@ -338,11 +338,11 @@ HANDLE WINAPI CreateToolhelp32Snapshot( DWORD flags, DWORD process )
 
     while (num_mod--)
     {
-        HeapFree( GetProcessHeap(), 0, mod[num_mod].BaseDllName.Buffer );
-        HeapFree( GetProcessHeap(), 0, mod[num_mod].FullDllName.Buffer );
+        heap_free( mod[num_mod].BaseDllName.Buffer );
+        heap_free( mod[num_mod].FullDllName.Buffer );
     }
-    HeapFree( GetProcessHeap(), 0, mod );
-    HeapFree( GetProcessHeap(), 0, spi );
+    heap_free( mod );
+    heap_free( spi );
 
     if (!hSnapShot) return INVALID_HANDLE_VALUE;
     return hSnapShot;

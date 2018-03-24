@@ -121,7 +121,7 @@ static ULONG WINAPI ClassFactoryImpl_Release(IClassFactory *iface)
     TRACE("(%p) refcount=%u\n", iface, ref);
 
     if (ref == 0)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return ref;
 }
@@ -159,7 +159,7 @@ static HRESULT ClassFactoryImpl_Constructor(const classinfo *info, REFIID riid, 
 
     *ppv = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(ClassFactoryImpl));
+    This = heap_alloc(sizeof(ClassFactoryImpl));
     if (!This) return E_OUTOFMEMORY;
 
     This->IClassFactory_iface.lpVtbl = &ClassFactoryImpl_Vtbl;

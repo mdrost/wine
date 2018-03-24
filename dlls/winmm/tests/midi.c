@@ -201,7 +201,7 @@ static void test_midiIn_device(UINT udev, HWND hwnd)
     ok(!rc, "midiInClose rc=%s\n", mmsys_error(rc));
 
     ok(mhdr.dwUser==0x56FA552C, "MIDIHDR.dwUser changed to %lx\n", mhdr.dwUser);
-    HeapFree(GetProcessHeap(), 0, mhdr.lpData);
+    heap_free(mhdr.lpData);
     test_notification(hwnd, "midiInClose", MIM_CLOSE, 0);
     test_notification(hwnd, "midiIn over", 0, WHATEVER);
 }
@@ -385,7 +385,7 @@ static void test_midiOut_device(UINT udev, HWND hwnd)
         ok(!rc, "midiOutUnprepare rc=%s\n", mmsys_error(rc));
         ok(mhdr.dwFlags == (MHDR_INQUEUE|MHDR_DONE), "dwFlags=%x\n", mhdr.dwFlags);
 
-        HeapFree(GetProcessHeap(), 0, mhdr.lpData);
+        heap_free(mhdr.lpData);
     }
     ok(mhdr.dwUser==0x56FA552C, "MIDIHDR.dwUser changed to %lx\n", mhdr.dwUser);
     ok(mhdr.dwOffset==0xDEADBEEF, "MIDIHDR.dwOffset changed to %x\n", mhdr.dwOffset);
@@ -690,7 +690,7 @@ static void test_midiStream(UINT udev, HWND hwnd)
         rc = midiOutUnprepareHeader((HMIDIOUT)hm, &mhdr, sizeof(mhdr));
         ok(!rc, "midiOutUnprepare rc=%s\n", mmsys_error(rc));
 
-        HeapFree(GetProcessHeap(), 0, mhdr.lpData);
+        heap_free(mhdr.lpData);
     }
 
     rc = midiStreamClose(hm);

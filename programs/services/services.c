@@ -72,7 +72,7 @@ static DWORD process_create(const WCHAR *name, struct process_entry **entry)
 {
     DWORD err;
 
-    *entry = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(**entry));
+    *entry = heap_alloc_zero(sizeof(**entry));
     if (!*entry)
         return ERROR_NOT_ENOUGH_SERVER_MEMORY;
     (*entry)->ref_count = 1;
@@ -95,7 +95,7 @@ error:
         CloseHandle((*entry)->control_mutex);
     if ((*entry)->overlapped_event)
         CloseHandle((*entry)->overlapped_event);
-    HeapFree(GetProcessHeap(), 0, *entry);
+    heap_free(*entry);
     return err;
 }
 
@@ -105,25 +105,25 @@ static void free_process_entry(struct process_entry *entry)
     CloseHandle(entry->control_mutex);
     CloseHandle(entry->control_pipe);
     CloseHandle(entry->overlapped_event);
-    HeapFree(GetProcessHeap(), 0, entry);
+    heap_free(entry);
 }
 
 DWORD service_create(LPCWSTR name, struct service_entry **entry)
 {
-    *entry = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(**entry));
+    *entry = heap_alloc_zero(sizeof(**entry));
     if (!*entry)
         return ERROR_NOT_ENOUGH_SERVER_MEMORY;
     (*entry)->name = strdupW(name);
     if (!(*entry)->name)
     {
-        HeapFree(GetProcessHeap(), 0, *entry);
+        heap_free(*entry);
         return ERROR_NOT_ENOUGH_SERVER_MEMORY;
     }
     (*entry)->status_changed_event = CreateEventW(NULL, TRUE, FALSE, NULL);
     if (!(*entry)->status_changed_event)
     {
-        HeapFree(GetProcessHeap(), 0, (*entry)->name);
-        HeapFree(GetProcessHeap(), 0, *entry);
+        heap_free((*entry)->name);
+        heap_free(*entry);
         return GetLastError();
     }
     (*entry)->ref_count = 1;
@@ -137,17 +137,17 @@ DWORD service_create(LPCWSTR name, struct service_entry **entry)
 void free_service_entry(struct service_entry *entry)
 {
     CloseHandle(entry->status_changed_event);
-    HeapFree(GetProcessHeap(), 0, entry->name);
-    HeapFree(GetProcessHeap(), 0, entry->config.lpBinaryPathName);
-    HeapFree(GetProcessHeap(), 0, entry->config.lpDependencies);
-    HeapFree(GetProcessHeap(), 0, entry->config.lpLoadOrderGroup);
-    HeapFree(GetProcessHeap(), 0, entry->config.lpServiceStartName);
-    HeapFree(GetProcessHeap(), 0, entry->config.lpDisplayName);
-    HeapFree(GetProcessHeap(), 0, entry->description);
-    HeapFree(GetProcessHeap(), 0, entry->dependOnServices);
-    HeapFree(GetProcessHeap(), 0, entry->dependOnGroups);
+    heap_free(entry->name);
+    heap_free(entry->config.lpBinaryPathName);
+    heap_free(entry->config.lpDependencies);
+    heap_free(entry->config.lpLoadOrderGroup);
+    heap_free(entry->config.lpServiceStartName);
+    heap_free(entry->config.lpDisplayName);
+    heap_free(entry->description);
+    heap_free(entry->dependOnServices);
+    heap_free(entry->dependOnGroups);
     if (entry->process) release_process(entry->process);
-    HeapFree(GetProcessHeap(), 0, entry);
+    heap_free(entry);
 }
 
 static DWORD load_service_config(HKEY hKey, struct service_entry *entry)
@@ -333,7 +333,7 @@ static void scmdatabase_autostart_services(struct scmdatabase *db)
     unsigned int size = 32;
     struct service_entry *service;
 
-    services_list = HeapAlloc(GetProcessHeap(), 0, size * sizeof(services_list[0]));
+    services_list = heap_alloc(size * sizeof(services_list[0]));
     if (!services_list)
         return;
 
@@ -349,7 +349,7 @@ static void scmdatabase_autostart_services(struct scmdatabase *db)
             {
                 struct service_entry **slist_new;
                 size *= 2;
-                slist_new = HeapReAlloc(GetProcessHeap(), 0, services_list, size * sizeof(services_list[0]));
+                slist_new = heap_realloc(services_list, size * sizeof(services_list[0]));
                 if (!slist_new)
                     break;
                 services_list = slist_new;
@@ -375,7 +375,7 @@ static void scmdatabase_autostart_services(struct scmdatabase *db)
     }
 
     scmdatabase_unlock_startup(db);
-    HeapFree(GetProcessHeap(), 0, services_list);
+    heap_free(services_list);
 }
 
 static void scmdatabase_wait_terminate(struct scmdatabase *db)
@@ -527,7 +527,7 @@ static DWORD scmdatabase_create(struct scmdatabase **db)
 {
     DWORD err;
 
-    *db = HeapAlloc(GetProcessHeap(), 0, sizeof(**db));
+    *db = heap_alloc(sizeof(**db));
     if (!*db)
         return ERROR_NOT_ENOUGH_SERVER_MEMORY;
 
@@ -542,7 +542,7 @@ static DWORD scmdatabase_create(struct scmdatabase **db)
                           REG_OPTION_NON_VOLATILE, MAXIMUM_ALLOWED, NULL,
                           &(*db)->root_key, NULL);
     if (err != ERROR_SUCCESS)
-        HeapFree(GetProcessHeap(), 0, *db);
+        heap_free(*db);
 
     return err;
 }
@@ -552,7 +552,7 @@ static void scmdatabase_destroy(struct scmdatabase *db)
     RegCloseKey(db->root_key);
     db->cs.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection(&db->cs);
-    HeapFree(GetProcessHeap(), 0, db);
+    heap_free(db);
 }
 
 static DWORD scmdatabase_load_services(struct scmdatabase *db)
@@ -677,7 +677,7 @@ static DWORD get_service_binary_path(const struct service_entry *service_entry, 
 {
     DWORD size = ExpandEnvironmentStringsW(service_entry->config.lpBinaryPathName, NULL, 0);
 
-    *path = HeapAlloc(GetProcessHeap(), 0, size*sizeof(WCHAR));
+    *path = heap_alloc(size*sizeof(WCHAR));
     if (!*path)
         return ERROR_NOT_ENOUGH_SERVER_MEMORY;
 
@@ -697,16 +697,16 @@ static DWORD get_service_binary_path(const struct service_entry *service_entry, 
 
         GetSystemWow64DirectoryW( system_dir, MAX_PATH );
 
-        redirected = HeapAlloc( GetProcessHeap(), 0, (strlenW( *path ) + strlenW( system_dir ))*sizeof(WCHAR));
+        redirected = heap_alloc( (strlenW( *path ) + strlenW( system_dir ))*sizeof(WCHAR));
         if (!redirected)
         {
-            HeapFree( GetProcessHeap(), 0, *path );
+            heap_free( *path );
             return ERROR_NOT_ENOUGH_SERVER_MEMORY;
         }
 
         strcpyW( redirected, system_dir );
         strcatW( redirected, &(*path)[len] );
-        HeapFree( GetProcessHeap(), 0, *path );
+        heap_free( *path );
         *path = redirected;
         TRACE("redirected to %s\n", debugstr_w(redirected));
     }
@@ -728,8 +728,8 @@ static DWORD get_winedevice_binary_path(WCHAR **path, BOOL *is_wow64)
         return GetLastError();
 
     GetSystemDirectoryW(system_dir, MAX_PATH);
-    HeapFree(GetProcessHeap(), 0, *path);
-    if (!(*path = HeapAlloc(GetProcessHeap(), 0, strlenW(system_dir) * sizeof(WCHAR) + sizeof(winedeviceW))))
+    heap_free(*path);
+    if (!(*path = heap_alloc(strlenW(system_dir) * sizeof(WCHAR) + sizeof(winedeviceW))))
        return ERROR_NOT_ENOUGH_SERVER_MEMORY;
 
     strcpyW(*path, system_dir);
@@ -851,18 +851,18 @@ static DWORD service_start_process(struct service_entry *service_entry, struct p
         if ((err = get_winedevice_binary_path(&path, &is_wow64)))
         {
             service_unlock(service_entry);
-            HeapFree(GetProcessHeap(), 0, path);
+            heap_free(path);
             return err;
         }
 
         if ((process = get_winedevice_process(service_entry, path, is_wow64)))
         {
-            HeapFree(GetProcessHeap(), 0, path);
+            heap_free(path);
             goto found;
         }
 
         err = add_winedevice_service(service_entry, path, is_wow64, &winedevice_entry);
-        HeapFree(GetProcessHeap(), 0, path);
+        heap_free(path);
         if (err != ERROR_SUCCESS)
         {
             service_unlock(service_entry);
@@ -873,7 +873,7 @@ static DWORD service_start_process(struct service_entry *service_entry, struct p
         service_unlock(service_entry);
 
         err = service_start(winedevice_entry, group != NULL, (const WCHAR **)&group);
-        HeapFree(GetProcessHeap(), 0, group);
+        heap_free(group);
         if (err != ERROR_SUCCESS)
         {
             release_service(winedevice_entry);
@@ -916,7 +916,7 @@ found:
         WINE_ERR("failed to create process object for %s, error = %u\n",
                  wine_dbgstr_w(service_entry->name), err);
         service_unlock(service_entry);
-        HeapFree(GetProcessHeap(), 0, path);
+        heap_free(path);
         return err;
     }
 
@@ -945,7 +945,7 @@ found:
     service_unlock(service_entry);
 
     r = CreateProcessW(NULL, path, NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, environment, NULL, &si, &pi);
-    HeapFree(GetProcessHeap(), 0, path);
+    heap_free(path);
     if (!r)
     {
         err = GetLastError();
@@ -1019,7 +1019,7 @@ static DWORD process_send_start_message(struct process_entry *process, BOOL shar
         len += strlenW(argv[i])+1;
     len = (len + 1) * sizeof(WCHAR);
 
-    if (!(str = HeapAlloc(GetProcessHeap(), 0, len)))
+    if (!(str = heap_alloc(len)))
         return ERROR_NOT_ENOUGH_SERVER_MEMORY;
 
     p = str;
@@ -1036,7 +1036,7 @@ static DWORD process_send_start_message(struct process_entry *process, BOOL shar
                               SERVICE_CONTROL_START, (const BYTE *)str, len, &result))
         result = ERROR_SERVICE_REQUEST_TIMEOUT;
 
-    HeapFree(GetProcessHeap(), 0, str);
+    heap_free(str);
     return result;
 }
 

@@ -53,7 +53,7 @@ static void cleanup_segptr_bits(void)
         if (GetObjectType( bits->bmp ) == OBJ_BITMAP) continue;
         for (i = 0; i < bits->count; i++) FreeSelector16( bits->sel + (i << __AHSHIFT) );
         list_remove( &bits->entry );
-        HeapFree( GetProcessHeap(), 0, bits );
+        heap_free( bits );
     }
 }
 
@@ -65,7 +65,7 @@ static SEGPTR alloc_segptr_bits( HBITMAP bmp, void *bits32 )
 
     cleanup_segptr_bits();
 
-    if (!(bits = HeapAlloc( GetProcessHeap(), 0, sizeof(*bits) ))) return 0;
+    if (!(bits = heap_alloc( sizeof(*bits) ))) return 0;
 
     GetObjectW( bmp, sizeof(dib), &dib );
     size = dib.dsBm.bmHeight * dib.dsBm.bmWidthBytes;

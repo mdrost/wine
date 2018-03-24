@@ -77,12 +77,12 @@ static void WINAPIV output_write(UINT id, ...)
         char *strA;
 
         lenA = WideCharToMultiByte(GetConsoleOutputCP(), 0, str, len, NULL, 0, NULL, NULL);
-        strA = HeapAlloc(GetProcessHeap(), 0, lenA);
+        strA = heap_alloc(lenA);
         if (strA)
         {
             WideCharToMultiByte(GetConsoleOutputCP(), 0, str, len, strA, lenA, NULL, NULL);
             WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), strA, lenA, &nOut, FALSE);
-            HeapFree(GetProcessHeap(), 0, strA);
+            heap_free(strA);
         }
     }
     LocalFree(str);

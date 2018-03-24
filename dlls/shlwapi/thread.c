@@ -35,6 +35,7 @@
 #include "shlwapi.h"
 #include "shlobj.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
 
@@ -169,7 +170,7 @@ static ULONG WINAPI threadref_Release(IUnknown *iface)
 
   refcount = InterlockedDecrement(This->ref);
   if (!refcount)
-      HeapFree(GetProcessHeap(), 0, This);
+      heap_free(This);
 
   return refcount;
 }
@@ -203,7 +204,7 @@ HRESULT WINAPI SHCreateThreadRef(LONG *lprefcount, IUnknown **lppUnknown)
   if (!lprefcount || !lppUnknown)
     return E_INVALIDARG;
 
-  This = HeapAlloc(GetProcessHeap(), 0, sizeof(threadref));
+  This = heap_alloc(sizeof(threadref));
   This->IUnknown_iface.lpVtbl = &threadref_vt;
   This->ref = lprefcount;
 

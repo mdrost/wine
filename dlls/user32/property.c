@@ -27,13 +27,17 @@
 #include "windef.h"
 #include "winbase.h"
 #include "winuser.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
+#if 0
 #include "wine/server.h"
+#endif
 
 /* size of buffer needed to store an atom string */
 #define ATOM_BUFFER_SIZE 256
 
 
+#if 0
 /***********************************************************************
  *              get_properties
  *
@@ -48,7 +52,7 @@ static property_data_t *get_properties( HWND hwnd, int *count )
     while (total)
     {
         int res = 0;
-        if (!(data = HeapAlloc( GetProcessHeap(), 0, total * sizeof(*data) ))) break;
+        if (!(data = heap_alloc( total * sizeof(*data) ))) break;
         *count = 0;
         SERVER_START_REQ( get_window_properties )
         {
@@ -62,11 +66,12 @@ static property_data_t *get_properties( HWND hwnd, int *count )
             *count = res;
             return data;
         }
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
         total = res;  /* restart with larger buffer */
     }
     return NULL;
 }
+#endif
 
 
 /***********************************************************************
@@ -131,6 +136,7 @@ HANDLE WINAPI GetPropW( HWND hwnd, LPCWSTR str )
 {
     ULONG_PTR ret = 0;
 
+#if 0
     SERVER_START_REQ( get_window_property )
     {
         req->window = wine_server_user_handle( hwnd );
@@ -139,6 +145,9 @@ HANDLE WINAPI GetPropW( HWND hwnd, LPCWSTR str )
         if (!wine_server_call_err( req )) ret = reply->data;
     }
     SERVER_END_REQ;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return (HANDLE)ret;
 }
 
@@ -161,6 +170,7 @@ BOOL WINAPI SetPropA( HWND hwnd, LPCSTR str, HANDLE handle )
  */
 BOOL WINAPI SetPropW( HWND hwnd, LPCWSTR str, HANDLE handle )
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( set_window_property )
@@ -173,6 +183,10 @@ BOOL WINAPI SetPropW( HWND hwnd, LPCWSTR str, HANDLE handle )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -196,6 +210,7 @@ HANDLE WINAPI RemovePropW( HWND hwnd, LPCWSTR str )
 {
     ULONG_PTR ret = 0;
 
+#if 0
     SERVER_START_REQ( remove_window_property )
     {
         req->window = wine_server_user_handle( hwnd );
@@ -204,6 +219,9 @@ HANDLE WINAPI RemovePropW( HWND hwnd, LPCWSTR str )
         if (!wine_server_call_err( req )) ret = reply->data;
     }
     SERVER_END_REQ;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
 
     return (HANDLE)ret;
 }
@@ -215,6 +233,7 @@ HANDLE WINAPI RemovePropW( HWND hwnd, LPCWSTR str )
 INT WINAPI EnumPropsExA(HWND hwnd, PROPENUMPROCEXA func, LPARAM lParam)
 {
     int ret = -1, i, count;
+#if 0
     property_data_t *list = get_properties( hwnd, &count );
 
     if (list)
@@ -225,8 +244,9 @@ INT WINAPI EnumPropsExA(HWND hwnd, PROPENUMPROCEXA func, LPARAM lParam)
             if (!GlobalGetAtomNameA( list[i].atom, string, ATOM_BUFFER_SIZE )) continue;
             if (!(ret = func( hwnd, string, (HANDLE)(ULONG_PTR)list[i].data, lParam ))) break;
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
     }
+#endif
     return ret;
 }
 
@@ -237,6 +257,7 @@ INT WINAPI EnumPropsExA(HWND hwnd, PROPENUMPROCEXA func, LPARAM lParam)
 INT WINAPI EnumPropsExW(HWND hwnd, PROPENUMPROCEXW func, LPARAM lParam)
 {
     int ret = -1, i, count;
+#if 0
     property_data_t *list = get_properties( hwnd, &count );
 
     if (list)
@@ -247,7 +268,8 @@ INT WINAPI EnumPropsExW(HWND hwnd, PROPENUMPROCEXW func, LPARAM lParam)
             if (!GlobalGetAtomNameW( list[i].atom, string, ATOM_BUFFER_SIZE )) continue;
             if (!(ret = func( hwnd, string, (HANDLE)(ULONG_PTR)list[i].data, lParam ))) break;
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
     }
+#endif
     return ret;
 }

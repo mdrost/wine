@@ -39,8 +39,11 @@
 #include "dde.h"
 #include "imm.h"
 #include "ddk/imm.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "user_private.h"
 #include "win.h"
 #include "controls.h"
@@ -479,10 +482,10 @@ static inline void *get_buffer_space( void **buffer, size_t size )
 
     if (*buffer)
     {
-        if (!(ret = HeapReAlloc( GetProcessHeap(), 0, *buffer, size )))
-            HeapFree( GetProcessHeap(), 0, *buffer );
+        if (!(ret = heap_realloc( *buffer, size )))
+            heap_free( *buffer );
     }
-    else ret = HeapAlloc( GetProcessHeap(), 0, size );
+    else ret = heap_alloc( size );
 
     *buffer = ret;
     return ret;
@@ -647,7 +650,7 @@ BOOL map_wparam_AtoW( UINT message, WPARAM *wparam, enum wm_char_mapping mapping
             {
                 if (!data)
                 {
-                    if (!(data = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data) )))
+                    if (!(data = heap_alloc_zero( sizeof(*data) )))
                         return FALSE;
                     get_user_thread_info()->wmchar_data = data;
                 }
@@ -707,7 +710,7 @@ static void map_wparam_WtoA( MSG *msg, BOOL remove )
                 struct wm_char_mapping_data *data = get_user_thread_info()->wmchar_data;
                 if (!data)
                 {
-                    if (!(data = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data) ))) return;
+                    if (!(data = heap_alloc_zero( sizeof(*data) ))) return;
                     get_user_thread_info()->wmchar_data = data;
                 }
                 if (remove)
@@ -745,6 +748,7 @@ static void map_wparam_WtoA( MSG *msg, BOOL remove )
 }
 
 
+#if 0
 /***********************************************************************
  *		pack_message
  *
@@ -1843,6 +1847,7 @@ static void reply_message( struct received_message_info *info, LRESULT result, B
     }
     SERVER_END_REQ;
 }
+#endif
 
 
 /***********************************************************************
@@ -1873,6 +1878,7 @@ static LRESULT handle_internal_message( HWND hwnd, UINT msg, WPARAM wparam, LPAR
     case WM_WINE_SETACTIVEWINDOW:
         if (!wparam && GetForegroundWindow() == hwnd) return 0;
         return (LRESULT)SetActiveWindow( (HWND)wparam );
+#if 0
     case WM_WINE_KEYBOARD_LL_HOOK:
     case WM_WINE_MOUSE_LL_HOOK:
     {
@@ -1880,6 +1886,7 @@ static LRESULT handle_internal_message( HWND hwnd, UINT msg, WPARAM wparam, LPAR
 
         return call_current_hook( h_extra->handle, HC_ACTION, wparam, h_extra->lparam );
     }
+#endif
     case WM_WINE_CLIPCURSOR:
         if (wparam)
         {
@@ -1896,6 +1903,7 @@ static LRESULT handle_internal_message( HWND hwnd, UINT msg, WPARAM wparam, LPAR
     }
 }
 
+#if 0
 /* since the WM_DDE_ACK response to a WM_DDE_EXECUTE message should contain the handle
  * to the memory handle, we keep track (in the server side) of all pairs of handle
  * used (the client passes its value and the content of the memory handle), and
@@ -1933,10 +1941,10 @@ static BOOL dde_add_pair(HGLOBAL chm, HGLOBAL shm)
     {
         struct DDE_pair* tmp;
 	if (dde_pairs)
-	    tmp  = HeapReAlloc( GetProcessHeap(), 0, dde_pairs,
+	    tmp  = heap_realloc( dde_pairs,
                                             (dde_num_alloc + GROWBY) * sizeof(struct DDE_pair));
 	else
-	    tmp  = HeapAlloc( GetProcessHeap(), 0, 
+	    tmp  = heap_alloc( 
                                             (dde_num_alloc + GROWBY) * sizeof(struct DDE_pair));
 
         if (!tmp)
@@ -2286,7 +2294,7 @@ static BOOL process_rawinput_message( MSG *msg, const struct hardware_msg_data *
 
     if (!rawinput)
     {
-        thread_info->rawinput = HeapAlloc( GetProcessHeap(), 0, sizeof(*rawinput) );
+        thread_info->rawinput = heap_alloc( sizeof(*rawinput) );
         if (!(rawinput = thread_info->rawinput)) return FALSE;
     }
 
@@ -2705,6 +2713,7 @@ static BOOL process_hardware_message( MSG *msg, UINT hw_id, const struct hardwar
     ERR( "unknown message type %x\n", msg->message );
     return FALSE;
 }
+#endif
 
 
 /***********************************************************************
@@ -2733,6 +2742,7 @@ static inline void call_sendmsg_callback( SENDASYNCPROC callback, HWND hwnd, UIN
  */
 static BOOL peek_message( MSG *msg, HWND hwnd, UINT first, UINT last, UINT flags, UINT changed_mask )
 {
+#if 0
     LRESULT result;
     struct user_thread_info *thread_info = get_user_thread_info();
     struct received_message_info info, *old_info;
@@ -2740,7 +2750,7 @@ static BOOL peek_message( MSG *msg, HWND hwnd, UINT first, UINT last, UINT flags
     void *buffer;
     size_t buffer_size = 256;
 
-    if (!(buffer = HeapAlloc( GetProcessHeap(), 0, buffer_size ))) return FALSE;
+    if (!(buffer = heap_alloc( buffer_size ))) return FALSE;
 
     if (!first && !last) last = ~0;
     if (hwnd == HWND_BROADCAST) hwnd = HWND_TOPMOST;
@@ -2781,14 +2791,14 @@ static BOOL peek_message( MSG *msg, HWND hwnd, UINT first, UINT last, UINT flags
 
         if (res)
         {
-            HeapFree( GetProcessHeap(), 0, buffer );
+            heap_free( buffer );
             if (res == STATUS_PENDING)
             {
                 thread_info->wake_mask = changed_mask & (QS_SENDMESSAGE | QS_SMRESULT);
                 thread_info->changed_mask = changed_mask;
             }
             if (res != STATUS_BUFFER_OVERFLOW) return FALSE;
-            if (!(buffer = HeapAlloc( GetProcessHeap(), 0, buffer_size ))) return FALSE;
+            if (!(buffer = heap_alloc( buffer_size ))) return FALSE;
             continue;
         }
 
@@ -2907,7 +2917,7 @@ static BOOL peek_message( MSG *msg, HWND hwnd, UINT first, UINT last, UINT flags
                 thread_info->GetMessagePosVal = MAKELONG( info.msg.pt.x, info.msg.pt.y );
                 thread_info->GetMessageTimeVal = info.msg.time;
                 thread_info->GetMessageExtraInfoVal = msg_data->hardware.info;
-                HeapFree( GetProcessHeap(), 0, buffer );
+                heap_free( buffer );
                 HOOK_CallHooks( WH_GETMESSAGE, HC_ACTION, flags & PM_REMOVE, (LPARAM)msg, TRUE );
                 return TRUE;
             }
@@ -2922,7 +2932,7 @@ static BOOL peek_message( MSG *msg, HWND hwnd, UINT first, UINT last, UINT flags
                     /* if this is a nested call return right away */
                     if (first == info.msg.message && last == info.msg.message)
                     {
-                        HeapFree( GetProcessHeap(), 0, buffer );
+                        heap_free( buffer );
                         return FALSE;
                     }
                 }
@@ -2941,7 +2951,7 @@ static BOOL peek_message( MSG *msg, HWND hwnd, UINT first, UINT last, UINT flags
             thread_info->GetMessagePosVal = MAKELONG( info.msg.pt.x, info.msg.pt.y );
             thread_info->GetMessageTimeVal = info.msg.time;
             thread_info->GetMessageExtraInfoVal = 0;
-            HeapFree( GetProcessHeap(), 0, buffer );
+            heap_free( buffer );
             HOOK_CallHooks( WH_GETMESSAGE, HC_ACTION, flags & PM_REMOVE, (LPARAM)msg, TRUE );
             return TRUE;
         }
@@ -2958,6 +2968,9 @@ static BOOL peek_message( MSG *msg, HWND hwnd, UINT first, UINT last, UINT flags
         /* if some PM_QS* flags were specified, only handle sent messages from now on */
         if (HIWORD(flags) && !changed_mask) flags = PM_QS_SENDMESSAGE | LOWORD(flags);
     }
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -2973,6 +2986,7 @@ static inline void process_sent_messages(void)
 }
 
 
+#if 0
 /***********************************************************************
  *           get_server_queue_handle
  *
@@ -3164,7 +3178,7 @@ static LRESULT retrieve_reply( const struct send_message_info *info,
 
     if (reply_size)
     {
-        if (!(reply_data = HeapAlloc( GetProcessHeap(), 0, reply_size )))
+        if (!(reply_data = heap_alloc( reply_size )))
         {
             WARN( "no memory for reply, will be truncated\n" );
             reply_size = 0;
@@ -3181,7 +3195,7 @@ static LRESULT retrieve_reply( const struct send_message_info *info,
     if (!status && reply_size)
         unpack_reply( info->hwnd, info->msg, info->wparam, info->lparam, reply_data, reply_size );
 
-    HeapFree( GetProcessHeap(), 0, reply_data );
+    heap_free( reply_data );
 
     TRACE( "hwnd %p msg %x (%s) wp %lx lp %lx got reply %lx (err=%d)\n",
            info->hwnd, info->msg, SPY_GetMsgName(info->msg, info->hwnd), info->wparam,
@@ -3191,6 +3205,7 @@ static LRESULT retrieve_reply( const struct send_message_info *info,
     if (status) SetLastError( RtlNtStatusToDosError(status) );
     return !status;
 }
+#endif
 
 
 /***********************************************************************
@@ -3198,6 +3213,7 @@ static LRESULT retrieve_reply( const struct send_message_info *info,
  */
 static LRESULT send_inter_thread_message( const struct send_message_info *info, LRESULT *res_ptr )
 {
+#if 0
     size_t reply_size = 0;
 
     TRACE( "hwnd %p msg %x (%s) wp %lx lp %lx\n",
@@ -3212,6 +3228,9 @@ static LRESULT send_inter_thread_message( const struct send_message_info *info, 
 
     wait_message_reply( info->flags );
     return retrieve_reply( info, reply_size, res_ptr );
+#else
+    return 0;
+#endif
 }
 
 
@@ -3257,6 +3276,7 @@ static BOOL send_message( struct send_message_info *info, DWORD_PTR *res_ptr, BO
 
     if (USER_IsExitingThread( info->dest_tid )) return FALSE;
 
+#if 0
     SPY_EnterMessage( SPY_SENDMESSAGE, info->hwnd, info->msg, info->wparam, info->lparam );
 
     if (info->dest_tid == GetCurrentThreadId())
@@ -3284,6 +3304,9 @@ static BOOL send_message( struct send_message_info *info, DWORD_PTR *res_ptr, BO
     SPY_ExitMessage( SPY_RESULT_OK, info->hwnd, info->msg, result, info->wparam, info->lparam );
     if (ret && res_ptr) *res_ptr = result;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -3292,6 +3315,7 @@ static BOOL send_message( struct send_message_info *info, DWORD_PTR *res_ptr, BO
  */
 NTSTATUS send_hardware_message( HWND hwnd, const INPUT *input, UINT flags )
 {
+#if 0
     struct user_key_state_info *key_state_info = get_user_thread_info()->key_state;
     struct send_message_info info;
     int prev_x, prev_y, new_x, new_y;
@@ -3361,6 +3385,9 @@ NTSTATUS send_hardware_message( HWND hwnd, const INPUT *input, UINT flags )
         retrieve_reply( &info, 0, &ignored );
     }
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3399,6 +3426,7 @@ LRESULT MSG_SendInternalMessageTimeout( DWORD dest_pid, DWORD dest_tid,
     {
         if (dest_pid != GetCurrentProcessId()) info.type = MSG_OTHER_PROCESS;
         ret = send_inter_thread_message( &info, &result );
+        
     }
     if (ret && res_ptr) *res_ptr = result;
     return ret;
@@ -3592,6 +3620,7 @@ BOOL WINAPI SendMessageCallbackW( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpa
 }
 
 
+#if 0
 /***********************************************************************
  *		ReplyMessage  (USER32.@)
  */
@@ -3603,6 +3632,7 @@ BOOL WINAPI ReplyMessage( LRESULT result )
     reply_message( info, result, FALSE );
     return TRUE;
 }
+#endif
 
 
 /***********************************************************************
@@ -3641,6 +3671,7 @@ BOOL WINAPI PostMessageA( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam )
  */
 BOOL WINAPI PostMessageW( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam )
 {
+#if 0
     struct send_message_info info;
 
     if (is_pointer_message( msg, wparam ))
@@ -3673,6 +3704,10 @@ BOOL WINAPI PostMessageW( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam )
     if (USER_IsExitingThread( info.dest_tid )) return TRUE;
 
     return put_message_in_queue( &info, NULL );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -3707,10 +3742,16 @@ BOOL WINAPI PostThreadMessageW( DWORD thread, UINT msg, WPARAM wparam, LPARAM lp
     info.wparam   = wparam;
     info.lparam   = lparam;
     info.flags    = 0;
+#if 0
     return put_message_in_queue( &info, NULL );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
+#if 0
 /***********************************************************************
  *		PostQuitMessage  (USER32.@)
  *
@@ -3738,6 +3779,7 @@ void WINAPI PostQuitMessage( INT exit_code )
     }
     SERVER_END_REQ;
 }
+#endif
 
 /* check for driver events if we detect that the app is not properly consuming messages */
 static inline void check_for_driver_events( UINT msg )
@@ -3808,6 +3850,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH PeekMessageA( MSG *msg, HWND hwnd, UINT first, UIN
  */
 BOOL WINAPI DECLSPEC_HOTPATCH GetMessageW( MSG *msg, HWND hwnd, UINT first, UINT last )
 {
+#if 0
     HANDLE server_queue = get_server_queue_handle();
     unsigned int mask = QS_POSTMESSAGE | QS_SENDMESSAGE;  /* Always selected */
 
@@ -3832,6 +3875,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH GetMessageW( MSG *msg, HWND hwnd, UINT first, UINT
     check_for_driver_events( msg->message );
 
     return (msg->message != WM_QUIT);
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -3897,8 +3943,10 @@ BOOL WINAPI TranslateMessage( const MSG *msg )
         PostMessageW( msg->hwnd, message, HIWORD(msg->lParam), LOWORD(msg->lParam));
         return TRUE;
 
+#if 0
     case VK_PROCESSKEY:
         return ImmTranslateMessage(msg->hwnd, msg->message, msg->wParam, msg->lParam);
+#endif
     }
 
     GetKeyboardState( state );
@@ -4139,6 +4187,7 @@ BOOL WINAPI WaitMessage(void)
 DWORD WINAPI MsgWaitForMultipleObjectsEx( DWORD count, const HANDLE *pHandles,
                                           DWORD timeout, DWORD mask, DWORD flags )
 {
+#if 0
     HANDLE handles[MAXIMUM_WAIT_OBJECTS];
     DWORD i;
 
@@ -4154,6 +4203,10 @@ DWORD WINAPI MsgWaitForMultipleObjectsEx( DWORD count, const HANDLE *pHandles,
 
     return wait_objects( count+1, handles, timeout,
                          (flags & MWMO_INPUTAVAILABLE) ? mask : 0, mask, flags );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return WAIT_FAILED;
+#endif
 }
 
 
@@ -4173,6 +4226,7 @@ DWORD WINAPI MsgWaitForMultipleObjects( DWORD count, const HANDLE *handles,
  */
 DWORD WINAPI WaitForInputIdle( HANDLE hProcess, DWORD dwTimeOut )
 {
+#if 0
     DWORD start_time, elapsed, ret;
     HANDLE handles[2];
 
@@ -4218,6 +4272,10 @@ DWORD WINAPI WaitForInputIdle( HANDLE hProcess, DWORD dwTimeOut )
     while (1);
 
     return WAIT_TIMEOUT;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return WAIT_FAILED;
+#endif
 }
 
 
@@ -4440,6 +4498,7 @@ BOOL WINAPI MessageBeep( UINT i )
 }
 
 
+#if 0
 /***********************************************************************
  *      SetCoalescableTimer (USER32.@)
  */
@@ -4471,6 +4530,7 @@ UINT_PTR WINAPI SetCoalescableTimer( HWND hwnd, UINT_PTR id, UINT timeout, TIMER
     TRACE("Added %p %lx %p timeout %d\n", hwnd, id, winproc, timeout );
     return ret;
 }
+#endif
 
 
 /******************************************************************
@@ -4482,6 +4542,7 @@ UINT_PTR WINAPI SetTimer( HWND hwnd, UINT_PTR id, UINT timeout, TIMERPROC proc )
 }
 
 
+#if 0
 /***********************************************************************
  *		SetSystemTimer (USER32.@)
  */
@@ -4532,6 +4593,7 @@ BOOL WINAPI KillTimer( HWND hwnd, UINT_PTR id )
     SERVER_END_REQ;
     return ret;
 }
+#endif
 
 
 /***********************************************************************
@@ -4539,6 +4601,7 @@ BOOL WINAPI KillTimer( HWND hwnd, UINT_PTR id )
  */
 BOOL WINAPI KillSystemTimer( HWND hwnd, UINT_PTR id )
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( kill_win_timer )
@@ -4550,6 +4613,9 @@ BOOL WINAPI KillSystemTimer( HWND hwnd, UINT_PTR id )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -4568,6 +4634,7 @@ BOOL WINAPI IsGUIThread( BOOL convert )
  */
 BOOL WINAPI GetGUIThreadInfo( DWORD id, GUITHREADINFO *info )
 {
+#if 0
     BOOL ret;
 
     if (info->cbSize != sizeof(*info))
@@ -4599,9 +4666,14 @@ BOOL WINAPI GetGUIThreadInfo( DWORD id, GUITHREADINFO *info )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
+#if 0
 /******************************************************************
  *		IsHungAppWindow (USER32.@)
  *
@@ -4618,6 +4690,7 @@ BOOL WINAPI IsHungAppWindow( HWND hWnd )
     SERVER_END_REQ;
     return ret;
 }
+#endif
 
 /******************************************************************
  *      ChangeWindowMessageFilter (USER32.@)

@@ -348,7 +348,7 @@ static void CALLBACK process_rtl_work_item( TP_CALLBACK_INSTANCE *instance, void
     TRACE("executing %p(%p)\n", item->function, item->context);
     item->function( item->context );
 
-    RtlFreeHeap( GetProcessHeap(), 0, item );
+    free( item );
 }
 
 /***********************************************************************
@@ -381,7 +381,7 @@ NTSTATUS WINAPI RtlQueueWorkItem( PRTL_WORK_ITEM_ROUTINE function, PVOID context
 
     TRACE( "%p %p %u\n", function, context, flags );
 
-    item = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*item) );
+    item = malloc( sizeof(*item) );
     if (!item)
         return STATUS_NO_MEMORY;
 
@@ -394,7 +394,7 @@ NTSTATUS WINAPI RtlQueueWorkItem( PRTL_WORK_ITEM_ROUTINE function, PVOID context
     item->context  = context;
 
     status = TpSimpleTryPost( process_rtl_work_item, item, &environment );
-    if (status) RtlFreeHeap( GetProcessHeap(), 0, item );
+    if (status) free( item );
     return status;
 }
 
@@ -494,7 +494,7 @@ static inline PLARGE_INTEGER get_nt_timeout( PLARGE_INTEGER pTime, ULONG timeout
 static void delete_wait_work_item(struct wait_work_item *wait_work_item)
 {
     NtClose( wait_work_item->CancelEvent );
-    RtlFreeHeap( GetProcessHeap(), 0, wait_work_item );
+    free( wait_work_item );
 }
 
 static DWORD CALLBACK wait_thread_proc(LPVOID Arg)
@@ -586,7 +586,7 @@ NTSTATUS WINAPI RtlRegisterWait(PHANDLE NewWaitObject, HANDLE Object,
 
     TRACE( "(%p, %p, %p, %p, %d, 0x%x)\n", NewWaitObject, Object, Callback, Context, Milliseconds, Flags );
 
-    wait_work_item = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*wait_work_item) );
+    wait_work_item = malloc( sizeof(*wait_work_item) );
     if (!wait_work_item)
         return STATUS_NO_MEMORY;
 
@@ -602,7 +602,7 @@ NTSTATUS WINAPI RtlRegisterWait(PHANDLE NewWaitObject, HANDLE Object,
     status = NtCreateEvent( &wait_work_item->CancelEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE );
     if (status != STATUS_SUCCESS)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, wait_work_item );
+        free( wait_work_item );
         return status;
     }
 
@@ -714,7 +714,7 @@ static void queue_remove_timer(struct queue_timer *t)
     list_remove(&t->entry);
     if (t->event)
         NtSetEvent(t->event, NULL);
-    RtlFreeHeap(GetProcessHeap(), 0, t);
+    free(t);
 
     if (q->quit && list_empty(&q->timers))
         NtSetEvent(q->event, NULL);
@@ -888,7 +888,7 @@ static void WINAPI timer_queue_thread_proc(LPVOID p)
     NtClose(q->event);
     RtlDeleteCriticalSection(&q->cs);
     q->magic = 0;
-    RtlFreeHeap(GetProcessHeap(), 0, q);
+    free(q);
     RtlExitUserThread( 0 );
 }
 
@@ -922,7 +922,7 @@ static void queue_destroy_timer(struct queue_timer *t)
 NTSTATUS WINAPI RtlCreateTimerQueue(PHANDLE NewTimerQueue)
 {
     NTSTATUS status;
-    struct timer_queue *q = RtlAllocateHeap(GetProcessHeap(), 0, sizeof *q);
+    struct timer_queue *q = malloc(sizeof *q);
     if (!q)
         return STATUS_NO_MEMORY;
 
@@ -933,7 +933,7 @@ NTSTATUS WINAPI RtlCreateTimerQueue(PHANDLE NewTimerQueue)
     status = NtCreateEvent(&q->event, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE);
     if (status != STATUS_SUCCESS)
     {
-        RtlFreeHeap(GetProcessHeap(), 0, q);
+        free(q);
         return status;
     }
     status = RtlCreateUserThread(GetCurrentProcess(), NULL, FALSE, NULL, 0, 0,
@@ -941,7 +941,7 @@ NTSTATUS WINAPI RtlCreateTimerQueue(PHANDLE NewTimerQueue)
     if (status != STATUS_SUCCESS)
     {
         NtClose(q->event);
-        RtlFreeHeap(GetProcessHeap(), 0, q);
+        free(q);
         return status;
     }
 
@@ -1071,7 +1071,7 @@ NTSTATUS WINAPI RtlCreateTimer(PHANDLE NewTimer, HANDLE TimerQueue,
     if (!q) return STATUS_NO_MEMORY;
     if (q->magic != TIMER_QUEUE_MAGIC) return STATUS_INVALID_HANDLE;
 
-    t = RtlAllocateHeap(GetProcessHeap(), 0, sizeof *t);
+    t = malloc(sizeof *t);
     if (!t)
         return STATUS_NO_MEMORY;
 
@@ -1095,7 +1095,7 @@ NTSTATUS WINAPI RtlCreateTimer(PHANDLE NewTimer, HANDLE TimerQueue,
     if (status == STATUS_SUCCESS)
         *NewTimer = t;
     else
-        RtlFreeHeap(GetProcessHeap(), 0, t);
+        free(t);
 
     return status;
 }
@@ -1529,7 +1529,7 @@ static void CALLBACK waitqueue_thread_proc( void *param )
     assert( list_empty( &bucket->waiting ) );
     NtClose( bucket->update_event );
 
-    RtlFreeHeap( GetProcessHeap(), 0, bucket );
+    free( bucket );
     RtlExitUserThread( 0 );
 }
 
@@ -1566,7 +1566,7 @@ static NTSTATUS tp_waitqueue_lock( struct threadpool_object *wait )
     }
 
     /* Create a new bucket and corresponding worker thread. */
-    bucket = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*bucket) );
+    bucket = malloc( sizeof(*bucket) );
     if (!bucket)
     {
         status = STATUS_NO_MEMORY;
@@ -1581,7 +1581,7 @@ static NTSTATUS tp_waitqueue_lock( struct threadpool_object *wait )
                             NULL, SynchronizationEvent, FALSE );
     if (status)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, bucket );
+        free( bucket );
         goto out;
     }
 
@@ -1601,7 +1601,7 @@ static NTSTATUS tp_waitqueue_lock( struct threadpool_object *wait )
     else
     {
         NtClose( bucket->update_event );
-        RtlFreeHeap( GetProcessHeap(), 0, bucket );
+        free( bucket );
     }
 
 out:
@@ -1640,7 +1640,7 @@ static NTSTATUS tp_threadpool_alloc( struct threadpool **out )
 {
     struct threadpool *pool;
 
-    pool = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*pool) );
+    pool = malloc( sizeof(*pool) );
     if (!pool)
         return STATUS_NO_MEMORY;
 
@@ -1699,7 +1699,7 @@ static BOOL tp_threadpool_release( struct threadpool *pool )
     pool->cs.DebugInfo->Spare[0] = 0;
     RtlDeleteCriticalSection( &pool->cs );
 
-    RtlFreeHeap( GetProcessHeap(), 0, pool );
+    free( pool );
     return TRUE;
 }
 
@@ -1781,7 +1781,7 @@ static NTSTATUS tp_group_alloc( struct threadpool_group **out )
 {
     struct threadpool_group *group;
 
-    group = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*group) );
+    group = malloc( sizeof(*group) );
     if (!group)
         return STATUS_NO_MEMORY;
 
@@ -1827,7 +1827,7 @@ static BOOL tp_group_release( struct threadpool_group *group )
     group->cs.DebugInfo->Spare[0] = 0;
     RtlDeleteCriticalSection( &group->cs );
 
-    RtlFreeHeap( GetProcessHeap(), 0, group );
+    free( group );
     return TRUE;
 }
 
@@ -2048,7 +2048,7 @@ static BOOL tp_object_release( struct threadpool_object *object )
     if (object->race_dll)
         LdrUnloadDll( object->race_dll );
 
-    RtlFreeHeap( GetProcessHeap(), 0, object );
+    free( object );
     return TRUE;
 }
 
@@ -2270,14 +2270,14 @@ NTSTATUS WINAPI TpAllocTimer( TP_TIMER **out, PTP_TIMER_CALLBACK callback, PVOID
 
     TRACE( "%p %p %p %p\n", out, callback, userdata, environment );
 
-    object = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*object) );
+    object = malloc( sizeof(*object) );
     if (!object)
         return STATUS_NO_MEMORY;
 
     status = tp_threadpool_lock( &pool, environment );
     if (status)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, object );
+        free( object );
         return status;
     }
 
@@ -2288,7 +2288,7 @@ NTSTATUS WINAPI TpAllocTimer( TP_TIMER **out, PTP_TIMER_CALLBACK callback, PVOID
     if (status)
     {
         tp_threadpool_unlock( pool );
-        RtlFreeHeap( GetProcessHeap(), 0, object );
+        free( object );
         return status;
     }
 
@@ -2310,14 +2310,14 @@ NTSTATUS WINAPI TpAllocWait( TP_WAIT **out, PTP_WAIT_CALLBACK callback, PVOID us
 
     TRACE( "%p %p %p %p\n", out, callback, userdata, environment );
 
-    object = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*object) );
+    object = malloc( sizeof(*object) );
     if (!object)
         return STATUS_NO_MEMORY;
 
     status = tp_threadpool_lock( &pool, environment );
     if (status)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, object );
+        free( object );
         return status;
     }
 
@@ -2328,7 +2328,7 @@ NTSTATUS WINAPI TpAllocWait( TP_WAIT **out, PTP_WAIT_CALLBACK callback, PVOID us
     if (status)
     {
         tp_threadpool_unlock( pool );
-        RtlFreeHeap( GetProcessHeap(), 0, object );
+        free( object );
         return status;
     }
 
@@ -2350,14 +2350,14 @@ NTSTATUS WINAPI TpAllocWork( TP_WORK **out, PTP_WORK_CALLBACK callback, PVOID us
 
     TRACE( "%p %p %p %p\n", out, callback, userdata, environment );
 
-    object = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*object) );
+    object = malloc( sizeof(*object) );
     if (!object)
         return STATUS_NO_MEMORY;
 
     status = tp_threadpool_lock( &pool, environment );
     if (status)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, object );
+        free( object );
         return status;
     }
 
@@ -2870,14 +2870,14 @@ NTSTATUS WINAPI TpSimpleTryPost( PTP_SIMPLE_CALLBACK callback, PVOID userdata,
 
     TRACE( "%p %p %p\n", callback, userdata, environment );
 
-    object = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*object) );
+    object = malloc( sizeof(*object) );
     if (!object)
         return STATUS_NO_MEMORY;
 
     status = tp_threadpool_lock( &pool, environment );
     if (status)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, object );
+        free( object );
         return status;
     }
 

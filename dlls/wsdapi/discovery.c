@@ -109,10 +109,10 @@ static ULONG WINAPI IWSDiscoveryPublisherImpl_Release(IWSDiscoveryPublisher *ifa
         {
             IWSDiscoveryPublisherNotify_Release(sink->notificationSink);
             list_remove(&sink->entry);
-            HeapFree(GetProcessHeap(), 0, sink);
+            heap_free(sink);
         }
 
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -153,7 +153,7 @@ static HRESULT WINAPI IWSDiscoveryPublisherImpl_RegisterNotificationSink(IWSDisc
         return E_INVALIDARG;
     }
 
-    sink = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*sink));
+    sink = heap_alloc_zero(sizeof(*sink));
 
     if (!sink)
     {
@@ -186,7 +186,7 @@ static HRESULT WINAPI IWSDiscoveryPublisherImpl_UnRegisterNotificationSink(IWSDi
         {
             IWSDiscoveryPublisherNotify_Release(pSink);
             list_remove(&sink->entry);
-            HeapFree(GetProcessHeap(), 0, sink);
+            heap_free(sink);
 
             return S_OK;
         }
@@ -350,7 +350,7 @@ HRESULT WINAPI WSDCreateDiscoveryPublisher(IWSDXMLContext *pContext, IWSDiscover
 
     *ppPublisher = NULL;
 
-    obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*obj));
+    obj = heap_alloc_zero(sizeof(*obj));
 
     if (!obj)
     {
@@ -366,7 +366,7 @@ HRESULT WINAPI WSDCreateDiscoveryPublisher(IWSDXMLContext *pContext, IWSDiscover
         if (FAILED(WSDXMLCreateContext(&obj->xmlContext)))
         {
             WARN("Unable to create XML context\n");
-            HeapFree (GetProcessHeap(), 0, obj);
+            heap_free(obj);
             return E_OUTOFMEMORY;
         }
     }

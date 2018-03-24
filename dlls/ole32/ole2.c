@@ -83,6 +83,7 @@ typedef struct tagOleMenuDescriptor  /* OleMenuDescriptor */
   BOOL               bIsServerItem;     /* True if the currently open popup belongs to the server */
 } OleMenuDescriptor;
 
+#if 0
 typedef struct tagOleMenuHookItem   /* OleMenu hook item in per thread hook list */
 {
   DWORD tid;                /* Thread Id  */
@@ -93,6 +94,7 @@ typedef struct tagOleMenuHookItem   /* OleMenu hook item in per thread hook list
 } OleMenuHookItem;
 
 static OleMenuHookItem *hook_list;
+#endif
 
 /*
  * This is the lock count on the OLE library. It is controlled by the
@@ -134,16 +136,21 @@ static void OLEMenu_Initialize(void);
 static void OLEMenu_UnInitialize(void);
 static BOOL OLEMenu_InstallHooks( DWORD tid );
 static BOOL OLEMenu_UnInstallHooks( DWORD tid );
+#if 0
 static OleMenuHookItem * OLEMenu_IsHookInstalled( DWORD tid );
+#endif
 static BOOL OLEMenu_FindMainMenuIndex( HMENU hMainMenu, HMENU hPopupMenu, UINT *pnPos );
 static BOOL OLEMenu_SetIsServerMenu( HMENU hmenu, OleMenuDescriptor *pOleMenuDescriptor );
+#if 0
 static LRESULT CALLBACK OLEMenu_CallWndProc(INT code, WPARAM wParam, LPARAM lParam);
+#endif
 static LRESULT CALLBACK OLEMenu_GetMsgProc(INT code, WPARAM wParam, LPARAM lParam);
 
 /******************************************************************************
  * These are the prototypes of the OLE Clipboard initialization methods (in clipboard.c)
  */
 extern void OLEClipbrd_UnInitialize(void);
+#if 0
 extern void OLEClipbrd_Initialize(void);
 
 /******************************************************************************
@@ -152,6 +159,7 @@ extern void OLEClipbrd_Initialize(void);
 static void OLEDD_Initialize(void);
 static LRESULT WINAPI  OLEDD_DragTrackerWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static void OLEDD_TrackStateChange(TrackerWindowInfo* trackerInfo);
+#endif
 static DWORD OLEDD_GetButtonState(void);
 
 /******************************************************************************
@@ -163,6 +171,7 @@ DWORD WINAPI OleBuildVersion(void)
     return (rmm<<16)+rup;
 }
 
+#if 0
 /***********************************************************************
  *           OleInitialize       (OLE32.@)
  */
@@ -223,6 +232,7 @@ HRESULT WINAPI DECLSPEC_HOTPATCH OleInitialize(LPVOID reserved)
 
   return hr;
 }
+#endif
 
 /******************************************************************************
  *		OleUninitialize	[OLE32.@]
@@ -321,6 +331,7 @@ static HANDLE get_droptarget_local_handle(HWND hwnd)
     return local_handle;
 }
 
+#if 0
 /***********************************************************************
  *     create_map_from_stream
  *
@@ -377,6 +388,7 @@ static HRESULT create_stream_from_map(HANDLE map, IStream **stream)
     UnmapViewOfFile(data);
     return hr;
 }
+#endif
 
 /* This is to work around apps which break COM rules by not implementing
  * IDropTarget::QueryInterface().  Windows doesn't expose this because it
@@ -422,7 +434,7 @@ static ULONG WINAPI DropTargetWrapper_Release(IDropTarget* iface)
 {
     DropTargetWrapper* This = impl_from_IDropTarget(iface);
     ULONG refs = InterlockedDecrement(&This->refs);
-    if (!refs) HeapFree(GetProcessHeap(), 0, This);
+    if (!refs) heap_free(This);
     return refs;
 }
 
@@ -511,7 +523,7 @@ static const IDropTargetVtbl DropTargetWrapperVTbl =
 
 static IDropTarget* WrapDropTarget( HWND hwnd )
 {
-    DropTargetWrapper* This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    DropTargetWrapper* This = heap_alloc(sizeof(*This));
 
     if (This)
     {
@@ -522,6 +534,7 @@ static IDropTarget* WrapDropTarget( HWND hwnd )
     return &This->IDropTarget_iface;
 }
 
+#if 0
 /***********************************************************************
  *     get_droptarget_pointer
  *
@@ -665,6 +678,7 @@ HRESULT WINAPI RevokeDragDrop(HWND hwnd)
 
   return hr;
 }
+#endif
 
 /***********************************************************************
  *           OleRegGetUserType (OLE32.@)
@@ -741,6 +755,7 @@ HRESULT WINAPI OleRegGetUserType(REFCLSID clsid, DWORD form, LPOLESTR *usertype)
   return S_OK;
 }
 
+#if 0
 /***********************************************************************
  * DoDragDrop [OLE32.@]
  */
@@ -795,7 +810,7 @@ HRESULT WINAPI DoDragDrop (
       trackerInfo.curMousePos.x = msg.pt.x;
       trackerInfo.curMousePos.y = msg.pt.y;
       trackerInfo.dwKeyState = OLEDD_GetButtonState();
-	    
+
       if ( (msg.message >= WM_KEYFIRST) &&
 	   (msg.message <= WM_KEYLAST) )
       {
@@ -838,6 +853,7 @@ HRESULT WINAPI DoDragDrop (
 
   return E_FAIL;
 }
+#endif
 
 /***********************************************************************
  * OleQueryLinkFromData [OLE32.@]
@@ -943,7 +959,7 @@ static ULONG WINAPI EnumOLEVERB_Release(
     if (!refs)
     {
         RegCloseKey(This->hkeyVerb);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return refs;
 }
@@ -1083,7 +1099,7 @@ static const IEnumOLEVERBVtbl EnumOLEVERB_VTable =
 
 static HRESULT EnumOLEVERB_Construct(HKEY hkeyVerb, ULONG index, IEnumOLEVERB **ppenum)
 {
-    EnumOLEVERB *This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    EnumOLEVERB *This = heap_alloc(sizeof(*This));
     if (!This)
     {
         RegCloseKey(hkeyVerb);
@@ -1412,6 +1428,7 @@ static void OLEMenu_UnInitialize(void)
 {
 }
 
+#if 0
 /*************************************************************************
  * OLEMenu_InstallHooks
  * Install thread scope message hooks for WH_GETMESSAGE and WH_CALLWNDPROC
@@ -1424,8 +1441,7 @@ static BOOL OLEMenu_InstallHooks( DWORD tid )
   OleMenuHookItem *pHookItem;
 
   /* Create an entry for the hook table */
-  if ( !(pHookItem = HeapAlloc(GetProcessHeap(), 0,
-                               sizeof(OleMenuHookItem)) ) )
+  if ( !(pHookItem = heap_alloc(sizeof(OleMenuHookItem))) )
     return FALSE;
 
   pHookItem->tid = tid;
@@ -1457,7 +1473,7 @@ CLEANUP:
   if ( pHookItem->CallWndProc_hHook )
     UnhookWindowsHookEx( pHookItem->CallWndProc_hHook );
   /* Release the hook table entry */
-  HeapFree(pHookItem->hHeap, 0, pHookItem );
+  heap_free( pHookItem );
 
   return FALSE;
 }
@@ -1525,6 +1541,7 @@ static OleMenuHookItem * OLEMenu_IsHookInstalled( DWORD tid )
 
   return NULL;
 }
+#endif
 
 /***********************************************************************
  *           OLEMenu_FindMainMenuIndex
@@ -1611,6 +1628,7 @@ static BOOL OLEMenu_SetIsServerMenu( HMENU hmenu, OleMenuDescriptor *pOleMenuDes
   return pOleMenuDescriptor->bIsServerItem;
 }
 
+#if 0
 /*************************************************************************
  * OLEMenu_CallWndProc
  * Thread scope WH_CALLWNDPROC hook proc filter function (callback)
@@ -1932,6 +1950,7 @@ HRESULT WINAPI OleSetMenuDescriptor(
 
     return S_OK;
 }
+#endif
 
 /******************************************************************************
  *              IsAccelerator        [OLE32.@]
@@ -1952,7 +1971,7 @@ BOOL WINAPI IsAccelerator(HACCEL hAccel, int cAccelEntries, LPMSG lpMsg, WORD* l
 	lpMsg->message != WM_SYSKEYDOWN &&
 	lpMsg->message != WM_SYSCHAR &&
 	lpMsg->message != WM_CHAR)) return FALSE;
-    lpAccelTbl = HeapAlloc(GetProcessHeap(), 0, cAccelEntries * sizeof(ACCEL));
+    lpAccelTbl = heap_alloc(cAccelEntries * sizeof(ACCEL));
     if (NULL == lpAccelTbl)
     {
 	return FALSE;
@@ -1960,7 +1979,7 @@ BOOL WINAPI IsAccelerator(HACCEL hAccel, int cAccelEntries, LPMSG lpMsg, WORD* l
     if (CopyAcceleratorTableW(hAccel, lpAccelTbl, cAccelEntries) != cAccelEntries)
     {
 	WARN_(accel)("CopyAcceleratorTableW failed\n");
-	HeapFree(GetProcessHeap(), 0, lpAccelTbl);
+	heap_free(lpAccelTbl);
 	return FALSE;
     }
 
@@ -2009,15 +2028,16 @@ BOOL WINAPI IsAccelerator(HACCEL hAccel, int cAccelEntries, LPMSG lpMsg, WORD* l
     }
 
     WARN_(accel)("couldn't translate accelerator key\n");
-    HeapFree(GetProcessHeap(), 0, lpAccelTbl);
+    heap_free(lpAccelTbl);
     return FALSE;
 
 found:
     if(lpwCmd) *lpwCmd = lpAccelTbl[i].cmd;
-    HeapFree(GetProcessHeap(), 0, lpAccelTbl);
+    heap_free(lpAccelTbl);
     return TRUE;
 }
 
+#if 0
 /***********************************************************************
  * ReleaseStgMedium [OLE32.@]
  */
@@ -2126,6 +2146,7 @@ static void OLEDD_Initialize(void)
 
     RegisterClassW (&wndClass);
 }
+#endif
 
 /***
  * OLEDD_DragTrackerWindowProc()
@@ -2138,6 +2159,7 @@ static void OLEDD_Initialize(void)
 
 #define DRAG_TIMER_ID 1
 
+#if 0
 static LRESULT WINAPI OLEDD_DragTrackerWindowProc(
 			 HWND   hwnd,
 			 UINT   uMsg,
@@ -2210,6 +2232,7 @@ static void drag_enter( TrackerWindowInfo *info, HWND new_target )
         }
     }
 }
+#endif
 
 static void drag_end( TrackerWindowInfo *info )
 {
@@ -2272,6 +2295,7 @@ static HRESULT give_feedback( TrackerWindowInfo *info )
     return hr;
 }
 
+#if 0
 /***
  * OLEDD_TrackStateChange()
  *
@@ -2333,6 +2357,7 @@ static void OLEDD_TrackStateChange(TrackerWindowInfo* trackerInfo)
   else
     drag_end( trackerInfo );
 }
+#endif
 
 /***
  * OLEDD_GetButtonState()
@@ -2596,7 +2621,7 @@ HRESULT WINAPI OleSetAutoConvert(REFCLSID clsidOld, REFCLSID clsidNew)
     HRESULT res = S_OK;
 
     TRACE("(%s,%s)\n", debugstr_guid(clsidOld), debugstr_guid(clsidNew));
-    
+
     res = COM_OpenKeyForCLSID(clsidOld, NULL, KEY_READ | KEY_WRITE, &hkey);
     if (FAILED(res))
         goto done;

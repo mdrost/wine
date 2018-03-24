@@ -125,6 +125,7 @@ extern DWORD __wine_finally_ctx_handler( EXCEPTION_RECORD *record,
                                          CONTEXT *context,
                                          EXCEPTION_REGISTRATION_RECORD **pdispatcher ) DECLSPEC_HIDDEN;
 
+#if 0
 #define __TRY \
     do { __WINE_FRAME __f; \
          int __first = 1; \
@@ -241,9 +242,30 @@ typedef struct __tagWINE_FRAME
     DWORD ExceptionCode;
     const struct __tagWINE_FRAME *ExceptionRecord;
 } __WINE_FRAME;
+#else
+
+#define __TRY \
+    if (1)
+
+#define __EXCEPT(func) \
+    else if (0)
+
+#define __EXCEPT_PAGE_FAULT \
+    else if (0)
+
+#define __EXCEPT_ALL \
+    else if (0)
+
+#define __ENDTRY
+
+#define __FINALLY(func) \
+    (func)(1);
+
+#endif
 
 #endif /* USE_COMPILER_EXCEPTIONS */
 
+#if 0
 static inline EXCEPTION_REGISTRATION_RECORD *__wine_push_frame( EXCEPTION_REGISTRATION_RECORD *frame )
 {
 #if defined(__GNUC__) && defined(__i386__)
@@ -286,6 +308,7 @@ static inline EXCEPTION_REGISTRATION_RECORD *__wine_get_frame(void)
     return teb->ExceptionList;
 #endif
 }
+#endif
 
 /* Exception handling flags - from OS/2 2.0 exception handling */
 

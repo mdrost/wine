@@ -1195,6 +1195,7 @@ static void dumpmem(unsigned char *mem, int len)
     }
 }
 
+#if 0
 static void test_CreateFileA(void)
 {
     HANDLE hFile;
@@ -1551,6 +1552,7 @@ static void test_CreateFileA(void)
     else
         win_skip("GetVolumeNameForVolumeMountPointA not found\n");
 }
+#endif
 
 static void test_CreateFileW(void)
 {
@@ -1728,6 +1730,7 @@ static void test_GetTempFileNameA(void)
     char out[MAX_PATH];
     char expected[MAX_PATH + 10];
     char windowsdir[MAX_PATH + 10];
+#if 0
     char windowsdrive[3];
 
     result = GetWindowsDirectoryA(windowsdir, sizeof(windowsdir));
@@ -1743,12 +1746,18 @@ static void test_GetTempFileNameA(void)
     windowsdrive[0] = windowsdir[0];
     windowsdrive[1] = windowsdir[1];
     windowsdrive[2] = '\0';
+#else
+    windowsdir[0] = '\0';
+    strcat(windowsdir, "/tmp/");
+#endif
 
+#if 0
     result = GetTempFileNameA(windowsdrive, "abc", 1, out);
     ok(result != 0, "GetTempFileNameA: error %d\n", GetLastError());
     ok(((out[0] == windowsdrive[0]) && (out[1] == ':')) && (out[2] == '\\'),
        "GetTempFileNameA: first three characters should be %c:\\, string was actually %s\n",
        windowsdrive[0], out);
+#endif
 
     result = GetTempFileNameA(windowsdir, "abc", 2, out);
     ok(result != 0, "GetTempFileNameA: error %d\n", GetLastError());
@@ -2235,7 +2244,7 @@ static BOOL create_fake_dll( LPCSTR filename )
     HANDLE file = CreateFileA( filename, GENERIC_READ|GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, 0 );
     if (file == INVALID_HANDLE_VALUE) return FALSE;
 
-    buffer = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size );
+    buffer = heap_alloc_zero( size );
 
     dos = (IMAGE_DOS_HEADER *)buffer;
     dos->e_magic    = IMAGE_DOS_SIGNATURE;
@@ -2293,7 +2302,7 @@ static BOOL create_fake_dll( LPCSTR filename )
     sec->Characteristics  = IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
 
     ret = WriteFile( file, buffer, size, &written, NULL ) && written == size;
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     CloseHandle( file );
     return ret;
 }
@@ -2513,24 +2522,32 @@ static void test_file_sharing(void)
     DeleteFileA( filename );
 }
 
+#if 0
 static char get_windows_drive(void)
 {
     char windowsdir[MAX_PATH];
     GetWindowsDirectoryA(windowsdir, sizeof(windowsdir));
     return windowsdir[0];
 }
+#endif
 
 static void test_FindFirstFileA(void)
 {
     HANDLE handle;
     WIN32_FIND_DATAA data;
     int err;
+#if 0
     char buffer[5] = "C:\\";
+#else
+    char buffer[5] = "/tmp/";
+#endif
     char buffer2[100];
     char nonexistent[MAX_PATH];
 
+#if 0
     /* try FindFirstFileA on "C:\" */
     buffer[0] = get_windows_drive();
+#endif
     
     SetLastError( 0xdeadbeaf );
     handle = FindFirstFileA(buffer, &data);
@@ -2550,9 +2567,14 @@ static void test_FindFirstFileA(void)
              "FindNextFile shouldn't return '%s' in drive root\n", data.cFileName );
     ok ( FindClose(handle) == TRUE, "Failed to close handle %s\n", buffer2 );
 
+#if 0
     /* try FindFirstFileA on windows dir */
     GetWindowsDirectoryA( buffer2, sizeof(buffer2) );
     strcat(buffer2, "\\*");
+#else
+    buffer2[0] = '\0';
+    strcat(buffer2, "/tmp/*");
+#endif
     handle = FindFirstFileA(buffer2, &data);
     ok( handle != INVALID_HANDLE_VALUE, "FindFirstFile on %s should succeed\n", buffer2 );
     ok( !strcmp( data.cFileName, "." ), "FindFirstFile should return '.' first\n" );
@@ -2699,9 +2721,13 @@ static void test_FindNextFileA(void)
     HANDLE handle;
     WIN32_FIND_DATAA search_results;
     int err;
+#if 0
     char buffer[5] = "C:\\*";
 
     buffer[0] = get_windows_drive();
+#else
+    char buffer[5] = "/tmp/*";
+#endif
     handle = FindFirstFileA(buffer,&search_results);
     ok ( handle != INVALID_HANDLE_VALUE, "FindFirstFile on C:\\* should succeed\n" );
     while (FindNextFileA(handle, &search_results))
@@ -3000,15 +3026,19 @@ static void test_async_file_errors(void)
     char szFile[MAX_PATH];
     HANDLE hSem = CreateSemaphoreW(NULL, 1, 1, NULL);
     HANDLE hFile;
-    LPVOID lpBuffer = HeapAlloc(GetProcessHeap(), 0, 4096);
+    LPVOID lpBuffer = heap_alloc(4096);
     OVERLAPPED ovl;
     S(U(ovl)).Offset = 0;
     S(U(ovl)).OffsetHigh = 0;
     ovl.hEvent = hSem;
     completion_count = 0;
     szFile[0] = '\0';
+#if 0
     GetWindowsDirectoryA(szFile, sizeof(szFile)/sizeof(szFile[0])-1-strlen("\\win.ini"));
     strcat(szFile, "\\win.ini");
+#else
+    strcat(szFile, "/tmp/win.ini");
+#endif
     hFile = CreateFileA(szFile, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                         NULL, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED, NULL);
     if (hFile == INVALID_HANDLE_VALUE)  /* win9x doesn't like FILE_SHARE_DELETE */
@@ -3035,7 +3065,7 @@ static void test_async_file_errors(void)
     }
     ok(completion_count == 0, "completion routine should only be called when ReadFileEx succeeds (this rule was violated %d times)\n", completion_count);
     /*printf("Error = %ld\n", GetLastError());*/
-    HeapFree(GetProcessHeap(), 0, lpBuffer);
+    heap_free(lpBuffer);
 }
 
 static BOOL user_apc_ran;
@@ -3206,6 +3236,7 @@ static void test_read_write(void)
     ok( ret, "DeleteFileA: error %d\n", GetLastError());
 }
 
+#if 0
 static void test_OpenFile(void)
 {
     HFILE hFile;
@@ -3399,6 +3430,7 @@ static void test_OpenFile(void)
     retval = GetFileAttributesA(filename);
     ok( retval == INVALID_FILE_ATTRIBUTES, "GetFileAttributesA succeeded on deleted file\n" );
 }
+#endif
 
 static void test_overlapped(void)
 {
@@ -4982,7 +5014,9 @@ START_TEST(file)
     test_CopyFile2();
     test_CopyFileEx();
     test_CreateFile();
+#if 0
     test_CreateFileA();
+#endif
     test_CreateFileW();
     test_CreateFile2();
     test_DeleteFileA();
@@ -5008,7 +5042,9 @@ START_TEST(file)
     test_GetFileType();
     test_async_file_errors();
     test_read_write();
+#if 0
     test_OpenFile();
+#endif
     test_overlapped();
     test_RemoveDirectory();
     test_ReplaceFileA();

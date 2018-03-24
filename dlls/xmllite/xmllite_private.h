@@ -21,7 +21,22 @@
 #ifndef __XMLLITE_PRIVATE__
 #define __XMLLITE_PRIVATE__
 
-#include "wine/heap.h"
+/* memory allocation functions */
+
+static inline void* __WINE_ALLOC_SIZE(1) heap_alloc(size_t size)
+{
+    return heap_alloc(size);
+}
+
+static inline void* __WINE_ALLOC_SIZE(2) heap_realloc(void *mem, size_t size)
+{
+    return heap_realloc(mem, size);
+}
+
+static inline BOOL heap_free(void *mem)
+{
+    return heap_free(mem);
+}
 
 #define ARRAY_SIZE(array) (sizeof(array)/sizeof((array)[0]))
 

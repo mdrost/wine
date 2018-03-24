@@ -471,7 +471,7 @@ static void test_CurrentDirectoryA(CHAR *origdir, CHAR *newdir)
   ok(lstrcmpiA(tmpstr,"aaaaaaa")==0,
      "GetCurrentDirectoryA should not have modified the buffer\n");
 
-  buffer = HeapAlloc( GetProcessHeap(), 0, 2 * 65536 );
+  buffer = heap_alloc( 2 * 65536 );
   SetLastError( 0xdeadbeef );
   strcpy( buffer, "foo" );
   len = GetCurrentDirectoryA( 32767, buffer );
@@ -497,7 +497,7 @@ static void test_CurrentDirectoryA(CHAR *origdir, CHAR *newdir)
   len = GetCurrentDirectoryA( 2 * 65536, buffer );
   ok( (len != 0 && len < MAX_PATH) || broken(!len), /* nt4 */ "GetCurrentDirectoryA failed %u err %u\n", len, GetLastError() );
   if (len) ok( !strcmp( buffer, origdir ), "wrong result %s\n", buffer );
-  HeapFree( GetProcessHeap(), 0, buffer );
+  heap_free( buffer );
 
 /* Check for crash prevention on swapped args. Crashes all but Win9x.
 */
@@ -1102,7 +1102,7 @@ static void test_GetTempPathW(char* tmp_dir)
     /* bogus application from bug 38220 passes the count value in sizeof(buffer)
      * instead the correct count of WCHAR, this test catches this case. */
     slen = 65534;
-    long_buf = HeapAlloc(GetProcessHeap(), 0, slen * sizeof(WCHAR));
+    long_buf = heap_alloc(slen * sizeof(WCHAR));
     if (!long_buf)
     {
         skip("Could not allocate memory for the test\n");
@@ -1125,9 +1125,10 @@ static void test_GetTempPathW(char* tmp_dir)
     for(len++; len < slen; len++)
         ok(long_buf[len] == 0xcc, "expected 0xcc at [%d], got 0x%x\n", len, long_buf[len]);
 
-    HeapFree(GetProcessHeap(), 0, long_buf);
+    heap_free(long_buf);
 }
 
+#if 0
 static void test_GetTempPath(void)
 {
     char save_TMP[MAX_PATH];
@@ -1182,6 +1183,7 @@ static void test_GetTempPath(void)
     SetEnvironmentVariableA("TMP", save_TMP);
     SetCurrentDirectoryW(curdir);
 }
+#endif
 
 static void test_GetLongPathNameA(void)
 {
@@ -1472,6 +1474,7 @@ static void test_GetShortPathNameW(void)
     ok( ret, "Cannot delete directory.\n" );
 }
 
+#if 0
 static void test_GetSystemDirectory(void)
 {
     CHAR    buffer[MAX_PATH + 4];
@@ -1590,6 +1593,7 @@ static void test_GetWindowsDirectory(void)
     ok( res == total, "returned %d with %d and '%s' (expected '%d')\n",
         res, GetLastError(), buffer, total);
 }
+#endif
 
 static void test_NeedCurrentDirectoryForExePathA(void)
 {
@@ -1641,6 +1645,7 @@ static void test_NeedCurrentDirectoryForExePathW(void)
     ok(!pNeedCurrentDirectoryForExePathW(cmdname), "returned TRUE for \"cmd.exe\"\n");
 }
 
+#if 0
 /* Call various path/file name retrieving APIs and check the case of
  * the returned drive letter. Some apps (for instance Adobe Photoshop CS3
  * installer) depend on the drive letter being in upper case.
@@ -1725,6 +1730,7 @@ static void test_drive_letter_case(void)
     }
 #undef is_upper_case_letter
 }
+#endif
 
 static const char manifest_dep[] =
 "<assembly xmlns=\"urn:schemas-microsoft-com:asm.v1\" manifestVersion=\"1.0\">"
@@ -1818,7 +1824,12 @@ static void test_SearchPathA(void)
         return;
     }
 
+#if 0
     GetWindowsDirectoryA(pathA, sizeof(pathA)/sizeof(CHAR));
+#else
+    pathA[0] = '\0';
+    strcat(pathA, "/tmp");
+#endif
 
     /* NULL filename */
     SetLastError(0xdeadbeef);
@@ -1896,6 +1907,7 @@ static void test_SearchPathW(void)
     static const WCHAR extW[] = {'.','e','x','t',0};
     static const WCHAR dllW[] = {'.','d','l','l',0};
     static const WCHAR fileW[] = { 0 };
+    static const WCHAR tmpW[] = {'/','t','m','p',0};
     WCHAR pathW[MAX_PATH], buffW[MAX_PATH], path2W[MAX_PATH];
     WCHAR *ptrW = NULL;
     ULONG_PTR cookie;
@@ -1914,7 +1926,12 @@ if (0)
     pSearchPathW(pathW, NULL, NULL, sizeof(buffW)/sizeof(WCHAR), buffW, &ptrW);
 }
 
+#if 0
     GetWindowsDirectoryW(pathW, sizeof(pathW)/sizeof(WCHAR));
+#else
+    pathW[0] = '\0';
+    lstrcatW(pathW, tmpW);
+#endif
 
     /* empty filename */
     SetLastError(0xdeadbeef);
@@ -1941,11 +1958,21 @@ if (0)
     ok(ret && ret == lstrlenW(path2W), "got %d\n", ret);
 
     /* full path, name without 'dll' extension */
+#if 0
     GetSystemDirectoryW(pathW, sizeof(pathW)/sizeof(WCHAR));
+#else
+    pathW[0] = '\0';
+    lstrcatW(pathW, tmpW);
+#endif
     ret = pSearchPathW(pathW, kernel32W, NULL, sizeof(path2W)/sizeof(WCHAR), path2W, NULL);
     ok(ret == 0, "got %d\n", ret);
 
+#if 0
     GetWindowsDirectoryW(pathW, sizeof(pathW)/sizeof(WCHAR));
+#else
+    pathW[0] = '\0';
+    lstrcatW(pathW, tmpW);
+#endif
 
     ret = pActivateActCtx(handle, &cookie);
     ok(ret, "failed to activate context, %u\n", GetLastError());
@@ -2142,12 +2169,17 @@ static void test_relative_path(void)
 
     GetCurrentDirectoryW(MAX_PATH, curdir);
     GetTempPathA(MAX_PATH, path);
+    ok(FALSE, "derp: %s\n", path);
     ret = SetCurrentDirectoryA(path);
     ok(ret, "SetCurrentDirectory error %d\n", GetLastError());
 
     ret = CreateDirectoryA("foo", NULL);
     ok(ret, "CreateDirectory error %d\n", GetLastError());
+#if 0
     file = CreateFileA("foo\\file", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, 0);
+#else
+    file = CreateFileA("foo/file", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, 0);
+#endif
     ok(file != INVALID_HANDLE_VALUE, "failed to create temp file\n");
     CloseHandle(file);
     ret = CreateDirectoryA("bar", NULL);
@@ -2155,7 +2187,11 @@ static void test_relative_path(void)
     ret = SetCurrentDirectoryA("bar");
     ok(ret, "SetCurrentDirectory error %d\n", GetLastError());
 
+#if 0
     ret = GetFileAttributesA("..\\foo\\file");
+#else
+    ret = GetFileAttributesA("../foo/file");
+#endif
     ok(ret != INVALID_FILE_ATTRIBUTES, "GetFileAttributes error %d\n", GetLastError());
 
     strcpy(buf, "deadbeef");
@@ -2334,8 +2370,13 @@ static void test_SetSearchPathMode(void)
     SetLastError( 0xdeadbeef );
     ret = SearchPathA( NULL, "kernel32.dll", NULL, MAX_PATH, buf, NULL );
     ok( ret, "SearchPathA failed err %u\n", GetLastError() );
+#if 0
     GetSystemDirectoryA( expect, MAX_PATH );
     strcat( expect, "\\kernel32.dll" );
+#else
+    expect[0] = '\0';
+    strcat(expect, "/usr/local/lib/x86_64-linux-gnu/libwinapi-kernel32.so");
+#endif
     ok( !lstrcmpiA( buf, expect ), "found %s expected %s\n", buf, expect );
 
     SetLastError( 0xdeadbeef );
@@ -2375,8 +2416,13 @@ static void test_SetSearchPathMode(void)
     SetLastError( 0xdeadbeef );
     ret = SearchPathA( NULL, "kernel32.dll", NULL, MAX_PATH, buf, NULL );
     ok( ret, "SearchPathA failed err %u\n", GetLastError() );
+#if 0
     GetSystemDirectoryA( expect, MAX_PATH );
     strcat( expect, "\\kernel32.dll" );
+#else
+    expect[0] = '\0';
+    strcat(expect, "/usr/local/lib/x86_64-linux-gnu/libwinapi-kernel32.so");
+#endif
     ok( !lstrcmpiA( buf, expect ), "found %s expected %s\n", buf, expect );
 
     DeleteFileA( "kernel32.dll" );
@@ -2403,15 +2449,19 @@ START_TEST(path)
     test_CurrentDirectoryA(origdir,curdir);
     test_PathNameA(curdir, curDrive, otherDrive);
     test_CleanupPathA(origdir,curdir);
+#if 0
     test_GetTempPath();
     test_GetLongPathNameA();
     test_GetLongPathNameW();
     test_GetShortPathNameW();
     test_GetSystemDirectory();
     test_GetWindowsDirectory();
+#endif
     test_NeedCurrentDirectoryForExePathA();
     test_NeedCurrentDirectoryForExePathW();
+#if 0
     test_drive_letter_case();
+#endif
     test_SearchPathA();
     test_SearchPathW();
     test_GetFullPathNameA();

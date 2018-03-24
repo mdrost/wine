@@ -1060,7 +1060,7 @@ static HRESULT WINAPI delegating_invoke_chan_get_buffer(IRpcChannelBuffer *pchan
                                                         RPCOLEMESSAGE *msg,
                                                         REFIID iid)
 {
-    msg->Buffer = HeapAlloc(GetProcessHeap(), 0, msg->cbBuffer);
+    msg->Buffer = heap_alloc(msg->cbBuffer);
     return S_OK;
 }
 
@@ -1127,7 +1127,7 @@ static void test_delegating_Invoke(IPSFactoryBuffer *ppsf)
         ok(*((DWORD*)msg.Buffer + 1) == S_OK, "buf[1] %08x\n", *((DWORD*)msg.Buffer + 1));
     }
     /* free the buffer allocated by delegating_invoke_chan_get_buffer */
-    HeapFree(GetProcessHeap(), 0, msg.Buffer);
+    heap_free(msg.Buffer);
     IRpcStubBuffer_Release(pstub);
 }
 static const CInterfaceProxyVtbl *cstub_ProxyVtblList2[] =

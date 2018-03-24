@@ -46,6 +46,12 @@ LPCSTR debugstr_ObjectAttributes(const OBJECT_ATTRIBUTES *oa)
                              oa->RootDirectory, oa->SecurityDescriptor );
 }
 
+LPCSTR debugstr_as( const ANSI_STRING *as )
+{
+    if (!as) return "<null>";
+    return debugstr_an(as->Buffer, as->Length / sizeof(CHAR));
+}
+
 LPCSTR debugstr_us( const UNICODE_STRING *us )
 {
     if (!us) return "<null>";
@@ -288,9 +294,9 @@ void __cdecl NTDLL_qsort( void *base, size_t nmemb, size_t size,
 {
     void *secondarr;
     if (nmemb < 2 || size == 0) return;
-    secondarr = RtlAllocateHeap (GetProcessHeap(), 0, nmemb*size);
+    secondarr = malloc (nmemb*size);
     NTDLL_mergesort( base, secondarr, size, compar, 0, nmemb-1 );
-    RtlFreeHeap (GetProcessHeap(),0, secondarr);
+    free (secondarr);
 }
 
 /*********************************************************************

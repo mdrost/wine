@@ -478,7 +478,7 @@ static void update_xrender_clipping( struct xrender_physdev *dev, HRGN rgn )
         pXRenderSetPictureClipRectangles( gdi_display, dev->pict,
                                           dev->x11dev->dc_rect.left, dev->x11dev->dc_rect.top,
                                           (XRectangle *)data->Buffer, data->rdh.nCount );
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
 }
 
@@ -637,14 +637,14 @@ static void FreeEntry(int entry)
                 formatEntry->glyphset = 0;
             }
             if(formatEntry->nrealized) {
-                HeapFree(GetProcessHeap(), 0, formatEntry->realized);
+                heap_free(formatEntry->realized);
                 formatEntry->realized = NULL;
-                HeapFree(GetProcessHeap(), 0, formatEntry->gis);
+                heap_free(formatEntry->gis);
                 formatEntry->gis = NULL;
                 formatEntry->nrealized = 0;
             }
 
-            HeapFree(GetProcessHeap(), 0, formatEntry);
+            heap_free(formatEntry);
             glyphsetCache[entry].format[type][format] = NULL;
         }
     }
@@ -896,7 +896,7 @@ static void set_physdev_format( struct xrender_physdev *physdev, enum wxr_format
 static BOOL create_xrender_dc( PHYSDEV *pdev, enum wxr_format format )
 {
     X11DRV_PDEVICE *x11dev = get_x11drv_dev( *pdev );
-    struct xrender_physdev *physdev = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*physdev) );
+    struct xrender_physdev *physdev = heap_alloc_zero( sizeof(*physdev) );
 
     if (!physdev) return FALSE;
     physdev->x11dev = x11dev;
@@ -972,7 +972,7 @@ static BOOL xrenderdrv_DeleteDC( PHYSDEV dev )
     if (physdev->cache_index != -1) dec_ref_cache( physdev->cache_index );
     LeaveCriticalSection( &xrender_cs );
 
-    HeapFree( GetProcessHeap(), 0, physdev );
+    heap_free( physdev );
     return TRUE;
 }
 
@@ -1120,7 +1120,7 @@ static void UploadGlyph(struct xrender_physdev *physDev, UINT glyph, enum glyph_
     }
 
 
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, buflen);
+    buf = heap_alloc_zero(buflen);
     if (buflen)
         GetGlyphOutlineW(physDev->dev.hdc, glyph, ggo_format, &gm, buflen, buf, &identity);
     else
@@ -1211,7 +1211,7 @@ static void UploadGlyph(struct xrender_physdev *physDev, UINT glyph, enum glyph_
                           buflen ? buf : zero, buflen ? buflen : sizeof(zero));
     }
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     formatEntry->gis[glyph] = gi;
 }
 
@@ -1365,7 +1365,7 @@ static BOOL xrenderdrv_ExtTextOut( PHYSDEV dev, INT x, INT y, UINT flags,
     TRACE("Writing %s at %d,%d\n", debugstr_wn(wstr,count),
           physdev->x11dev->dc_rect.left + x, physdev->x11dev->dc_rect.top + y);
 
-    elts = HeapAlloc(GetProcessHeap(), 0, sizeof(XGlyphElt16) * count);
+    elts = heap_alloc(sizeof(XGlyphElt16) * count);
 
     /* There's a bug in XRenderCompositeText that ignores the xDst and yDst parameters.
        So we pass zeros to the function and move to our starting position using the first
@@ -1427,7 +1427,7 @@ static BOOL xrenderdrv_ExtTextOut( PHYSDEV dev, INT x, INT y, UINT flags,
                             pict,
                             formatEntry->font_format,
                             0, 0, 0, 0, elts, count);
-    HeapFree(GetProcessHeap(), 0, elts);
+    heap_free(elts);
 
     LeaveCriticalSection(&xrender_cs);
     add_device_bounds( physdev->x11dev, &bounds );
@@ -1696,7 +1696,7 @@ static void xrender_put_image( Pixmap src_pixmap, Picture src_pict, Picture mask
         if (clip_data)
             pXRenderSetPictureClipRectangles( gdi_display, dst_pict, 0, 0,
                                               (XRectangle *)clip_data->Buffer, clip_data->rdh.nCount );
-        HeapFree( GetProcessHeap(), 0, clip_data );
+        heap_free( clip_data );
     }
     else
     {

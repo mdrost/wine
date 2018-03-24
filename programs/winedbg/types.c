@@ -266,7 +266,7 @@ BOOL types_udt_find_element(struct dbg_lvalue* lvalue, const char* name, long in
                     types_get_info(&type, TI_GET_SYMNAME, &ptr);
                     if (!ptr) continue;
                     WideCharToMultiByte(CP_ACP, 0, ptr, -1, tmp, sizeof(tmp), NULL, NULL);
-                    HeapFree(GetProcessHeap(), 0, ptr);
+                    heap_free(ptr);
                     if (strcmp(tmp, name)) continue;
 
                     return types_get_udt_element_lvalue(lvalue, &type, tmpbuf);
@@ -496,7 +496,7 @@ void print_value(const struct dbg_lvalue* lvalue, char format, int level)
                         if (!ptr) continue;
                         WideCharToMultiByte(CP_ACP, 0, ptr, -1, tmp, sizeof(tmp), NULL, NULL);
                         dbg_printf("%s=", tmp);
-                        HeapFree(GetProcessHeap(), 0, ptr);
+                        heap_free(ptr);
                         lvalue_field = *lvalue;
                         if (types_get_udt_element_lvalue(&lvalue_field, &sub_type, &tmpbuf))
                         {
@@ -611,7 +611,7 @@ BOOL types_print_type(const struct dbg_type* type, BOOL details)
     {
         WideCharToMultiByte(CP_ACP, 0, ptr, -1, tmp, sizeof(tmp), NULL, NULL);
         name = tmp;
-        HeapFree(GetProcessHeap(), 0, ptr);
+        heap_free(ptr);
     }
     else name = "--none--";
 
@@ -660,7 +660,7 @@ BOOL types_print_type(const struct dbg_type* type, BOOL details)
                         types_get_info(&type_elt, TI_GET_SYMNAME, &ptr);
                         if (!ptr) continue;
                         WideCharToMultiByte(CP_ACP, 0, ptr, -1, tmp, sizeof(tmp), NULL, NULL);
-                        HeapFree(GetProcessHeap(), 0, ptr);
+                        heap_free(ptr);
                         dbg_printf("%s", tmp);
                         if (types_get_info(&type_elt, TI_GET_TYPE, &type_elt.id))
                         {
@@ -781,7 +781,7 @@ BOOL types_get_info(const struct dbg_type* type, IMAGEHLP_SYMBOL_TYPE_INFO ti, v
             case btComplex:     name = complexW; break;
             default:            WINE_FIXME("Unsupported basic type %u\n", bt); return FALSE;
             }
-            X(WCHAR*) = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(name) + 1) * sizeof(WCHAR));
+            X(WCHAR*) = heap_alloc((lstrlenW(name) + 1) * sizeof(WCHAR));
             if (X(WCHAR*))
             {
                 lstrcpyW(X(WCHAR*), name);

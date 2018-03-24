@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
- * 
+ *
  * TODO: Handle non-i386 architectures
  */
 
@@ -39,6 +39,7 @@
 #include "ndr_misc.h"
 #include "ndr_stubless.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
@@ -256,7 +257,7 @@ HRESULT StdProxy_Construct(REFIID riid,
     return RPC_E_UNEXPECTED;
   }
 
-  This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(StdProxyImpl));
+  This = heap_alloc_zero(sizeof(StdProxyImpl));
   if (!This) return E_OUTOFMEMORY;
 
   if (!pUnkOuter) pUnkOuter = (IUnknown *)This;
@@ -278,7 +279,7 @@ HRESULT StdProxy_Construct(REFIID riid,
                                 &This->base_proxy, (void **)&This->base_object );
       if (FAILED(r))
       {
-          HeapFree( GetProcessHeap(), 0, This );
+          heap_free( This );
           return r;
       }
   }
@@ -340,7 +341,7 @@ static ULONG WINAPI StdProxy_Release(LPRPCPROXYBUFFER iface)
     if (This->base_proxy) IRpcProxyBuffer_Release( This->base_proxy );
 
     IPSFactoryBuffer_Release(This->pPSFactory);
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
   }
 
   return refs;

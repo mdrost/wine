@@ -33,7 +33,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(rundll);
 WORD WINAPI WinMain16( HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline, WORD show )
 {
     int len = GetSystemDirectoryA( NULL, 0 ) + sizeof("\\rundll32.exe ") + strlen(cmdline);
-    char *buffer = HeapAlloc( GetProcessHeap(), 0, len );
+    char *buffer = heap_alloc( len );
 
     GetSystemDirectoryA( buffer, len );
     strcat( buffer, "\\rundll32.exe " );
@@ -43,6 +43,6 @@ WORD WINAPI WinMain16( HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline, WORD s
 
     WinExec16( buffer, show );
 
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     ExitThread( 0 );
 }

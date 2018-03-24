@@ -75,7 +75,10 @@
 #include "winerror.h"
 #include "win.h"
 #include "user_private.h"
+#include "wine/heap.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/unicode.h"
 #include "wine/debug.h"
 #include "winternl.h"
@@ -174,6 +177,7 @@ static HHOOK set_windows_hook( INT id, HOOKPROC proc, HINSTANCE inst, DWORD tid,
         return 0;
     }
 
+#if 0
     SERVER_START_REQ( set_hook )
     {
         req->id        = id;
@@ -197,6 +201,7 @@ static HHOOK set_windows_hook( INT id, HOOKPROC proc, HINSTANCE inst, DWORD tid,
         }
     }
     SERVER_END_REQ;
+#endif
 
     TRACE( "%s %p %x -> %p\n", hook_names[id-WH_MINHOOK], proc, tid, handle );
     return handle;
@@ -278,8 +283,8 @@ static LRESULT call_hook_AtoW( HOOKPROC proc, INT id, INT code, WPARAM wparam, L
         }
         ret = HOOKPROC_wrapper( proc, code, wparam, (LPARAM)&cbtcwW );
         cbtcwA->hwndInsertAfter = cbtcwW.hwndInsertAfter;
-        HeapFree( GetProcessHeap(), 0, nameW );
-        HeapFree( GetProcessHeap(), 0, classW );
+        heap_free( nameW );
+        heap_free( classW );
     }
     return ret;
 }
@@ -309,22 +314,22 @@ static LRESULT call_hook_WtoA( HOOKPROC proc, INT id, INT code, WPARAM wparam, L
 
         if (!IS_INTRESOURCE(cbtcwW->lpcs->lpszName)) {
             len = WideCharToMultiByte( CP_ACP, 0, cbtcwW->lpcs->lpszName, -1, NULL, 0, NULL, NULL );
-            nameA = HeapAlloc( GetProcessHeap(), 0, len*sizeof(CHAR) );
+            nameA = heap_alloc( len*sizeof(CHAR) );
             WideCharToMultiByte( CP_ACP, 0, cbtcwW->lpcs->lpszName, -1, nameA, len, NULL, NULL );
             csA.lpszName = nameA;
         }
 
         if (!IS_INTRESOURCE(cbtcwW->lpcs->lpszClass)) {
             len = WideCharToMultiByte( CP_ACP, 0, cbtcwW->lpcs->lpszClass, -1, NULL, 0, NULL, NULL );
-            classA = HeapAlloc( GetProcessHeap(), 0, len*sizeof(CHAR) );
+            classA = heap_alloc( len*sizeof(CHAR) );
             WideCharToMultiByte( CP_ACP, 0, cbtcwW->lpcs->lpszClass, -1, classA, len, NULL, NULL );
             csA.lpszClass = classA;
         }
 
         ret = HOOKPROC_wrapper( proc, code, wparam, (LPARAM)&cbtcwA );
         cbtcwW->hwndInsertAfter = cbtcwA.hwndInsertAfter;
-        HeapFree( GetProcessHeap(), 0, nameA );
-        HeapFree( GetProcessHeap(), 0, classA );
+        heap_free( nameA );
+        heap_free( classA );
     }
     return ret;
 }
@@ -471,6 +476,7 @@ static BOOL HOOK_IsHooked( INT id )
  */
 LRESULT HOOK_CallHooks( INT id, INT code, WPARAM wparam, LPARAM lparam, BOOL unicode )
 {
+#if 0
     struct user_thread_info *thread_info = get_user_thread_info();
     struct hook_info info;
     DWORD_PTR ret;
@@ -515,6 +521,9 @@ LRESULT HOOK_CallHooks( INT id, INT code, WPARAM wparam, LPARAM lparam, BOOL uni
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return 0;
+#endif
 }
 
 
@@ -562,6 +571,7 @@ BOOL WINAPI UnhookWindowsHook( INT id, HOOKPROC proc )
 
     TRACE( "%s %p\n", hook_names[id-WH_MINHOOK], proc );
 
+#if 0
     SERVER_START_REQ( remove_hook )
     {
         req->handle = 0;
@@ -573,6 +583,9 @@ BOOL WINAPI UnhookWindowsHook( INT id, HOOKPROC proc )
     SERVER_END_REQ;
     if (!ret && GetLastError() == ERROR_INVALID_HANDLE) SetLastError( ERROR_INVALID_HOOK_HANDLE );
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -582,6 +595,7 @@ BOOL WINAPI UnhookWindowsHook( INT id, HOOKPROC proc )
  */
 BOOL WINAPI UnhookWindowsHookEx( HHOOK hhook )
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( remove_hook )
@@ -594,6 +608,9 @@ BOOL WINAPI UnhookWindowsHookEx( HHOOK hhook )
     SERVER_END_REQ;
     if (!ret && GetLastError() == ERROR_INVALID_HANDLE) SetLastError( ERROR_INVALID_HOOK_HANDLE );
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -602,6 +619,7 @@ BOOL WINAPI UnhookWindowsHookEx( HHOOK hhook )
  */
 LRESULT WINAPI CallNextHookEx( HHOOK hhook, INT code, WPARAM wparam, LPARAM lparam )
 {
+#if 0
     struct user_thread_info *thread_info = get_user_thread_info();
     struct hook_info info;
 
@@ -628,11 +646,15 @@ LRESULT WINAPI CallNextHookEx( HHOOK hhook, INT code, WPARAM wparam, LPARAM lpar
 
     info.prev_unicode = thread_info->hook_unicode;
     return call_hook( &info, code, wparam, lparam );
+#else
+    return 0;
+#endif
 }
 
 
 LRESULT call_current_hook( HHOOK hhook, INT code, WPARAM wparam, LPARAM lparam )
 {
+#if 0
     struct hook_info info;
 
     ZeroMemory( &info, sizeof(info) - sizeof(info.module) );
@@ -658,6 +680,9 @@ LRESULT call_current_hook( HHOOK hhook, INT code, WPARAM wparam, LPARAM lparam )
 
     info.prev_unicode = TRUE;  /* assume Unicode for this function */
     return call_hook( &info, code, wparam, lparam );
+#else
+    return 0;
+#endif
 }
 
 /***********************************************************************
@@ -703,6 +728,7 @@ HWINEVENTHOOK WINAPI SetWinEventHook(DWORD event_min, DWORD event_max,
                                      DWORD pid, DWORD tid, DWORD flags)
 {
     HWINEVENTHOOK handle = 0;
+#if 0
     WCHAR module[MAX_PATH];
     DWORD len;
 
@@ -754,6 +780,7 @@ HWINEVENTHOOK WINAPI SetWinEventHook(DWORD event_min, DWORD event_max,
         }
     }
     SERVER_END_REQ;
+#endif
 
     TRACE("-> %p\n", handle);
     return handle;
@@ -774,6 +801,7 @@ HWINEVENTHOOK WINAPI SetWinEventHook(DWORD event_min, DWORD event_max,
  */
 BOOL WINAPI UnhookWinEvent(HWINEVENTHOOK hEventHook)
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( remove_hook )
@@ -785,6 +813,9 @@ BOOL WINAPI UnhookWinEvent(HWINEVENTHOOK hEventHook)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 static inline BOOL find_first_hook(DWORD id, DWORD event, HWND hwnd, LONG object_id,
@@ -799,6 +830,7 @@ static inline BOOL find_first_hook(DWORD id, DWORD event, HWND hwnd, LONG object
         return FALSE;
     }
 
+#if 0
     SERVER_START_REQ( start_hook_chain )
     {
         req->id = id;
@@ -819,11 +851,15 @@ static inline BOOL find_first_hook(DWORD id, DWORD event, HWND hwnd, LONG object
     }
     SERVER_END_REQ;
     return ret && (info->tid || info->proc);
+#else
+    return FALSE;
+#endif
 }
 
 static inline BOOL find_next_hook(DWORD event, HWND hwnd, LONG object_id,
                                   LONG child_id, struct hook_info *info)
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( get_hook_info )
@@ -846,16 +882,21 @@ static inline BOOL find_next_hook(DWORD event, HWND hwnd, LONG object_id,
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 static inline void find_hook_close(DWORD id)
 {
+#if 0
     SERVER_START_REQ( finish_hook_chain )
     {
         req->id = id;
         wine_server_call( req );
     }
     SERVER_END_REQ;
+#endif
 }
 
 /***********************************************************************

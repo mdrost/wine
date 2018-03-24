@@ -114,7 +114,7 @@ HMETAFILE MF_Create_HMETAFILE(METAHEADER *mh)
 static POINT *convert_points( UINT count, const POINTS *pts )
 {
     UINT i;
-    POINT *ret = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*ret) );
+    POINT *ret = heap_alloc( count * sizeof(*ret) );
     if (ret)
     {
         for (i = 0; i < count; i++)
@@ -137,7 +137,7 @@ BOOL WINAPI DeleteMetaFile( HMETAFILE hmf )
     METAHEADER *mh = free_gdi_handle( hmf );
 
     if (!mh) return FALSE;
-    HeapFree( GetProcessHeap(), 0, mh );
+    heap_free( mh );
     return TRUE;
 }
 
@@ -153,27 +153,27 @@ static METAHEADER *MF_ReadMetaFile(HANDLE hfile)
     DWORD BytesRead, size;
 
     size = sizeof(METAHEADER);
-    mh = HeapAlloc( GetProcessHeap(), 0, size );
+    mh = heap_alloc( size );
     if(!mh) return NULL;
     if(ReadFile( hfile, mh, size, &BytesRead, NULL) == 0 ||
        BytesRead != size) {
-        HeapFree( GetProcessHeap(), 0, mh );
+        heap_free( mh );
 	return NULL;
     }
     if (mh->mtType != METAFILE_MEMORY || mh->mtVersion != MFVERSION ||
         mh->mtHeaderSize != size / 2)
     {
-        HeapFree( GetProcessHeap(), 0, mh );
+        heap_free( mh );
         return NULL;
     }
     size = mh->mtSize * 2;
-    mh = HeapReAlloc( GetProcessHeap(), 0, mh, size );
+    mh = heap_realloc( mh, size );
     if(!mh) return NULL;
     size -= sizeof(METAHEADER);
     if(ReadFile( hfile, (char *)mh + sizeof(METAHEADER), size, &BytesRead,
 		 NULL) == 0 ||
        BytesRead != size) {
-        HeapFree( GetProcessHeap(), 0, mh );
+        heap_free( mh );
 	return NULL;
     }
 
@@ -270,13 +270,13 @@ METAHEADER *MF_CreateMetaHeaderDisk(METAHEADER *mh, LPCVOID filename, BOOL uni )
 {
     METAHEADERDISK *mhd;
 
-    mh = HeapReAlloc( GetProcessHeap(), 0, mh,
+    mh = heap_realloc( mh,
 		      sizeof(METAHEADER) + sizeof(METAHEADERDISK));
     mh->mtType = METAFILE_DISK;
     mhd = (METAHEADERDISK *)((char *)mh + sizeof(METAHEADER));
 
     if( uni )
-        WideCharToMultiByte(CP_ACP, 0, filename, -1, 
+        WideCharToMultiByte(CP_ACP, 0, filename, -1,
                    mhd->filename, sizeof mhd->filename, NULL, NULL);
     else
         lstrcpynA( mhd->filename, filename, sizeof mhd->filename );
@@ -292,7 +292,7 @@ static METAHEADER *get_metafile_bits( HMETAFILE hmf )
 
     if (mh->mtType != METAFILE_DISK)
     {
-        ret = HeapAlloc( GetProcessHeap(), 0, mh->mtSize * 2 );
+        ret = heap_alloc( mh->mtSize * 2 );
         if (ret) memcpy( ret, mh, mh->mtSize * 2 );
     }
     else ret = MF_LoadDiskBasedMetaFile( mh );
@@ -331,7 +331,7 @@ HMETAFILE WINAPI CopyMetaFileW( HMETAFILE hSrcMetaFile, LPCWSTR lpFilename )
         DWORD w;
         if((hFile = CreateFileW(lpFilename, GENERIC_WRITE, 0, NULL,
 				CREATE_ALWAYS, 0, 0)) == INVALID_HANDLE_VALUE) {
-	    HeapFree( GetProcessHeap(), 0, mh );
+	    heap_free( mh );
 	    return 0;
 	}
 	WriteFile(hFile, mh, mh->mtSize * 2, &w, NULL);
@@ -402,11 +402,10 @@ BOOL WINAPI PlayMetaFile( HDC hdc, HMETAFILE hmf )
     }
 
     /* create the handle table */
-    ht = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
-		    sizeof(HANDLETABLE) * mh->mtNoObjects);
+    ht = heap_alloc_zero(sizeof(HANDLETABLE) * mh->mtNoObjects);
     if(!ht)
     {
-        HeapFree( GetProcessHeap(), 0, mh );
+        heap_free( mh );
         return FALSE;
     }
 
@@ -443,8 +442,8 @@ BOOL WINAPI PlayMetaFile( HDC hdc, HMETAFILE hmf )
       if(*(ht->objectHandle + i) != 0)
         DeleteObject(*(ht->objectHandle + i));
 
-    HeapFree( GetProcessHeap(), 0, ht );
-    HeapFree( GetProcessHeap(), 0, mh );
+    heap_free( ht );
+    heap_free( mh );
     return TRUE;
 }
 
@@ -480,8 +479,7 @@ BOOL WINAPI EnumMetaFile(HDC hdc, HMETAFILE hmf, MFENUMPROC lpEnumFunc, LPARAM l
     hBrush = GetCurrentObject(hdc, OBJ_BRUSH);
     hFont = GetCurrentObject(hdc, OBJ_FONT);
 
-    ht = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
-			    sizeof(HANDLETABLE) * mh->mtNoObjects);
+    ht = heap_alloc_zero(sizeof(HANDLETABLE) * mh->mtNoObjects);
 
     /* loop through metafile records */
     offset = mh->mtHeaderSize * 2;
@@ -514,8 +512,8 @@ BOOL WINAPI EnumMetaFile(HDC hdc, HMETAFILE hmf, MFENUMPROC lpEnumFunc, LPARAM l
       if(*(ht->objectHandle + i) != 0)
         DeleteObject(*(ht->objectHandle + i));
 
-    HeapFree( GetProcessHeap(), 0, ht);
-    HeapFree( GetProcessHeap(), 0, mh);
+    heap_free( ht);
+    heap_free( mh);
     return result;
 }
 
@@ -702,7 +700,7 @@ BOOL WINAPI PlayMetaFileRecord( HDC hdc,  HANDLETABLE *ht, METARECORD *mr, UINT 
         if ((pt = convert_points( mr->rdParm[0], (POINTS *)(mr->rdParm + 1))))
         {
             Polygon(hdc, pt, mr->rdParm[0]);
-            HeapFree( GetProcessHeap(), 0, pt );
+            heap_free( pt );
         }
         break;
 
@@ -715,15 +713,15 @@ BOOL WINAPI PlayMetaFileRecord( HDC hdc,  HANDLETABLE *ht, METARECORD *mr, UINT 
             pt = convert_points( total, (POINTS *)(counts + mr->rdParm[0]) );
             if (pt)
             {
-                INT *cnt32 = HeapAlloc( GetProcessHeap(), 0, mr->rdParm[0] * sizeof(*cnt32) );
+                INT *cnt32 = heap_alloc( mr->rdParm[0] * sizeof(*cnt32) );
                 if (cnt32)
                 {
                     for (i = 0; i < mr->rdParm[0]; i++) cnt32[i] = counts[i];
                     PolyPolygon( hdc, pt, cnt32, mr->rdParm[0]);
-                    HeapFree( GetProcessHeap(), 0, cnt32 );
+                    heap_free( cnt32 );
                 }
             }
-            HeapFree( GetProcessHeap(), 0, pt );
+            heap_free( pt );
         }
         break;
 
@@ -731,7 +729,7 @@ BOOL WINAPI PlayMetaFileRecord( HDC hdc,  HANDLETABLE *ht, METARECORD *mr, UINT 
         if ((pt = convert_points( mr->rdParm[0], (POINTS *)(mr->rdParm + 1))))
         {
             Polyline( hdc, pt, mr->rdParm[0] );
-            HeapFree( GetProcessHeap(), 0, pt );
+            heap_free( pt );
         }
         break;
 
@@ -1058,7 +1056,7 @@ HMETAFILE WINAPI SetMetaFileBitsEx( UINT size, const BYTE *lpData )
         return 0;
     }
 
-    mh_out = HeapAlloc( GetProcessHeap(), 0, size );
+    mh_out = heap_alloc( size );
     if (!mh_out)
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -1110,7 +1108,7 @@ UINT WINAPI GetMetaFileBitsEx( HMETAFILE hmf, UINT nSize, LPVOID buf )
         if(mfSize > nSize) mfSize = nSize;
         memmove(buf, mh, mfSize);
     }
-    if (mf_copy) HeapFree( GetProcessHeap(), 0, mh );
+    if (mf_copy) heap_free( mh );
     GDI_ReleaseObj( hmf );
     TRACE("returning size %d\n", mfSize);
     return mfSize;
@@ -1133,11 +1131,11 @@ static BOOL add_mf_comment(HDC hdc, HENHMETAFILE emf)
     static const DWORD max_chunk_size = 0x2000;
 
     if(!size) return FALSE;
-    chunk_data = bits = HeapAlloc(GetProcessHeap(), 0, size);
+    chunk_data = bits = heap_alloc(size);
     if(!bits) return FALSE;
     if(!GetEnhMetaFileBits(emf, size, bits)) goto end;
 
-    chunk = HeapAlloc(GetProcessHeap(), 0, FIELD_OFFSET(emf_in_wmf_comment, emf_data[max_chunk_size]));
+    chunk = heap_alloc(FIELD_OFFSET(emf_in_wmf_comment, emf_data[max_chunk_size]));
     if(!chunk) goto end;
 
     chunk->magic = WMFC_MAGIC;
@@ -1166,8 +1164,8 @@ static BOOL add_mf_comment(HDC hdc, HENHMETAFILE emf)
     }
     ret = TRUE;
 end:
-    HeapFree(GetProcessHeap(), 0, chunk);
-    HeapFree(GetProcessHeap(), 0, bits);
+    heap_free(chunk);
+    heap_free(bits);
     return ret;
 }
 
@@ -1407,7 +1405,7 @@ static BOOL MF_Play_MetaExtTextOut(HDC hdc, METARECORD *mr)
         if (mr->rdSize == (len + s1 * sizeof(INT16)) / 2)
         {
             dxx = (SHORT *)(sot+(((s1+1)>>1)*2));
-            dx = HeapAlloc( GetProcessHeap(), 0, s1*sizeof(INT));
+            dx = heap_alloc( s1*sizeof(INT));
             if (dx) for (i = 0; i < s1; i++) dx[i] = dxx[i];
         }
 	else {
@@ -1426,7 +1424,7 @@ static BOOL MF_Play_MetaExtTextOut(HDC hdc, METARECORD *mr)
     if (dx)
     {
         TRACE("%s  len: %d  dx0: %d\n", sot, mr->rdSize, dx[0]);
-        HeapFree( GetProcessHeap(), 0, dx );
+        heap_free( dx );
     }
     return TRUE;
 }

@@ -191,6 +191,7 @@ static const RTL_OSVERSIONINFOEXW VersionData[NB_WINDOWS_VERSIONS] =
 
 };
 
+#if 0
 static const char * const WinVersionNames[NB_WINDOWS_VERSIONS] =
 { /* no spaces in here ! */
     "win20",                      /* WIN20 */
@@ -570,6 +571,7 @@ done:
            current_version->wServicePackMajor, current_version->wServicePackMinor,
            current_version->wProductType );
 }
+#endif
 
 /***********************************************************************
  *           RtlGetProductInfo    (NTDLL.@)
@@ -588,6 +590,7 @@ BOOLEAN WINAPI RtlGetProductInfo(DWORD dwOSMajorVersion, DWORD dwOSMinorVersion,
     if (!pdwReturnedProductType)
         return FALSE;
 
+#if 0
     if (dwOSMajorVersion < 6)
     {
         *pdwReturnedProductType = PRODUCT_UNDEFINED;
@@ -598,6 +601,9 @@ BOOLEAN WINAPI RtlGetProductInfo(DWORD dwOSMajorVersion, DWORD dwOSMinorVersion,
         *pdwReturnedProductType = PRODUCT_ULTIMATE_N;
     else
         *pdwReturnedProductType = PRODUCT_STANDARD_SERVER;
+#else
+    *pdwReturnedProductType = PRODUCT_UNDEFINED;
+#endif
 
     return TRUE;
 }
@@ -607,6 +613,7 @@ BOOLEAN WINAPI RtlGetProductInfo(DWORD dwOSMajorVersion, DWORD dwOSMinorVersion,
  */
 NTSTATUS WINAPI RtlGetVersion( RTL_OSVERSIONINFOEXW *info )
 {
+#if 0
     info->dwMajorVersion = current_version->dwMajorVersion;
     info->dwMinorVersion = current_version->dwMinorVersion;
     info->dwBuildNumber  = current_version->dwBuildNumber;
@@ -620,9 +627,25 @@ NTSTATUS WINAPI RtlGetVersion( RTL_OSVERSIONINFOEXW *info )
         info->wProductType      = current_version->wProductType;
     }
     return STATUS_SUCCESS;
+#else
+    info->dwMajorVersion = 10;
+    info->dwMinorVersion = 0;
+    info->dwBuildNumber  = 0x3AD7;
+    info->dwPlatformId   = VER_PLATFORM_WIN32_NT;
+    info->szCSDVersion[0] = 0;
+    if(info->dwOSVersionInfoSize == sizeof(RTL_OSVERSIONINFOEXW))
+    {
+        info->wServicePackMajor = 0;
+        info->wServicePackMinor = 0;
+        info->wSuiteMask        = VER_SUITE_SINGLEUSERTS;
+        info->wProductType      = VER_NT_WORKSTATION;
+    }
+    return STATUS_SUCCESS;
+#endif
 }
 
 
+#if 0
 /******************************************************************************
  *  RtlGetNtVersionNumbers   (NTDLL.@)
  *
@@ -656,6 +679,7 @@ BOOLEAN WINAPI RtlGetNtProductType( LPDWORD type )
     if (type) *type = current_version->wProductType;
     return TRUE;
 }
+#endif
 
 static inline UCHAR version_update_condition(UCHAR *last_condition, UCHAR condition)
 {

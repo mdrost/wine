@@ -250,6 +250,7 @@ static int bitmap_info_size( const BITMAPINFO * info, WORD coloruse )
     }
 }
 
+#if 0
 static void DataCacheEntry_Destroy(DataCache *cache, DataCacheEntry *cache_entry)
 {
     list_remove(&cache_entry->entry);
@@ -258,7 +259,7 @@ static void DataCacheEntry_Destroy(DataCache *cache, DataCacheEntry *cache_entry
     if(cache_entry->sink_id)
         IDataObject_DUnadvise(cache->running_object, cache_entry->sink_id);
 
-    HeapFree(GetProcessHeap(), 0, cache_entry);
+    heap_free(cache_entry);
 }
 
 static void DataCache_Destroy(
@@ -286,8 +287,9 @@ static void DataCache_Destroy(
   /*
    * Free the datacache pointer.
    */
-  HeapFree(GetProcessHeap(), 0, ptrToDestroy);
+  heap_free(ptrToDestroy);
 }
+#endif
 
 static DataCacheEntry *DataCache_GetEntryForFormatEtc(DataCache *This, const FORMATETC *formatetc)
 {
@@ -392,7 +394,7 @@ static HRESULT DataCache_CreateEntry(DataCache *This, const FORMATETC *formatetc
     if (hr == CACHE_S_FORMATETC_NOTSUPPORTED)
         TRACE("creating unsupported format %d\n", formatetc->cfFormat);
 
-    entry = HeapAlloc(GetProcessHeap(), 0, sizeof(*entry));
+    entry = heap_alloc(sizeof(*entry));
     if (!entry)
         return E_OUTOFMEMORY;
 
@@ -411,7 +413,7 @@ static HRESULT DataCache_CreateEntry(DataCache *This, const FORMATETC *formatetc
     return hr;
 
 fail:
-    HeapFree(GetProcessHeap(), 0, entry);
+    heap_free(entry);
     return E_OUTOFMEMORY;
 }
 
@@ -484,17 +486,17 @@ static HRESULT read_clipformat(IStream *stream, CLIPFORMAT *clipformat)
     }
     else
     {
-        char *format_name = HeapAlloc(GetProcessHeap(), 0, length);
+        char *format_name = heap_alloc(length);
         if (!format_name)
             return E_OUTOFMEMORY;
         hr = IStream_Read(stream, format_name, length, &read);
         if (hr != S_OK || read != length || format_name[length - 1] != '\0')
         {
-            HeapFree(GetProcessHeap(), 0, format_name);
+            heap_free(format_name);
             return DV_E_CLIPFORMAT;
         }
         *clipformat = RegisterClipboardFormatA(format_name);
-        HeapFree(GetProcessHeap(), 0, format_name);
+        heap_free(format_name);
     }
     return S_OK;
 }
@@ -549,6 +551,7 @@ static HRESULT open_pres_stream( IStorage *stg, int stream_number, IStream **stm
 
 static HRESULT load_mf_pict( DataCacheEntry *cache_entry, IStream *stm )
 {
+#if 0
     HRESULT hr;
     STATSTG stat;
     ULARGE_INTEGER current_pos;
@@ -584,7 +587,7 @@ static HRESULT load_mf_pict( DataCacheEntry *cache_entry, IStream *stm )
     if (!hmfpict) return E_OUTOFMEMORY;
     mfpict = GlobalLock( hmfpict );
 
-    bits = HeapAlloc( GetProcessHeap(), 0, stat.cbSize.u.LowPart);
+    bits = heap_alloc( stat.cbSize.u.LowPart);
     if (!bits)
     {
         GlobalFree( hmfpict );
@@ -614,13 +617,17 @@ static HRESULT load_mf_pict( DataCacheEntry *cache_entry, IStream *stm )
     else
         GlobalFree( hmfpict );
 
-    HeapFree( GetProcessHeap(), 0, bits );
+    heap_free( bits );
 
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT load_dib( DataCacheEntry *cache_entry, IStream *stm )
 {
+#if 0
     HRESULT hr;
     STATSTG stat;
     void *dib;
@@ -701,6 +708,9 @@ fail:
     GlobalUnlock( hglobal );
     GlobalFree( hglobal );
     return E_FAIL;
+#else
+    return E_NOTIMPL;
+#endif
 
 }
 
@@ -761,6 +771,7 @@ static void init_stream_header(DataCacheEntry *entry, PresentationDataHeader *he
 
 static HRESULT save_dib(DataCacheEntry *entry, BOOL contents, IStream *stream)
 {
+#if 0
     HRESULT hr = S_OK;
     int data_size = 0;
     BITMAPINFO *bmi = NULL;
@@ -815,6 +826,9 @@ static HRESULT save_dib(DataCacheEntry *entry, BOOL contents, IStream *stream)
 end:
     if (bmi) GlobalUnlock(entry->stgmedium.u.hGlobal);
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 #include <pshpack2.h>
@@ -831,6 +845,7 @@ struct meta_placeable
 
 static HRESULT save_mfpict(DataCacheEntry *entry, BOOL contents, IStream *stream)
 {
+#if 0
     HRESULT hr = S_OK;
     int data_size = 0;
     void *data = NULL;
@@ -852,7 +867,7 @@ static HRESULT save_mfpict(DataCacheEntry *entry, BOOL contents, IStream *stream
             header.dwObjectExtentX = mfpict->xExt;
             header.dwObjectExtentY = mfpict->yExt;
             header.dwSize = data_size;
-            data = HeapAlloc(GetProcessHeap(), 0, header.dwSize);
+            data = heap_alloc(header.dwSize);
             if (!data)
             {
                 GlobalUnlock(entry->stgmedium.u.hMetaFilePict);
@@ -864,7 +879,7 @@ static HRESULT save_mfpict(DataCacheEntry *entry, BOOL contents, IStream *stream
         hr = IStream_Write(stream, &header, sizeof(PresentationDataHeader), NULL);
         if (hr == S_OK && data_size)
             hr = IStream_Write(stream, data, data_size, NULL);
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
     }
     else if (entry->stgmedium.tymed != TYMED_NULL)
     {
@@ -875,7 +890,7 @@ static HRESULT save_mfpict(DataCacheEntry *entry, BOOL contents, IStream *stream
         if (!mfpict)
             return DV_E_STGMEDIUM;
         data_size = GetMetaFileBitsEx(mfpict->hMF, 0, NULL);
-        data = HeapAlloc(GetProcessHeap(), 0, data_size);
+        data = heap_alloc(data_size);
         if (!data)
         {
             GlobalUnlock(entry->stgmedium.u.hMetaFilePict);
@@ -904,10 +919,13 @@ static HRESULT save_mfpict(DataCacheEntry *entry, BOOL contents, IStream *stream
         hr = IStream_Write(stream, &meta_place_rec, sizeof(struct meta_placeable), NULL);
         if (hr == S_OK && data_size)
             hr = IStream_Write(stream, data, data_size, NULL);
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
     }
 
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT save_emf(DataCacheEntry *entry, BOOL contents, IStream *stream)
@@ -931,7 +949,7 @@ static HRESULT save_emf(DataCacheEntry *entry, BOOL contents, IStream *stream)
         }
         data_size = GetWinMetaFileBits(entry->stgmedium.u.hEnhMetaFile, 0, NULL, MM_ANISOTROPIC, hdc);
         header.dwSize = data_size;
-        data = HeapAlloc(GetProcessHeap(), 0, header.dwSize);
+        data = heap_alloc(header.dwSize);
         if (!data)
         {
             ReleaseDC(0, hdc);
@@ -945,19 +963,19 @@ static HRESULT save_emf(DataCacheEntry *entry, BOOL contents, IStream *stream)
         hr = IStream_Write(stream, &header, sizeof(PresentationDataHeader), NULL);
         if (hr == S_OK && data_size)
             hr = IStream_Write(stream, data, data_size, NULL);
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
     }
     else if (entry->stgmedium.tymed != TYMED_NULL)
     {
         data_size = GetEnhMetaFileBits(entry->stgmedium.u.hEnhMetaFile, 0, NULL);
-        data = HeapAlloc(GetProcessHeap(), 0, sizeof(DWORD) + sizeof(ENHMETAHEADER) + data_size);
+        data = heap_alloc(sizeof(DWORD) + sizeof(ENHMETAHEADER) + data_size);
         if (!data) return E_OUTOFMEMORY;
         *((DWORD *)data) = sizeof(ENHMETAHEADER);
         GetEnhMetaFileBits(entry->stgmedium.u.hEnhMetaFile, data_size, data + sizeof(DWORD) + sizeof(ENHMETAHEADER));
         memcpy(data + sizeof(DWORD), data + sizeof(DWORD) + sizeof(ENHMETAHEADER), sizeof(ENHMETAHEADER));
         data_size += sizeof(DWORD) + sizeof(ENHMETAHEADER);
         hr = IStream_Write(stream, data, data_size, NULL);
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
     }
 
     return hr;
@@ -1036,6 +1054,7 @@ static HRESULT DataCacheEntry_Save(DataCacheEntry *cache_entry, IStorage *storag
 static HRESULT copy_stg_medium(CLIPFORMAT cf, STGMEDIUM *dest_stgm,
                                const STGMEDIUM *src_stgm)
 {
+#if 0
     if (src_stgm->tymed == TYMED_MFPICT)
     {
         const METAFILEPICT *src_mfpict = GlobalLock(src_stgm->u.hMetaFilePict);
@@ -1067,10 +1086,14 @@ static HRESULT copy_stg_medium(CLIPFORMAT cf, STGMEDIUM *dest_stgm,
     if (dest_stgm->pUnkForRelease)
         IUnknown_AddRef(dest_stgm->pUnkForRelease);
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT synthesize_dib( HBITMAP bm, STGMEDIUM *med )
 {
+#if 0
     HDC hdc = GetDC( 0 );
     BITMAPINFOHEADER header;
     BITMAPINFO *bmi;
@@ -1095,10 +1118,14 @@ static HRESULT synthesize_dib( HBITMAP bm, STGMEDIUM *med )
 done:
     ReleaseDC( 0, hdc );
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT synthesize_bitmap( HGLOBAL dib, STGMEDIUM *med )
 {
+#if 0
     HRESULT hr = E_FAIL;
     BITMAPINFO *bmi;
     HDC hdc = GetDC( 0 );
@@ -1116,10 +1143,14 @@ static HRESULT synthesize_bitmap( HGLOBAL dib, STGMEDIUM *med )
     }
     ReleaseDC( 0, hdc );
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT synthesize_emf( HMETAFILEPICT data, STGMEDIUM *med )
 {
+#if 0
     METAFILEPICT *pict;
     HRESULT hr = E_FAIL;
     UINT size;
@@ -1128,11 +1159,11 @@ static HRESULT synthesize_emf( HMETAFILEPICT data, STGMEDIUM *med )
     if (!(pict = GlobalLock( data ))) return hr;
 
     size = GetMetaFileBitsEx( pict->hMF, 0, NULL );
-    if ((bits = HeapAlloc( GetProcessHeap(), 0, size )))
+    if ((bits = heap_alloc( size )))
     {
         GetMetaFileBitsEx( pict->hMF, size, bits );
         med->u.hEnhMetaFile = SetWinMetaFileBits( size, bits, NULL, pict );
-        HeapFree( GetProcessHeap(), 0, bits );
+        heap_free( bits );
         med->tymed = TYMED_ENHMF;
         med->pUnkForRelease = NULL;
         hr = S_OK;
@@ -1140,6 +1171,9 @@ static HRESULT synthesize_emf( HMETAFILEPICT data, STGMEDIUM *med )
 
     GlobalUnlock( data );
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT DataCacheEntry_SetData(DataCacheEntry *cache_entry,
@@ -1158,6 +1192,7 @@ static HRESULT DataCacheEntry_SetData(DataCacheEntry *cache_entry,
         return DV_E_FORMATETC;
     }
 
+#if 0
     cache_entry->dirty = TRUE;
     ReleaseStgMedium(&cache_entry->stgmedium);
 
@@ -1185,6 +1220,9 @@ static HRESULT DataCacheEntry_SetData(DataCacheEntry *cache_entry,
     }
     else
         return copy_stg_medium(cache_entry->fmtetc.cfFormat, &cache_entry->stgmedium, stgmedium);
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT DataCacheEntry_GetData(DataCacheEntry *cache_entry, IStorage *stg, FORMATETC *fmt, STGMEDIUM *stgmedium)
@@ -1206,8 +1244,12 @@ static HRESULT DataCacheEntry_GetData(DataCacheEntry *cache_entry, IStorage *stg
 
 static inline HRESULT DataCacheEntry_DiscardData(DataCacheEntry *cache_entry)
 {
+#if 0
     ReleaseStgMedium(&cache_entry->stgmedium);
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static inline DWORD tymed_from_cf( DWORD cf )
@@ -1352,6 +1394,7 @@ static ULONG WINAPI DataCache_NDIUnknown_AddRef(
   return InterlockedIncrement(&this->ref);
 }
 
+#if 0
 /************************************************************************
  * DataCache_NDIUnknown_Release (IUnknown)
  *
@@ -1370,6 +1413,7 @@ static ULONG WINAPI DataCache_NDIUnknown_Release(
 
   return ref;
 }
+#endif
 
 /*********************************************************
  * Method implementation for the IDataObject
@@ -1759,6 +1803,7 @@ static HRESULT WINAPI DataCache_Load( IPersistStorage *iface, IStorage *stg )
 
     TRACE("(%p, %p)\n", iface, stg);
 
+#if 0
     IPersistStorage_HandsOffStorage( iface );
 
     LIST_FOR_EACH_ENTRY_SAFE( entry, cursor2, &This->cache_list, DataCacheEntry, entry )
@@ -1786,6 +1831,9 @@ static HRESULT WINAPI DataCache_Load( IPersistStorage *iface, IStorage *stg )
     }
 
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /************************************************************************
@@ -1955,6 +2003,7 @@ static HRESULT WINAPI DataCache_Draw(
   if (lprcBounds==NULL)
     return E_INVALIDARG;
 
+#if 0
   LIST_FOR_EACH_ENTRY(cache_entry, &This->cache_list, DataCacheEntry, entry)
   {
     /* FIXME: compare ptd too */
@@ -2058,6 +2107,9 @@ static HRESULT WINAPI DataCache_Draw(
   WARN("no data could be found to be drawn\n");
 
   return OLE_E_BLANK;
+#else
+  return E_NOTIMPL;
+#endif
 }
 
 static HRESULT WINAPI DataCache_GetColorSet(
@@ -2215,6 +2267,7 @@ static HRESULT WINAPI DataCache_GetExtent(
   if (ptd!=NULL)
     FIXME("Unimplemented ptd = %p\n", ptd);
 
+#if 0
   LIST_FOR_EACH_ENTRY(cache_entry, &This->cache_list, DataCacheEntry, entry)
   {
     /* FIXME: compare ptd too */
@@ -2293,6 +2346,9 @@ static HRESULT WINAPI DataCache_GetExtent(
    * This method returns OLE_E_BLANK when it fails.
    */
   return OLE_E_BLANK;
+#else
+  return E_NOTIMPL;
+#endif
 }
 
 
@@ -2420,6 +2476,7 @@ static HRESULT WINAPI DataCache_Uncache(
 
     TRACE("(%d)\n", dwConnection);
 
+#if 0
     LIST_FOR_EACH_ENTRY(cache_entry, &This->cache_list, DataCacheEntry, entry)
         if (cache_entry->id == dwConnection)
         {
@@ -2430,6 +2487,9 @@ static HRESULT WINAPI DataCache_Uncache(
     WARN("no connection found for %d\n", dwConnection);
 
     return OLE_E_NOCONNECTION;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT WINAPI DataCache_EnumCache(IOleCache2 *iface,
@@ -2550,6 +2610,7 @@ static HRESULT WINAPI DataCache_UpdateCache( IOleCache2 *iface, IDataObject *dat
 
     TRACE( "(%p %p %08x %p)\n", iface, data, mode, reserved );
 
+#if 0
     LIST_FOR_EACH_ENTRY( cache_entry, &This->cache_list, DataCacheEntry, entry )
     {
         slots++;
@@ -2617,6 +2678,9 @@ static HRESULT WINAPI DataCache_UpdateCache( IOleCache2 *iface, IDataObject *dat
     }
 
     return (!slots || done_one) ? S_OK : CACHE_E_NOCACHE_UPDATED;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT WINAPI DataCache_DiscardCache(
@@ -2792,6 +2856,7 @@ static void WINAPI DataCache_OnClose(IAdviseSink *iface)
     FIXME("stub\n");
 }
 
+#if 0
 /*
  * Virtual function tables for the DataCache class.
  */
@@ -2801,6 +2866,7 @@ static const IUnknownVtbl DataCache_NDIUnknown_VTable =
   DataCache_NDIUnknown_AddRef,
   DataCache_NDIUnknown_Release
 };
+#endif
 
 static const IDataObjectVtbl DataCache_IDataObject_VTable =
 {
@@ -2888,12 +2954,13 @@ static DataCache* DataCache_Construct(
   REFCLSID  clsid,
   LPUNKNOWN pUnkOuter)
 {
+#if 0
   DataCache* newObject = 0;
 
   /*
    * Allocate space for the object.
    */
-  newObject = HeapAlloc(GetProcessHeap(), 0, sizeof(DataCache));
+  newObject = heap_alloc(sizeof(DataCache));
 
   if (newObject==0)
     return newObject;
@@ -2929,6 +2996,9 @@ static DataCache* DataCache_Construct(
   newObject->clsid = *clsid;
 
   return newObject;
+#else
+  return NULL;
+#endif
 }
 
 /******************************************************************************

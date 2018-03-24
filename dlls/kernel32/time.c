@@ -46,6 +46,7 @@
 #include "winbase.h"
 #include "winternl.h"
 #include "kernel_private.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -108,7 +109,7 @@ static int TIME_DayLightCompareDate( const SYSTEMTIME *date,
          * 5 means: the last week in the month */
         int weekofmonth = compareDate->wDay;
           /* calculate the day of the first DayOfWeek in the month */
-        First = ( 6 + compareDate->wDayOfWeek - date->wDayOfWeek + date->wDay 
+        First = ( 6 + compareDate->wDayOfWeek - date->wDayOfWeek + date->wDay
                ) % 7 + 1;
         limit_day = First + 7 * (weekofmonth - 1);
         /* check needed for the 5th weekday of the month */
@@ -224,10 +225,10 @@ static DWORD TIME_CompTimeZoneID ( const TIME_ZONE_INFORMATION *pTZinfo,
         } else    /* Down south */
             if( beforeStandardDate || afterDaylightDate )
             retval = TIME_ZONE_ID_DAYLIGHT;
-    } else 
+    } else
         /* No transition date */
         retval = TIME_ZONE_ID_UNKNOWN;
-        
+
     return retval;
 }
 
@@ -282,6 +283,7 @@ static BOOL TIME_GetTimezoneBias( const TIME_ZONE_INFORMATION *pTZinfo,
     return TRUE;
 }
 
+#if 0
 /***********************************************************************
  *  TIME_GetSpecificTimeZoneKey
  *
@@ -366,6 +368,7 @@ static BOOL reg_query_value(HKEY hkey, LPCWSTR name, DWORD type, void *data, DWO
     memcpy(data, info->Data, info->DataLength);
     return TRUE;
 }
+#endif
 
 /***********************************************************************
  *  TIME_GetSpecificTimeZoneInfo
@@ -384,6 +387,7 @@ static BOOL reg_query_value(HKEY hkey, LPCWSTR name, DWORD type, void *data, DWO
 static BOOL TIME_GetSpecificTimeZoneInfo( const WCHAR *key_name, WORD year,
     BOOL dynamic, DYNAMIC_TIME_ZONE_INFORMATION *tzinfo )
 {
+#if 0
     static const WCHAR Dynamic_DstW[] = { 'D','y','n','a','m','i','c',' ','D','S','T',0 };
     static const WCHAR fmtW[] = { '%','d',0 };
     static const WCHAR stdW[] = { 'S','t','d',0 };
@@ -453,6 +457,10 @@ static BOOL TIME_GetSpecificTimeZoneInfo( const WCHAR *key_name, WORD year,
     NtClose( time_zone_key );
 
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -805,6 +813,7 @@ static void TIME_ClockTimeToFileTime(clock_t unix_time, LPFILETIME filetime)
 BOOL WINAPI GetProcessTimes( HANDLE hprocess, LPFILETIME lpCreationTime,
     LPFILETIME lpExitTime, LPFILETIME lpKernelTime, LPFILETIME lpUserTime )
 {
+#if 0
     struct tms tms;
     KERNEL_USER_TIMES pti;
 
@@ -816,6 +825,10 @@ BOOL WINAPI GetProcessTimes( HANDLE hprocess, LPFILETIME lpCreationTime,
     LL2FILETIME( pti.CreateTime.QuadPart, lpCreationTime);
     LL2FILETIME( pti.ExitTime.QuadPart, lpExitTime);
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /*********************************************************************
@@ -836,7 +849,7 @@ int WINAPI GetCalendarInfoA(LCID lcid, CALID Calendar, CALTYPE CalType,
 
     if (!cchData && !(CalType & CAL_RETURN_NUMBER))
         cchDataW = GetCalendarInfoW(lcid, Calendar, CalType, NULL, 0, NULL);
-    if (!(lpCalDataW = HeapAlloc(GetProcessHeap(), 0, cchDataW*sizeof(WCHAR))))
+    if (!(lpCalDataW = heap_alloc(cchDataW*sizeof(WCHAR))))
         return 0;
 
     ret = GetCalendarInfoW(lcid, Calendar, CalType, lpCalDataW, cchDataW, lpValue);
@@ -844,7 +857,7 @@ int WINAPI GetCalendarInfoA(LCID lcid, CALID Calendar, CALTYPE CalType,
         ret = WideCharToMultiByte(CP_ACP, 0, lpCalDataW, -1, lpCalData, cchData, NULL, NULL);
     else if (CalType & CAL_RETURN_NUMBER)
         ret *= sizeof(WCHAR);
-    HeapFree(GetProcessHeap(), 0, lpCalDataW);
+    heap_free(lpCalDataW);
 
     return ret;
 }
@@ -1337,6 +1350,7 @@ BOOL WINAPI GetSystemTimes(LPFILETIME lpIdleTime, LPFILETIME lpKernelTime, LPFIL
 
     TRACE("(%p,%p,%p)\n", lpIdleTime, lpKernelTime, lpUserTime);
 
+#if 0
     status = NtQuerySystemInformation( SystemBasicInformation, &sbi, sizeof(sbi), &ret_size );
     if (status != STATUS_SUCCESS)
     {
@@ -1344,8 +1358,7 @@ BOOL WINAPI GetSystemTimes(LPFILETIME lpIdleTime, LPFILETIME lpKernelTime, LPFIL
         return FALSE;
     }
 
-    sppi = HeapAlloc( GetProcessHeap(), 0,
-                      sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * sbi.NumberOfProcessors);
+    sppi = heap_alloc( sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * sbi.NumberOfProcessors );
     if (!sppi)
     {
         SetLastError( ERROR_OUTOFMEMORY );
@@ -1356,7 +1369,7 @@ BOOL WINAPI GetSystemTimes(LPFILETIME lpIdleTime, LPFILETIME lpKernelTime, LPFIL
                                        &ret_size );
     if (status != STATUS_SUCCESS)
     {
-        HeapFree( GetProcessHeap(), 0, sppi );
+        heap_free( sppi );
         SetLastError( RtlNtStatusToDosError(status) );
         return FALSE;
     }
@@ -1387,8 +1400,12 @@ BOOL WINAPI GetSystemTimes(LPFILETIME lpIdleTime, LPFILETIME lpKernelTime, LPFIL
         lpUserTime->dwHighDateTime = user_time.u.HighPart;
     }
 
-    HeapFree( GetProcessHeap(), 0, sppi );
+    heap_free( sppi );
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /***********************************************************************

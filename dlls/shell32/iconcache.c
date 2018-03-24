@@ -790,7 +790,7 @@ UINT WINAPI ExtractIconExA(LPCSTR lpszFile, INT nIconIndex, HICON * phiconLarge,
 {
     UINT ret = 0;
     INT len = MultiByteToWideChar(CP_ACP, 0, lpszFile, -1, NULL, 0);
-    LPWSTR lpwstrFile = heap_alloc( len * sizeof(WCHAR));
+    LPWSTR lpwstrFile = heap_alloc(len * sizeof(WCHAR));
 
     TRACE("%s %i %p %p %i\n", lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons);
 

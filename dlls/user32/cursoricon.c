@@ -36,10 +36,13 @@
 #include "winerror.h"
 #include "winnls.h"
 #include "wine/exception.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "controls.h"
 #include "win.h"
 #include "user_private.h"
+#include "wine/heap.h"
 #include "wine/list.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
@@ -118,7 +121,7 @@ static HICON alloc_icon_handle( BOOL is_ani, UINT num_steps )
         icon_size = FIELD_OFFSET( struct animated_cursoricon_object, frames[num_steps] );
     else
         icon_size = sizeof( struct static_cursoricon_object );
-    obj = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, icon_size );
+    obj = heap_alloc_zero( icon_size );
     if (!obj) return NULL;
 
     obj->delay = 0;
@@ -132,7 +135,7 @@ static HICON alloc_icon_handle( BOOL is_ani, UINT num_steps )
     }
 
     if (!(handle = alloc_user_handle( &obj->obj, USER_ICON )))
-        HeapFree( GetProcessHeap(), 0, obj );
+        heap_free( obj );
     return handle;
 }
 
@@ -232,8 +235,8 @@ static BOOL free_icon_handle( HICON handle )
                 }
             }
         }
-        if (!IS_INTRESOURCE( obj->resname )) HeapFree( GetProcessHeap(), 0, obj->resname );
-        HeapFree( GetProcessHeap(), 0, obj );
+        if (!IS_INTRESOURCE( obj->resname )) heap_free( obj->resname );
+        heap_free( obj );
         if (wow_handlers.free_icon_param && param) wow_handlers.free_icon_param( param );
         USER_Driver->pDestroyCursorIcon( handle );
         return TRUE;
@@ -752,7 +755,7 @@ static HBITMAP create_alpha_bitmap( HBITMAP color, const BITMAPINFO *src_info, c
     if (bm.bmBitsPixel != 32) return 0;
 
     if (!(hdc = CreateCompatibleDC( 0 ))) return 0;
-    if (!(info = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( BITMAPINFO, bmiColors[256] )))) goto done;
+    if (!(info = heap_alloc( FIELD_OFFSET( BITMAPINFO, bmiColors[256] )))) goto done;
     info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     info->bmiHeader.biWidth = bm.bmWidth;
     info->bmiHeader.biHeight = -bm.bmHeight;
@@ -796,7 +799,7 @@ static HBITMAP create_alpha_bitmap( HBITMAP color, const BITMAPINFO *src_info, c
 
 done:
     DeleteDC( hdc );
-    HeapFree( GetProcessHeap(), 0, info );
+    heap_free( info );
     return alpha;
 }
 
@@ -880,7 +883,7 @@ static HICON create_icon_from_bmi( const BITMAPINFO *bmi, DWORD maxsize, HMODULE
         hotspot.y = (hotspot.y * height) / (bmi_height / 2);
     }
 
-    if (!(bmi_copy = HeapAlloc( GetProcessHeap(), 0, max( size, FIELD_OFFSET( BITMAPINFO, bmiColors[2] )))))
+    if (!(bmi_copy = heap_alloc( max( size, FIELD_OFFSET( BITMAPINFO, bmiColors[2] )))))
         return 0;
     if (!(hdc = CreateCompatibleDC( 0 ))) goto done;
 
@@ -954,7 +957,7 @@ static HICON create_icon_from_bmi( const BITMAPINFO *bmi, DWORD maxsize, HMODULE
 
 done:
     DeleteDC( hdc );
-    HeapFree( GetProcessHeap(), 0, bmi_copy );
+    heap_free( bmi_copy );
 
     if (ret)
         hObj = alloc_icon_handle( FALSE, 0 );
@@ -976,7 +979,7 @@ done:
         release_icon_frame( info, frame );
         if (!IS_INTRESOURCE(resname))
         {
-            info->resname = HeapAlloc( GetProcessHeap(), 0, (strlenW(resname) + 1) * sizeof(WCHAR) );
+            info->resname = heap_alloc( (strlenW(resname) + 1) * sizeof(WCHAR) );
             if (info->resname) strcpyW( info->resname, resname );
         }
         else info->resname = MAKEINTRESOURCEW( LOWORD(resname) );
@@ -1180,7 +1183,7 @@ static HCURSOR CURSORICON_CreateIconFromANI( const BYTE *bits, DWORD bits_size, 
 
     cursor = alloc_icon_handle( TRUE, header.num_steps );
     if (!cursor) return 0;
-    frames = HeapAlloc( GetProcessHeap(), 0, sizeof(*frames) * header.num_frames );
+    frames = heap_alloc( sizeof(*frames) * header.num_frames );
     if (!frames)
     {
         free_icon_handle( cursor );
@@ -1241,7 +1244,7 @@ static HCURSOR CURSORICON_CreateIconFromANI( const BYTE *bits, DWORD bits_size, 
                 ani_icon_data->num_frames = 0;
                 release_user_handle_ptr( info );
                 free_icon_handle( cursor );
-                HeapFree( GetProcessHeap(), 0, frames );
+                heap_free( frames );
                 return 0;
             }
             break;
@@ -1284,7 +1287,7 @@ static HCURSOR CURSORICON_CreateIconFromANI( const BYTE *bits, DWORD bits_size, 
         release_icon_frame( info, frame );
     }
 
-    HeapFree( GetProcessHeap(), 0, frames );
+    heap_free( frames );
     release_user_handle_ptr( info );
 
     return cursor;
@@ -1675,6 +1678,7 @@ BOOL WINAPI DrawIcon( HDC hdc, INT x, INT y, HICON hIcon )
  */
 HCURSOR WINAPI DECLSPEC_HOTPATCH SetCursor( HCURSOR hCursor /* [in] Handle of cursor to show */ )
 {
+#if 0
     struct cursoricon_object *obj;
     HCURSOR hOldCursor;
     int show_count;
@@ -1700,6 +1704,9 @@ HCURSOR WINAPI DECLSPEC_HOTPATCH SetCursor( HCURSOR hCursor /* [in] Handle of cu
     if (!(obj = get_icon_ptr( hOldCursor ))) return 0;
     release_user_handle_ptr( obj );
     return hOldCursor;
+#else
+    return NULL;
+#endif
 }
 
 /***********************************************************************
@@ -1707,6 +1714,7 @@ HCURSOR WINAPI DECLSPEC_HOTPATCH SetCursor( HCURSOR hCursor /* [in] Handle of cu
  */
 INT WINAPI DECLSPEC_HOTPATCH ShowCursor( BOOL bShow )
 {
+#if 0
     HCURSOR cursor;
     int increment = bShow ? 1 : -1;
     int count;
@@ -1727,6 +1735,9 @@ INT WINAPI DECLSPEC_HOTPATCH ShowCursor( BOOL bShow )
     else if (!bShow && count == -1) USER_Driver->pSetCursor( 0 );
 
     return count;
+#else
+    return -1;
+#endif
 }
 
 /***********************************************************************
@@ -1734,6 +1745,7 @@ INT WINAPI DECLSPEC_HOTPATCH ShowCursor( BOOL bShow )
  */
 HCURSOR WINAPI GetCursor(void)
 {
+#if 0
     HCURSOR ret;
 
     SERVER_START_REQ( set_cursor )
@@ -1744,6 +1756,9 @@ HCURSOR WINAPI GetCursor(void)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -1752,6 +1767,7 @@ HCURSOR WINAPI GetCursor(void)
  */
 BOOL WINAPI DECLSPEC_HOTPATCH ClipCursor( const RECT *rect )
 {
+#if 0
     BOOL ret;
     RECT new_rect;
 
@@ -1783,6 +1799,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH ClipCursor( const RECT *rect )
     SERVER_END_REQ;
     if (ret) USER_Driver->pClipCursor( &new_rect );
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -1791,6 +1810,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH ClipCursor( const RECT *rect )
  */
 BOOL WINAPI DECLSPEC_HOTPATCH GetClipCursor( RECT *rect )
 {
+#if 0
     BOOL ret;
 
     if (!rect) return FALSE;
@@ -1808,6 +1828,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH GetClipCursor( RECT *rect )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -2108,7 +2131,7 @@ static void stretch_blt_icon( HDC hdc_dst, int dst_x, int dst_y, int dst_width, 
         BITMAPINFO *info;
         void *bits;
 
-        if (!(info = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( BITMAPINFO, bmiColors[256] )))) return;
+        if (!(info = heap_alloc( FIELD_OFFSET( BITMAPINFO, bmiColors[256] )))) return;
         info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
         info->bmiHeader.biWidth = width;
         info->bmiHeader.biHeight = height;
@@ -2120,13 +2143,13 @@ static void stretch_blt_icon( HDC hdc_dst, int dst_x, int dst_y, int dst_width, 
         info->bmiHeader.biYPelsPerMeter = 0;
         info->bmiHeader.biClrUsed = 0;
         info->bmiHeader.biClrImportant = 0;
-        bits = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage );
+        bits = heap_alloc( info->bmiHeader.biSizeImage );
         if (bits && GetDIBits( hdc, src, 0, height, bits, info, DIB_RGB_COLORS ))
             StretchDIBits( hdc_dst, dst_x, dst_y, dst_width, dst_height,
                            0, 0, width, height, bits, info, DIB_RGB_COLORS, SRCCOPY );
 
-        HeapFree( GetProcessHeap(), 0, bits );
-        HeapFree( GetProcessHeap(), 0, info );
+        heap_free( bits );
+        heap_free( info );
     }
     else StretchBlt( hdc_dst, dst_x, dst_y, dst_width, dst_height, hdc, 0, 0, width, height, SRCCOPY );
 
@@ -2534,8 +2557,8 @@ static HBITMAP BITMAP_Load( HINSTANCE instance, LPCWSTR name,
     }
 
     size = bitmap_info_size(info, DIB_RGB_COLORS);
-    fix_info = HeapAlloc(GetProcessHeap(), 0, size);
-    scaled_info = HeapAlloc(GetProcessHeap(), 0, size);
+    fix_info = heap_alloc(size);
+    scaled_info = heap_alloc(size);
 
     if (!fix_info || !scaled_info) goto end;
     memcpy(fix_info, info, size);
@@ -2598,8 +2621,8 @@ static HBITMAP BITMAP_Load( HINSTANCE instance, LPCWSTR name,
 
 end:
     if (screen_mem_dc) DeleteDC(screen_mem_dc);
-    HeapFree(GetProcessHeap(), 0, scaled_info);
-    HeapFree(GetProcessHeap(), 0, fix_info);
+    heap_free(scaled_info);
+    heap_free(fix_info);
     if (loadflags & LR_LOADFROMFILE) UnmapViewOfFile( ptr );
 
     return hbitmap;
@@ -2621,7 +2644,7 @@ HANDLE WINAPI LoadImageA( HINSTANCE hinst, LPCSTR name, UINT type,
 
     __TRY {
         DWORD len = MultiByteToWideChar( CP_ACP, 0, name, -1, NULL, 0 );
-        u_name = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        u_name = heap_alloc( len * sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, name, -1, u_name, len );
     }
     __EXCEPT_PAGE_FAULT {
@@ -2630,7 +2653,7 @@ HANDLE WINAPI LoadImageA( HINSTANCE hinst, LPCSTR name, UINT type,
     }
     __ENDTRY
     res = LoadImageW(hinst, u_name, type, desiredx, desiredy, loadflags);
-    HeapFree(GetProcessHeap(), 0, u_name);
+    heap_free(u_name);
     return res;
 }
 
@@ -2732,7 +2755,7 @@ HANDLE WINAPI CopyImage( HANDLE hnd, UINT type, INT desiredx,
                color table. The maximum number of colors in a color table
                is 256 which corresponds to a bitmap with depth 8.
                Bitmaps with higher depths don't have color tables. */
-            bi = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
+            bi = heap_alloc_zero(sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
             if (!bi) return 0;
 
             bi->bmiHeader.biSize        = sizeof(bi->bmiHeader);
@@ -2837,7 +2860,7 @@ HANDLE WINAPI CopyImage( HANDLE hnd, UINT type, INT desiredx,
 
                     /* Fill in biSizeImage */
                     GetDIBits(dc, hnd, 0, ds.dsBm.bmHeight, NULL, bi, DIB_RGB_COLORS);
-                    bits = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, bi->bmiHeader.biSizeImage);
+                    bits = heap_alloc_zero(bi->bmiHeader.biSizeImage);
 
                     if (bits)
                     {
@@ -2853,7 +2876,7 @@ HANDLE WINAPI CopyImage( HANDLE hnd, UINT type, INT desiredx,
                                       bits, bi, DIB_RGB_COLORS, SRCCOPY);
                         SelectObject(dc, oldBmp);
 
-                        HeapFree(GetProcessHeap(), 0, bits);
+                        heap_free(bits);
                     }
 
                     DeleteDC(dc);
@@ -2864,7 +2887,7 @@ HANDLE WINAPI CopyImage( HANDLE hnd, UINT type, INT desiredx,
                     DeleteObject(hnd);
                 }
             }
-            HeapFree(GetProcessHeap(), 0, bi);
+            heap_free(bi);
             return res;
         }
         case IMAGE_ICON:

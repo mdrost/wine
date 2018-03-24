@@ -375,7 +375,7 @@ static const char *default_dbgstr_wn( const WCHAR *str, int n )
             else
             {
                 *dst++ = '\\';
-                sprintf(dst,"%04x",c);
+                sprintf(dst,"%08x",c);
                 dst+=4;
             }
         }

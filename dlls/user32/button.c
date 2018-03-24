@@ -67,6 +67,7 @@
 #include "win.h"
 #include "user_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(button);
 
@@ -189,7 +190,7 @@ static inline void paint_button( HWND hwnd, LONG style, UINT action )
 static inline WCHAR *get_button_text( HWND hwnd )
 {
     static const INT len = 512;
-    WCHAR *buffer = HeapAlloc( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) );
+    WCHAR *buffer = heap_alloc( (len + 1) * sizeof(WCHAR) );
     if (buffer) InternalGetWindowText( hwnd, buffer, len + 1 );
     return buffer;
 }
@@ -199,6 +200,7 @@ static inline WCHAR *get_button_text( HWND hwnd )
  */
 LRESULT ButtonWndProc_common(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL unicode )
 {
+#if 0
     RECT rect;
     POINT pt;
     LONG style = GetWindowLongW( hWnd, GWL_STYLE );
@@ -515,6 +517,7 @@ LRESULT ButtonWndProc_common(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
         return unicode ? DefWindowProcW(hWnd, uMsg, wParam, lParam) :
                          DefWindowProcA(hWnd, uMsg, wParam, lParam);
     }
+#endif
     return 0;
 }
 
@@ -598,14 +601,14 @@ static UINT BUTTON_CalcLabelRect(HWND hwnd, HDC hdc, RECT *rc)
           if (!(text = get_button_text( hwnd ))) goto empty_rect;
           if (!text[0])
           {
-              HeapFree( GetProcessHeap(), 0, text );
+              heap_free( text );
               goto empty_rect;
           }
 
           if ((hFont = get_button_font( hwnd ))) hPrevFont = SelectObject( hdc, hFont );
           DrawTextW(hdc, text, -1, &r, dtStyle | DT_CALCRECT);
           if (hPrevFont) SelectObject( hdc, hPrevFont );
-          HeapFree( GetProcessHeap(), 0, text );
+          heap_free( text );
           break;
       }
 
@@ -739,7 +742,7 @@ static void BUTTON_DrawLabel(HWND hwnd, HDC hdc, UINT dtFlags, const RECT *rc)
 
    DrawStateW(hdc, hbr, lpOutputProc, lp, wp, rc->left, rc->top,
               rc->right - rc->left, rc->bottom - rc->top, flags);
-   HeapFree( GetProcessHeap(), 0, text );
+   heap_free( text );
 }
 
 /**********************************************************************

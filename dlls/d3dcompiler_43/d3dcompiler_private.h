@@ -23,6 +23,7 @@
 #define __WINE_D3DCOMPILER_PRIVATE_H
 
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "wine/list.h"
 #include "wine/rbtree.h"
 
@@ -145,17 +146,17 @@ struct bwriter_shader {
 
 static inline void *d3dcompiler_alloc(SIZE_T size)
 {
-    return HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    return heap_alloc_zero(size);
 }
 
 static inline void *d3dcompiler_realloc(void *ptr, SIZE_T size)
 {
-    return HeapReAlloc(GetProcessHeap(), 0, ptr, size);
+    return heap_realloc(ptr, size);
 }
 
 static inline BOOL d3dcompiler_free(void *ptr)
 {
-    return HeapFree(GetProcessHeap(), 0, ptr);
+    return heap_free(ptr);
 }
 
 static inline char *d3dcompiler_strdup(const char *string)

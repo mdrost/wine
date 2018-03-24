@@ -549,9 +549,9 @@ static HRESULT COMPOBJ_DllList_Add(LPCWSTR library_name, OpenDll **ret)
     else
     {
         len = strlenW(library_name);
-        entry = HeapAlloc(GetProcessHeap(),0, sizeof(OpenDll));
+        entry = heap_alloc( sizeof(OpenDll));
         if (entry)
-            entry->library_name = HeapAlloc(GetProcessHeap(), 0, (len + 1)*sizeof(WCHAR));
+            entry->library_name = heap_alloc((len + 1)*sizeof(WCHAR));
         if (entry && entry->library_name)
         {
             memcpy(entry->library_name, library_name, (len + 1)*sizeof(WCHAR));
@@ -564,7 +564,7 @@ static HRESULT COMPOBJ_DllList_Add(LPCWSTR library_name, OpenDll **ret)
         }
         else
         {
-            HeapFree(GetProcessHeap(), 0, entry);
+            heap_free(entry);
             hr = E_OUTOFMEMORY;
             FreeLibrary(hLibrary);
         }
@@ -588,8 +588,8 @@ static void COMPOBJ_DllList_ReleaseRef(OpenDll *entry, BOOL free_entry)
         TRACE("freeing %p\n", entry->library);
         FreeLibrary(entry->library);
 
-        HeapFree(GetProcessHeap(), 0, entry->library_name);
-        HeapFree(GetProcessHeap(), 0, entry);
+        heap_free(entry->library_name);
+        heap_free(entry);
     }
 }
 
@@ -602,8 +602,8 @@ static void COMPOBJ_DllList_Free(void)
     {
         list_remove(&entry->entry);
 
-        HeapFree(GetProcessHeap(), 0, entry->library_name);
-        HeapFree(GetProcessHeap(), 0, entry);
+        heap_free(entry->library_name);
+        heap_free(entry);
     }
     LeaveCriticalSection(&csOpenDllList);
     DeleteCriticalSection(&csOpenDllList);
@@ -628,7 +628,7 @@ static APARTMENT *apartment_construct(DWORD model)
 
     TRACE("creating new apartment, model=%d\n", model);
 
-    apt = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*apt));
+    apt = heap_alloc_zero(sizeof(*apt));
     apt->tid = GetCurrentThreadId();
 
     list_init(&apt->proxies);
@@ -725,7 +725,7 @@ static void COM_RevokeRegisteredClassObject(RegisteredClass *curClass)
         RPC_StopLocalServer(curClass->RpcRegistration);
 
     IUnknown_Release(curClass->classObject);
-    HeapFree(GetProcessHeap(), 0, curClass);
+    heap_free(curClass);
 }
 
 static void COM_RevokeAllClasses(const struct apartment *apt)
@@ -752,7 +752,7 @@ static void revoke_registered_psclsids(void)
     LIST_FOR_EACH_ENTRY_SAFE(psclsid, psclsid2, &registered_psclsid_list, struct registered_psclsid, entry)
     {
         list_remove(&psclsid->entry);
-        HeapFree(GetProcessHeap(), 0, psclsid);
+        heap_free(psclsid);
     }
 
     LeaveCriticalSection( &cs_registered_psclsid_list );
@@ -812,7 +812,7 @@ static ULONG WINAPI ISynchronize_fnRelease(ISynchronize *iface)
     if(!ref)
     {
         CloseHandle(This->event);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -891,7 +891,7 @@ static const ISynchronizeHandleVtbl SynchronizeHandleVtbl = {
 
 static HRESULT ManualResetEvent_Construct(IUnknown *punkouter, REFIID iid, void **ppv)
 {
-    MREImpl *This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MREImpl));
+    MREImpl *This = heap_alloc_zero(sizeof(MREImpl));
     HRESULT hr;
 
     if(punkouter)
@@ -948,7 +948,7 @@ static ULONG WINAPI LocalServer_Release(IServiceProvider *iface)
 
     if(!ref) {
         assert(!This->apt);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1123,7 +1123,7 @@ static void apartment_freeunusedlibraries(struct apartment *apt, DWORD delay)
             {
                 list_remove(&entry->entry);
                 COMPOBJ_DllList_ReleaseRef(entry->dll, TRUE);
-                HeapFree(GetProcessHeap(), 0, entry);
+                heap_free(entry);
             }
             else
             {
@@ -1216,19 +1216,19 @@ DWORD apartment_release(struct apartment *apt)
             struct apartment_loaded_dll *apartment_loaded_dll = LIST_ENTRY(cursor, struct apartment_loaded_dll, entry);
             COMPOBJ_DllList_ReleaseRef(apartment_loaded_dll->dll, FALSE);
             list_remove(cursor);
-            HeapFree(GetProcessHeap(), 0, apartment_loaded_dll);
+            heap_free(apartment_loaded_dll);
         }
 
         DEBUG_CLEAR_CRITSEC_NAME(&apt->cs);
         DeleteCriticalSection(&apt->cs);
 
-        HeapFree(GetProcessHeap(), 0, apt);
+        heap_free(apt);
     }
 
     return ret;
 }
 
-/* The given OXID must be local to this process: 
+/* The given OXID must be local to this process:
  *
  * The ref parameter is here mostly to ensure people remember that
  * they get one, you should normally take a ref for thread safety.
@@ -1356,7 +1356,7 @@ static HRESULT apartment_getclassobject(struct apartment *apt, LPCWSTR dllpath,
 
     if (!found)
     {
-        apartment_loaded_dll = HeapAlloc(GetProcessHeap(), 0, sizeof(*apartment_loaded_dll));
+        apartment_loaded_dll = heap_alloc(sizeof(*apartment_loaded_dll));
         if (!apartment_loaded_dll)
             hr = E_OUTOFMEMORY;
         if (SUCCEEDED(hr))
@@ -1365,7 +1365,7 @@ static HRESULT apartment_getclassobject(struct apartment *apt, LPCWSTR dllpath,
             apartment_loaded_dll->multi_threaded = FALSE;
             hr = COMPOBJ_DllList_Add( dllpath, &apartment_loaded_dll->dll );
             if (FAILED(hr))
-                HeapFree(GetProcessHeap(), 0, apartment_loaded_dll);
+                heap_free(apartment_loaded_dll);
         }
         if (SUCCEEDED(hr))
         {
@@ -1504,6 +1504,7 @@ struct host_thread_params
     HWND apartment_hwnd;
 };
 
+#if 0
 /* thread for hosting an object to allow an object to appear to be created in
  * an apartment with an incompatible threading model */
 static DWORD CALLBACK apartment_hostobject_thread(LPVOID p)
@@ -1665,6 +1666,7 @@ static HRESULT apartment_hostobject_in_hostapt(
     IStream_Release(params.stream);
     return hr;
 }
+#endif
 
 static BOOL WINAPI register_class( INIT_ONCE *once, void *param, void **context )
 {
@@ -1734,7 +1736,7 @@ static void COM_TlsDestroy(void)
         if (info->state) IUnknown_Release(info->state);
         if (info->spy) IInitializeSpy_Release(info->spy);
         if (info->context_token) IObjContext_Release(info->context_token);
-        HeapFree(GetProcessHeap(), 0, info);
+        heap_free(info);
         NtCurrentTeb()->ReservedForOle = NULL;
     }
 }
@@ -1887,6 +1889,7 @@ HRESULT WINAPI CoInitialize(LPVOID lpReserved)
   return CoInitializeEx(lpReserved, COINIT_APARTMENTTHREADED);
 }
 
+#if 0
 /******************************************************************************
  *		CoInitializeEx	[OLE32.@]
  *
@@ -2018,6 +2021,7 @@ void WINAPI DECLSPEC_HOTPATCH CoUninitialize(void)
   if (info->spy)
       IInitializeSpy_PostUninitialize(info->spy, info->inits);
 }
+#endif
 
 /******************************************************************************
  *		CoDisconnectObject	[OLE32.@]
@@ -2187,17 +2191,17 @@ static HRESULT clsid_from_string_reg(LPCOLESTR progid, CLSID *clsid)
     WCHAR *buf;
 
     memset(clsid, 0, sizeof(*clsid));
-    buf = HeapAlloc( GetProcessHeap(),0,(strlenW(progid)+8) * sizeof(WCHAR) );
+    buf = heap_alloc((strlenW(progid)+8) * sizeof(WCHAR));
     if (!buf) return E_OUTOFMEMORY;
     strcpyW( buf, progid );
     strcatW( buf, clsidW );
     if (open_classes_key(HKEY_CLASSES_ROOT, buf, MAXIMUM_ALLOWED, &xhkey))
     {
-        HeapFree(GetProcessHeap(),0,buf);
+        heap_free(buf);
         WARN("couldn't open key for ProgID %s\n", debugstr_w(progid));
         return CO_E_CLASSSTRING;
     }
-    HeapFree(GetProcessHeap(),0,buf);
+    heap_free(buf);
 
     if (RegQueryValueW(xhkey,NULL,buf2,&buf2len))
     {
@@ -2551,7 +2555,7 @@ static HRESULT get_ps_clsid_from_registry(const WCHAR* path, REGSAM access, CLSI
  * PARAMS
  *  riid   [I] Interface whose proxy/stub CLSID is to be returned.
  *  pclsid [O] Where to store returned proxy/stub CLSID.
- * 
+ *
  * RETURNS
  *   S_OK
  *   E_OUTOFMEMORY
@@ -2649,7 +2653,7 @@ HRESULT WINAPI CoGetPSClsid(REFIID riid, CLSID *pclsid)
  * PARAMS
  *  riid   [I] Interface whose proxy/stub CLSID is to be registered.
  *  rclsid [I] CLSID of the proxy/stub.
- * 
+ *
  * RETURNS
  *   Success: S_OK
  *   Failure: E_OUTOFMEMORY
@@ -2688,7 +2692,7 @@ HRESULT WINAPI CoRegisterPSClsid(REFIID riid, REFCLSID rclsid)
             return S_OK;
         }
 
-    registered_psclsid = HeapAlloc(GetProcessHeap(), 0, sizeof(struct registered_psclsid));
+    registered_psclsid = heap_alloc(sizeof(struct registered_psclsid));
     if (!registered_psclsid)
     {
         LeaveCriticalSection(&cs_registered_psclsid_list);
@@ -2833,7 +2837,7 @@ HRESULT WINAPI CoRegisterClassObject(
     return CO_E_OBJISREG;
   }
 
-  newClass = HeapAlloc(GetProcessHeap(), 0, sizeof(RegisteredClass));
+  newClass = heap_alloc(sizeof(RegisteredClass));
   if ( newClass == NULL )
     return E_OUTOFMEMORY;
 
@@ -2908,6 +2912,7 @@ static HRESULT get_inproc_class_object(APARTMENT *apt, const struct class_reg_da
                                        REFCLSID rclsid, REFIID riid,
                                        BOOL hostifnecessary, void **ppv)
 {
+#if 0
     WCHAR dllpath[MAX_PATH+1];
     BOOL apartment_threaded;
 
@@ -2953,6 +2958,9 @@ static HRESULT get_inproc_class_object(APARTMENT *apt, const struct class_reg_da
 
     return apartment_getclassobject(apt, dllpath, apartment_threaded,
                                     rclsid, riid, ppv);
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /***********************************************************************
@@ -4120,7 +4128,7 @@ HRESULT WINAPI CoAllowSetForegroundWindow(IUnknown *pUnk, void *pvReserved)
     FIXME("(%p, %p): stub\n", pUnk, pvReserved);
     return S_OK;
 }
- 
+
 /***********************************************************************
  *           CoQueryProxyBlanket [OLE32.@]
  *
@@ -4737,7 +4745,7 @@ static ULONG Context_Release(Context *This)
        releasing context while refcount is at 0 destroys it. */
     if (!This->refs)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return 0;
     }
 
@@ -5022,7 +5030,7 @@ HRESULT WINAPI CoGetContextToken( ULONG_PTR *token )
     {
         Context *context;
 
-        context = HeapAlloc(GetProcessHeap(), 0, sizeof(*context));
+        context = heap_alloc(sizeof(*context));
         if (!context)
             return E_OUTOFMEMORY;
 

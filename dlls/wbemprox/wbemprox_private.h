@@ -17,7 +17,6 @@
  */
 
 #include "wine/debug.h"
-#include "wine/heap.h"
 #include "wine/list.h"
 #include "wine/unicode.h"
 
@@ -227,6 +226,26 @@ HRESULT service_start_service(IWbemClassObject *, IWbemClassObject *, IWbemClass
 HRESULT service_stop_service(IWbemClassObject *, IWbemClassObject *, IWbemClassObject **) DECLSPEC_HIDDEN;
 HRESULT security_get_sd(IWbemClassObject *, IWbemClassObject *, IWbemClassObject **) DECLSPEC_HIDDEN;
 HRESULT security_set_sd(IWbemClassObject *, IWbemClassObject *, IWbemClassObject **) DECLSPEC_HIDDEN;
+
+static inline void* __WINE_ALLOC_SIZE(1) heap_alloc(size_t size)
+{
+    return heap_alloc(size);
+}
+
+static inline void* __WINE_ALLOC_SIZE(1) heap_alloc_zero(size_t size)
+{
+    return heap_alloc_zero(size);
+}
+
+static inline void* __WINE_ALLOC_SIZE(2) heap_realloc(void *mem, size_t size)
+{
+    return heap_realloc(mem, size);
+}
+
+static inline BOOL heap_free(void *mem)
+{
+    return heap_free(mem);
+}
 
 static inline WCHAR *heap_strdupW( const WCHAR *src )
 {

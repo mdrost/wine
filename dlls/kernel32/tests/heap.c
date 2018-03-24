@@ -59,23 +59,24 @@ static SIZE_T resize_9x(SIZE_T size)
 static void test_sized_HeapAlloc(int nbytes)
 {
     BOOL success;
-    char *buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, nbytes);
+    char *buf = heap_alloc_zero(nbytes);
     ok(buf != NULL, "allocate failed\n");
     ok(buf[0] == 0, "buffer not zeroed\n");
-    success = HeapFree(GetProcessHeap(), 0, buf);
+    success = heap_free(buf);
     ok(success, "free failed\n");
 }
 
+#if 0
 static void test_sized_HeapReAlloc(int nbytes1, int nbytes2)
 {
     BOOL success;
-    char *buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, nbytes1);
+    char *buf = heap_alloc_zero(nbytes1);
     ok(buf != NULL, "allocate failed\n");
     ok(buf[0] == 0, "buffer not zeroed\n");
     buf = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, buf, nbytes2);
     ok(buf != NULL, "reallocate failed\n");
     ok(buf[nbytes2-1] == 0, "buffer not zeroed\n");
-    success = HeapFree(GetProcessHeap(), 0, buf);
+    success = heap_free(buf);
     ok(success, "free failed\n");
 }
 
@@ -97,47 +98,47 @@ static void test_heap(void)
     pHeapReAlloc = (void *)GetProcAddress( GetModuleHandleA("kernel32"), "HeapReAlloc" );
 
     /* Heap*() functions */
-    mem = HeapAlloc(GetProcessHeap(), 0, 0);
+    mem = heap_alloc(0);
     ok(mem != NULL, "memory not allocated for size 0\n");
-    HeapFree(GetProcessHeap(), 0, mem);
+    heap_free(mem);
 
-    mem = HeapReAlloc(GetProcessHeap(), 0, NULL, 10);
+    mem = heap_realloc(NULL, 10);
     ok(mem == NULL, "memory allocated by HeapReAlloc\n");
 
     for (size = 0; size <= 256; size++)
     {
         SIZE_T heap_size;
-        mem = HeapAlloc(GetProcessHeap(), 0, size);
+        mem = heap_alloc(size);
         heap_size = HeapSize(GetProcessHeap(), 0, mem);
         ok(heap_size == size || heap_size == resize_9x(size), 
             "HeapSize returned %lu instead of %lu or %lu\n", heap_size, size, resize_9x(size));
-        HeapFree(GetProcessHeap(), 0, mem);
+        heap_free(mem);
     }
 
     /* test some border cases of HeapAlloc and HeapReAlloc */
-    mem = HeapAlloc(GetProcessHeap(), 0, 0);
+    mem = heap_alloc(0);
     ok(mem != NULL, "memory not allocated for size 0\n");
     msecond = pHeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, mem, ~(SIZE_T)0 - 7);
     ok(msecond == NULL, "HeapReAlloc(~0 - 7) should have failed\n");
     msecond = pHeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, mem, ~(SIZE_T)0);
     ok(msecond == NULL, "HeapReAlloc(~0) should have failed\n");
-    HeapFree(GetProcessHeap(), 0, mem);
-    mem = pHeapAlloc(GetProcessHeap(), 0, ~(SIZE_T)0);
+    heap_free(mem);
+    mem = pheap_alloc(~(SIZE_T)0);
     ok(mem == NULL, "memory allocated for size ~0\n");
-    mem = HeapAlloc(GetProcessHeap(), 0, 17);
-    msecond = HeapReAlloc(GetProcessHeap(), 0, mem, 0);
+    mem = heap_alloc(17);
+    msecond = heap_realloc(mem, 0);
     ok(msecond != NULL, "HeapReAlloc(0) should have succeeded\n");
     size = HeapSize(GetProcessHeap(), 0, msecond);
     ok(size == 0 || broken(size == 1) /* some vista and win7 */,
        "HeapSize should have returned 0 instead of %lu\n", size);
-    HeapFree(GetProcessHeap(), 0, msecond);
+    heap_free(msecond);
 
     /* large blocks must be 16-byte aligned */
-    mem = HeapAlloc(GetProcessHeap(), 0, 512 * 1024);
+    mem = heap_alloc(512 * 1024);
     ok( mem != NULL, "failed for size 512K\n" );
     ok( (ULONG_PTR)mem % 16 == 0 || broken((ULONG_PTR)mem % 16) /* win9x */,
         "512K block not 16-byte aligned\n" );
-    HeapFree(GetProcessHeap(), 0, mem);
+    heap_free(mem);
 
     /* Global*() functions */
     gbl = GlobalAlloc(GMEM_MOVEABLE, 0);
@@ -519,6 +520,7 @@ static void test_heap(void)
     ok(size == 0, "got %lu\n", size);
 
 }
+#endif
 
 
 static void test_HeapCreate(void)
@@ -630,6 +632,7 @@ static void test_HeapCreate(void)
 }
 
 
+#if 0
 static void test_GlobalAlloc(void)
 {
     ULONG memchunk;
@@ -901,7 +904,7 @@ static void test_heap_checks( DWORD flags )
     if (flags & HEAP_PAGE_ALLOCS) return;  /* no tests for that case yet */
     trace( "testing heap flags %08x\n", flags );
 
-    p = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, 17 );
+    p = heap_alloc_zero( 17 );
     ok( p != NULL, "HeapAlloc failed\n" );
 
     ret = HeapValidate( GetProcessHeap(), 0, p );
@@ -938,10 +941,10 @@ static void test_heap_checks( DWORD flags )
     }
     else skip( "realloc in place failed\n");
 
-    ret = HeapFree( GetProcessHeap(), 0, p );
+    ret = heap_free( p );
     ok( ret, "HeapFree failed\n" );
 
-    p = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, 17 );
+    p = heap_alloc_zero( 17 );
     ok( p != NULL, "HeapAlloc failed\n" );
     old = p[17];
     p[17] = 0xcc;
@@ -957,10 +960,10 @@ static void test_heap_checks( DWORD flags )
             size = HeapSize( GetProcessHeap(), 0, p );
             ok( size == ~(SIZE_T)0 || broken(size == ~0u), "Wrong size %lu\n", size );
 
-            p2 = HeapReAlloc( GetProcessHeap(), 0, p, 14 );
+            p2 = heap_realloc( p, 14 );
             ok( p2 == NULL, "HeapReAlloc succeeded\n" );
 
-            ret = HeapFree( GetProcessHeap(), 0, p );
+            ret = heap_free( p );
             ok( !ret || broken(sizeof(void*) == 8), /* not caught on xp64 */
                 "HeapFree succeeded\n" );
         }
@@ -969,19 +972,19 @@ static void test_heap_checks( DWORD flags )
         size = HeapSize( GetProcessHeap(), 0, p );
         ok( size == 17, "Wrong size %lu\n", size );
 
-        p2 = HeapReAlloc( GetProcessHeap(), 0, p, 14 );
+        p2 = heap_realloc( p, 14 );
         ok( p2 != NULL, "HeapReAlloc failed\n" );
         p = p2;
     }
 
-    ret = HeapFree( GetProcessHeap(), 0, p );
+    ret = heap_free( p );
     ok( ret, "HeapFree failed\n" );
 
-    p = HeapAlloc( GetProcessHeap(), 0, 37 );
+    p = heap_alloc( 37 );
     ok( p != NULL, "HeapAlloc failed\n" );
     memset( p, 0xcc, 37 );
 
-    ret = HeapFree( GetProcessHeap(), 0, p );
+    ret = heap_free( p );
     ok( ret, "HeapFree failed\n" );
 
     if (flags & HEAP_FREE_CHECKING_ENABLED)
@@ -1006,7 +1009,7 @@ static void test_heap_checks( DWORD flags )
 
     /* now test large blocks */
 
-    p = HeapAlloc( GetProcessHeap(), 0, large_size );
+    p = heap_alloc( large_size );
     ok( p != NULL, "HeapAlloc failed\n" );
 
     ret = HeapValidate( GetProcessHeap(), 0, p );
@@ -1036,17 +1039,17 @@ static void test_heap_checks( DWORD flags )
                 size = HeapSize( GetProcessHeap(), 0, p );
                 ok( size == ~(SIZE_T)0, "Wrong size %lu\n", size );
 
-                p2 = HeapReAlloc( GetProcessHeap(), 0, p, large_size - 3 );
+                p2 = heap_realloc( p, large_size - 3 );
                 ok( p2 == NULL, "HeapReAlloc succeeded\n" );
 
-                ret = HeapFree( GetProcessHeap(), 0, p );
+                ret = heap_free( p );
                 ok( !ret, "HeapFree succeeded\n" );
             }
             p[large_size] = 0xab;
         }
     }
 
-    ret = HeapFree( GetProcessHeap(), 0, p );
+    ret = heap_free( p );
     ok( ret, "HeapFree failed\n" );
 
     /* test block sizes when tail checking */
@@ -1054,10 +1057,10 @@ static void test_heap_checks( DWORD flags )
     {
         for (size = 0; size < 64; size++)
         {
-            p = HeapAlloc( GetProcessHeap(), 0, size );
+            p = heap_alloc( size );
             for (i = 0; i < 32; i++) if (p[size + i] != 0xab) break;
             ok( i >= 8, "only %lu tail bytes for size %lu\n", i, size );
-            HeapFree( GetProcessHeap(), 0, p );
+            heap_free( p );
         }
     }
 }
@@ -1110,6 +1113,7 @@ static void test_debug_heap( const char *argv0, DWORD flags )
     RegCloseKey( hkey );
     RegDeleteKeyA( HKEY_LOCAL_MACHINE, keyname );
 }
+#endif
 
 static DWORD heap_flags_from_global_flag( DWORD flag )
 {
@@ -1130,6 +1134,7 @@ static DWORD heap_flags_from_global_flag( DWORD flag )
     return ret;
 }
 
+#if 0
 static void test_child_heap( const char *arg )
 {
     struct heap_layout *heap = GetProcessHeap();
@@ -1215,24 +1220,30 @@ static void test_GetPhysicallyInstalledSystemMemory(void)
     ok(total_memory >= memstatus.ullTotalPhys / 1024,
        "expected total_memory >= memstatus.ullTotalPhys / 1024\n");
 }
+#endif
 
 START_TEST(heap)
 {
     int argc;
     char **argv;
 
-    pRtlGetNtGlobalFlags = (void *)GetProcAddress( GetModuleHandleA("ntdll.dll"), "RtlGetNtGlobalFlags" );
+    pRtlGetNtGlobalFlags = (void *)GetProcAddress( GetModuleHandleA("libwinapi-ntdll.so"), "RtlGetNtGlobalFlags" );
 
     argc = winetest_get_mainargs( &argv );
     if (argc >= 3)
     {
+#if 0
         test_child_heap( argv[2] );
+#endif
         return;
     }
 
+#if 0
     test_heap();
     test_obsolete_flags();
+#endif
     test_HeapCreate();
+#if 0
     test_GlobalAlloc();
     test_LocalAlloc();
 
@@ -1246,9 +1257,11 @@ START_TEST(heap)
 
     test_HeapQueryInformation();
     test_GetPhysicallyInstalledSystemMemory();
+#endif
 
     if (pRtlGetNtGlobalFlags)
     {
+#if 0
         test_debug_heap( argv[0], 0 );
         test_debug_heap( argv[0], FLG_HEAP_ENABLE_TAIL_CHECK );
         test_debug_heap( argv[0], FLG_HEAP_ENABLE_FREE_CHECK );
@@ -1260,6 +1273,7 @@ START_TEST(heap)
         test_debug_heap( argv[0], FLG_HEAP_DISABLE_COALESCING );
         test_debug_heap( argv[0], FLG_HEAP_PAGE_ALLOCS );
         test_debug_heap( argv[0], 0xdeadbeef );
+#endif
     }
     else win_skip( "RtlGetNtGlobalFlags not found, skipping heap debug tests\n" );
 }

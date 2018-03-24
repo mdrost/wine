@@ -30,6 +30,8 @@
 #include "rpcproxy.h"
 #include "atliface.h"
 
+#include "wine/heap.h"
+
 static const WCHAR atl100W[] = {'a','t','l','1','0','0','.','d','l','l',0};
 static const WCHAR regtypeW[] = {'W','I','N','E','_','R','E','G','I','S','T','R','Y',0};
 static const WCHAR moduleW[] = {'M','O','D','U','L','E',0};
@@ -78,7 +80,7 @@ static BOOL CALLBACK register_resource( HMODULE module, LPCWSTR type, LPWSTR nam
     if (!str) return FALSE;
     if (!info->registrar && !create_registrar( module, info )) return FALSE;
     lenW = MultiByteToWideChar( CP_UTF8, 0, str, lenA, NULL, 0 ) + 1;
-    if (!(buffer = HeapAlloc( GetProcessHeap(), 0, lenW * sizeof(WCHAR) )))
+    if (!(buffer = heap_alloc( lenW * sizeof(WCHAR) )))
     {
         info->result = E_OUTOFMEMORY;
         return FALSE;
@@ -91,7 +93,7 @@ static BOOL CALLBACK register_resource( HMODULE module, LPCWSTR type, LPWSTR nam
     else
         info->result = IRegistrar_StringUnregister( info->registrar, buffer );
 
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     return SUCCEEDED(info->result);
 }
 

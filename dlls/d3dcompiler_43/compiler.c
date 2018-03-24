@@ -82,7 +82,7 @@ static void wpp_write_message(const char *fmt, va_list args)
 
     if(wpp_messages_capacity == 0)
     {
-        wpp_messages = HeapAlloc(GetProcessHeap(), 0, MESSAGEBUFFER_INITIAL_SIZE);
+        wpp_messages = heap_alloc(MESSAGEBUFFER_INITIAL_SIZE);
         if(wpp_messages == NULL)
             return;
 
@@ -98,7 +98,7 @@ static void wpp_write_message(const char *fmt, va_list args)
             rc >= wpp_messages_capacity - wpp_messages_size) {  /* C99 */
             /* Resize the buffer */
             newsize = wpp_messages_capacity * 2;
-            newbuffer = HeapReAlloc(GetProcessHeap(), 0, wpp_messages, newsize);
+            newbuffer = heap_realloc(wpp_messages, newsize);
             if(newbuffer == NULL)
             {
                 ERR("Error reallocating memory for parser messages\n");
@@ -190,14 +190,14 @@ static void *wpp_open_mem(const char *filename, int type)
     }
 
     if(current_include == NULL) return NULL;
-    desc = HeapAlloc(GetProcessHeap(), 0, sizeof(*desc));
+    desc = heap_alloc(sizeof(*desc));
     if(!desc)
         return NULL;
 
     if (FAILED(hr = ID3DInclude_Open(current_include, type ? D3D_INCLUDE_LOCAL : D3D_INCLUDE_SYSTEM,
             filename, parent_include, (const void **)&desc->buffer, &desc->size)))
     {
-        HeapFree(GetProcessHeap(), 0, desc);
+        heap_free(desc);
         return NULL;
     }
 
@@ -205,7 +205,7 @@ static void *wpp_open_mem(const char *filename, int type)
     {
         if(includes_capacity == 0)
         {
-            includes = HeapAlloc(GetProcessHeap(), 0, INCLUDES_INITIAL_CAPACITY * sizeof(*includes));
+            includes = heap_alloc(INCLUDES_INITIAL_CAPACITY * sizeof(*includes));
             if(includes == NULL)
             {
                 ERR("Error allocating memory for the loaded includes structure\n");
@@ -217,7 +217,7 @@ static void *wpp_open_mem(const char *filename, int type)
         {
             int newcapacity = includes_capacity * 2;
             struct loaded_include *newincludes =
-                HeapReAlloc(GetProcessHeap(), 0, includes, newcapacity);
+                heap_realloc(includes, newcapacity);
             if(newincludes == NULL)
             {
                 ERR("Error reallocating memory for the loaded includes structure\n");
@@ -235,7 +235,7 @@ static void *wpp_open_mem(const char *filename, int type)
 
 error:
     ID3DInclude_Close(current_include, desc->buffer);
-    HeapFree(GetProcessHeap(), 0, desc);
+    heap_free(desc);
     return NULL;
 }
 
@@ -251,7 +251,7 @@ static void wpp_close_mem(void *file)
             ERR("current_include == NULL, desc == %p, buffer = %s\n",
                 desc, desc->buffer);
 
-        HeapFree(GetProcessHeap(), 0, desc);
+        heap_free(desc);
     }
 }
 
@@ -271,7 +271,7 @@ static void wpp_write_mem(const char *buffer, unsigned int len)
 
     if(wpp_output_capacity == 0)
     {
-        wpp_output = HeapAlloc(GetProcessHeap(), 0, BUFFER_INITIAL_CAPACITY);
+        wpp_output = heap_alloc(BUFFER_INITIAL_CAPACITY);
         if(!wpp_output)
             return;
 
@@ -283,7 +283,7 @@ static void wpp_write_mem(const char *buffer, unsigned int len)
         {
             wpp_output_capacity *= 2;
         }
-        new_wpp_output = HeapReAlloc(GetProcessHeap(), 0, wpp_output,
+        new_wpp_output = heap_realloc(wpp_output,
                                      wpp_output_capacity);
         if(!new_wpp_output)
         {
@@ -298,7 +298,7 @@ static void wpp_write_mem(const char *buffer, unsigned int len)
 
 static int wpp_close_output(void)
 {
-    char *new_wpp_output = HeapReAlloc(GetProcessHeap(), 0, wpp_output,
+    char *new_wpp_output = heap_realloc(wpp_output,
                                        wpp_output_size + 1);
     if(!new_wpp_output) return 0;
     wpp_output = new_wpp_output;
@@ -384,7 +384,7 @@ cleanup:
             defines++;
         }
     }
-    HeapFree(GetProcessHeap(), 0, wpp_messages);
+    heap_free(wpp_messages);
     return hr;
 }
 
@@ -416,7 +416,7 @@ static HRESULT assemble_shader(const char *preproc_shader,
             hr = D3DCreateBlob(size, &buffer);
             if (FAILED(hr))
             {
-                HeapFree(GetProcessHeap(), 0, messages);
+                heap_free(messages);
                 if (shader) SlDeleteShader(shader);
                 return hr;
             }
@@ -431,7 +431,7 @@ static HRESULT assemble_shader(const char *preproc_shader,
             if (*error_messages) ID3D10Blob_Release(*error_messages);
             *error_messages = buffer;
         }
-        HeapFree(GetProcessHeap(), 0, messages);
+        heap_free(messages);
     }
 
     if (shader == NULL)
@@ -453,14 +453,14 @@ static HRESULT assemble_shader(const char *preproc_shader,
         hr = D3DCreateBlob(size, &buffer);
         if (FAILED(hr))
         {
-            HeapFree(GetProcessHeap(), 0, res);
+            heap_free(res);
             return hr;
         }
         CopyMemory(ID3D10Blob_GetBufferPointer(buffer), res, size);
         *shader_blob = buffer;
     }
 
-    HeapFree(GetProcessHeap(), 0, res);
+    heap_free(res);
 
     return S_OK;
 }
@@ -487,7 +487,7 @@ HRESULT WINAPI D3DAssemble(const void *data, SIZE_T datasize, const char *filena
     if (SUCCEEDED(hr))
         hr = assemble_shader(wpp_output, shader, error_messages);
 
-    HeapFree(GetProcessHeap(), 0, wpp_output);
+    heap_free(wpp_output);
     LeaveCriticalSection(&wpp_mutex);
     return hr;
 }
@@ -643,7 +643,7 @@ static HRESULT compile_shader(const char *preproc_shader, const char *target, co
             hr = D3DCreateBlob(size, &buffer);
             if (FAILED(hr))
             {
-                HeapFree(GetProcessHeap(), 0, messages);
+                heap_free(messages);
                 if (shader) SlDeleteShader(shader);
                 return hr;
             }
@@ -658,7 +658,7 @@ static HRESULT compile_shader(const char *preproc_shader, const char *target, co
             if (*error_messages) ID3D10Blob_Release(*error_messages);
             *error_messages = buffer;
         }
-        HeapFree(GetProcessHeap(), 0, messages);
+        heap_free(messages);
     }
 
     if (!shader)
@@ -680,14 +680,14 @@ static HRESULT compile_shader(const char *preproc_shader, const char *target, co
         hr = D3DCreateBlob(size, &buffer);
         if (FAILED(hr))
         {
-            HeapFree(GetProcessHeap(), 0, res);
+            heap_free(res);
             return hr;
         }
         memcpy(ID3D10Blob_GetBufferPointer(buffer), res, size);
         *shader_blob = buffer;
     }
 
-    HeapFree(GetProcessHeap(), 0, res);
+    heap_free(res);
 
     return S_OK;
 }
@@ -719,7 +719,7 @@ HRESULT WINAPI D3DCompile2(const void *data, SIZE_T data_size, const char *filen
     if (SUCCEEDED(hr))
         hr = compile_shader(wpp_output, target, entrypoint, shader, error_messages);
 
-    HeapFree(GetProcessHeap(), 0, wpp_output);
+    heap_free(wpp_output);
     LeaveCriticalSection(&wpp_mutex);
     return hr;
 }
@@ -772,7 +772,7 @@ HRESULT WINAPI D3DPreprocess(const void *data, SIZE_T size, const char *filename
     }
 
 cleanup:
-    HeapFree(GetProcessHeap(), 0, wpp_output);
+    heap_free(wpp_output);
     LeaveCriticalSection(&wpp_mutex);
     return hr;
 }

@@ -143,7 +143,7 @@ static void testGetModuleFileName(const char* name)
     ok(GetLastError() == ERROR_SUCCESS ||
        broken(GetLastError() == 0xdeadbeef), /* <= XP SP3 */
        "LastError was not reset: %u\n", GetLastError());
-    ok(len1A > 0, "Getting module filename for handle %p\n", hMod);
+    ok(len1A > 0, "Getting module filename for handle %p %u\n", hMod, GetLastError());
 
     if (is_unicode_enabled)
     {
@@ -160,7 +160,7 @@ static void testGetModuleFileName(const char* name)
 
     if (is_unicode_enabled)
     {
-        ok(len1W == lstrlenW(bufW), "Unexpected length of GetModuleFilenameW (%d/%d)\n", len1W, lstrlenW(bufW));
+        ok(len1W == lstrlenW(bufW), "Unexpected length of GetModuleFilenameW (%d/%d) %s\n", len1W, lstrlenW(bufW), wine_dbgstr_w(bufW));
         ok(cmpStrAW(bufA, bufW, len1A, len1W), "Comparing GetModuleFilenameAW results\n");
     }
 
@@ -206,7 +206,7 @@ static void testLoadLibraryA(void)
     FARPROC fp;
 
     SetLastError(0xdeadbeef);
-    hModule = LoadLibraryA("kernel32.dll");
+    hModule = LoadLibraryA("libwinapi-kernel32.so");
     ok( hModule != NULL, "kernel32.dll should be loadable\n");
     ok( GetLastError() == 0xdeadbeef, "GetLastError should be 0xdeadbeef but is %d\n", GetLastError());
 
@@ -215,8 +215,8 @@ static void testLoadLibraryA(void)
     ok( GetLastError() == 0xdeadbeef, "GetLastError should be 0xdeadbeef but is %d\n", GetLastError());
 
     SetLastError(0xdeadbeef);
-    hModule1 = LoadLibraryA("kernel32   ");
-    ok( hModule1 != NULL, "\"kernel32   \" should be loadable\n" );
+    hModule1 = LoadLibraryA("winapi-kernel32   ");
+    ok( hModule1 != NULL, "\"winapi-kernel32   \" should be loadable\n" );
     ok( GetLastError() == 0xdeadbeef, "GetLastError should be 0xdeadbeef but is %d\n", GetLastError() );
     ok( hModule == hModule1, "Loaded wrong module\n" );
     FreeLibrary(hModule1);
@@ -225,7 +225,7 @@ static void testLoadLibraryA(void)
 
 static void testNestedLoadLibraryA(void)
 {
-    static const char dllname[] = "shell32.dll";
+    static const char dllname[] = "libwinapi-shell32.so";
     char path1[MAX_PATH], path2[MAX_PATH];
     HMODULE hModule1, hModule2, hModule3;
 
@@ -238,8 +238,13 @@ static void testNestedLoadLibraryA(void)
      * - it must not already be loaded
      * - it must not have a 16-bit counterpart
      */
+#if 0
     GetWindowsDirectoryA(path1, sizeof(path1));
     strcat(path1, "\\system\\");
+#else
+    path1[0] = '\0';
+    strcat(path1, "/");
+#endif
     strcat(path1, dllname);
     hModule1 = LoadLibraryA(path1);
     if (!hModule1)
@@ -248,8 +253,13 @@ static void testNestedLoadLibraryA(void)
         return;
     }
 
+#if 0
     GetWindowsDirectoryA(path2, sizeof(path2));
     strcat(path2, "\\system32\\");
+#else
+    path2[0] = '\0';
+    strcat(path2, "/");
+#endif
     strcat(path2, dllname);
     hModule2 = LoadLibraryA(path2);
     ok(hModule2 != NULL, "LoadLibrary(%s) failed\n", path2);
@@ -387,10 +397,15 @@ static void testLoadLibraryEx(void)
 
     DeleteFileA("testfile.dll");
 
+#if 0
     GetSystemDirectoryA(path, MAX_PATH);
     if (path[lstrlenA(path) - 1] != '\\')
         lstrcatA(path, "\\");
     lstrcatA(path, "kernel32.dll");
+#else
+    path[0] = '\0';
+    lstrcatA(path, "linwinapi-kernel32.so");
+#endif
 
     /* load kernel32.dll with an absolute path */
     SetLastError(0xdeadbeef);
@@ -445,10 +460,15 @@ static void testLoadLibraryEx(void)
     ok(!ret, "Unexpected ability to free the module, failed with %d\n", GetLastError());
 
     /* load with full path, name without extension */
+#if 0
     GetSystemDirectoryA(path, MAX_PATH);
     if (path[lstrlenA(path) - 1] != '\\')
         lstrcatA(path, "\\");
     lstrcatA(path, "kernel32");
+#else
+    path[0] = '\0';
+    lstrcatA(path, "winapi-kernel32");
+#endif
     hmodule = LoadLibraryExA(path, NULL, 0);
     ok(hmodule != NULL, "got %p\n", hmodule);
     FreeLibrary(hmodule);
@@ -513,20 +533,24 @@ static void test_LoadLibraryEx_search_flags(void)
     ok( GetLastError() == ERROR_MOD_NOT_FOUND || broken(GetLastError() == ERROR_NOT_ENOUGH_MEMORY),
         "wrong error %u\n", GetLastError() );
 
+#if 0
     SetLastError( 0xdeadbeef );
     mod = LoadLibraryExA( "winetestdll.dll", 0, LOAD_LIBRARY_SEARCH_SYSTEM32 );
     ok( !mod, "LoadLibrary succeeded\n" );
     ok( GetLastError() == ERROR_MOD_NOT_FOUND, "wrong error %u\n", GetLastError() );
+#endif
 
     SetLastError( 0xdeadbeef );
     mod = LoadLibraryExA( "winetestdll.dll", 0, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR );
     ok( !mod, "LoadLibrary succeeded\n" );
     ok( GetLastError() == ERROR_INVALID_PARAMETER, "wrong error %u\n", GetLastError() );
 
+#if 0
     SetLastError( 0xdeadbeef );
     mod = LoadLibraryExA( "winetestdll.dll", 0, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32 );
     ok( !mod, "LoadLibrary succeeded\n" );
     ok( GetLastError() == ERROR_INVALID_PARAMETER, "wrong error %u\n", GetLastError() );
+#endif
 
     SetLastError( 0xdeadbeef );
     mod = LoadLibraryExA( "foo\\winetestdll.dll", 0, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR );
@@ -940,11 +964,13 @@ static void test_AddDllDirectory(void)
     SetLastError( 0xdeadbeef );
     ret = pRemoveDllDirectory( cookie );
     ok( ret, "RemoveDllDirectory failed err %u\n", GetLastError() );
+#if 0
     GetWindowsDirectoryW( buf, MAX_PATH );
     lstrcpyW( buf + 2, tmpW );
     cookie = pAddDllDirectory( buf );
     ok( !cookie, "AddDllDirectory succeeded\n" );
     ok( GetLastError() == ERROR_INVALID_PARAMETER, "wrong error %u\n", GetLastError() );
+#endif
 }
 
 static void test_SetDefaultDllDirectories(void)
@@ -966,11 +992,13 @@ static void test_SetDefaultDllDirectories(void)
     mod = LoadLibraryA( "authz.dll" );
     todo_wine ok( !mod, "loading authz succeeded\n" );
     FreeLibrary( mod );
+#if 0
     ret = pSetDefaultDllDirectories( LOAD_LIBRARY_SEARCH_SYSTEM32 );
     ok( ret, "SetDefaultDllDirectories failed err %u\n", GetLastError() );
     mod = LoadLibraryA( "authz.dll" );
     ok( mod != NULL, "loading authz failed\n" );
     FreeLibrary( mod );
+#endif
     mod = LoadLibraryExA( "authz.dll", 0, LOAD_LIBRARY_SEARCH_APPLICATION_DIR );
     todo_wine ok( !mod, "loading authz succeeded\n" );
     FreeLibrary( mod );
@@ -1031,15 +1059,19 @@ START_TEST(module)
     init_pointers();
 
     testGetModuleFileName(NULL);
-    testGetModuleFileName("kernel32.dll");
+    testGetModuleFileName("libwinapi-kernel32.so");
+#if 0
     testGetModuleFileName_Wrong();
+#endif
 
     testGetDllDirectory();
 
     testLoadLibraryA();
     testNestedLoadLibraryA();
     testLoadLibraryA_Wrong();
+#if 0
     testGetProcAddress_Wrong();
+#endif
     testLoadLibraryEx();
     test_LoadLibraryEx_search_flags();
     testGetModuleHandleEx();

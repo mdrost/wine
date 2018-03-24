@@ -37,7 +37,7 @@ static NTSTATUS (WINAPI *pRtlUnicodeStringToAnsiString)(STRING *, const UNICODE_
 
 static void InitFunctionPtrs(void)
 {
-    hntdll = LoadLibraryA("ntdll.dll");
+    hntdll = LoadLibraryA("libwinapi-ntdll.so");
     ok(hntdll != 0, "LoadLibrary failed\n");
     if (hntdll) {
 	pRtlExtendedMagicDivide = (void *)GetProcAddress(hntdll, "RtlExtendedMagicDivide");

@@ -30,6 +30,7 @@
 #include "user_private.h"
 #include "controls.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(nonclient);
 
@@ -264,11 +265,11 @@ BOOL WINAPI DrawCaptionTempA (HWND hwnd, HDC hdc, const RECT *rect, HFONT hFont,
         return DrawCaptionTempW( hwnd, hdc, rect, hFont, hIcon, NULL, uFlags );
 
     len = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
-    if ((strW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+    if ((strW = heap_alloc( len * sizeof(WCHAR) )))
     {
         MultiByteToWideChar( CP_ACP, 0, str, -1, strW, len );
         ret = DrawCaptionTempW (hwnd, hdc, rect, hFont, hIcon, strW, uFlags);
-        HeapFree( GetProcessHeap (), 0, strW );
+        heap_free( strW );
     }
     return ret;
 }
@@ -1627,7 +1628,11 @@ LRESULT NC_HandleSysCommand( HWND hwnd, WPARAM wParam, LPARAM lParam )
         break;
 
     case SC_TASKLIST:
+#if 0
         WinExec( "taskman.exe", SW_SHOWNORMAL );
+#else
+        FIXME("unimplemented WM_SYSCOMMAND %04lx!\n", wParam);
+#endif
         break;
 
     case SC_SCREENSAVE:

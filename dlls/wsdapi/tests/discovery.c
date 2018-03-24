@@ -365,7 +365,7 @@ static ULONG WINAPI IWSDiscoveryPublisherNotifyImpl_Release(IWSDiscoveryPublishe
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -398,7 +398,7 @@ static BOOL create_discovery_publisher_notify(IWSDiscoveryPublisherNotify **publ
 
     *publisherNotify = NULL;
 
-    obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*obj));
+    obj = heap_alloc_zero(sizeof(*obj));
 
     if (!obj)
     {

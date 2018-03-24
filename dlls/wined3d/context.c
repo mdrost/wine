@@ -1112,6 +1112,7 @@ void context_surface_update(struct wined3d_context *context, const struct wined3
     }
 }
 
+#if 0
 static BOOL context_restore_pixel_format(struct wined3d_context *ctx)
 {
     const struct wined3d_gl_info *gl_info = ctx->gl_info;
@@ -1215,20 +1216,27 @@ success:
         context->hdc_has_format = TRUE;
     return TRUE;
 }
+#endif
 
 static BOOL context_set_gl_context(struct wined3d_context *ctx)
 {
     struct wined3d_swapchain *swapchain = ctx->swapchain;
     BOOL backup = FALSE;
 
+#if 0
     if (!context_set_pixel_format(ctx))
     {
         WARN("Failed to set pixel format %d on device context %p.\n",
                 ctx->pixel_format, ctx->hdc);
         backup = TRUE;
     }
+#endif
 
+#if 0
     if (backup || !wglMakeCurrent(ctx->hdc, ctx->glCtx))
+#else
+    if (backup || !glXMakeCurrent(ctx->hdc, ctx->win_handle, ctx->glCtx))
+#endif
     {
         WARN("Failed to make GL context %p current on device context %p, last error %#x.\n",
                 ctx->glCtx, ctx->hdc, GetLastError());
@@ -1252,9 +1260,12 @@ static BOOL context_set_gl_context(struct wined3d_context *ctx)
             return FALSE;
         }
 
+#if 0
         ctx->hdc_is_private = TRUE;
         ctx->hdc_has_format = FALSE;
+#endif
 
+#if 0
         if (!context_set_pixel_format(ctx))
         {
             ERR("Failed to set pixel format %d on device context %p.\n",
@@ -1262,8 +1273,13 @@ static BOOL context_set_gl_context(struct wined3d_context *ctx)
             context_set_current(NULL);
             return FALSE;
         }
+#endif
 
+#if 0
         if (!wglMakeCurrent(ctx->hdc, ctx->glCtx))
+#else
+        if (!glXMakeCurrent(ctx->hdc, ctx->win_handle, ctx->glCtx))
+#endif
         {
             ERR("Fallback to backup window (dc %p) failed too, last error %#x.\n",
                     ctx->hdc, GetLastError());
@@ -1277,9 +1293,17 @@ static BOOL context_set_gl_context(struct wined3d_context *ctx)
     return TRUE;
 }
 
+#if 0
 static void context_restore_gl_context(const struct wined3d_gl_info *gl_info, HDC dc, HGLRC gl_ctx)
+#else
+static void context_restore_gl_context(const struct wined3d_gl_info *gl_info, Display *dc, GLXWindow win_handle, GLXContext gl_ctx)
+#endif
 {
+#if 0
     if (!wglMakeCurrent(dc, gl_ctx))
+#else
+    if (!glXMakeCurrent(dc, win_handle, gl_ctx))
+#endif
     {
         ERR("Failed to restore GL context %p on device context %p, last error %#x.\n",
                 gl_ctx, dc, GetLastError());
@@ -1295,21 +1319,32 @@ static void context_update_window(struct wined3d_context *context)
     if (context->win_handle == context->swapchain->win_handle)
         return;
 
+#if 0
     TRACE("Updating context %p window from %p to %p.\n",
             context, context->win_handle, context->swapchain->win_handle);
+#else
+    TRACE("Updating context %p window from %lu to %lu.\n",
+            context, context->win_handle, context->swapchain->win_handle);
+#endif
 
     if (context->hdc)
         wined3d_release_dc(context->win_handle, context->hdc);
 
     context->win_handle = context->swapchain->win_handle;
+#if 0
     context->hdc_is_private = FALSE;
     context->hdc_has_format = FALSE;
+#endif
     context->needs_set = 1;
     context->valid = 1;
 
     if (!(context->hdc = GetDCEx(context->win_handle, 0, DCX_USESTYLE | DCX_CACHE)))
     {
+#if 0
         ERR("Failed to get a device context for window %p.\n", context->win_handle);
+#else
+        ERR("Failed to get a device context for window %lu.\n", context->win_handle);
+#endif
         context->valid = 0;
     }
 }
@@ -1327,8 +1362,13 @@ static void context_destroy_gl_resources(struct wined3d_context *context)
     HDC restore_dc;
     unsigned int i;
 
+#if 0
     restore_ctx = wglGetCurrentContext();
     restore_dc = wglGetCurrentDC();
+#else
+    restore_ctx = glXGetCurrentContext();
+    restore_dc = glXGetCurrentDisplay();
+#endif
 
     if (restore_ctx == context->glCtx)
         restore_ctx = NULL;
@@ -1572,7 +1612,11 @@ void context_release(struct wined3d_context *context)
         if (context->restore_ctx)
         {
             TRACE("Restoring GL context %p on device context %p.\n", context->restore_ctx, context->restore_dc);
+#if 0
             context_restore_gl_context(context->gl_info, context->restore_dc, context->restore_ctx);
+#else
+            context_restore_gl_context(context->gl_info, context->restore_dc, context->win_handle, context->restore_ctx);
+#endif
             context->restore_ctx = NULL;
             context->restore_dc = NULL;
         }
@@ -1606,6 +1650,7 @@ static void context_enter(struct wined3d_context *context)
     if (!context->level++)
     {
         const struct wined3d_context *current_context = context_get_current();
+#if 0
         HGLRC current_gl = wglGetCurrentContext();
 
         if (current_gl && (!current_context || current_context->glCtx != current_gl))
@@ -1619,6 +1664,20 @@ static void context_enter(struct wined3d_context *context)
         else if (!context->needs_set && !(context->hdc_is_private && context->hdc_has_format)
                     && context->pixel_format != context->gl_info->gl_ops.wgl.p_wglGetPixelFormat(context->hdc))
             context->needs_set = 1;
+#else
+        GLXContext current_gl = glXGetCurrentContext();
+
+        if (current_gl && (!current_context || current_context->glCtx != current_gl))
+        {
+            TRACE("Another GL context (%p on device context %p) is already current.\n",
+                    current_gl, glXGetCurrentDisplay());
+            context->restore_ctx = current_gl;
+            context->restore_dc = glXGetCurrentDisplay();
+            context->needs_set = 1;
+        }
+        else if (!context->needs_set)
+            context->needs_set = 1;
+#endif
     }
 }
 
@@ -1646,6 +1705,7 @@ void context_invalidate_state(struct wined3d_context *context, DWORD state)
     context->isStateDirty[idx] |= (1u << shift);
 }
 
+#if 0
 /* This function takes care of wined3d pixel format selection. */
 static int context_choose_pixel_format(const struct wined3d_device *device, HDC hdc,
         const struct wined3d_format *color_format, const struct wined3d_format *ds_format,
@@ -1742,6 +1802,7 @@ static int context_choose_pixel_format(const struct wined3d_device *device, HDC 
             iPixelFormat, debug_d3dformat(color_format->id), debug_d3dformat(ds_format->id));
     return iPixelFormat;
 }
+#endif
 
 /* Context activation is done by the caller. */
 void context_bind_dummy_textures(const struct wined3d_device *device, const struct wined3d_context *context)
@@ -1834,6 +1895,7 @@ static void WINE_GLAPI wined3d_debug_callback(GLenum source, GLenum type, GLuint
     }
 }
 
+#if 0
 HGLRC context_create_wgl_attribs(const struct wined3d_gl_info *gl_info, HDC hdc, HGLRC share_ctx)
 {
     HGLRC ctx;
@@ -1867,6 +1929,40 @@ HGLRC context_create_wgl_attribs(const struct wined3d_gl_info *gl_info, HDC hdc,
     }
     return ctx;
 }
+#else
+GLXContext context_create_glx_attribs(const struct wined3d_gl_info *gl_info, Display *display, GLXContext share_ctx)
+{
+    HGLRC ctx;
+    unsigned int ctx_attrib_idx = 0;
+    GLint ctx_attribs[7], ctx_flags = 0;
+
+    if (context_debug_output_enabled(gl_info))
+        ctx_flags = GLX_CONTEXT_DEBUG_BIT_ARB;
+    ctx_attribs[ctx_attrib_idx++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
+    ctx_attribs[ctx_attrib_idx++] = gl_info->selected_gl_version >> 16;
+    ctx_attribs[ctx_attrib_idx++] = gl_info->selected_gl_version & 0xffff;
+    if (gl_info->selected_gl_version >= MAKEDWORD_VERSION(3, 2))
+        ctx_flags |= GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
+    if (ctx_flags)
+    {
+        ctx_attribs[ctx_attrib_idx++] = GLX_CONTEXT_FLAGS_ARB;
+        ctx_attribs[ctx_attrib_idx++] = ctx_flags;
+    }
+    ctx_attribs[ctx_attrib_idx] = 0;
+
+    if (!(ctx = gl_info->p_glXCreateContextAttribsARB(hdc, share_ctx, ctx_attribs)))
+    {
+        if (ctx_flags & GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB)
+        {
+            ctx_attribs[ctx_attrib_idx - 1] &= ~GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
+            if (!(ctx = gl_info->p_glXCreateContextAttribsARB(hdc, share_ctx, ctx_attribs)))
+                WARN("Failed to create a WGL context with glXCreateContextAttribsARB, last error %#x.\n",
+                        GetLastError());
+        }
+    }
+    return ctx;
+}
+#endif
 
 struct wined3d_context *context_create(struct wined3d_swapchain *swapchain,
         struct wined3d_texture *target, const struct wined3d_format *ds_format)
@@ -2013,21 +2109,25 @@ struct wined3d_context *context_create(struct wined3d_swapchain *swapchain,
         ds_format = wined3d_get_format(gl_info, WINED3DFMT_UNKNOWN, WINED3DUSAGE_DEPTHSTENCIL);
     }
 
+#if 0
     /* Try to find a pixel format which matches our requirements. */
     if (!(ret->pixel_format = context_choose_pixel_format(device, ret->hdc, color_format, ds_format, auxBuffers)))
         goto out;
+#endif
 
     ret->gl_info = gl_info;
     ret->win_handle = swapchain->win_handle;
 
     context_enter(ret);
 
+#if 0
     if (!context_set_pixel_format(ret))
     {
         ERR("Failed to set pixel format %d on device context %p.\n", ret->pixel_format, ret->hdc);
         context_release(ret);
         goto out;
     }
+#endif
 
     share_ctx = device->context_count ? device->contexts[0]->glCtx : NULL;
     if (gl_info->p_wglCreateContextAttribsARB)

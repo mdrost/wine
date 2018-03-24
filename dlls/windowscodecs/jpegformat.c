@@ -225,8 +225,8 @@ static ULONG WINAPI JpegDecoder_Release(IWICBitmapDecoder *iface)
         DeleteCriticalSection(&This->lock);
         if (This->cinfo_initialized) pjpeg_destroy_decompress(&This->cinfo);
         if (This->stream) IStream_Release(This->stream);
-        HeapFree(GetProcessHeap(), 0, This->image_data);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->image_data);
+        heap_free(This);
     }
 
     return ref;
@@ -634,7 +634,7 @@ static HRESULT WINAPI JpegDecoder_Frame_CopyPixels(IWICBitmapFrameDecode *iface,
 
     if (!This->image_data)
     {
-        This->image_data = HeapAlloc(GetProcessHeap(), 0, data_size);
+        This->image_data = heap_alloc(data_size);
         if (!This->image_data)
         {
             LeaveCriticalSection(&This->lock);
@@ -821,7 +821,7 @@ HRESULT JpegDecoder_CreateInstance(REFIID iid, void** ppv)
 
     *ppv = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(JpegDecoder));
+    This = heap_alloc(sizeof(JpegDecoder));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapDecoder_iface.lpVtbl = &JpegDecoder_Vtbl;
@@ -1133,7 +1133,7 @@ static HRESULT WINAPI JpegEncoder_Frame_WritePixels(IWICBitmapFrameEncode *iface
     if (setjmp(jmpbuf))
     {
         LeaveCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, swapped_data);
+        heap_free(swapped_data);
         return E_FAIL;
     }
     This->cinfo.client_data = jmpbuf;
@@ -1163,7 +1163,7 @@ static HRESULT WINAPI JpegEncoder_Frame_WritePixels(IWICBitmapFrameEncode *iface
 
     if (This->format->swap_rgb)
     {
-        swapped_data = HeapAlloc(GetProcessHeap(), 0, row_size);
+        swapped_data = heap_alloc(row_size);
         if (!swapped_data)
         {
             LeaveCriticalSection(&This->lock);
@@ -1197,7 +1197,7 @@ static HRESULT WINAPI JpegEncoder_Frame_WritePixels(IWICBitmapFrameEncode *iface
         {
             ERR("failed writing scanlines\n");
             LeaveCriticalSection(&This->lock);
-            HeapFree(GetProcessHeap(), 0, swapped_data);
+            heap_free(swapped_data);
             return E_FAIL;
         }
 
@@ -1205,7 +1205,7 @@ static HRESULT WINAPI JpegEncoder_Frame_WritePixels(IWICBitmapFrameEncode *iface
     }
 
     LeaveCriticalSection(&This->lock);
-    HeapFree(GetProcessHeap(), 0, swapped_data);
+    heap_free(swapped_data);
 
     return S_OK;
 }
@@ -1334,7 +1334,7 @@ static ULONG WINAPI JpegEncoder_Release(IWICBitmapEncoder *iface)
         DeleteCriticalSection(&This->lock);
         if (This->initialized) pjpeg_destroy_compress(&This->cinfo);
         if (This->stream) IStream_Release(This->stream);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1550,7 +1550,7 @@ HRESULT JpegEncoder_CreateInstance(REFIID iid, void** ppv)
         return E_FAIL;
     }
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(JpegEncoder));
+    This = heap_alloc(sizeof(JpegEncoder));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapEncoder_iface.lpVtbl = &JpegEncoder_Vtbl;

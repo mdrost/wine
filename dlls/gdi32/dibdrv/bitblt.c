@@ -697,7 +697,7 @@ static DWORD copy_src_bits( dib_info *src, RECT *src_rect )
 {
     int y, stride = get_dib_stride( src->width, src->bit_count );
     int height = src_rect->bottom - src_rect->top;
-    void *ptr = HeapAlloc( GetProcessHeap(), 0, stride * height );
+    void *ptr = heap_alloc( stride * height );
 
     if (!ptr) return ERROR_OUTOFMEMORY;
 
@@ -728,7 +728,7 @@ static DWORD create_tmp_dib( const dib_info *copy, int width, int height, dib_in
     ret->rect.top    = 0;
     ret->rect.right  = width;
     ret->rect.bottom = height;
-    ret->bits.ptr = HeapAlloc( GetProcessHeap(), 0, ret->height * ret->stride );
+    ret->bits.ptr = heap_alloc( ret->height * ret->stride );
     ret->bits.is_copy = TRUE;
     ret->bits.free = free_heap_bits;
     ret->bits.param = NULL;
@@ -1432,7 +1432,7 @@ BOOL dibdrv_GradientFill( PHYSDEV dev, TRIVERTEX *vert_array, ULONG nvert,
     RECT bounds;
     BOOL ret = TRUE;
 
-    if (!(pts = HeapAlloc( GetProcessHeap(), 0, nvert * sizeof(*pts) ))) return FALSE;
+    if (!(pts = heap_alloc( nvert * sizeof(*pts) ))) return FALSE;
     for (i = 0; i < nvert; i++)
     {
         pts[i].x = vert_array[i].x;
@@ -1479,6 +1479,6 @@ BOOL dibdrv_GradientFill( PHYSDEV dev, TRIVERTEX *vert_array, ULONG nvert,
         break;
     }
 
-    HeapFree( GetProcessHeap(), 0, pts );
+    heap_free( pts );
     return ret;
 }

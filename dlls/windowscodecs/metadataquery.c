@@ -87,8 +87,8 @@ static ULONG WINAPI mqr_Release(IWICMetadataQueryReader *iface)
     if (!ref)
     {
         IWICMetadataBlockReader_Release(This->block);
-        HeapFree(GetProcessHeap(), 0, This->root);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->root);
+        heap_free(This);
     }
     return ref;
 }
@@ -464,7 +464,7 @@ static HRESULT WINAPI mqr_GetMetadataByName(IWICMetadataQueryReader *iface, LPCW
 
     len = lstrlenW(query) + 1;
     if (This->root) len += lstrlenW(This->root);
-    full_query = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    full_query = heap_alloc(len * sizeof(WCHAR));
     full_query[0] = 0;
     if (This->root)
         lstrcpyW(full_query, This->root);
@@ -594,7 +594,7 @@ static HRESULT WINAPI mqr_GetMetadataByName(IWICMetadataQueryReader *iface, LPCW
     else
         PropVariantClear(&new_value);
 
-    HeapFree(GetProcessHeap(), 0, full_query);
+    heap_free(full_query);
 
     return hr;
 }
@@ -621,7 +621,7 @@ HRESULT MetadataQueryReader_CreateInstance(IWICMetadataBlockReader *mbr, const W
 {
     QueryReader *obj;
 
-    obj = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*obj));
+    obj = heap_alloc_zero(sizeof(*obj));
     if (!obj)
         return E_OUTOFMEMORY;
 

@@ -96,7 +96,7 @@ static ULONG WINAPI BitmapScaler_Release(IWICBitmapScaler *iface)
         This->lock.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->lock);
         if (This->source) IWICBitmapSource_Release(This->source);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -264,13 +264,13 @@ static HRESULT WINAPI BitmapScaler_CopyPixels(IWICBitmapScaler *iface,
     src_bytesperrow = (src_rect.Width * This->bpp + 7)/8;
     buffer_size = src_bytesperrow * src_rect.Height;
 
-    src_rows = HeapAlloc(GetProcessHeap(), 0, sizeof(BYTE*) * src_rect.Height);
-    src_bits = HeapAlloc(GetProcessHeap(), 0, buffer_size);
+    src_rows = heap_alloc(sizeof(BYTE*) * src_rect.Height);
+    src_bits = heap_alloc(buffer_size);
 
     if (!src_rows || !src_bits)
     {
-        HeapFree(GetProcessHeap(), 0, src_rows);
-        HeapFree(GetProcessHeap(), 0, src_bits);
+        heap_free(src_rows);
+        heap_free(src_bits);
         hr = E_OUTOFMEMORY;
         goto end;
     }
@@ -290,8 +290,8 @@ static HRESULT WINAPI BitmapScaler_CopyPixels(IWICBitmapScaler *iface,
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, src_rows);
-    HeapFree(GetProcessHeap(), 0, src_bits);
+    heap_free(src_rows);
+    heap_free(src_bits);
 
 end:
     LeaveCriticalSection(&This->lock);
@@ -378,7 +378,7 @@ HRESULT BitmapScaler_Create(IWICBitmapScaler **scaler)
 {
     BitmapScaler *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(BitmapScaler));
+    This = heap_alloc(sizeof(BitmapScaler));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapScaler_iface.lpVtbl = &BitmapScaler_Vtbl;

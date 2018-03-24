@@ -670,7 +670,11 @@ static int compare_group(const void *a, const void* b)
     return 0;
 }
 
+#if 0
 DWORD OpenType_CMAP_GetGlyphIndex(HDC hdc, ScriptCache *psc, DWORD utf32c, WORD *glyph_index, DWORD flags)
+#else
+DWORD OpenType_CMAP_GetGlyphIndex(HDC hdc, ScriptCache *psc, DWORD utf32c, DWORD *glyph_index, DWORD flags)
+#endif
 {
     /* BMP: use gdi32 for ease */
     if (utf32c < 0x10000)
@@ -683,7 +687,7 @@ DWORD OpenType_CMAP_GetGlyphIndex(HDC hdc, ScriptCache *psc, DWORD utf32c, WORD 
         psc->CMAP_format12_Table = load_CMAP_format12_table(hdc, psc);
 
     if (flags & GGI_MARK_NONEXISTING_GLYPHS)
-        *glyph_index = 0xffffu;
+        *glyph_index = ~0u;
     else
         *glyph_index = 0u;
 
@@ -711,7 +715,11 @@ DWORD OpenType_CMAP_GetGlyphIndex(HDC hdc, ScriptCache *psc, DWORD utf32c, WORD 
  * GDEF
  **********/
 
+#if 0
 static WORD OT_get_glyph_class(const void *table, WORD glyph)
+#else
+static WORD OT_get_glyph_class(const void *table, DWORD glyph)
+#endif
 {
     WORD class = 0;
     const OT_ClassDefFormat1 *cf1 = table;
@@ -720,9 +728,17 @@ static WORD OT_get_glyph_class(const void *table, WORD glyph)
 
     if (GET_BE_WORD(cf1->ClassFormat) == 1)
     {
+#if 0
         if (glyph >= GET_BE_WORD(cf1->StartGlyph))
+#else
+        if (glyph >= GET_BE_DWORD(cf1->StartGlyph))
+#endif
         {
+#if 0
             int index = glyph - GET_BE_WORD(cf1->StartGlyph);
+#else
+            int index = glyph - GET_BE_DWORD(cf1->StartGlyph);
+#endif
             if (index < GET_BE_WORD(cf1->GlyphCount))
                 class = GET_BE_WORD(cf1->ClassValueArray[index]);
         }
@@ -748,7 +764,11 @@ static WORD OT_get_glyph_class(const void *table, WORD glyph)
     return class;
 }
 
+#if 0
 void OpenType_GDEF_UpdateGlyphProps(ScriptCache *psc, const WORD *pwGlyphs, const WORD cGlyphs, WORD* pwLogClust, const WORD cChars, SCRIPT_GLYPHPROP *pGlyphProp)
+#else
+void OpenType_GDEF_UpdateGlyphProps(ScriptCache *psc, const DWORD *pwGlyphs, const WORD cGlyphs, WORD* pwLogClust, const WORD cChars, SCRIPT_GLYPHPROP *pGlyphProp)
+#endif
 {
     int i;
     void *glyph_class_table = NULL;
@@ -814,7 +834,11 @@ void OpenType_GDEF_UpdateGlyphProps(ScriptCache *psc, const WORD *pwGlyphs, cons
 /**********
  * GSUB
  **********/
+#if 0
 static INT GSUB_apply_lookup(const OT_LookupList* lookup, INT lookup_index, WORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count);
+#else
+static INT GSUB_apply_lookup(const OT_LookupList* lookup, INT lookup_index, DWORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count);
+#endif
 
 static int GSUB_is_glyph_covered(const void *table, unsigned int glyph)
 {
@@ -879,7 +903,11 @@ static const BYTE *GSUB_get_subtable(const OT_LookupTable *look, int index)
     return (const BYTE *)look + offset;
 }
 
+#if 0
 static INT GSUB_apply_SingleSubst(const OT_LookupTable *look, WORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#else
+static INT GSUB_apply_SingleSubst(const OT_LookupTable *look, DWORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#endif
 {
     int j;
     TRACE("Single Substitution Subtable\n");
@@ -925,7 +953,11 @@ static INT GSUB_apply_SingleSubst(const OT_LookupTable *look, WORD *glyphs, INT 
     return GSUB_E_NOGLYPH;
 }
 
+#if 0
 static INT GSUB_apply_MultipleSubst(const OT_LookupTable *look, WORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#else
+static INT GSUB_apply_MultipleSubst(const OT_LookupTable *look, DWORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#endif
 {
     int j;
     TRACE("Multiple Substitution Subtable\n");
@@ -975,7 +1007,11 @@ static INT GSUB_apply_MultipleSubst(const OT_LookupTable *look, WORD *glyphs, IN
     return GSUB_E_NOGLYPH;
 }
 
+#if 0
 static INT GSUB_apply_AlternateSubst(const OT_LookupTable *look, WORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#else
+static INT GSUB_apply_AlternateSubst(const OT_LookupTable *look, DWORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#endif
 {
     int j;
     TRACE("Alternate Substitution Subtable\n");
@@ -1008,7 +1044,11 @@ static INT GSUB_apply_AlternateSubst(const OT_LookupTable *look, WORD *glyphs, I
     return GSUB_E_NOGLYPH;
 }
 
+#if 0
 static INT GSUB_apply_LigatureSubst(const OT_LookupTable *look, WORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#else
+static INT GSUB_apply_LigatureSubst(const OT_LookupTable *look, DWORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#endif
 {
     int j;
 
@@ -1071,7 +1111,11 @@ static INT GSUB_apply_LigatureSubst(const OT_LookupTable *look, WORD *glyphs, IN
     return GSUB_E_NOGLYPH;
 }
 
+#if 0
 static INT GSUB_apply_ContextSubst(const OT_LookupList* lookup, const OT_LookupTable *look, WORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#else
+static INT GSUB_apply_ContextSubst(const OT_LookupList* lookup, const OT_LookupTable *look, DWORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#endif
 {
     int j;
     TRACE("Context Substitution Subtable\n");
@@ -1242,7 +1286,11 @@ static INT GSUB_apply_ContextSubst(const OT_LookupList* lookup, const OT_LookupT
     return GSUB_E_NOGLYPH;
 }
 
+#if 0
 static INT GSUB_apply_ChainContextSubst(const OT_LookupList* lookup, const OT_LookupTable *look, WORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#else
+static INT GSUB_apply_ChainContextSubst(const OT_LookupList* lookup, const OT_LookupTable *look, DWORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#endif
 {
     int j;
 
@@ -1482,7 +1530,11 @@ static INT GSUB_apply_ChainContextSubst(const OT_LookupList* lookup, const OT_Lo
     return GSUB_E_NOGLYPH;
 }
 
+#if 0
 static INT GSUB_apply_lookup(const OT_LookupList* lookup, INT lookup_index, WORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#else
+static INT GSUB_apply_lookup(const OT_LookupList* lookup, INT lookup_index, DWORD *glyphs, INT glyph_index, INT write_dir, INT *glyph_count)
+#endif
 {
     int offset;
     enum gsub_lookup_type type;
@@ -1537,8 +1589,13 @@ static INT GSUB_apply_lookup(const OT_LookupList* lookup, INT lookup_index, WORD
     return GSUB_E_NOGLYPH;
 }
 
+#if 0
 int OpenType_apply_GSUB_lookup(const void *table, unsigned int lookup_index, WORD *glyphs,
         unsigned int glyph_index, int write_dir, int *glyph_count)
+#else
+int OpenType_apply_GSUB_lookup(const void *table, unsigned int lookup_index, DWORD *glyphs,
+        unsigned int glyph_index, int write_dir, int *glyph_count)
+#endif
 {
     const GSUB_Header *header = (const GSUB_Header *)table;
     const OT_LookupList *lookup = (const OT_LookupList*)((const BYTE*)header + GET_BE_WORD(header->LookupList));
@@ -1549,10 +1606,17 @@ int OpenType_apply_GSUB_lookup(const void *table, unsigned int lookup_index, WOR
 /**********
  * GPOS
  **********/
+#if 0
 static unsigned int GPOS_apply_lookup(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *otm,
         const LOGFONTW *logfont, const SCRIPT_ANALYSIS *analysis, int *advance, const OT_LookupList *lookup,
         unsigned int lookup_index, const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count,
         GOFFSET *goffset);
+#else
+static unsigned int GPOS_apply_lookup(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *otm,
+        const LOGFONTW *logfont, const SCRIPT_ANALYSIS *analysis, int *advance, const OT_LookupList *lookup,
+        unsigned int lookup_index, const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count,
+        GOFFSET *goffset);
+#endif
 
 static INT GPOS_get_device_table_value(const OT_DeviceTable *DeviceTable, WORD ppem)
 {
@@ -1692,9 +1756,15 @@ static const BYTE *GPOS_get_subtable(const OT_LookupTable *look, int index)
     return (const BYTE *)look + offset;
 }
 
+#if 0
 static void GPOS_apply_SingleAdjustment(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
         const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem,
         POINT *adjust, POINT *advance)
+#else
+static void GPOS_apply_SingleAdjustment(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
+        const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem,
+        POINT *adjust, POINT *advance)
+#endif
 {
     int j;
 
@@ -1767,9 +1837,15 @@ static void apply_pair_value( const void *pos_table, WORD val_fmt1, WORD val_fmt
     }
 }
 
+#if 0
 static int GPOS_apply_PairAdjustment(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
         const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem,
         POINT *adjust, POINT *advance)
+#else
+static int GPOS_apply_PairAdjustment(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
+        const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem,
+        POINT *adjust, POINT *advance)
+#endif
 {
     int j;
     int write_dir = (analysis->fRTL && !analysis->fLogicalOrder) ? -1 : 1;
@@ -1855,8 +1931,13 @@ static int GPOS_apply_PairAdjustment(const OT_LookupTable *look, const SCRIPT_AN
     return 1;
 }
 
+#if 0
 static void GPOS_apply_CursiveAttachment(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
         const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem, POINT *pt)
+#else
+static void GPOS_apply_CursiveAttachment(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
+        const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem, POINT *pt)
+#endif
 {
     int j;
     int write_dir = (analysis->fRTL && !analysis->fLogicalOrder) ? -1 : 1;
@@ -1897,9 +1978,15 @@ static void GPOS_apply_CursiveAttachment(const OT_LookupTable *look, const SCRIP
     return;
 }
 
+#if 0
 static int GPOS_apply_MarkToBase(const ScriptCache *script_cache, const OT_LookupTable *look,
         const SCRIPT_ANALYSIS *analysis, const WORD *glyphs, unsigned int glyph_index,
         unsigned int glyph_count, unsigned int ppem, POINT *pt)
+#else
+static int GPOS_apply_MarkToBase(const ScriptCache *script_cache, const OT_LookupTable *look,
+        const SCRIPT_ANALYSIS *analysis, const DWORD *glyphs, unsigned int glyph_index,
+        unsigned int glyph_count, unsigned int ppem, POINT *pt)
+#endif
 {
     int j;
     int write_dir = (analysis->fRTL && !analysis->fLogicalOrder) ? -1 : 1;
@@ -1982,8 +2069,13 @@ static int GPOS_apply_MarkToBase(const ScriptCache *script_cache, const OT_Looku
     return rc;
 }
 
+#if 0
 static void GPOS_apply_MarkToLigature(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
         const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem, POINT *pt)
+#else
+static void GPOS_apply_MarkToLigature(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
+        const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem, POINT *pt)
+#endif
 {
     int j;
     int write_dir = (analysis->fRTL && !analysis->fLogicalOrder) ? -1 : 1;
@@ -2072,8 +2164,13 @@ static void GPOS_apply_MarkToLigature(const OT_LookupTable *look, const SCRIPT_A
     }
 }
 
+#if 0
 static BOOL GPOS_apply_MarkToMark(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
         const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem, POINT *pt)
+#else
+static BOOL GPOS_apply_MarkToMark(const OT_LookupTable *look, const SCRIPT_ANALYSIS *analysis,
+        const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, unsigned int ppem, POINT *pt)
+#endif
 {
     int j;
     BOOL rc = FALSE;
@@ -2139,10 +2236,17 @@ static BOOL GPOS_apply_MarkToMark(const OT_LookupTable *look, const SCRIPT_ANALY
     return rc;
 }
 
+#if 0
 static unsigned int GPOS_apply_ContextPos(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *otm,
         const LOGFONTW *logfont, const SCRIPT_ANALYSIS *analysis, int *advance, const OT_LookupList *lookup,
         const OT_LookupTable *look, const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count,
         GOFFSET *goffset)
+#else
+static unsigned int GPOS_apply_ContextPos(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *otm,
+        const LOGFONTW *logfont, const SCRIPT_ANALYSIS *analysis, int *advance, const OT_LookupList *lookup,
+        const OT_LookupTable *look, const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count,
+        GOFFSET *goffset)
+#endif
 {
     int j;
     int write_dir = (analysis->fRTL && !analysis->fLogicalOrder) ? -1 : 1;
@@ -2258,10 +2362,17 @@ static unsigned int GPOS_apply_ContextPos(const ScriptCache *script_cache, const
     return 1;
 }
 
+#if 0
 static unsigned int GPOS_apply_ChainContextPos(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *otm,
         const LOGFONTW *logfont, const SCRIPT_ANALYSIS *analysis, int *advance, const OT_LookupList *lookup,
         const OT_LookupTable *look, const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count,
         GOFFSET *goffset)
+#else
+static unsigned int GPOS_apply_ChainContextPos(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *otm,
+        const LOGFONTW *logfont, const SCRIPT_ANALYSIS *analysis, int *advance, const OT_LookupList *lookup,
+        const OT_LookupTable *look, const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count,
+        GOFFSET *goffset)
+#endif
 {
     int j;
     int write_dir = (analysis->fRTL && !analysis->fLogicalOrder) ? -1 : 1;
@@ -2379,10 +2490,17 @@ static unsigned int GPOS_apply_ChainContextPos(const ScriptCache *script_cache, 
     return 1;
 }
 
+#if 0
 static unsigned int GPOS_apply_lookup(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *lpotm,
         const LOGFONTW *lplogfont, const SCRIPT_ANALYSIS *analysis, int *piAdvance, const OT_LookupList *lookup,
         unsigned int lookup_index, const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count,
         GOFFSET *pGoffset)
+#else
+static unsigned int GPOS_apply_lookup(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *lpotm,
+        const LOGFONTW *lplogfont, const SCRIPT_ANALYSIS *analysis, int *piAdvance, const OT_LookupList *lookup,
+        unsigned int lookup_index, const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count,
+        GOFFSET *pGoffset)
+#endif
 {
     int offset;
     const OT_LookupTable *look;
@@ -2554,9 +2672,15 @@ static unsigned int GPOS_apply_lookup(const ScriptCache *script_cache, const OUT
     return 1;
 }
 
+#if 0
 unsigned int OpenType_apply_GPOS_lookup(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *otm,
         const LOGFONTW *logfont, const SCRIPT_ANALYSIS *analysis, int *advance, unsigned int lookup_index,
         const WORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, GOFFSET *goffset)
+#else
+unsigned int OpenType_apply_GPOS_lookup(const ScriptCache *script_cache, const OUTLINETEXTMETRICW *otm,
+        const LOGFONTW *logfont, const SCRIPT_ANALYSIS *analysis, int *advance, unsigned int lookup_index,
+        const DWORD *glyphs, unsigned int glyph_index, unsigned int glyph_count, GOFFSET *goffset)
+#endif
 {
     const GPOS_Header *header = (const GPOS_Header *)script_cache->GPOS_Table;
     const OT_LookupList *lookup = (const OT_LookupList*)((const BYTE*)header + GET_BE_WORD(header->LookupList));
@@ -2881,7 +3005,7 @@ static void usp10_language_add_feature_list(LoadedLanguage *language, char table
     if (!language->feature_count)
         language->features = heap_alloc(count * sizeof(*language->features));
     else
-        language->features = HeapReAlloc(GetProcessHeap(), 0, language->features,
+        language->features = heap_realloc(language->features,
                 (language->feature_count + count) * sizeof(*language->features));
 
     for (i = 0; i < count; ++i)

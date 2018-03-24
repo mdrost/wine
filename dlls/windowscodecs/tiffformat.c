@@ -601,7 +601,7 @@ static ULONG WINAPI TiffDecoder_Release(IWICBitmapDecoder *iface)
         if (This->stream) IStream_Release(This->stream);
         This->lock.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -769,7 +769,7 @@ static HRESULT WINAPI TiffDecoder_GetFrame(IWICBitmapDecoder *iface,
 
     if (SUCCEEDED(hr))
     {
-        result = HeapAlloc(GetProcessHeap(), 0, sizeof(TiffFrameDecode));
+        result = heap_alloc(sizeof(TiffFrameDecode));
 
         if (result)
         {
@@ -780,14 +780,14 @@ static HRESULT WINAPI TiffDecoder_GetFrame(IWICBitmapDecoder *iface,
             result->index = index;
             result->decode_info = decode_info;
             result->cached_tile_x = -1;
-            result->cached_tile = HeapAlloc(GetProcessHeap(), 0, decode_info.tile_size);
+            result->cached_tile = heap_alloc(decode_info.tile_size);
 
             if (result->cached_tile)
                 *ppIBitmapFrame = &result->IWICBitmapFrameDecode_iface;
             else
             {
                 hr = E_OUTOFMEMORY;
-                HeapFree(GetProcessHeap(), 0, result);
+                heap_free(result);
             }
         }
         else hr = E_OUTOFMEMORY;
@@ -862,8 +862,8 @@ static ULONG WINAPI TiffFrameDecode_Release(IWICBitmapFrameDecode *iface)
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This->cached_tile);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->cached_tile);
+        heap_free(This);
     }
 
     return ref;
@@ -1378,7 +1378,7 @@ HRESULT TiffDecoder_CreateInstance(REFIID iid, void** ppv)
         return E_FAIL;
     }
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(TiffDecoder));
+    This = heap_alloc(sizeof(TiffDecoder));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapDecoder_iface.lpVtbl = &TiffDecoder_Vtbl;
@@ -1501,7 +1501,7 @@ static ULONG WINAPI TiffFrameEncode_Release(IWICBitmapFrameEncode *iface)
     if (ref == 0)
     {
         IWICBitmapEncoder_Release(&This->parent->IWICBitmapEncoder_iface);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1666,7 +1666,7 @@ static HRESULT WINAPI TiffFrameEncode_WritePixels(IWICBitmapFrameEncode *iface,
 
     if (This->format->reverse_bgr)
     {
-        swapped_data = HeapAlloc(GetProcessHeap(), 0, line_size);
+        swapped_data = heap_alloc(line_size);
         if (!swapped_data)
         {
             LeaveCriticalSection(&This->parent->lock);
@@ -1726,7 +1726,7 @@ static HRESULT WINAPI TiffFrameEncode_WritePixels(IWICBitmapFrameEncode *iface,
 
     LeaveCriticalSection(&This->parent->lock);
 
-    HeapFree(GetProcessHeap(), 0, swapped_data);
+    heap_free(swapped_data);
 
     return S_OK;
 }
@@ -1849,7 +1849,7 @@ static ULONG WINAPI TiffEncoder_Release(IWICBitmapEncoder *iface)
         if (This->stream) IStream_Release(This->stream);
         This->lock.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1986,7 +1986,7 @@ static HRESULT WINAPI TiffEncoder_CreateNewFrame(IWICBitmapEncoder *iface,
 
     if (SUCCEEDED(hr))
     {
-        result = HeapAlloc(GetProcessHeap(), 0, sizeof(*result));
+        result = heap_alloc(sizeof(*result));
 
         if (result)
         {
@@ -2091,7 +2091,7 @@ HRESULT TiffEncoder_CreateInstance(REFIID iid, void** ppv)
         return E_FAIL;
     }
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(TiffEncoder));
+    This = heap_alloc(sizeof(TiffEncoder));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapEncoder_iface.lpVtbl = &TiffEncoder_Vtbl;

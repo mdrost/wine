@@ -94,7 +94,7 @@ static ULONG WINAPI IiFTMUnknown_fnRelease (IUnknown * iface)
     TRACE ("\n");
     if (InterlockedDecrement (&This->ref))
 	return This->ref;
-    HeapFree (GetProcessHeap (), 0, This);
+    heap_free (This);
     return 0;
 }
 
@@ -337,7 +337,7 @@ HRESULT WINAPI CoCreateFreeThreadedMarshaler (LPUNKNOWN punkOuter, LPUNKNOWN * p
 
     TRACE ("(%p %p)\n", punkOuter, ppunkMarshal);
 
-    ftm = HeapAlloc (GetProcessHeap (), 0, sizeof (FTMarshalImpl));
+    ftm = malloc (sizeof (FTMarshalImpl));
     if (!ftm)
 	return E_OUTOFMEMORY;
 

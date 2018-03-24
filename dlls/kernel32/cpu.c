@@ -43,16 +43,45 @@
 #include "wine/unicode.h"
 #include "kernel_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(reg);
 
+#if 0
 #define SHARED_DATA     ((KSHARED_USER_DATA*)0x7ffe0000)
+#endif
+
+#define TICKSPERSEC        10000000
+
+/* return a monotonic time counter, in Win32 ticks */
+static ULONGLONG monotonic_counter(void)
+{
+    struct timeval now;
+
+#ifdef __APPLE__
+    static mach_timebase_info_data_t timebase;
+
+    if (!timebase.denom) mach_timebase_info( &timebase );
+    return mach_absolute_time() * timebase.numer / timebase.denom / 100;
+#elif defined(HAVE_CLOCK_GETTIME)
+    struct timespec ts;
+#ifdef CLOCK_MONOTONIC_RAW
+    if (!clock_gettime( CLOCK_MONOTONIC_RAW, &ts ))
+        return ts.tv_sec * (ULONGLONG)TICKSPERSEC + ts.tv_nsec / 100;
+#endif
+    if (!clock_gettime( CLOCK_MONOTONIC, &ts ))
+        return ts.tv_sec * (ULONGLONG)TICKSPERSEC + ts.tv_nsec / 100;
+#endif
+
+    gettimeofday( &now, 0 );
+    return now.tv_sec * (ULONGLONG)TICKSPERSEC + now.tv_usec * 10;
+}
 
 /****************************************************************************
  *		QueryPerformanceCounter (KERNEL32.@)
  *
  * Get the current value of the performance counter.
- * 
+ *
  * PARAMS
  *  counter [O] Destination for the current counter reading
  *
@@ -65,7 +94,11 @@ WINE_DEFAULT_DEBUG_CHANNEL(reg);
  */
 BOOL WINAPI QueryPerformanceCounter(PLARGE_INTEGER counter)
 {
+#if 0
     NtQueryPerformanceCounter( counter, NULL );
+#else
+    counter->QuadPart = monotonic_counter();
+#endif
     return TRUE;
 }
 
@@ -87,8 +120,12 @@ BOOL WINAPI QueryPerformanceCounter(PLARGE_INTEGER counter)
  */
 BOOL WINAPI QueryPerformanceFrequency(PLARGE_INTEGER frequency)
 {
+#if 0
     LARGE_INTEGER counter;
     NtQueryPerformanceCounter( &counter, frequency );
+#else
+    frequency->QuadPart = TICKSPERSEC;
+#endif
     return TRUE;
 }
 
@@ -106,10 +143,17 @@ VOID WINAPI GetSystemInfo(
 {
     NTSTATUS                 nts;
     SYSTEM_CPU_INFORMATION   sci;
+    SYSTEM_BASIC_INFORMATION system_info;
 
     TRACE("si=0x%p\n", si);
 
     if ((nts = NtQuerySystemInformation( SystemCpuInformation, &sci, sizeof(sci), NULL )) != STATUS_SUCCESS)
+    {
+        SetLastError(RtlNtStatusToDosError(nts));
+        return;
+    }
+
+    if ((nts = NtQuerySystemInformation( SystemBasicInformation, &system_info, sizeof(system_info), NULL )) != STATUS_SUCCESS)
     {
         SetLastError(RtlNtStatusToDosError(nts));
         return;
@@ -173,9 +217,10 @@ VOID WINAPI GetSystemInfo(
 VOID WINAPI GetNativeSystemInfo(
     LPSYSTEM_INFO si	/* [out] Destination for system information, may not be NULL */)
 {
+#if 0
     BOOL is_wow64;
 
-    GetSystemInfo(si); 
+    GetSystemInfo(si);
 
     IsWow64Process(GetCurrentProcess(), &is_wow64);
     if (is_wow64)
@@ -191,24 +236,31 @@ VOID WINAPI GetNativeSystemInfo(
                   si->u.s.wProcessorArchitecture);
         }
     }
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+#endif
 }
 
 /***********************************************************************
  * 			IsProcessorFeaturePresent	[KERNEL32.@]
  *
  * Determine if the cpu supports a given feature.
- * 
+ *
  * RETURNS
  *  TRUE, If the processor supports feature,
  *  FALSE otherwise.
  */
 BOOL WINAPI IsProcessorFeaturePresent (
-	DWORD feature	/* [in] Feature number, (PF_ constants from "winnt.h") */) 
+	DWORD feature	/* [in] Feature number, (PF_ constants from "winnt.h") */)
 {
+#if 0
   if (feature < PROCESSOR_FEATURE_MAX)
     return SHARED_DATA->ProcessorFeatures[feature];
   else
     return FALSE;
+#else
+  return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -216,6 +268,7 @@ BOOL WINAPI IsProcessorFeaturePresent (
  */
 BOOL WINAPI K32GetPerformanceInfo(PPERFORMANCE_INFORMATION info, DWORD size)
 {
+#if 0
     union
     {
         SYSTEM_PERFORMANCE_INFORMATION performance;
@@ -241,7 +294,7 @@ BOOL WINAPI K32GetPerformanceInfo(PPERFORMANCE_INFORMATION info, DWORD size)
     NtQuerySystemInformation( SystemProcessInformation, NULL, 0, &process_info_size );
     for (;;)
     {
-        sysinfo = HeapAlloc( GetProcessHeap(), 0, max(process_info_size, sizeof(*sysinfo)) );
+        sysinfo = heap_alloc( max(process_info_size, sizeof(*sysinfo)) );
         if (!sysinfo)
         {
             SetLastError( ERROR_OUTOFMEMORY );
@@ -252,7 +305,7 @@ BOOL WINAPI K32GetPerformanceInfo(PPERFORMANCE_INFORMATION info, DWORD size)
         if (!status) break;
         if (status != STATUS_INFO_LENGTH_MISMATCH)
             goto err;
-        HeapFree( GetProcessHeap(), 0, sysinfo );
+        heap_free( sysinfo );
     }
     for (spi = &sysinfo->process;; spi = (SYSTEM_PROCESS_INFORMATION *)(((PCHAR)spi) + spi->NextEntryOffset))
     {
@@ -283,13 +336,17 @@ BOOL WINAPI K32GetPerformanceInfo(PPERFORMANCE_INFORMATION info, DWORD size)
     info->PageSize      = sysinfo->basic.PageSize;
 
 err:
-    HeapFree( GetProcessHeap(), 0, sysinfo );
+    heap_free( sysinfo );
     if (status)
     {
         SetLastError( RtlNtStatusToDosError( status ) );
         return FALSE;
     }
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /***********************************************************************

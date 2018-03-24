@@ -46,7 +46,7 @@ char* lexeme_alloc_size(int size)
         local_lexemes = dbg_heap_realloc(local_lexemes, alloc_lexeme * sizeof(local_lexemes[0]));
         assert(local_lexemes);
     }
-    return local_lexemes[next_lexeme++] = HeapAlloc(GetProcessHeap(), 0, size + 1);
+    return local_lexemes[next_lexeme++] = heap_alloc(size + 1);
 }
 
 static char* lexeme_alloc(const char* lexeme)
@@ -57,7 +57,7 @@ static char* lexeme_alloc(const char* lexeme)
 
 void lexeme_flush(void)
 {
-    while (--next_lexeme >= 0) HeapFree(GetProcessHeap(), 0, local_lexemes[next_lexeme]);
+    while (--next_lexeme >= 0) heap_free(local_lexemes[next_lexeme]);
     next_lexeme = 0;
 }
 
@@ -89,11 +89,11 @@ static size_t read_input(const char* pfx, char* buf, int size)
          */
         if (last_line && (len == 0 || (len == 1 && tmp[0] == '\n')))
         {
-            HeapFree(GetProcessHeap(), 0, tmp);
+            heap_free(tmp);
         }
         else
         {
-            HeapFree(GetProcessHeap(), 0, last_line);
+            heap_free(last_line);
             last_line = tmp;
         }
     }

@@ -305,6 +305,7 @@ static WDML_XACT*	WDML_ClientQueueAdvise(WDML_CONV* pConv, UINT wType, UINT wFmt
 
     TRACE("XTYP_ADVSTART (with%s data) transaction\n", (wType & XTYPF_NODATA) ? "out" : "");
 
+#if 0
     atom = WDML_MakeAtomFromHsz(hszItem);
     if (!atom) return NULL;
 
@@ -329,6 +330,9 @@ static WDML_XACT*	WDML_ClientQueueAdvise(WDML_CONV* pConv, UINT wType, UINT wFmt
     pXAct->lParam = PackDDElParam(WM_DDE_ADVISE, (UINT_PTR)pXAct->hMem, atom);
 
     return pXAct;
+#else
+    return NULL;
+#endif
 }
 
 /******************************************************************
@@ -338,6 +342,7 @@ static WDML_XACT*	WDML_ClientQueueAdvise(WDML_CONV* pConv, UINT wType, UINT wFmt
  */
 static WDML_QUEUE_STATE WDML_HandleAdviseReply(WDML_CONV* pConv, MSG* msg, WDML_XACT* pXAct, DWORD *ack)
 {
+#if 0
     DDEACK		ddeAck;
     UINT_PTR		uiLo, uiHi;
     HSZ			hsz;
@@ -386,6 +391,9 @@ static WDML_QUEUE_STATE WDML_HandleAdviseReply(WDML_CONV* pConv, MSG* msg, WDML_
     }
 
     return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -496,6 +504,7 @@ static WDML_XACT*	WDML_ClientQueueRequest(WDML_CONV* pConv, UINT wFmt, HSZ hszIt
  */
 static WDML_QUEUE_STATE WDML_HandleRequestReply(WDML_CONV* pConv, MSG* msg, WDML_XACT* pXAct, DWORD *ack)
 {
+#if 0
     DDEACK		ddeAck;
     WINE_DDEHEAD	wdh;
     UINT_PTR		uiLo, uiHi;
@@ -549,6 +558,9 @@ static WDML_QUEUE_STATE WDML_HandleRequestReply(WDML_CONV* pConv, MSG* msg, WDML
     }
 
     return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -585,6 +597,7 @@ static	HGLOBAL	WDML_BuildExecuteCommand(WDML_CONV* pConv, LPCVOID pData, DWORD c
 	}
     }
 
+#if 0
     hMem = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, memSize);
 
     if (hMem)
@@ -619,6 +632,9 @@ static	HGLOBAL	WDML_BuildExecuteCommand(WDML_CONV* pConv, LPCVOID pData, DWORD c
 	}
     }
     return hMem;
+#else
+    return NULL;
+#endif
 }
 
 /******************************************************************
@@ -715,6 +731,7 @@ static WDML_XACT*	WDML_ClientQueuePoke(WDML_CONV* pConv, LPVOID pData, DWORD cbD
 
     TRACE("XTYP_POKE transaction\n");
 
+#if 0
     atom = WDML_MakeAtomFromHsz(hszItem);
     if (!atom) return NULL;
 
@@ -751,6 +768,9 @@ static WDML_XACT*	WDML_ClientQueuePoke(WDML_CONV* pConv, LPVOID pData, DWORD cbD
     pXAct->lParam = PackDDElParam(WM_DDE_POKE, (UINT_PTR)pXAct->hMem, atom);
 
     return pXAct;
+#else
+    return NULL;
+#endif
 }
 
 /******************************************************************
@@ -760,6 +780,7 @@ static WDML_XACT*	WDML_ClientQueuePoke(WDML_CONV* pConv, LPVOID pData, DWORD cbD
  */
 static WDML_QUEUE_STATE WDML_HandlePokeReply(WDML_CONV* pConv, MSG* msg, WDML_XACT* pXAct, DWORD *ack)
 {
+#if 0
     UINT_PTR	uiLo, uiHi;
     HSZ		hsz;
 
@@ -781,7 +802,10 @@ static WDML_QUEUE_STATE WDML_HandlePokeReply(WDML_CONV* pConv, MSG* msg, WDML_XA
     pXAct->hMem = GlobalFree(pXAct->hMem);
 
     pXAct->hDdeData = (HDDEDATA)TRUE;
-    return TRUE;
+    return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -810,6 +834,7 @@ static WDML_XACT*	WDML_ClientQueueTerminate(WDML_CONV* pConv)
  */
 static WDML_QUEUE_STATE WDML_HandleTerminateReply(WDML_CONV* pConv, MSG* msg)
 {
+#if 0
     if (msg->message != WM_DDE_TERMINATE)
     {
 	/* FIXME: should delete data passed here */
@@ -828,6 +853,9 @@ static WDML_QUEUE_STATE WDML_HandleTerminateReply(WDML_CONV* pConv, MSG* msg)
     }
     WDML_RemoveConv(pConv, WDML_CLIENT_SIDE);
     return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -847,6 +875,7 @@ static WDML_QUEUE_STATE WDML_HandleIncomingData(WDML_CONV* pConv, MSG* msg, HDDE
     /* wParam -- sending window handle	*/
     /* lParam -- hDdeData & item HSZ	*/
 
+#if 0
     UnpackDDElParam(WM_DDE_DATA, msg->lParam, &uiLo, &uiHi);
     hsz = WDML_MakeHszFromAtom(pConv->instance, uiHi);
 
@@ -891,6 +920,9 @@ static WDML_QUEUE_STATE WDML_HandleIncomingData(WDML_CONV* pConv, MSG* msg, HDDE
 	FreeDDElParam(WM_DDE_DATA, msg->lParam);
 
     return WDML_QS_HANDLED;
+#else
+    return WDML_QS_ERROR;
+#endif
 }
 
 /******************************************************************
@@ -1146,6 +1178,7 @@ HDDEDATA WINAPI DdeClientTransaction(LPBYTE pData, DWORD cbData, HCONV hConv, HS
 	return 0;
     }
 
+#if 0
     pConv = WDML_GetConv(hConv, TRUE);
     if (pConv == NULL)
     {
@@ -1227,6 +1260,9 @@ HDDEDATA WINAPI DdeClientTransaction(LPBYTE pData, DWORD cbData, HCONV hConv, HS
     }
 
     return hDdeData;
+#else
+    return 0;
+#endif
 }
 
 /*****************************************************************
@@ -1234,6 +1270,7 @@ HDDEDATA WINAPI DdeClientTransaction(LPBYTE pData, DWORD cbData, HCONV hConv, HS
  */
 BOOL WINAPI DdeAbandonTransaction(DWORD idInst, HCONV hConv, DWORD idTransaction)
 {
+#if 0
     WDML_INSTANCE*	pInstance;
     WDML_CONV*		pConv;
     WDML_XACT*          pXAct;
@@ -1280,6 +1317,9 @@ BOOL WINAPI DdeAbandonTransaction(DWORD idInst, HCONV hConv, DWORD idTransaction
     }
 
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 /******************************************************************
@@ -1385,6 +1425,7 @@ BOOL WINAPI DdeDisconnect(HCONV hConv)
 	return FALSE;
     }
 
+#if 0
     pConv = WDML_GetConv(hConv, TRUE);
     if (pConv != NULL)
     {
@@ -1413,6 +1454,7 @@ BOOL WINAPI DdeDisconnect(HCONV hConv)
             }
         }
     }
+#endif
 
     return ret;
 }

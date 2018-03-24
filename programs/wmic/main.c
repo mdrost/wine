@@ -93,7 +93,7 @@ static inline WCHAR *strdupW( const WCHAR *src )
 {
     WCHAR *dst;
     if (!src) return NULL;
-    if (!(dst = HeapAlloc( GetProcessHeap(), 0, (strlenW( src ) + 1) * sizeof(WCHAR) ))) return NULL;
+    if (!(dst = heap_alloc( (strlenW( src ) + 1) * sizeof(WCHAR) ))) return NULL;
     strcpyW( dst, src );
     return dst;
 }
@@ -144,11 +144,11 @@ static int output_string( const WCHAR *msg, ... )
          * one in that case.
          */
         len = WideCharToMultiByte( GetConsoleOutputCP(), 0, buffer, wlen, NULL, 0, NULL, NULL );
-        if (!(msgA = HeapAlloc( GetProcessHeap(), 0, len * sizeof(char) ))) return 0;
+        if (!(msgA = heap_alloc( len * sizeof(char) ))) return 0;
 
         WideCharToMultiByte( GetConsoleOutputCP(), 0, buffer, wlen, msgA, len, NULL, NULL );
         WriteFile( GetStdHandle(STD_OUTPUT_HANDLE), msgA, len, &count, FALSE );
-        HeapFree( GetProcessHeap(), 0, msgA );
+        heap_free( msgA );
     }
     return count;
 }
@@ -239,7 +239,7 @@ done:
     SysFreeString( path );
     SysFreeString( query );
     SysFreeString( wql );
-    HeapFree( GetProcessHeap(), 0, prop );
+    heap_free( prop );
     CoUninitialize();
     return ret;
 }

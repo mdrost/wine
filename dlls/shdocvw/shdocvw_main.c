@@ -438,13 +438,13 @@ DWORD WINAPI ParseURLFromOutsideSourceA(LPCSTR url, LPSTR out, LPDWORD plen, LPD
 
     if (url) {
         len = MultiByteToWideChar(CP_ACP, 0, url, -1, NULL, 0);
-        urlW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        urlW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, url, -1, urlW, len);
     }
 
     len = sizeof(buffer) / sizeof(buffer[0]);
     ParseURLFromOutsideSourceW(urlW, buffer, &len, unknown);
-    HeapFree(GetProcessHeap(), 0, urlW);
+    heap_free(urlW);
 
     needed = WideCharToMultiByte(CP_ACP, 0, buffer, -1, NULL, 0, NULL, NULL);
 

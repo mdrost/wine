@@ -69,7 +69,7 @@ static X11DRV_PDEVICE *create_x11_physdev( Drawable drawable )
 
     InitOnceExecuteOnce( &init_once, device_init, NULL, NULL );
 
-    if (!(physDev = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*physDev) ))) return NULL;
+    if (!(physDev = heap_alloc_zero( sizeof(*physDev) ))) return NULL;
 
     physDev->drawable = drawable;
     physDev->gc = XCreateGC( gdi_display, drawable, 0, NULL );
@@ -125,7 +125,7 @@ static BOOL X11DRV_DeleteDC( PHYSDEV dev )
     X11DRV_PDEVICE *physDev = get_x11drv_dev( dev );
 
     XFreeGC( gdi_display, physDev->gc );
-    HeapFree( GetProcessHeap(), 0, physDev );
+    heap_free( physDev );
     return TRUE;
 }
 

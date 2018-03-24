@@ -204,7 +204,7 @@ static BOOL XCOPY_CreateDirectory(const WCHAR* path)
     WCHAR *new_path;
     BOOL ret = TRUE;
 
-    new_path = HeapAlloc(GetProcessHeap(),0, sizeof(WCHAR) * (lstrlenW(path)+1));
+    new_path = heap_alloc( sizeof(WCHAR) * (lstrlenW(path)+1));
     lstrcpyW(new_path,path);
 
     while ((len = lstrlenW(new_path)) && new_path[len - 1] == '\\')
@@ -238,7 +238,7 @@ static BOOL XCOPY_CreateDirectory(const WCHAR* path)
         }
         new_path[len] = '\\';
     }
-    HeapFree(GetProcessHeap(),0,new_path);
+    heap_free(new_path);
     return ret;
 }
 
@@ -274,7 +274,7 @@ static BOOL XCOPY_ProcessExcludeFile(WCHAR* filename, WCHAR* endOfName) {
         /* If more than CRLF */
         if (length > 1) {
           buffer[length-1] = 0;  /* strip CRLF */
-          thisEntry = HeapAlloc(GetProcessHeap(), 0, sizeof(EXCLUDELIST));
+          thisEntry = heap_alloc(sizeof(EXCLUDELIST));
           thisEntry->next = excludeList;
           excludeList = thisEntry;
           thisEntry->name = HeapAlloc(GetProcessHeap(), 0,
@@ -356,9 +356,9 @@ static int XCOPY_DoCopy(WCHAR *srcstem, WCHAR *srcspec,
     int             ret = 0;
 
     /* Allocate some working memory on heap to minimize footprint */
-    finddata = HeapAlloc(GetProcessHeap(), 0, sizeof(WIN32_FIND_DATAW));
-    inputpath = HeapAlloc(GetProcessHeap(), 0, MAX_PATH * sizeof(WCHAR));
-    outputpath = HeapAlloc(GetProcessHeap(), 0, MAX_PATH * sizeof(WCHAR));
+    finddata = heap_alloc(sizeof(WIN32_FIND_DATAW));
+    inputpath = heap_alloc(MAX_PATH * sizeof(WCHAR));
+    outputpath = heap_alloc(MAX_PATH * sizeof(WCHAR));
 
     /* Build the search info into a single parm */
     lstrcpyW(inputpath, srcstem);
@@ -632,9 +632,9 @@ static int XCOPY_DoCopy(WCHAR *srcstem, WCHAR *srcspec,
 cleanup:
 
     /* free up memory */
-    HeapFree(GetProcessHeap(), 0, finddata);
-    HeapFree(GetProcessHeap(), 0, inputpath);
-    HeapFree(GetProcessHeap(), 0, outputpath);
+    heap_free(finddata);
+    heap_free(inputpath);
+    heap_free(outputpath);
 
     return ret;
 }
@@ -1123,8 +1123,8 @@ int wmain (int argc, WCHAR *argvW[])
     while (excludeList) {
         EXCLUDELIST *pos = excludeList;
         excludeList = excludeList -> next;
-        HeapFree(GetProcessHeap(), 0, pos->name);
-        HeapFree(GetProcessHeap(), 0, pos);
+        heap_free(pos->name);
+        heap_free(pos);
     }
 
     /* Finished - print trailer and exit */

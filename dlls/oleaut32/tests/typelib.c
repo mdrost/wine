@@ -1353,7 +1353,7 @@ static LSTATUS myRegDeleteTreeW(HKEY hKey, LPCWSTR lpszSubKey, REGSAM view)
     if (dwMaxLen > sizeof(szNameBuf)/sizeof(WCHAR))
     {
         /* Name too big: alloc a buffer for it */
-        if (!(lpszName = HeapAlloc( GetProcessHeap(), 0, dwMaxLen*sizeof(WCHAR))))
+        if (!(lpszName = heap_alloc( dwMaxLen*sizeof(WCHAR))))
         {
             ret = ERROR_NOT_ENOUGH_MEMORY;
             goto cleanup;
@@ -1389,7 +1389,7 @@ static LSTATUS myRegDeleteTreeW(HKEY hKey, LPCWSTR lpszSubKey, REGSAM view)
 
 cleanup:
     if (lpszName != szNameBuf)
-        HeapFree(GetProcessHeap(), 0, lpszName);
+        heap_free(lpszName);
     if(lpszSubKey)
         RegCloseKey(hSubKey);
     return ret;

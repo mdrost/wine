@@ -492,7 +492,7 @@ static void cleanup(struct tgt_process_minidump_data* data)
     if (data->mapping)                          UnmapViewOfFile(data->mapping);
     if (data->hMap)                             CloseHandle(data->hMap);
     if (data->hFile != INVALID_HANDLE_VALUE)    CloseHandle(data->hFile);
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 }
 
 static struct be_process_io be_process_minidump_io;
@@ -507,7 +507,7 @@ enum dbg_start minidump_reload(int argc, char* argv[])
     
     WINE_TRACE("Processing Minidump file %s\n", argv[0]);
 
-    data = HeapAlloc(GetProcessHeap(), 0, sizeof(struct tgt_process_minidump_data));
+    data = heap_alloc(sizeof(struct tgt_process_minidump_data));
     if (!data) return start_error_init;
     data->mapping = NULL;
     data->hMap    = NULL;

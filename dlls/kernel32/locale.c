@@ -51,6 +51,7 @@
 #include "winver.h"
 #include "kernel_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(nls);
 
@@ -322,11 +323,13 @@ static const union cptable *get_codepage_table( unsigned int codepage )
     case CP_UTF7:
     case CP_UTF8:
         break;
+#if 0
     case CP_THREAD_ACP:
         if (NtCurrentTeb()->CurrentLocale == GetUserDefaultLCID()) return ansi_cptable;
         codepage = get_lcid_codepage( NtCurrentTeb()->CurrentLocale );
         if (!codepage) return ansi_cptable;
         /* fall through */
+#endif
     default:
         if (codepage == ansi_cptable->info.codepage) return ansi_cptable;
         if (codepage == oem_cptable->info.codepage) return oem_cptable;
@@ -760,6 +763,7 @@ static BOOL is_genitive_name_supported( LCTYPE lctype )
     }
 }
 
+#if 0
 /***********************************************************************
  *		create_registry_key
  *
@@ -962,6 +966,7 @@ void LOCALE_InitRegistry(void)
 
     NtClose( hkey );
 }
+#endif
 
 
 #ifdef __APPLE__
@@ -1439,6 +1444,7 @@ INT WINAPI LCIDToLocaleName( LCID lcid, LPWSTR name, INT count, DWORD flags )
 }
 
 
+#if 0
 /******************************************************************************
  *		get_locale_registry_value
  *
@@ -1491,7 +1497,7 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
         RtlInitUnicodeString( &nameW, registry_value->name );
         size = info_size + len * sizeof(WCHAR);
 
-        if (!(info = HeapAlloc( GetProcessHeap(), 0, size )))
+        if (!(info = heap_alloc( size )))
         {
             NtClose( hkey );
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
@@ -1509,7 +1515,7 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
         if (status == STATUS_BUFFER_OVERFLOW && !buffer && size > info_size)
         {
             KEY_VALUE_PARTIAL_INFORMATION *new_info;
-            if ((new_info = HeapReAlloc( GetProcessHeap(), 0, info, size )))
+            if ((new_info = heap_realloc( info, size )))
             {
                 info = new_info;
                 status = NtQueryValueKey( hkey, &nameW, KeyValuePartialInformation, info, size, &size );
@@ -1526,11 +1532,11 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
             if (!length || ((WCHAR *)&info->Data)[length-1])
                 length++;
 
-            cached_value = HeapAlloc( GetProcessHeap(), 0, length * sizeof(WCHAR) );
+            cached_value = heap_alloc( length * sizeof(WCHAR) );
 
             if (!cached_value)
             {
-                HeapFree( GetProcessHeap(), 0, info );
+                heap_free( info );
                 SetLastError( ERROR_NOT_ENOUGH_MEMORY );
 #if 0
                 RtlLeaveCriticalSection( &cache_section );
@@ -1542,7 +1548,7 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
 
             memcpy( cached_value, info->Data, (length-1) * sizeof(WCHAR) );
             cached_value[length-1] = 0;
-            HeapFree( GetProcessHeap(), 0, info );
+            heap_free( info );
             registry_value->cached_value = cached_value;
         }
         else
@@ -1593,6 +1599,7 @@ static INT get_registry_locale_info( struct registry_value *registry_value, LPWS
 
     return ret;
 }
+#endif
 
 
 /******************************************************************************
@@ -1639,7 +1646,7 @@ INT WINAPI GetLocaleInfoA( LCID lcid, LCTYPE lctype, LPSTR buffer, INT len )
 
     if (!(lenW = GetLocaleInfoW( lcid, lctype, NULL, 0 ))) return 0;
 
-    if (!(bufferW = HeapAlloc( GetProcessHeap(), 0, lenW * sizeof(WCHAR) )))
+    if (!(bufferW = heap_alloc( lenW * sizeof(WCHAR) )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return 0;
@@ -1668,7 +1675,7 @@ INT WINAPI GetLocaleInfoA( LCID lcid, LCTYPE lctype, LPSTR buffer, INT len )
             ret = WideCharToMultiByte( codepage, 0, bufferW, ret, buffer, len, NULL, NULL );
         }
     }
-    HeapFree( GetProcessHeap(), 0, bufferW );
+    heap_free( bufferW );
     return ret;
 }
 
@@ -1713,6 +1720,7 @@ INT WINAPI GetLocaleInfoW( LCID lcid, LCTYPE lctype, LPWSTR buffer, INT len )
 
     TRACE( "(lcid=0x%x,lctype=0x%x,%p,%d)\n", lcid, lctype, buffer, len );
 
+#if 0
     /* first check for overrides in the registry */
 
     if (!(lcflags & LOCALE_NOUSEROVERRIDE) &&
@@ -1750,6 +1758,7 @@ INT WINAPI GetLocaleInfoW( LCID lcid, LCTYPE lctype, LPWSTR buffer, INT len )
             if (ret != -1) return ret;
         }
     }
+#endif
 
     /* now load it from kernel resources */
 
@@ -1797,7 +1806,7 @@ INT WINAPI GetLocaleInfoW( LCID lcid, LCTYPE lctype, LPWSTR buffer, INT len )
     if (lcflags & LOCALE_RETURN_NUMBER)
     {
         UINT number;
-        WCHAR *end, *tmp = HeapAlloc( GetProcessHeap(), 0, (*p + 1) * sizeof(WCHAR) );
+        WCHAR *end, *tmp = heap_alloc( (*p + 1) * sizeof(WCHAR) );
         if (!tmp) return 0;
         memcpy( tmp, p + 1, *p * sizeof(WCHAR) );
         tmp[*p] = 0;
@@ -1809,7 +1818,7 @@ INT WINAPI GetLocaleInfoW( LCID lcid, LCTYPE lctype, LPWSTR buffer, INT len )
             SetLastError( ERROR_INVALID_FLAGS );
             ret = 0;
         }
-        HeapFree( GetProcessHeap(), 0, tmp );
+        heap_free( tmp );
 
         TRACE( "(lcid=0x%x,lctype=0x%x,%p,%d) returning number %d\n",
                lcid, lctype, buffer, len, number );
@@ -1897,14 +1906,14 @@ BOOL WINAPI SetLocaleInfoA(LCID lcid, LCTYPE lctype, LPCSTR data)
         return FALSE;
     }
     len = MultiByteToWideChar( codepage, 0, data, -1, NULL, 0 );
-    if (!(strW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+    if (!(strW = heap_alloc( len * sizeof(WCHAR) )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return FALSE;
     }
     MultiByteToWideChar( codepage, 0, data, -1, strW, len );
     ret = SetLocaleInfoW( lcid, lctype, strW );
-    HeapFree( GetProcessHeap(), 0, strW );
+    heap_free( strW );
     return ret;
 }
 
@@ -1916,6 +1925,7 @@ BOOL WINAPI SetLocaleInfoA(LCID lcid, LCTYPE lctype, LPCSTR data)
  */
 BOOL WINAPI SetLocaleInfoW( LCID lcid, LCTYPE lctype, LPCWSTR data )
 {
+#if 0
     struct registry_value *value;
     static const WCHAR intlW[] = {'i','n','t','l',0 };
     UNICODE_STRING valueW;
@@ -2004,6 +2014,7 @@ BOOL WINAPI SetLocaleInfoW( LCID lcid, LCTYPE lctype, LPCWSTR data )
 #endif
       heap_free( value->cached_value );
       value->cached_value = NULL;
+     
 #if 0
       RtlLeaveCriticalSection( &cache_section );
 #else
@@ -2015,6 +2026,10 @@ BOOL WINAPI SetLocaleInfoW( LCID lcid, LCTYPE lctype, LPCWSTR data )
 
     if (status) SetLastError( RtlNtStatusToDosError(status) );
     return !status;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -2810,9 +2825,13 @@ INT WINAPI WideCharToMultiByte( UINT page, DWORD flags, LPCWSTR src, INT srclen,
  */
 LCID WINAPI GetThreadLocale(void)
 {
+#if 0
     LCID ret = NtCurrentTeb()->CurrentLocale;
     if (!ret) NtCurrentTeb()->CurrentLocale = ret = GetUserDefaultLCID();
     return ret;
+#else
+    return GetUserDefaultLCID();
+#endif
 }
 
 /**********************************************************************
@@ -2831,6 +2850,7 @@ BOOL WINAPI SetThreadLocale( LCID lcid )
 {
     TRACE("(0x%04X)\n", lcid);
 
+#if 0
     lcid = ConvertDefaultLocale(lcid);
 
     if (lcid != GetThreadLocale())
@@ -2844,6 +2864,10 @@ BOOL WINAPI SetThreadLocale( LCID lcid )
         NtCurrentTeb()->CurrentLocale = lcid;
     }
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /**********************************************************************
@@ -3228,7 +3252,7 @@ BOOL WINAPI GetStringTypeA( LCID locale, DWORD type, LPCSTR src, INT count, LPWO
     }
 
     countW = MultiByteToWideChar(cp, 0, src, count, NULL, 0);
-    if((srcW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR))))
+    if((srcW = heap_alloc(countW * sizeof(WCHAR))))
     {
         MultiByteToWideChar(cp, 0, src, count, srcW, countW);
     /*
@@ -3237,7 +3261,7 @@ BOOL WINAPI GetStringTypeA( LCID locale, DWORD type, LPCSTR src, INT count, LPWO
      * than character space in the buffer!
      */
         ret = GetStringTypeW(type, srcW, countW, chartype);
-        HeapFree(GetProcessHeap(), 0, srcW);
+        heap_free(srcW);
     }
     return ret;
 }
@@ -3754,7 +3778,11 @@ INT WINAPI LCMapStringW(LCID lcid, DWORD flags, LPCWSTR src, INT srclen,
 INT WINAPI LCMapStringA(LCID lcid, DWORD flags, LPCSTR src, INT srclen,
                         LPSTR dst, INT dstlen)
 {
+#if 0
     WCHAR *bufW = NtCurrentTeb()->StaticUnicodeBuffer;
+#else
+    WCHAR bufW[261];
+#endif
     LPWSTR srcW, dstW;
     INT ret = 0, srclenW, dstlenW;
     UINT locale_cp = CP_ACP;
@@ -3773,7 +3801,7 @@ INT WINAPI LCMapStringA(LCID lcid, DWORD flags, LPCSTR src, INT srclen,
     else
     {
         srclenW = MultiByteToWideChar(locale_cp, 0, src, srclen, NULL, 0);
-        srcW = HeapAlloc(GetProcessHeap(), 0, srclenW * sizeof(WCHAR));
+        srcW = heap_alloc(srclenW * sizeof(WCHAR));
         if (!srcW)
         {
             SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -3807,7 +3835,7 @@ INT WINAPI LCMapStringA(LCID lcid, DWORD flags, LPCSTR src, INT srclen,
     if (!dstlenW)
         goto map_string_exit;
 
-    dstW = HeapAlloc(GetProcessHeap(), 0, dstlenW * sizeof(WCHAR));
+    dstW = heap_alloc(dstlenW * sizeof(WCHAR));
     if (!dstW)
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -3816,10 +3844,10 @@ INT WINAPI LCMapStringA(LCID lcid, DWORD flags, LPCSTR src, INT srclen,
 
     LCMapStringEx(NULL, flags, srcW, srclenW, dstW, dstlenW, NULL, NULL, 0);
     ret = WideCharToMultiByte(locale_cp, 0, dstW, dstlenW, dst, dstlen, NULL, NULL);
-    HeapFree(GetProcessHeap(), 0, dstW);
+    heap_free(dstW);
 
 map_string_exit:
-    if (srcW != bufW) HeapFree(GetProcessHeap(), 0, srcW);
+    if (srcW != bufW) heap_free(srcW);
     return ret;
 }
 
@@ -3855,7 +3883,7 @@ INT WINAPI FoldStringA(DWORD dwFlags, LPCSTR src, INT srclen,
 
     srclenW = MultiByteToWideChar(CP_ACP, dwFlags & MAP_COMPOSITE ? MB_COMPOSITE : 0,
                                   src, srclen, NULL, 0);
-    srcW = HeapAlloc(GetProcessHeap(), 0, srclenW * sizeof(WCHAR));
+    srcW = heap_alloc(srclenW * sizeof(WCHAR));
 
     if (!srcW)
     {
@@ -3871,7 +3899,7 @@ INT WINAPI FoldStringA(DWORD dwFlags, LPCSTR src, INT srclen,
     ret = FoldStringW(dwFlags, srcW, srclenW, NULL, 0);
     if (ret && dstlen)
     {
-        dstW = HeapAlloc(GetProcessHeap(), 0, ret * sizeof(WCHAR));
+        dstW = heap_alloc(ret * sizeof(WCHAR));
 
         if (!dstW)
         {
@@ -3887,10 +3915,10 @@ INT WINAPI FoldStringA(DWORD dwFlags, LPCSTR src, INT srclen,
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, dstW);
+    heap_free(dstW);
 
 FoldStringA_exit:
-    HeapFree(GetProcessHeap(), 0, srcW);
+    heap_free(srcW);
     return ret;
 }
 
@@ -4006,7 +4034,11 @@ INT WINAPI CompareStringEx(LPCWSTR locale, DWORD flags, LPCWSTR str1, INT len1,
 INT WINAPI CompareStringA(LCID lcid, DWORD flags,
                           LPCSTR str1, INT len1, LPCSTR str2, INT len2)
 {
+#if 0
     WCHAR *buf1W = NtCurrentTeb()->StaticUnicodeBuffer;
+#else
+    WCHAR buf1W[261];
+#endif
     WCHAR *buf2W = buf1W + 130;
     LPWSTR str1W, str2W;
     INT len1W = 0, len2W = 0, ret;
@@ -4030,7 +4062,7 @@ INT WINAPI CompareStringA(LCID lcid, DWORD flags,
         else
         {
             len1W = MultiByteToWideChar(locale_cp, 0, str1, len1, NULL, 0);
-            str1W = HeapAlloc(GetProcessHeap(), 0, len1W * sizeof(WCHAR));
+            str1W = heap_alloc(len1W * sizeof(WCHAR));
             if (!str1W)
             {
                 SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -4053,10 +4085,10 @@ INT WINAPI CompareStringA(LCID lcid, DWORD flags,
         else
         {
             len2W = MultiByteToWideChar(locale_cp, 0, str2, len2, NULL, 0);
-            str2W = HeapAlloc(GetProcessHeap(), 0, len2W * sizeof(WCHAR));
+            str2W = heap_alloc(len2W * sizeof(WCHAR));
             if (!str2W)
             {
-                if (str1W != buf1W) HeapFree(GetProcessHeap(), 0, str1W);
+                if (str1W != buf1W) heap_free(str1W);
                 SetLastError(ERROR_NOT_ENOUGH_MEMORY);
                 return 0;
             }
@@ -4071,8 +4103,8 @@ INT WINAPI CompareStringA(LCID lcid, DWORD flags,
 
     ret = CompareStringEx(NULL, flags, str1W, len1W, str2W, len2W, NULL, NULL, 0);
 
-    if (str1W != buf1W) HeapFree(GetProcessHeap(), 0, str1W);
-    if (str2W != buf2W) HeapFree(GetProcessHeap(), 0, str2W);
+    if (str1W != buf1W) heap_free(str1W);
+    if (str2W != buf2W) heap_free(str2W);
     return ret;
 }
 
@@ -4115,14 +4147,14 @@ INT WINAPI CompareStringOrdinal(const WCHAR *str1, INT len1, const WCHAR *str2, 
 int WINAPI lstrcmpA(LPCSTR str1, LPCSTR str2)
 {
     int ret;
-    
+
     if ((str1 == NULL) && (str2 == NULL)) return 0;
     if (str1 == NULL) return -1;
     if (str2 == NULL) return 1;
 
     ret = CompareStringA(GetThreadLocale(), LOCALE_USE_CP_ACP, str1, -1, str2, -1);
     if (ret) ret -= 2;
-    
+
     return ret;
 }
 
@@ -4144,14 +4176,14 @@ int WINAPI lstrcmpA(LPCSTR str1, LPCSTR str2)
 int WINAPI lstrcmpiA(LPCSTR str1, LPCSTR str2)
 {
     int ret;
-    
+
     if ((str1 == NULL) && (str2 == NULL)) return 0;
     if (str1 == NULL) return -1;
     if (str2 == NULL) return 1;
 
     ret = CompareStringA(GetThreadLocale(), NORM_IGNORECASE|LOCALE_USE_CP_ACP, str1, -1, str2, -1);
     if (ret) ret -= 2;
-    
+
     return ret;
 }
 
@@ -4170,7 +4202,7 @@ int WINAPI lstrcmpW(LPCWSTR str1, LPCWSTR str2)
 
     ret = CompareStringW(GetThreadLocale(), 0, str1, -1, str2, -1);
     if (ret) ret -= 2;
-    
+
     return ret;
 }
 
@@ -4182,14 +4214,14 @@ int WINAPI lstrcmpW(LPCWSTR str1, LPCWSTR str2)
 int WINAPI lstrcmpiW(LPCWSTR str1, LPCWSTR str2)
 {
     int ret;
-    
+
     if ((str1 == NULL) && (str2 == NULL)) return 0;
     if (str1 == NULL) return -1;
     if (str2 == NULL) return 1;
 
     ret = CompareStringW(GetThreadLocale(), NORM_IGNORECASE, str1, -1, str2, -1);
     if (ret) ret -= 2;
-    
+
     return ret;
 }
 
@@ -4205,6 +4237,7 @@ void LOCALE_Init(void)
 
     setlocale( LC_ALL, "" );
 
+#if 0
 #ifdef __APPLE__
     /* MacOS doesn't set the locale environment variables so we have to do it ourselves */
     if (!has_env("LANG"))
@@ -4234,6 +4267,7 @@ void LOCALE_Init(void)
     NtSetDefaultUILanguage( LANGIDFROMLCID(lcid_LC_MESSAGES) );
     NtSetDefaultLocale( TRUE, lcid_LC_MESSAGES );
     NtSetDefaultLocale( FALSE, lcid_LC_CTYPE );
+#endif
 
     ansi_cp = get_lcid_codepage( LOCALE_USER_DEFAULT );
     GetLocaleInfoW( LOCALE_USER_DEFAULT, LOCALE_IDEFAULTMACCODEPAGE | LOCALE_RETURN_NUMBER,
@@ -4265,6 +4299,7 @@ void LOCALE_Init(void)
     setlocale(LC_NUMERIC, "C");  /* FIXME: oleaut32 depends on this */
 }
 
+#if 0
 static HANDLE NLS_RegOpenKey(HANDLE hRootKey, LPCWSTR szKeyName)
 {
     UNICODE_STRING keyName;
@@ -4327,6 +4362,7 @@ static BOOL NLS_RegGetDword(HANDLE hKey, LPCWSTR szValueName, DWORD *lpVal)
 
     return FALSE;
 }
+#endif
 
 static BOOL NLS_GetLanguageGroupName(LGRPID lgrpid, LPWSTR szName, ULONG nameSize)
 {
@@ -4405,6 +4441,7 @@ static BOOL NLS_EnumSystemLanguageGroups(ENUMLANGUAGEGROUP_CALLBACKS *lpProcs)
         return FALSE;
     }
 
+#if 0
     hKey = NLS_RegOpenKey( 0, szLangGroupsKeyName );
 
     if (!hKey)
@@ -4461,6 +4498,10 @@ static BOOL NLS_EnumSystemLanguageGroups(ENUMLANGUAGEGROUP_CALLBACKS *lpProcs)
         NtClose( hKey );
 
     return TRUE;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 /******************************************************************************
@@ -4538,6 +4579,7 @@ BOOL WINAPI IsValidLanguageGroup(LGRPID lgrpid, DWORD dwFlags)
     case LGRPID_INSTALLED:
     case LGRPID_SUPPORTED:
 
+#if 0
         hKey = NLS_RegOpenKey( 0, szLangGroupsKeyName );
 
         sprintfW( szValueName, szFormat, lgrpid );
@@ -4552,6 +4594,7 @@ BOOL WINAPI IsValidLanguageGroup(LGRPID lgrpid, DWORD dwFlags)
 
         if (hKey)
             NtClose( hKey );
+#endif
 
         break;
     }
@@ -4597,6 +4640,7 @@ static BOOL NLS_EnumLanguageGroupLocales(ENUMLANGUAGEGROUPLOCALE_CALLBACKS *lpPr
         return FALSE;
     }
 
+#if 0
     hKey = NLS_RegOpenKey( 0, szLocaleKeyName );
 
     if (!hKey)
@@ -4659,6 +4703,10 @@ static BOOL NLS_EnumLanguageGroupLocales(ENUMLANGUAGEGROUPLOCALE_CALLBACKS *lpPr
         NtClose( hKey );
 
     return TRUE;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 /******************************************************************************
@@ -4737,6 +4785,7 @@ BOOL WINAPI InvalidateNLSCache(void)
 GEOID WINAPI GetUserGeoID( GEOCLASS GeoClass )
 {
     GEOID ret = GEOID_NOT_AVAILABLE;
+#if 0
     static const WCHAR geoW[] = {'G','e','o',0};
     static const WCHAR nationW[] = {'N','a','t','i','o','n',0};
     WCHAR bufferW[40], *end;
@@ -4765,6 +4814,7 @@ GEOID WINAPI GetUserGeoID( GEOCLASS GeoClass )
 
     NtClose(hkey);
     if (hSubkey) NtClose(hSubkey);
+#endif
     return ret;
 }
 
@@ -4773,6 +4823,7 @@ GEOID WINAPI GetUserGeoID( GEOCLASS GeoClass )
  */
 BOOL WINAPI SetUserGeoID( GEOID GeoID )
 {
+#if 0
     static const WCHAR geoW[] = {'G','e','o',0};
     static const WCHAR nationW[] = {'N','a','t','i','o','n',0};
     static const WCHAR formatW[] = {'%','i',0};
@@ -4804,6 +4855,10 @@ BOOL WINAPI SetUserGeoID( GEOID GeoID )
     NtClose(attr.RootDirectory);
     NtClose(hkey);
     return TRUE;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 typedef struct
@@ -5318,19 +5373,19 @@ INT WINAPI GetGeoInfoA(GEOID geoid, GEOTYPE geotype, LPSTR data, int data_len, L
     if (!len)
         return 0;
 
-    buffW = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+    buffW = heap_alloc(len*sizeof(WCHAR));
     if (!buffW)
         return 0;
 
     GetGeoInfoW(geoid, geotype, buffW, len, lang);
     len = WideCharToMultiByte(CP_ACP, 0, buffW, -1, NULL, 0, NULL, NULL);
     if (!data || !data_len) {
-        HeapFree(GetProcessHeap(), 0, buffW);
+        heap_free(buffW);
         return len;
     }
 
     len = WideCharToMultiByte(CP_ACP, 0, buffW, -1, data, data_len, NULL, NULL);
-    HeapFree(GetProcessHeap(), 0, buffW);
+    heap_free(buffW);
 
     if (data_len < len)
         SetLastError(ERROR_INSUFFICIENT_BUFFER);
@@ -5391,7 +5446,7 @@ INT WINAPI GetUserDefaultLocaleName(LPWSTR localename, int buffersize)
     LCID userlcid;
 
     TRACE("%p, %d\n", localename,  buffersize);
-    
+
     userlcid = GetUserDefaultLCID();
     return LCIDToLocaleName(userlcid, localename, buffersize, 0);
 }
@@ -5457,7 +5512,7 @@ INT WINAPI IdnToAscii(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cchUnicodeCha
     norm_len = IdnToNameprepUnicode(dwFlags, lpUnicodeCharStr, cchUnicodeChar, NULL, 0);
     if(!norm_len)
         return 0;
-    norm_str = HeapAlloc(GetProcessHeap(), 0, norm_len*sizeof(WCHAR));
+    norm_str = heap_alloc(norm_len*sizeof(WCHAR));
     if(!norm_str) {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
         return 0;
@@ -5465,7 +5520,7 @@ INT WINAPI IdnToAscii(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cchUnicodeCha
     norm_len = IdnToNameprepUnicode(dwFlags, lpUnicodeCharStr,
             cchUnicodeChar, norm_str, norm_len);
     if(!norm_len) {
-        HeapFree(GetProcessHeap(), 0, norm_str);
+        heap_free(norm_str);
         return 0;
     }
 
@@ -5489,7 +5544,7 @@ INT WINAPI IdnToAscii(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cchUnicodeCha
                 memcpy(lpASCIICharStr+out, norm_str+label_start, b*sizeof(WCHAR));
                 out += b;
             }else {
-                HeapFree(GetProcessHeap(), 0, norm_str);
+                heap_free(norm_str);
                 SetLastError(ERROR_INSUFFICIENT_BUFFER);
                 return 0;
             }
@@ -5507,7 +5562,7 @@ INT WINAPI IdnToAscii(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cchUnicodeCha
                     lpASCIICharStr[out++] = norm_str[i];
             lpASCIICharStr[out++] = '-';
         }else {
-            HeapFree(GetProcessHeap(), 0, norm_str);
+            heap_free(norm_str);
             SetLastError(ERROR_INSUFFICIENT_BUFFER);
             return 0;
         }
@@ -5537,7 +5592,7 @@ INT WINAPI IdnToAscii(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cchUnicodeCha
                             lpASCIICharStr[out++] = disp<='z'-'a' ?
                                 'a'+disp : '0'+disp-'z'+'a'-1;
                         }else {
-                            HeapFree(GetProcessHeap(), 0, norm_str);
+                            heap_free(norm_str);
                             SetLastError(ERROR_INSUFFICIENT_BUFFER);
                             return 0;
                         }
@@ -5555,7 +5610,7 @@ INT WINAPI IdnToAscii(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cchUnicodeCha
         }
 
         if(out-out_label > 63) {
-            HeapFree(GetProcessHeap(), 0, norm_str);
+            heap_free(norm_str);
             SetLastError(ERROR_INVALID_NAME);
             return 0;
         }
@@ -5566,7 +5621,7 @@ INT WINAPI IdnToAscii(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cchUnicodeCha
             }else if(out+1 <= cchASCIIChar) {
                 lpASCIICharStr[out++] = norm_str[label_end] ? '.' : 0;
             }else {
-                HeapFree(GetProcessHeap(), 0, norm_str);
+                heap_free(norm_str);
                 SetLastError(ERROR_INSUFFICIENT_BUFFER);
                 return 0;
             }
@@ -5574,7 +5629,7 @@ INT WINAPI IdnToAscii(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cchUnicodeCha
         label_start = label_end+1;
     }
 
-    HeapFree(GetProcessHeap(), 0, norm_str);
+    heap_free(norm_str);
     return out;
 }
 
@@ -5697,7 +5752,7 @@ INT WINAPI IdnToNameprepUnicode(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cch
             else if(ptr[0]!=0xffff || ptr[1]!=0xffff || ptr[2]!=0xffff) map_len += 3;
         }
         if(map_len*sizeof(WCHAR) > sizeof(buf)) {
-            map_str = HeapAlloc(GetProcessHeap(), 0, map_len*sizeof(WCHAR));
+            map_str = heap_alloc(map_len*sizeof(WCHAR));
             if(!map_str) {
                 SetLastError(ERROR_NOT_ENOUGH_MEMORY);
                 return 0;
@@ -5728,7 +5783,7 @@ INT WINAPI IdnToNameprepUnicode(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cch
         norm_len = FoldStringW(MAP_FOLDCZONE, map_str, map_len,
                 norm_str, sizeof(norm_str)/sizeof(WCHAR)-1);
         if(map_str != buf)
-            HeapFree(GetProcessHeap(), 0, map_str);
+            heap_free(map_str);
         if(!norm_len) {
             if(GetLastError() == ERROR_INSUFFICIENT_BUFFER)
                 SetLastError(ERROR_INVALID_NAME);

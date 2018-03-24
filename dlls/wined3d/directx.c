@@ -273,6 +273,7 @@ static const struct wined3d_extension_map gl_extension_map[] =
     {"GL_NV_vertex_program3",               NV_VERTEX_PROGRAM3            },
 };
 
+#if 0
 static const struct wined3d_extension_map wgl_extension_map[] =
 {
     {"WGL_ARB_pixel_format",                WGL_ARB_PIXEL_FORMAT             },
@@ -280,6 +281,12 @@ static const struct wined3d_extension_map wgl_extension_map[] =
     {"WGL_WINE_pixel_format_passthrough",   WGL_WINE_PIXEL_FORMAT_PASSTHROUGH},
     {"WGL_WINE_query_renderer",             WGL_WINE_QUERY_RENDERER          },
 };
+#else
+static const struct wined3d_extension_map glx_extension_map[] =
+{
+    {"GLX_EXT_swap_control",                GLX_EXT_SWAP_CONTROL             },
+};
+#endif
 
 /**********************************************************
  * Utility functions follow
@@ -1568,6 +1575,7 @@ static const struct gpu_description *query_gpu_description(const struct wined3d_
     const struct gpu_description *gpu_description;
     static unsigned int once;
 
+#if 0
     if (gl_info->supported[WGL_WINE_QUERY_RENDERER])
     {
         GLuint value;
@@ -1581,6 +1589,7 @@ static const struct gpu_description *query_gpu_description(const struct wined3d_
         TRACE("Card reports vendor PCI ID 0x%04x, device PCI ID 0x%04x, 0x%s bytes of video memory.\n",
                 vendor, device, wine_dbgstr_longlong(*vram_bytes));
     }
+#endif
 
     if (wined3d_settings.pci_vendor_id != PCI_VENDOR_NONE)
     {
@@ -2682,7 +2691,11 @@ static void enumerate_gl_extensions(struct wined3d_gl_info *gl_info,
 
 static void load_gl_funcs(struct wined3d_gl_info *gl_info)
 {
+#if 0
 #define USE_GL_FUNC(pfn) gl_info->gl_ops.ext.p_##pfn = (void *)wglGetProcAddress(#pfn);
+#else
+#define USE_GL_FUNC(pfn) gl_info->gl_ops.ext.p_##pfn = (void *)glXGetProcAddress(#pfn);
+#endif
     /* GL_APPLE_fence */
     USE_GL_FUNC(glDeleteFencesAPPLE)
     USE_GL_FUNC(glFinishFenceAPPLE)
@@ -3968,7 +3981,12 @@ static BOOL wined3d_adapter_init_gl_caps(struct wined3d_adapter *adapter,
     enum wined3d_gl_vendor gl_vendor;
     DWORD gl_version, gl_ext_emul_mask;
     UINT64 vram_bytes = 0;
+#if 0
     HDC hdc;
+#else
+    Display *hdc;
+    GLXDrawable win_handle;
+#endif
     unsigned int i, j;
     GLint context_profile = 0;
 
@@ -4032,6 +4050,7 @@ static BOOL wined3d_adapter_init_gl_caps(struct wined3d_adapter *adapter,
         enumerate_gl_extensions(gl_info, gl_extension_map, ARRAY_SIZE(gl_extension_map));
     }
 
+#if 0
     hdc = wglGetCurrentDC();
     /* Not all GL drivers might offer WGL extensions e.g. VirtualBox. */
     if (GL_EXTCALL(wglGetExtensionsStringARB))
@@ -4040,6 +4059,17 @@ static BOOL wined3d_adapter_init_gl_caps(struct wined3d_adapter *adapter,
         WARN("WGL extensions not supported.\n");
     else
         parse_extension_string(gl_info, WGL_Extensions, wgl_extension_map, ARRAY_SIZE(wgl_extension_map));
+#else
+    hdc = glXGetCurrentDisplay();
+    win_handle = glXGetCurrentDrawable();
+    /* Not all GL drivers might offer GLX extensions e.g. VirtualBox. */
+    if (GL_EXTCALL(glXQueryExtensionsString))
+        WGL_Extensions = (const char *)GL_EXTCALL(glXQueryExtensionsString(hdc, win_handle));
+    if (!WGL_Extensions)
+        WARN("GLX extensions not supported.\n");
+    else
+        parse_extension_string(gl_info, WGL_Extensions, glx_extension_map, ARRAY_SIZE(glx_extension_map));
+#endif
 
     for (i = 0; i < ARRAY_SIZE(core_extensions); ++i)
     {
@@ -6600,6 +6630,7 @@ static BOOL wined3d_adapter_init(struct wined3d_adapter *adapter, UINT ordinal, 
     adapter->ordinal = ordinal;
 
 /* Dynamically load all GL core functions */
+#if 0
 #ifdef USE_WIN32_OPENGL
     {
         HMODULE mod_gl = GetModuleHandleA("opengl32.dll");
@@ -6618,6 +6649,13 @@ static BOOL wined3d_adapter_init(struct wined3d_adapter *adapter, UINT ordinal, 
         if (!wgl_driver || wgl_driver == (void *)-1) return FALSE;
         gl_info->gl_ops.wgl = wgl_driver->wgl;
         gl_info->gl_ops.gl = wgl_driver->gl;
+    }
+#endif
+#else
+    {
+#define USE_GL_FUNC(f) gl_info->gl_ops.gl.p_##f = (void *)glXGetProcAddress(#f);
+        ALL_GLX_FUNCS
+#undef USE_GL_FUNC
     }
 #endif
 

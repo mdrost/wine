@@ -170,11 +170,11 @@ static void SETUPDI_FreeInterfaceInstances(struct InterfaceInstances *instances)
                 SetupDiDeleteDeviceInterfaceRegKey(devInfo->set,
                         &instances->instances[i], 0);
         }
-        HeapFree(GetProcessHeap(), 0, ifaceInfo->referenceString);
-        HeapFree(GetProcessHeap(), 0, ifaceInfo->symbolicLink);
-        HeapFree(GetProcessHeap(), 0, ifaceInfo);
+        heap_free(ifaceInfo->referenceString);
+        heap_free(ifaceInfo->symbolicLink);
+        heap_free(ifaceInfo);
     }
-    HeapFree(GetProcessHeap(), 0, instances->instances);
+    heap_free(instances->instances);
 }
 
 /* Finds the interface with interface class InterfaceClassGuid in the device.
@@ -257,7 +257,7 @@ static LPWSTR SETUPDI_CreateSymbolicLinkPath(LPCWSTR instanceId,
         /* space for a hash between string and reference string: */
         len += lstrlenW(ReferenceString) + 1;
     }
-    ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    ret = heap_alloc(len * sizeof(WCHAR));
     if (ret)
     {
         int printed = sprintfW(ret, fmt, instanceId, guidStr);
@@ -292,8 +292,7 @@ static BOOL SETUPDI_AddInterfaceInstance(PSP_DEVINFO_DATA DeviceInfoData,
 
     if (!(ret = SETUPDI_FindInterface(devInfo, InterfaceClassGuid, &iface)))
     {
-        iface = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-                sizeof(struct InterfaceInstances));
+        iface = heap_alloc_zero(sizeof(struct InterfaceInstances));
         if (iface)
         {
             list_add_tail(&devInfo->interfaces, &iface->entry);
@@ -311,15 +310,13 @@ static BOOL SETUPDI_AddInterfaceInstance(PSP_DEVINFO_DATA DeviceInfoData,
 
             if (!iface->cInstancesAllocated)
             {
-                iface->instances = HeapAlloc(GetProcessHeap(), 0,
-                        sizeof(SP_DEVICE_INTERFACE_DATA));
+                iface->instances = heap_alloc(sizeof(SP_DEVICE_INTERFACE_DATA));
                 if (iface->instances)
                     instance = &iface->instances[iface->cInstancesAllocated++];
             }
             else if (iface->cInstances == iface->cInstancesAllocated)
             {
-                iface->instances = HeapReAlloc(GetProcessHeap(), 0,
-                        iface->instances,
+                iface->instances = heap_realloc(iface->instances,
                         (iface->cInstancesAllocated + 1) *
                         sizeof(SP_DEVICE_INTERFACE_DATA));
                 if (iface->instances)
@@ -329,8 +326,7 @@ static BOOL SETUPDI_AddInterfaceInstance(PSP_DEVINFO_DATA DeviceInfoData,
                 instance = &iface->instances[iface->cInstances];
             if (instance)
             {
-                struct InterfaceInfo *ifaceInfo = HeapAlloc(GetProcessHeap(),
-                        0, sizeof(struct InterfaceInfo));
+                struct InterfaceInfo *ifaceInfo = heap_alloc(sizeof(struct InterfaceInfo));
 
                 if (ifaceInfo)
                 {
@@ -342,9 +338,7 @@ static BOOL SETUPDI_AddInterfaceInstance(PSP_DEVINFO_DATA DeviceInfoData,
                     if (ReferenceString)
                     {
                         ifaceInfo->referenceString =
-                            HeapAlloc(GetProcessHeap(), 0,
-                                (lstrlenW(ReferenceString) + 1) *
-                                sizeof(WCHAR));
+                            heap_alloc((lstrlenW(ReferenceString) + 1) * sizeof(WCHAR));
                         if (ifaceInfo->referenceString)
                             lstrcpyW(ifaceInfo->referenceString,
                                     ReferenceString);
@@ -379,7 +373,7 @@ static BOOL SETUPDI_AddInterfaceInstance(PSP_DEVINFO_DATA DeviceInfoData,
                             *ifaceData = instance;
                     }
                     else
-                        HeapFree(GetProcessHeap(), 0, ifaceInfo);
+                        heap_free(ifaceInfo);
                 }
             }
         }
@@ -403,9 +397,8 @@ static BOOL SETUPDI_SetInterfaceSymbolicLink(SP_DEVICE_INTERFACE_DATA *iface,
 
     if (info)
     {
-        HeapFree(GetProcessHeap(), 0, info->symbolicLink);
-        info->symbolicLink = HeapAlloc(GetProcessHeap(), 0,
-                (lstrlenW(symbolicLink) + 1) * sizeof(WCHAR));
+        heap_free(info->symbolicLink);
+        info->symbolicLink = heap_alloc((lstrlenW(symbolicLink) + 1) * sizeof(WCHAR));
         if (info->symbolicLink)
         {
             lstrcpyW(info->symbolicLink, symbolicLink);
@@ -461,6 +454,7 @@ static struct DeviceInfo *SETUPDI_AllocateDeviceInfo(struct DeviceInfoSet *set,
         DWORD devId, LPCWSTR instanceId, BOOL phantom)
 {
     struct DeviceInfo *devInfo = NULL;
+#if 0
     HANDLE devInst = GlobalAlloc(GMEM_FIXED, sizeof(struct DeviceInfo));
     if (devInst)
         devInfo = GlobalLock(devInst);
@@ -470,8 +464,7 @@ static struct DeviceInfo *SETUPDI_AllocateDeviceInfo(struct DeviceInfoSet *set,
         devInfo->set = set;
         devInfo->devId = (DWORD)devInst;
 
-        devInfo->instanceId = HeapAlloc(GetProcessHeap(), 0,
-                (lstrlenW(instanceId) + 1) * sizeof(WCHAR));
+        devInfo->instanceId = heap_alloc((lstrlenW(instanceId) + 1) * sizeof(WCHAR));
         if (devInfo->instanceId)
         {
             devInfo->key = INVALID_HANDLE_VALUE;
@@ -495,9 +488,11 @@ static struct DeviceInfo *SETUPDI_AllocateDeviceInfo(struct DeviceInfoSet *set,
             devInfo = NULL;
         }
     }
+#endif
     return devInfo;
 }
 
+#if 0
 static void SETUPDI_FreeDeviceInfo(struct DeviceInfo *devInfo)
 {
     struct InterfaceInstances *iface, *next;
@@ -517,16 +512,17 @@ static void SETUPDI_FreeDeviceInfo(struct DeviceInfo *devInfo)
             RegCloseKey(enumKey);
         }
     }
-    HeapFree(GetProcessHeap(), 0, devInfo->instanceId);
+    heap_free(devInfo->instanceId);
     LIST_FOR_EACH_ENTRY_SAFE(iface, next, &devInfo->interfaces,
             struct InterfaceInstances, entry)
     {
         list_remove(&iface->entry);
         SETUPDI_FreeInterfaceInstances(iface);
-        HeapFree(GetProcessHeap(), 0, iface);
+        heap_free(iface);
     }
     GlobalFree((HANDLE)devInfo->devId);
 }
+#endif
 
 /* Adds a device with GUID guid and identifier devInst to set.  Allocates a
  * struct DeviceInfo, and points the returned device info's Reserved member
@@ -550,7 +546,7 @@ static BOOL SETUPDI_AddDeviceToSet(struct DeviceInfoSet *set,
     if (devInfo)
     {
         struct DeviceInstance *devInst =
-                HeapAlloc(GetProcessHeap(), 0, sizeof(struct DeviceInstance));
+                heap_alloc(sizeof(struct DeviceInstance));
 
         if (devInst)
         {
@@ -571,7 +567,7 @@ static BOOL SETUPDI_AddDeviceToSet(struct DeviceInfoSet *set,
         }
         else
         {
-            HeapFree(GetProcessHeap(), 0, devInfo);
+            heap_free(devInfo);
             SetLastError(ERROR_OUTOFMEMORY);
         }
     }
@@ -1177,7 +1173,7 @@ SetupDiCreateDeviceInfoListExW(const GUID *ClassGuid,
         return INVALID_HANDLE_VALUE;
     }
 
-    list = HeapAlloc(GetProcessHeap(), 0, size);
+    list = heap_alloc(size);
     if (!list)
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -1441,8 +1437,7 @@ BOOL WINAPI SetupDiCreateDeviceInfoW(HDEVINFO DeviceInfoSet, PCWSTR DeviceName,
             else
                 devId = 0;
             /* 17 == lstrlenW(L"Root\\") + lstrlenW("\\") + 1 + %d max size */
-            instanceId = HeapAlloc(GetProcessHeap(), 0,
-                    (17 + lstrlenW(DeviceName)) * sizeof(WCHAR));
+            instanceId = heap_alloc((17 + lstrlenW(DeviceName)) * sizeof(WCHAR));
             if (instanceId)
             {
                 sprintfW((LPWSTR)instanceId, newDeviceFmt, DeviceName,
@@ -1496,7 +1491,7 @@ BOOL WINAPI SetupDiCreateDeviceInfoW(HDEVINFO DeviceInfoSet, PCWSTR DeviceName,
         }
     }
     if (allocatedInstanceId)
-        HeapFree(GetProcessHeap(), 0, (LPWSTR)instanceId);
+        heap_free((LPWSTR)instanceId);
 
     return ret;
 }
@@ -1648,7 +1643,7 @@ BOOL WINAPI SetupDiGetDeviceInstanceIdA(
                                 &size);
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         return FALSE;
-    instanceId = HeapAlloc(GetProcessHeap(), 0, size * sizeof(WCHAR));
+    instanceId = heap_alloc(size * sizeof(WCHAR));
     if (instanceId)
     {
         ret = SetupDiGetDeviceInstanceIdW(DeviceInfoSet,
@@ -1675,7 +1670,7 @@ BOOL WINAPI SetupDiGetDeviceInstanceIdA(
                     *RequiredSize = len;
             }
         }
-        HeapFree(GetProcessHeap(), 0, instanceId);
+        heap_free(instanceId);
     }
     return ret;
 }
@@ -1931,7 +1926,7 @@ HDEVINFO WINAPI SetupDiGetClassDevsA(const GUID *class, LPCSTR enumstr, HWND par
     if (enumstr)
     {
         int len = MultiByteToWideChar(CP_ACP, 0, enumstr, -1, NULL, 0);
-        enumstrW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        enumstrW = heap_alloc(len * sizeof(WCHAR));
         if (!enumstrW)
         {
             ret = INVALID_HANDLE_VALUE;
@@ -1941,7 +1936,7 @@ HDEVINFO WINAPI SetupDiGetClassDevsA(const GUID *class, LPCSTR enumstr, HWND par
     }
     ret = SetupDiGetClassDevsExW(class, enumstrW, parent, flags, NULL, NULL,
             NULL);
-    HeapFree(GetProcessHeap(), 0, enumstrW);
+    heap_free(enumstrW);
 
 end:
     return ret;
@@ -1965,7 +1960,7 @@ HDEVINFO WINAPI SetupDiGetClassDevsExA(
     if (enumstr)
     {
         int len = MultiByteToWideChar(CP_ACP, 0, enumstr, -1, NULL, 0);
-        enumstrW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        enumstrW = heap_alloc(len * sizeof(WCHAR));
         if (!enumstrW)
         {
             ret = INVALID_HANDLE_VALUE;
@@ -1976,10 +1971,10 @@ HDEVINFO WINAPI SetupDiGetClassDevsExA(
     if (machine)
     {
         int len = MultiByteToWideChar(CP_ACP, 0, machine, -1, NULL, 0);
-        machineW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        machineW = heap_alloc(len * sizeof(WCHAR));
         if (!machineW)
         {
-            HeapFree(GetProcessHeap(), 0, enumstrW);
+            heap_free(enumstrW);
             ret = INVALID_HANDLE_VALUE;
             goto end;
         }
@@ -1987,8 +1982,8 @@ HDEVINFO WINAPI SetupDiGetClassDevsExA(
     }
     ret = SetupDiGetClassDevsExW(class, enumstrW, parent, flags, deviceset,
             machineW, reserved);
-    HeapFree(GetProcessHeap(), 0, enumstrW);
-    HeapFree(GetProcessHeap(), 0, machineW);
+    heap_free(enumstrW);
+    heap_free(machineW);
 
 end:
     return ret;
@@ -2211,8 +2206,7 @@ static void SETUPDI_EnumerateMatchingDeviceInstances(struct DeviceInfoSet *set,
                              {'%','s','\\','%','s','\\','%','s',0};
                             LPWSTR instanceId;
 
-                            instanceId = HeapAlloc(GetProcessHeap(), 0,
-                                (lstrlenW(enumerator) + lstrlenW(deviceName) +
+                            instanceId = heap_alloc((lstrlenW(enumerator) + lstrlenW(deviceName) +
                                 lstrlenW(deviceInstance) + 3) * sizeof(WCHAR));
                             if (instanceId)
                             {
@@ -2221,7 +2215,7 @@ static void SETUPDI_EnumerateMatchingDeviceInstances(struct DeviceInfoSet *set,
                                 SETUPDI_AddDeviceToSet(set, &deviceClass,
                                         0 /* FIXME: DevInst */, instanceId,
                                         FALSE, NULL);
-                                HeapFree(GetProcessHeap(), 0, instanceId);
+                                heap_free(instanceId);
                             }
                         }
                     }
@@ -2575,8 +2569,7 @@ static PWSTR SETUPDI_GetInstancePath(struct InterfaceInfo *ifaceInfo)
 
     if (ifaceInfo->referenceString)
     {
-        instancePath = HeapAlloc(GetProcessHeap(), 0,
-                (lstrlenW(ifaceInfo->referenceString) + 2) * sizeof(WCHAR));
+        instancePath = heap_alloc((lstrlenW(ifaceInfo->referenceString) + 2) * sizeof(WCHAR));
         if (instancePath)
         {
             lstrcpyW(instancePath, hash);
@@ -2587,8 +2580,7 @@ static PWSTR SETUPDI_GetInstancePath(struct InterfaceInfo *ifaceInfo)
     }
     else
     {
-        instancePath = HeapAlloc(GetProcessHeap(), 0,
-                (lstrlenW(hash) + 1) * sizeof(WCHAR));
+        instancePath = heap_alloc((lstrlenW(hash) + 1) * sizeof(WCHAR));
         if (instancePath)
             lstrcpyW(instancePath, hash);
     }
@@ -2645,8 +2637,7 @@ HKEY WINAPI SetupDiCreateDeviceInterfaceRegKeyW(
             struct InterfaceInfo *ifaceInfo =
                 (struct InterfaceInfo *)DeviceInterfaceData->Reserved;
             PWSTR instancePath = SETUPDI_GetInstancePath(ifaceInfo);
-            PWSTR interfKeyName = HeapAlloc(GetProcessHeap(), 0,
-                    (lstrlenW(ifaceInfo->symbolicLink) + 1) * sizeof(WCHAR));
+            PWSTR interfKeyName = heap_alloc((lstrlenW(ifaceInfo->symbolicLink) + 1) * sizeof(WCHAR));
             HKEY interfKey;
             WCHAR *ptr;
 
@@ -2693,8 +2684,8 @@ HKEY WINAPI SetupDiCreateDeviceInterfaceRegKeyW(
             }
             else
                 SetLastError(l);
-            HeapFree(GetProcessHeap(), 0, interfKeyName);
-            HeapFree(GetProcessHeap(), 0, instancePath);
+            heap_free(interfKeyName);
+            heap_free(instancePath);
             RegCloseKey(parent);
         }
         else
@@ -2749,7 +2740,7 @@ BOOL WINAPI SetupDiDeleteDeviceInterfaceRegKey(
                 SetLastError(l);
             else
                 ret = TRUE;
-            HeapFree(GetProcessHeap(), 0, instancePath);
+            heap_free(instancePath);
         }
         RegCloseKey(parent);
     }
@@ -2881,6 +2872,7 @@ BOOL WINAPI SetupDiDestroyDeviceInfoList(HDEVINFO devinfo)
 {
     BOOL ret = FALSE;
 
+#if 0
     TRACE("%p\n", devinfo);
     if (devinfo && devinfo != INVALID_HANDLE_VALUE)
     {
@@ -2895,15 +2887,18 @@ BOOL WINAPI SetupDiDestroyDeviceInfoList(HDEVINFO devinfo)
             {
                 SETUPDI_FreeDeviceInfo( (struct DeviceInfo *)devInst->data.Reserved );
                 list_remove(&devInst->entry);
-                HeapFree(GetProcessHeap(), 0, devInst);
+                heap_free(devInst);
             }
-            HeapFree(GetProcessHeap(), 0, list);
+            heap_free(list);
             ret = TRUE;
         }
     }
 
     if (!ret)
         SetLastError(ERROR_INVALID_HANDLE);
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+#endif
 
     return ret;
 }
@@ -3982,6 +3977,7 @@ BOOL WINAPI SetupDiDeleteDevRegKey(
 CONFIGRET WINAPI CM_Get_Device_IDA( DEVINST dnDevInst, PSTR Buffer,
                                    ULONG  BufferLen, ULONG  ulFlags)
 {
+#if 0
     struct DeviceInfo *devInfo = GlobalLock((HANDLE)dnDevInst);
 
     TRACE("%x->%p, %p, %u %u\n", dnDevInst, devInfo, Buffer, BufferLen, ulFlags);
@@ -3992,6 +3988,9 @@ CONFIGRET WINAPI CM_Get_Device_IDA( DEVINST dnDevInst, PSTR Buffer,
     WideCharToMultiByte(CP_ACP, 0, devInfo->instanceId, -1, Buffer, BufferLen, 0, 0);
     TRACE("Returning %s\n", debugstr_a(Buffer));
     return CR_SUCCESS;
+#else
+    return CR_CALL_NOT_IMPLEMENTED;
+#endif
 }
 
 /***********************************************************************
@@ -4000,6 +3999,7 @@ CONFIGRET WINAPI CM_Get_Device_IDA( DEVINST dnDevInst, PSTR Buffer,
 CONFIGRET WINAPI CM_Get_Device_IDW( DEVINST dnDevInst, LPWSTR Buffer,
                                    ULONG  BufferLen, ULONG  ulFlags)
 {
+#if 0
     struct DeviceInfo *devInfo = GlobalLock((HANDLE)dnDevInst);
 
     TRACE("%x->%p, %p, %u %u\n", dnDevInst, devInfo, Buffer, BufferLen, ulFlags);
@@ -4014,6 +4014,9 @@ CONFIGRET WINAPI CM_Get_Device_IDW( DEVINST dnDevInst, LPWSTR Buffer,
     TRACE("Returning %s\n", debugstr_w(Buffer));
     GlobalUnlock((HANDLE)dnDevInst);
     return CR_SUCCESS;
+#else
+    return CR_CALL_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -4024,6 +4027,7 @@ CONFIGRET WINAPI CM_Get_Device_IDW( DEVINST dnDevInst, LPWSTR Buffer,
 CONFIGRET WINAPI CM_Get_Device_ID_Size( PULONG  pulLen, DEVINST dnDevInst,
                                         ULONG  ulFlags)
 {
+#if 0
     struct DeviceInfo *ppdevInfo = GlobalLock((HANDLE)dnDevInst);
 
     TRACE("%x->%p, %p, %u\n", dnDevInst, ppdevInfo, pulLen, ulFlags);
@@ -4037,6 +4041,9 @@ CONFIGRET WINAPI CM_Get_Device_ID_Size( PULONG  pulLen, DEVINST dnDevInst,
     *pulLen = lstrlenW(ppdevInfo->instanceId);
     GlobalUnlock((HANDLE)dnDevInst);
     return CR_SUCCESS;
+#else
+    return CR_CALL_NOT_IMPLEMENTED;
+#endif
 }
 
 /***********************************************************************
@@ -4063,7 +4070,7 @@ BOOL WINAPI SetupDiGetINFClassA(PCSTR inf, LPGUID class_guid, PSTR class_name,
 
     if (class_name && size)
     {
-        if (!(class_nameW = HeapAlloc(GetProcessHeap(), 0, size * sizeof(WCHAR))))
+        if (!(class_nameW = heap_alloc(size * sizeof(WCHAR))))
         {
             RtlFreeUnicodeString(&infW);
             SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -4083,7 +4090,7 @@ BOOL WINAPI SetupDiGetINFClassA(PCSTR inf, LPGUID class_guid, PSTR class_name,
     else
         if(required_size) *required_size = required_sizeW;
 
-    HeapFree(GetProcessHeap(), 0, class_nameW);
+    heap_free(class_nameW);
     RtlFreeUnicodeString(&infW);
     return retval;
 }

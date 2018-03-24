@@ -28,6 +28,7 @@
 #include "winreg.h"
 #include "setupapi.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(setupapi);
 
@@ -66,7 +67,7 @@ HDSKSPC WINAPI SetupCreateDiskSpaceListW(PVOID Reserved1, DWORD Reserved2, UINT 
     if (rc == 0)
         return NULL;
 
-    list = HeapAlloc(GetProcessHeap(),0,sizeof(DISKSPACELIST));
+    list = heap_alloc(sizeof(DISKSPACELIST));
 
     list->dwDriveCount = 0;
     
@@ -121,7 +122,7 @@ HDSKSPC WINAPI SetupDuplicateDiskSpaceListW(HDSKSPC DiskSpace, PVOID Reserved1, 
         return NULL;
     }
 
-    list_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(DISKSPACELIST));
+    list_copy = heap_alloc(sizeof(DISKSPACELIST));
     if (!list_copy)
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -177,7 +178,7 @@ BOOL WINAPI SetupQuerySpaceRequiredOnDriveW(HDSKSPC DiskSpace,
         return FALSE;
     }
 
-    driveW = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(DriveSpec) + 2) * sizeof(WCHAR));
+    driveW = heap_alloc((lstrlenW(DriveSpec) + 2) * sizeof(WCHAR));
     if (!driveW)
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -200,7 +201,7 @@ BOOL WINAPI SetupQuerySpaceRequiredOnDriveW(HDSKSPC DiskSpace,
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, driveW);
+    heap_free(driveW);
 
     if (!rc) SetLastError(ERROR_INVALID_DRIVE);
     return rc;
@@ -233,7 +234,7 @@ BOOL WINAPI SetupQuerySpaceRequiredOnDriveA(HDSKSPC DiskSpace,
 
     len = MultiByteToWideChar(CP_ACP, 0, DriveSpec, -1, NULL, 0);
 
-    DriveSpecW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    DriveSpecW = heap_alloc(len * sizeof(WCHAR));
     if (!DriveSpecW)
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -245,7 +246,7 @@ BOOL WINAPI SetupQuerySpaceRequiredOnDriveA(HDSKSPC DiskSpace,
     ret = SetupQuerySpaceRequiredOnDriveW(DiskSpace, DriveSpecW, SpaceRequired,
                                           Reserved1, Reserved2);
 
-    HeapFree(GetProcessHeap(), 0, DriveSpecW);
+    heap_free(DriveSpecW);
 
     return ret;
 }
@@ -256,7 +257,7 @@ BOOL WINAPI SetupQuerySpaceRequiredOnDriveA(HDSKSPC DiskSpace,
 BOOL WINAPI SetupDestroyDiskSpaceList(HDSKSPC DiskSpace)
 {
     LPDISKSPACELIST list = DiskSpace;
-    HeapFree(GetProcessHeap(),0,list);
+    heap_free(list);
     return TRUE; 
 }
 

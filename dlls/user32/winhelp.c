@@ -34,6 +34,7 @@
 #include "wingdi.h"
 #include "winuser.h"
 #include "winnls.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(win);
 
@@ -131,7 +132,7 @@ BOOL WINAPI WinHelpA( HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_PTR dwD
         nlen = 0;
     size = sizeof(WINHELP) + nlen + dsize;
 
-    lpwh = HeapAlloc(GetProcessHeap(), 0, size);
+    lpwh = heap_alloc(size);
     if (!lpwh) return FALSE;
 
     cds.dwData = WINHELP_MAGIC;
@@ -158,7 +159,7 @@ BOOL WINAPI WinHelpA( HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_PTR dwD
           lpwh->ofsFilename ? (LPSTR)lpwh + lpwh->ofsFilename : "");
 
     ret = SendMessageA(hDest, WM_COPYDATA, (WPARAM)hWnd, (LPARAM)&cds);
-    HeapFree(GetProcessHeap(), 0, lpwh);
+    heap_free(lpwh);
     return ret;
 }
 
@@ -175,11 +176,11 @@ BOOL WINAPI WinHelpW( HWND hWnd, LPCWSTR helpFile, UINT command, ULONG_PTR dwDat
     if (!helpFile) return WinHelpA( hWnd, NULL, command, dwData );
 
     len = WideCharToMultiByte( CP_ACP, 0, helpFile, -1, NULL, 0, NULL, NULL );
-    if ((file = HeapAlloc( GetProcessHeap(), 0, len )))
+    if ((file = heap_alloc( len )))
     {
         WideCharToMultiByte( CP_ACP, 0, helpFile, -1, file, len, NULL, NULL );
         ret = WinHelpA( hWnd, file, command, dwData );
-        HeapFree( GetProcessHeap(), 0, file );
+        heap_free( file );
     }
     return ret;
 }

@@ -43,6 +43,7 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(cred);
 
+#if 0
 /* the size of the ARC4 key used to encrypt the password data */
 #define KEY_SIZE 8
 
@@ -2196,3 +2197,4 @@ BOOL WINAPI CredIsMarshaledCredentialA(LPCSTR name)
     heap_free(nameW);
     return res;
 }
+#endif

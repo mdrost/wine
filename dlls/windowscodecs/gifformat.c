@@ -39,7 +39,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(wincodecs);
 static LPWSTR strdupAtoW(const char *src)
 {
     int len = MultiByteToWideChar(CP_ACP, 0, src, -1, NULL, 0);
-    LPWSTR dst = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    LPWSTR dst = heap_alloc(len * sizeof(WCHAR));
     if (dst) MultiByteToWideChar(CP_ACP, 0, src, -1, dst, len);
     return dst;
 }
@@ -73,7 +73,7 @@ static HRESULT load_LSD_metadata(IStream *stream, const GUID *vendor, DWORD opti
     hr = IStream_Read(stream, &lsd_data, sizeof(lsd_data), &bytesread);
     if (FAILED(hr) || bytesread != sizeof(lsd_data)) return S_OK;
 
-    result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MetadataItem) * 9);
+    result = heap_alloc_zero(sizeof(MetadataItem) * 9);
     if (!result) return E_OUTOFMEMORY;
 
     for (i = 0; i < 9; i++)
@@ -87,7 +87,7 @@ static HRESULT load_LSD_metadata(IStream *stream, const GUID *vendor, DWORD opti
     result[0].id.u.pwszVal = strdupAtoW("Signature");
     result[0].value.vt = VT_UI1|VT_VECTOR;
     result[0].value.u.caub.cElems = sizeof(lsd_data.signature);
-    result[0].value.u.caub.pElems = HeapAlloc(GetProcessHeap(), 0, sizeof(lsd_data.signature));
+    result[0].value.u.caub.pElems = heap_alloc(sizeof(lsd_data.signature));
     memcpy(result[0].value.u.caub.pElems, lsd_data.signature, sizeof(lsd_data.signature));
 
     result[1].id.vt = VT_LPWSTR;
@@ -178,7 +178,7 @@ static HRESULT load_IMD_metadata(IStream *stream, const GUID *vendor, DWORD opti
     hr = IStream_Read(stream, &imd_data, sizeof(imd_data), &bytesread);
     if (FAILED(hr) || bytesread != sizeof(imd_data)) return S_OK;
 
-    result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MetadataItem) * 8);
+    result = heap_alloc_zero(sizeof(MetadataItem) * 8);
     if (!result) return E_OUTOFMEMORY;
 
     for (i = 0; i < 8; i++)
@@ -271,7 +271,7 @@ static HRESULT load_GCE_metadata(IStream *stream, const GUID *vendor, DWORD opti
     hr = IStream_Read(stream, &gce_data, sizeof(gce_data), &bytesread);
     if (FAILED(hr) || bytesread != sizeof(gce_data)) return S_OK;
 
-    result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MetadataItem) * 5);
+    result = heap_alloc_zero(sizeof(MetadataItem) * 5);
     if (!result) return E_OUTOFMEMORY;
 
     for (i = 0; i < 5; i++)
@@ -359,19 +359,19 @@ static HRESULT load_APE_metadata(IStream *stream, const GUID *vendor, DWORD opti
         hr = IStream_Read(stream, &subblock_size, sizeof(subblock_size), &bytesread);
         if (FAILED(hr) || bytesread != sizeof(subblock_size))
         {
-            HeapFree(GetProcessHeap(), 0, data);
+            heap_free(data);
             return S_OK;
         }
         if (!subblock_size) break;
 
         if (!data)
-            data = HeapAlloc(GetProcessHeap(), 0, subblock_size + 1);
+            data = heap_alloc(subblock_size + 1);
         else
         {
-            BYTE *new_data = HeapReAlloc(GetProcessHeap(), 0, data, data_size + subblock_size + 1);
+            BYTE *new_data = heap_realloc(data, data_size + subblock_size + 1);
             if (!new_data)
             {
-                HeapFree(GetProcessHeap(), 0, data);
+                heap_free(data);
                 return S_OK;
             }
             data = new_data;
@@ -380,16 +380,16 @@ static HRESULT load_APE_metadata(IStream *stream, const GUID *vendor, DWORD opti
         hr = IStream_Read(stream, data + data_size + 1, subblock_size, &bytesread);
         if (FAILED(hr) || bytesread != subblock_size)
         {
-            HeapFree(GetProcessHeap(), 0, data);
+            heap_free(data);
             return S_OK;
         }
         data_size += subblock_size + 1;
     }
 
-    result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MetadataItem) * 2);
+    result = heap_alloc_zero(sizeof(MetadataItem) * 2);
     if (!result)
     {
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return E_OUTOFMEMORY;
     }
 
@@ -404,7 +404,7 @@ static HRESULT load_APE_metadata(IStream *stream, const GUID *vendor, DWORD opti
     result[0].id.u.pwszVal = strdupAtoW("Application");
     result[0].value.vt = VT_UI1|VT_VECTOR;
     result[0].value.u.caub.cElems = sizeof(ape_data.application);
-    result[0].value.u.caub.pElems = HeapAlloc(GetProcessHeap(), 0, sizeof(ape_data.application));
+    result[0].value.u.caub.pElems = heap_alloc(sizeof(ape_data.application));
     memcpy(result[0].value.u.caub.pElems, ape_data.application, sizeof(ape_data.application));
 
     result[1].id.vt = VT_LPWSTR;
@@ -463,19 +463,19 @@ static HRESULT load_GifComment_metadata(IStream *stream, const GUID *vendor, DWO
         hr = IStream_Read(stream, &subblock_size, sizeof(subblock_size), &bytesread);
         if (FAILED(hr) || bytesread != sizeof(subblock_size))
         {
-            HeapFree(GetProcessHeap(), 0, data);
+            heap_free(data);
             return S_OK;
         }
         if (!subblock_size) break;
 
         if (!data)
-            data = HeapAlloc(GetProcessHeap(), 0, subblock_size + 1);
+            data = heap_alloc(subblock_size + 1);
         else
         {
-            char *new_data = HeapReAlloc(GetProcessHeap(), 0, data, data_size + subblock_size + 1);
+            char *new_data = heap_realloc(data, data_size + subblock_size + 1);
             if (!new_data)
             {
-                HeapFree(GetProcessHeap(), 0, data);
+                heap_free(data);
                 return S_OK;
             }
             data = new_data;
@@ -483,7 +483,7 @@ static HRESULT load_GifComment_metadata(IStream *stream, const GUID *vendor, DWO
         hr = IStream_Read(stream, data + data_size, subblock_size, &bytesread);
         if (FAILED(hr) || bytesread != subblock_size)
         {
-            HeapFree(GetProcessHeap(), 0, data);
+            heap_free(data);
             return S_OK;
         }
         data_size += subblock_size;
@@ -491,10 +491,10 @@ static HRESULT load_GifComment_metadata(IStream *stream, const GUID *vendor, DWO
 
     data[data_size] = 0;
 
-    result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MetadataItem));
+    result = heap_alloc_zero(sizeof(MetadataItem));
     if (!result)
     {
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return E_OUTOFMEMORY;
     }
 
@@ -661,7 +661,7 @@ static ULONG WINAPI GifFrameDecode_Release(IWICBitmapFrameDecode *iface)
     if (ref == 0)
     {
         IWICBitmapDecoder_Release(&This->parent->IWICBitmapDecoder_iface);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1066,7 +1066,7 @@ static ULONG WINAPI GifDecoder_Release(IWICBitmapDecoder *iface)
         }
         This->lock.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1304,7 +1304,7 @@ static HRESULT WINAPI GifDecoder_GetFrame(IWICBitmapDecoder *iface,
 
     if (index >= This->gif->ImageCount) return E_INVALIDARG;
 
-    result = HeapAlloc(GetProcessHeap(), 0, sizeof(GifFrameDecode));
+    result = heap_alloc(sizeof(GifFrameDecode));
     if (!result) return E_OUTOFMEMORY;
 
     result->IWICBitmapFrameDecode_iface.lpVtbl = &GifFrameDecode_Vtbl;
@@ -1442,7 +1442,7 @@ HRESULT GifDecoder_CreateInstance(REFIID iid, void** ppv)
 
     *ppv = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(GifDecoder));
+    This = heap_alloc(sizeof(GifDecoder));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapDecoder_iface.lpVtbl = &GifDecoder_Vtbl;

@@ -211,7 +211,7 @@ FileMonikerImpl_Load(IMoniker* iface, IStream* pStm)
     }
 
     /* read filePath string */
-    filePathA=HeapAlloc(GetProcessHeap(),0,bytesA);
+    filePathA=heap_alloc(bytesA);
     if (!filePathA)
     {
         res = E_OUTOFMEMORY;
@@ -256,13 +256,13 @@ FileMonikerImpl_Load(IMoniker* iface, IStream* pStm)
         goto fail;
 
     if (!dwbuffer) /* No W-string */
-    {        
+    {
         bytesA--;
         len=MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, filePathA, bytesA, NULL, 0);
         if (!len)
             goto fail;
 
-        filePathW=HeapAlloc(GetProcessHeap(),0,(len+1)*sizeof(WCHAR));
+        filePathW=heap_alloc((len+1)*sizeof(WCHAR));
         if (!filePathW)
         {
             res = E_OUTOFMEMORY;
@@ -286,7 +286,7 @@ FileMonikerImpl_Load(IMoniker* iface, IStream* pStm)
         goto fail;
 
     len=bytesW/sizeof(WCHAR);
-    filePathW=HeapAlloc(GetProcessHeap(),0,(len+1)*sizeof(WCHAR));
+    filePathW=heap_alloc((len+1)*sizeof(WCHAR));
     if(!filePathW)
     {
          res = E_OUTOFMEMORY;
@@ -299,15 +299,15 @@ FileMonikerImpl_Load(IMoniker* iface, IStream* pStm)
     filePathW[len]=0;
 
  succeed:
-    HeapFree(GetProcessHeap(),0,filePathA);
-    HeapFree(GetProcessHeap(),0,This->filePathName);
+    heap_free(filePathA);
+    heap_free(This->filePathName);
     This->filePathName=filePathW;
 
     return S_OK;
 
  fail:
-    HeapFree(GetProcessHeap(), 0, filePathA);
-    HeapFree(GetProcessHeap(), 0, filePathW);
+    heap_free(filePathA);
+    heap_free(filePathW);
 
     if (SUCCEEDED(res))
          res = E_FAIL;
@@ -372,12 +372,12 @@ FileMonikerImpl_Save(IMoniker* iface, IStream* pStm, BOOL fClearDirty)
     if (FAILED(res)) return res;
 
     /* write A string (with '\0') */
-    filePathA=HeapAlloc(GetProcessHeap(),0,bytesA);
+    filePathA=heap_alloc(bytesA);
     if (!filePathA)
         return E_OUTOFMEMORY;
     WideCharToMultiByte( CP_ACP, 0, filePathW, -1, filePathA, bytesA, NULL, &bUsedDefault);
     res=IStream_Write(pStm,filePathA,bytesA,NULL);
-    HeapFree(GetProcessHeap(),0,filePathA);
+    heap_free(filePathA);
     if (FAILED(res)) return res;
 
     /* write a WORD 0xFFFF */
@@ -396,16 +396,16 @@ FileMonikerImpl_Save(IMoniker* iface, IStream* pStm, BOOL fClearDirty)
     }
 
     /* Write the wide version if:
-     *    + couldn't convert to CP_ACP, 
-     * or + it's a directory, 
-     * or + there's a character > 0xFF 
+     *    + couldn't convert to CP_ACP,
+     * or + it's a directory,
+     * or + there's a character > 0xFF
      */
     len = lstrlenW(filePathW);
     bWriteWide = (bUsedDefault || (len > 0 && filePathW[len-1]=='\\' ));
     if (!bWriteWide)
     {
         WCHAR* pch;
-        for(pch=filePathW;*pch;++pch) 
+        for(pch=filePathW;*pch;++pch)
         {
             if (*pch > 0xFF)
             {
@@ -466,8 +466,8 @@ HRESULT FileMonikerImpl_Destroy(FileMonikerImpl* This)
     TRACE("(%p)\n",This);
 
     if (This->pMarshal) IUnknown_Release(This->pMarshal);
-    HeapFree(GetProcessHeap(),0,This->filePathName);
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This->filePathName);
+    heap_free(This);
 
     return S_OK;
 }
@@ -706,7 +706,7 @@ FileMonikerImpl_ComposeWith(IMoniker* iface, IMoniker* pmkRight,
             }
 
             /* the length of the composed path string is increased by the sum of the two paths' lengths */
-            newStr=HeapAlloc(GetProcessHeap(),0,sizeof(WCHAR)*(lstrlenW(str1)+lstrlenW(str2)+1));
+            newStr=heap_alloc(sizeof(WCHAR)*(lstrlenW(str1)+lstrlenW(str2)+1));
 
             if (newStr){
                 /* new path is the concatenation of the rest of str1 and str2 */
@@ -723,7 +723,7 @@ FileMonikerImpl_ComposeWith(IMoniker* iface, IMoniker* pmkRight,
                 res=CreateFileMoniker(newStr,ppmkComposite);
 
                 /* free string memory used by this function */
-                HeapFree(GetProcessHeap(),0,newStr);
+                heap_free(newStr);
             }
             else res = E_OUTOFMEMORY;
         }
@@ -1150,7 +1150,7 @@ FileMonikerImpl_RelativePathTo(IMoniker* iface,IMoniker* pmOther, IMoniker** ppm
     /* begin the construction of relativePath */
     /* if the two paths have a consecutive similar item from the begin ! the relativePath will be composed */
     /* by "..\\" in the begin */
-    relPath=HeapAlloc(GetProcessHeap(),0,sizeof(WCHAR)*(1+lstrlenW(str1)+lstrlenW(str2)));
+    relPath=heap_alloc(sizeof(WCHAR)*(1+lstrlenW(str1)+lstrlenW(str2)));
 
     *relPath=0;
 
@@ -1169,7 +1169,7 @@ FileMonikerImpl_RelativePathTo(IMoniker* iface,IMoniker* pmOther, IMoniker** ppm
     free_stringtable(tabStr2);
     CoTaskMemFree(str1);
     CoTaskMemFree(str2);
-    HeapFree(GetProcessHeap(),0,relPath);
+    heap_free(relPath);
 
     if (len1==0 || len2==0 || (len1==1 && len2==1 && sameIdx==0))
         return MK_S_HIM;
@@ -1202,7 +1202,7 @@ FileMonikerImpl_GetDisplayName(IMoniker* iface, IBindCtx* pbc,
     strcpyW(*ppszDisplayName,This->filePathName);
 
     TRACE("-- %s\n", debugstr_w(*ppszDisplayName));
-    
+
     return S_OK;
 }
 
@@ -1359,7 +1359,7 @@ static HRESULT FileMonikerImpl_Construct(FileMonikerImpl* This, LPCOLESTR lpszPa
     This->ref          = 0;
     This->pMarshal     = NULL;
 
-    This->filePathName=HeapAlloc(GetProcessHeap(),0,sizeof(WCHAR)*(sizeStr+1));
+    This->filePathName=heap_alloc(sizeof(WCHAR)*(sizeStr+1));
 
     if (This->filePathName==NULL)
         return E_OUTOFMEMORY;
@@ -1393,7 +1393,7 @@ static HRESULT FileMonikerImpl_Construct(FileMonikerImpl* This, LPCOLESTR lpszPa
         if (lstrcmpW(tabStr[nb-1],bkSlash)==0)
             addBkSlash = FALSE;
 
-        This->filePathName=HeapReAlloc(GetProcessHeap(),0,This->filePathName,(sizeStr+1)*sizeof(WCHAR));
+        This->filePathName=heap_realloc(This->filePathName,(sizeStr+1)*sizeof(WCHAR));
 
         *This->filePathName=0;
 
@@ -1427,7 +1427,7 @@ HRESULT WINAPI CreateFileMoniker(LPCOLESTR lpszPathName, IMoniker **ppmk)
 
     *ppmk=NULL;
 
-    newFileMoniker = HeapAlloc(GetProcessHeap(), 0, sizeof(FileMonikerImpl));
+    newFileMoniker = heap_alloc(sizeof(FileMonikerImpl));
 
     if (!newFileMoniker)
         return E_OUTOFMEMORY;
@@ -1437,7 +1437,7 @@ HRESULT WINAPI CreateFileMoniker(LPCOLESTR lpszPathName, IMoniker **ppmk)
     if (SUCCEEDED(hr))
         hr = IMoniker_QueryInterface(&newFileMoniker->IMoniker_iface,&IID_IMoniker,(void**)ppmk);
     else
-        HeapFree(GetProcessHeap(),0,newFileMoniker);
+        heap_free(newFileMoniker);
 
     return hr;
 }
@@ -1468,7 +1468,7 @@ HRESULT FileMoniker_CreateFromDisplayName(LPBC pbc, LPCOLESTR szDisplayName,
         DWORD full_path_name_len;
         int len = end - szDisplayName;
 
-        file_display_name = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+        file_display_name = heap_alloc((len + 1) * sizeof(WCHAR));
         if (!file_display_name) return E_OUTOFMEMORY;
         memcpy(file_display_name, szDisplayName, len * sizeof(WCHAR));
         file_display_name[len] = '\0';
@@ -1476,14 +1476,14 @@ HRESULT FileMoniker_CreateFromDisplayName(LPBC pbc, LPCOLESTR szDisplayName,
         hr = CreateFileMoniker(file_display_name, &file_moniker);
         if (FAILED(hr))
         {
-            HeapFree(GetProcessHeap(), 0, file_display_name);
+            heap_free(file_display_name);
             return hr;
         }
 
         hr = IBindCtx_GetRunningObjectTable(pbc, &rot);
         if (FAILED(hr))
         {
-            HeapFree(GetProcessHeap(), 0, file_display_name);
+            heap_free(file_display_name);
             IMoniker_Release(file_moniker);
             return hr;
         }
@@ -1492,7 +1492,7 @@ HRESULT FileMoniker_CreateFromDisplayName(LPBC pbc, LPCOLESTR szDisplayName,
         IRunningObjectTable_Release(rot);
         if (FAILED(hr))
         {
-            HeapFree(GetProcessHeap(), 0, file_display_name);
+            heap_free(file_display_name);
             IMoniker_Release(file_moniker);
             return hr;
         }
@@ -1501,21 +1501,21 @@ HRESULT FileMoniker_CreateFromDisplayName(LPBC pbc, LPCOLESTR szDisplayName,
             TRACE("found running file moniker for %s\n", debugstr_w(file_display_name));
             *pchEaten = len;
             *ppmk = file_moniker;
-            HeapFree(GetProcessHeap(), 0, file_display_name);
+            heap_free(file_display_name);
             return S_OK;
         }
 
         full_path_name_len = GetFullPathNameW(file_display_name, 0, NULL, NULL);
         if (!full_path_name_len)
         {
-            HeapFree(GetProcessHeap(), 0, file_display_name);
+            heap_free(file_display_name);
             IMoniker_Release(file_moniker);
             return MK_E_SYNTAX;
         }
-        full_path_name = HeapAlloc(GetProcessHeap(), 0, full_path_name_len * sizeof(WCHAR));
+        full_path_name = heap_alloc(full_path_name_len * sizeof(WCHAR));
         if (!full_path_name)
         {
-            HeapFree(GetProcessHeap(), 0, file_display_name);
+            heap_free(file_display_name);
             IMoniker_Release(file_moniker);
             return E_OUTOFMEMORY;
         }
@@ -1528,12 +1528,12 @@ HRESULT FileMoniker_CreateFromDisplayName(LPBC pbc, LPCOLESTR szDisplayName,
             TRACE("got file moniker for %s\n", debugstr_w(szDisplayName));
             *pchEaten = len;
             *ppmk = file_moniker;
-            HeapFree(GetProcessHeap(), 0, file_display_name);
-            HeapFree(GetProcessHeap(), 0, full_path_name);
+            heap_free(file_display_name);
+            heap_free(full_path_name);
             return S_OK;
         }
-        HeapFree(GetProcessHeap(), 0, file_display_name);
-        HeapFree(GetProcessHeap(), 0, full_path_name);
+        heap_free(file_display_name);
+        heap_free(full_path_name);
         IMoniker_Release(file_moniker);
     }
 
@@ -1554,7 +1554,7 @@ HRESULT WINAPI FileMoniker_CreateInstance(IClassFactory *iface, IUnknown *pUnk, 
     if (pUnk)
         return CLASS_E_NOAGGREGATION;
 
-    newFileMoniker = HeapAlloc(GetProcessHeap(), 0, sizeof(FileMonikerImpl));
+    newFileMoniker = heap_alloc(sizeof(FileMonikerImpl));
     if (!newFileMoniker)
         return E_OUTOFMEMORY;
 
@@ -1563,7 +1563,7 @@ HRESULT WINAPI FileMoniker_CreateInstance(IClassFactory *iface, IUnknown *pUnk, 
     if (SUCCEEDED(hr))
         hr = IMoniker_QueryInterface(&newFileMoniker->IMoniker_iface, riid, ppv);
     if (FAILED(hr))
-        HeapFree(GetProcessHeap(),0,newFileMoniker);
+        heap_free(newFileMoniker);
 
     return hr;
 }

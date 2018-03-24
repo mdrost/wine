@@ -194,7 +194,7 @@ unsigned stack_fetch_frames(const CONTEXT* _ctx)
     CONTEXT      ctx = *_ctx;
     BOOL         ret;
 
-    HeapFree(GetProcessHeap(), 0, dbg_curr_thread->frames);
+    heap_free(dbg_curr_thread->frames);
     dbg_curr_thread->frames = NULL;
 
     memset(&sf, 0, sizeof(sf));

@@ -99,13 +99,13 @@ static HICON16 convert_icon_to_16( HINSTANCE16 inst, HICON icon )
     if (!(GetIconInfo( icon, &info ))) return 0;
     GetObjectW( info.hbmMask, sizeof(bm), &bm );
     and_size = bm.bmHeight * bm.bmWidthBytes;
-    if (!(and_bits = HeapAlloc( GetProcessHeap(), 0, and_size ))) goto done;
+    if (!(and_bits = heap_alloc( and_size ))) goto done;
     GetBitmapBits( info.hbmMask, and_size, and_bits );
     if (info.hbmColor)
     {
         GetObjectW( info.hbmColor, sizeof(bm), &bm );
         xor_size = bm.bmHeight * bm.bmWidthBytes;
-        if (!(xor_bits = HeapAlloc( GetProcessHeap(), 0, xor_size ))) goto done;
+        if (!(xor_bits = heap_alloc( xor_size ))) goto done;
         GetBitmapBits( info.hbmColor, xor_size, xor_bits );
     }
     else
@@ -116,10 +116,10 @@ static HICON16 convert_icon_to_16( HINSTANCE16 inst, HICON icon )
     handle = pCreateIcon16( inst, bm.bmWidth, bm.bmHeight, bm.bmPlanes, bm.bmBitsPixel,
                             and_bits, xor_bits );
 done:
-    HeapFree( GetProcessHeap(), 0, and_bits );
+    heap_free( and_bits );
     if (info.hbmColor)
     {
-        HeapFree( GetProcessHeap(), 0, xor_bits );
+        heap_free( xor_bits );
         DeleteObject( info.hbmColor );
     }
     DeleteObject( info.hbmMask );
@@ -274,7 +274,7 @@ HGLOBAL16 WINAPI InternalExtractIcon16(HINSTANCE16 hInstance,
 	  UINT ret;
 	  HICON *icons;
 
-	  icons = HeapAlloc(GetProcessHeap(), 0, n * sizeof(*icons));
+	  icons = heap_alloc(n * sizeof(*icons));
 	  ret = PrivateExtractIconsA(lpszExeFileName, nIconIndex,
 	                             GetSystemMetrics(SM_CXICON),
 	                             GetSystemMetrics(SM_CYICON),
@@ -289,7 +289,7 @@ HGLOBAL16 WINAPI InternalExtractIcon16(HINSTANCE16 hInstance,
 	    GlobalFree16(hRet);
 	    hRet = 0;
 	  }
-	  HeapFree(GetProcessHeap(), 0, icons);
+	  heap_free(icons);
 	}
 	return hRet;
 }
@@ -314,23 +314,23 @@ UINT16 WINAPI ExtractIconEx16(
     int		i, ret;
 
     if (phiconLarge)
-    	ilarge = HeapAlloc(GetProcessHeap(),0,nIcons*sizeof(HICON));
+    	ilarge = heap_alloc(nIcons*sizeof(HICON));
     else
     	ilarge = NULL;
     if (phiconSmall)
-    	ismall = HeapAlloc(GetProcessHeap(),0,nIcons*sizeof(HICON));
+    	ismall = heap_alloc(nIcons*sizeof(HICON));
     else
     	ismall = NULL;
     ret = ExtractIconExA(lpszFile,nIconIndex,ilarge,ismall,nIcons);
     if (ilarge) {
 	for (i=0;i<ret;i++)
 	    phiconLarge[i] = convert_icon_to_16(0, ilarge[i]);
-	HeapFree(GetProcessHeap(),0,ilarge);
+	heap_free(ilarge);
     }
     if (ismall) {
 	for (i=0;i<ret;i++)
 	    phiconSmall[i] = convert_icon_to_16(0, ismall[i]);
-	HeapFree(GetProcessHeap(),0,ismall);
+	heap_free(ismall);
     }
     return ret;
 }
@@ -405,7 +405,7 @@ DWORD WINAPI DoEnvironmentSubst16(LPSTR str,WORD length)
   LPSTR   lpEnv = MapSL(GetDOSEnvironment16());
   LPSTR   lpstr = str;
   LPSTR   lpend;
-  LPSTR   lpBuffer = HeapAlloc( GetProcessHeap(), 0, length);
+  LPSTR   lpBuffer = heap_alloc( length);
   WORD    bufCnt = 0;
   WORD    envKeyLen;
   LPSTR   lpKey;
@@ -463,7 +463,7 @@ DWORD WINAPI DoEnvironmentSubst16(LPSTR str,WORD length)
   TRACE("-- return %s\n", str);
 
   OemToCharA(str,str);
-  HeapFree( GetProcessHeap(), 0, lpBuffer);
+  heap_free( lpBuffer);
 
   return (DWORD)MAKELONG(retLength, retStatus);
 }

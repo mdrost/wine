@@ -38,7 +38,7 @@ void WINAPI DECLSPEC_HIDDEN __wine_spec_exe16_entry( CONTEXT *context )
 
     psp = MapSL( WOWGlobalLock16( context->SegEs ));
     len = psp->cmdLine[0];
-    cmdline = HeapAlloc( GetProcessHeap(), 0, len + 1 );
+    cmdline = heap_alloc( len + 1 );
     memcpy( cmdline, psp->cmdLine + 1, len );
     cmdline[len] = 0;
 

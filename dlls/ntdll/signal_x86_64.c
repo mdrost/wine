@@ -75,6 +75,7 @@
 WINE_DEFAULT_DEBUG_CHANNEL(seh);
 WINE_DECLARE_DEBUG_CHANNEL(relay);
 
+#if 0
 struct _DISPATCHER_CONTEXT;
 
 typedef LONG (WINAPI *PC_LANGUAGE_EXCEPTION_HANDLER)( EXCEPTION_POINTERS *ptrs, ULONG64 frame );
@@ -4135,8 +4136,13 @@ __ASM_GLOBAL_FUNC( RtlRaiseException,
                    "call " __ASM_NAME("NtRaiseException") "\n\t"
                    "movq %rax,%rcx\n\t"
                    "call " __ASM_NAME("RtlRaiseStatus") /* does not return */ );
+#endif
 
+void WINAPI RtlRaiseException(PEXCEPTION_RECORD record)
+{
+}
 
+#if 0
 /*************************************************************************
  *		RtlCaptureStackBackTrace (NTDLL.@)
  */
@@ -4321,3 +4327,4 @@ __ASM_STDCALL_FUNC( DbgBreakPoint, 0, "int $3; ret")
 __ASM_STDCALL_FUNC( DbgUserBreakPoint, 0, "int $3; ret")
 
 #endif  /* __x86_64__ */
+#endif

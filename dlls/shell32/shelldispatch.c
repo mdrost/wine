@@ -346,7 +346,7 @@ static HRESULT FolderItemVerb_Constructor(IContextMenu *contextmenu, BSTR name, 
 
     TRACE("%p, %s\n", contextmenu, debugstr_w(name));
 
-    This = heap_alloc(sizeof(*This));
+    This = heap_alloc(sizeof(FolderItemVerbImpl));
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -578,7 +578,7 @@ static HRESULT FolderItemVerbs_Constructor(BSTR path, FolderItemVerbs **verbs)
 
     *verbs = NULL;
 
-    This = heap_alloc(sizeof(*This));
+    This = heap_alloc(sizeof(FolderItemVerbsImpl));
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -1674,7 +1674,7 @@ static HRESULT Folder_Constructor(IShellFolder2 *folder, LPITEMIDLIST pidl, Fold
     This->Folder3_iface.lpVtbl = &FolderImpl_Vtbl;
     This->ref = 1;
     This->folder = folder;
-    This->pidl = ILClone(pidl);
+    This->pidl = pidl;
 
     hr = SHBindToParent(pidl, &IID_IShellFolder2, (void **)&parent, &last_part);
     IShellFolder2_GetDisplayNameOf(parent, last_part, SHGDN_FORPARSING, &strret);
@@ -1820,33 +1820,11 @@ static HRESULT WINAPI ShellDispatch_get_Parent(IShellDispatch6 *iface, IDispatch
     return S_OK;
 }
 
-static HRESULT create_folder_for_pidl(LPITEMIDLIST pidl, Folder **ret)
-{
-    IShellFolder2 *folder;
-    IShellFolder *desktop;
-    HRESULT hr;
-
-    *ret = NULL;
-
-    if (FAILED(hr = SHGetDesktopFolder(&desktop)))
-        return hr;
-
-    if (_ILIsDesktop(pidl))
-        hr = IShellFolder_QueryInterface(desktop, &IID_IShellFolder2, (void **)&folder);
-    else
-        hr = IShellFolder_BindToObject(desktop, pidl, NULL, &IID_IShellFolder2, (void **)&folder);
-
-    IShellFolder_Release(desktop);
-
-    if (FAILED(hr))
-        return S_FALSE;
-
-    return Folder_Constructor(folder, pidl, ret);
-}
-
 static HRESULT WINAPI ShellDispatch_NameSpace(IShellDispatch6 *iface,
         VARIANT dir, Folder **ret)
 {
+    IShellFolder2 *folder;
+    IShellFolder *desktop;
     LPITEMIDLIST pidl;
     HRESULT hr;
 
@@ -1876,45 +1854,29 @@ static HRESULT WINAPI ShellDispatch_NameSpace(IShellDispatch6 *iface,
             return S_FALSE;
     }
 
-    hr = create_folder_for_pidl(pidl, ret);
-    ILFree(pidl);
+    if (FAILED(hr = SHGetDesktopFolder(&desktop)))
+        return hr;
 
-    return hr;
-}
+    if (_ILIsDesktop(pidl))
+        hr = IShellFolder_QueryInterface(desktop, &IID_IShellFolder2, (void **)&folder);
+    else
+        hr = IShellFolder_BindToObject(desktop, pidl, NULL, &IID_IShellFolder2, (void **)&folder);
 
-static BOOL is_optional_argument(const VARIANT *arg)
-{
-    return V_VT(arg) == VT_ERROR && V_ERROR(arg) == DISP_E_PARAMNOTFOUND;
+    IShellFolder_Release(desktop);
+
+    if (FAILED(hr))
+        return S_FALSE;
+
+    return Folder_Constructor(folder, pidl, ret);
 }
 
 static HRESULT WINAPI ShellDispatch_BrowseForFolder(IShellDispatch6 *iface,
-        LONG hwnd, BSTR title, LONG options, VARIANT rootfolder, Folder **folder)
+        LONG Hwnd, BSTR Title, LONG Options, VARIANT RootFolder, Folder **ppsdf)
 {
-    PIDLIST_ABSOLUTE selection;
-    BROWSEINFOW bi = { 0 };
-    HRESULT hr;
+    FIXME("(%p,%x,%s,%x,%s,%p)\n", iface, Hwnd, debugstr_w(Title), Options, debugstr_variant(&RootFolder), ppsdf);
 
-    TRACE("(%p,%x,%s,%x,%s,%p)\n", iface, hwnd, debugstr_w(title), options, debugstr_variant(&rootfolder), folder);
-
-    *folder = NULL;
-
-    if (!is_optional_argument(&rootfolder))
-        FIXME("root folder is ignored\n");
-
-    bi.hwndOwner = LongToHandle(hwnd);
-    bi.lpszTitle = title;
-    bi.ulFlags = options;
-
-    selection = SHBrowseForFolderW(&bi);
-    if (selection)
-    {
-        hr = create_folder_for_pidl(selection, folder);
-        ILFree(selection);
-    }
-    else
-        hr = S_FALSE;
-
-    return hr;
+    *ppsdf = NULL;
+    return E_NOTIMPL;
 }
 
 static HRESULT WINAPI ShellDispatch_Windows(IShellDispatch6 *iface,
@@ -2282,7 +2244,7 @@ HRESULT WINAPI IShellDispatch_Constructor(IUnknown *outer, REFIID riid, void **p
 
     if (outer) return CLASS_E_NOAGGREGATION;
 
-    This = heap_alloc(sizeof(*This));
+    This = heap_alloc(sizeof(ShellDispatch));
     if (!This) return E_OUTOFMEMORY;
     This->IShellDispatch6_iface.lpVtbl = &ShellDispatchVtbl;
     This->ref = 1;

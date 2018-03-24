@@ -32,11 +32,14 @@
 #include "winbase.h"
 #include "wingdi.h"
 #include "winuser.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "win.h"
 #include "user_private.h"
 #include "controls.h"
 #include "wine/gdi_driver.h"
+#include "wine/heap.h"
 #include "wine/list.h"
 #include "wine/debug.h"
 
@@ -110,6 +113,7 @@ static void dump_rdw_flags(UINT flags)
  */
 static void update_visible_region( struct dce *dce )
 {
+#if 0
     struct window_surface *surface = NULL;
     NTSTATUS status;
     HRGN vis_rgn = 0;
@@ -126,7 +130,7 @@ static void update_visible_region( struct dce *dce )
     /* fetch the visible region from the server */
     do
     {
-        RGNDATA *data = HeapAlloc( GetProcessHeap(), 0, sizeof(*data) + size - 1 );
+        RGNDATA *data = heap_alloc( sizeof(*data) + size - 1 );
         if (!data) return;
 
         SERVER_START_REQ( get_visible_region )
@@ -157,7 +161,7 @@ static void update_visible_region( struct dce *dce )
             else size = reply->total_size;
         }
         SERVER_END_REQ;
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     } while (status == STATUS_BUFFER_OVERFLOW);
 
     if (status || !vis_rgn) return;
@@ -182,6 +186,7 @@ static void update_visible_region( struct dce *dce )
     if (!surface) top_rect = get_virtual_screen_rect();
     __wine_set_visible_region( dce->hdc, vis_rgn, &win_rect, &top_rect, surface );
     if (surface) window_surface_release( surface );
+#endif
 }
 
 
@@ -227,10 +232,10 @@ static struct dce *alloc_dce(void)
 {
     struct dce *dce;
 
-    if (!(dce = HeapAlloc( GetProcessHeap(), 0, sizeof(*dce) ))) return NULL;
+    if (!(dce = heap_alloc( sizeof(*dce) ))) return NULL;
     if (!(dce->hdc = CreateDCW( displayW, NULL, NULL, NULL )))
     {
-        HeapFree( GetProcessHeap(), 0, dce );
+        heap_free( dce );
         return 0;
     }
     dce->hwnd      = 0;
@@ -324,7 +329,7 @@ static struct dce *get_window_dce( HWND hwnd )
         {
             SetDCHook( dce_to_free->hdc, NULL, 0 );
             DeleteDC( dce_to_free->hdc );
-            HeapFree( GetProcessHeap(), 0, dce_to_free );
+            heap_free( dce_to_free );
             if (dce_to_free == dce)
                 dce = NULL;
         }
@@ -383,7 +388,7 @@ void free_dce( struct dce *dce, HWND hwnd )
     {
         SetDCHook( dce_to_free->hdc, NULL, 0 );
         DeleteDC( dce_to_free->hdc );
-        HeapFree( GetProcessHeap(), 0, dce_to_free );
+        heap_free( dce_to_free );
     }
 }
 
@@ -529,7 +534,7 @@ static BOOL CALLBACK dc_hook( HDC hDC, WORD code, DWORD_PTR data, LPARAM lParam 
         {
             list_remove( &dce->entry );
             if (dce->clip_rgn) DeleteObject( dce->clip_rgn );
-            HeapFree( GetProcessHeap(), 0, dce );
+            heap_free( dce );
         }
         USER_Unlock();
         break;
@@ -546,13 +551,14 @@ static BOOL CALLBACK dc_hook( HDC hDC, WORD code, DWORD_PTR data, LPARAM lParam 
 static HRGN get_update_region( HWND hwnd, UINT *flags, HWND *child )
 {
     HRGN hrgn = 0;
+#if 0
     NTSTATUS status;
     RGNDATA *data;
     size_t size = 256;
 
     do
     {
-        if (!(data = HeapAlloc( GetProcessHeap(), 0, sizeof(*data) + size - 1 )))
+        if (!(data = heap_alloc( sizeof(*data) + size - 1 )))
         {
             SetLastError( ERROR_OUTOFMEMORY );
             return 0;
@@ -578,10 +584,13 @@ static HRGN get_update_region( HWND hwnd, UINT *flags, HWND *child )
             else size = reply->total_size;
         }
         SERVER_END_REQ;
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     } while (status == STATUS_BUFFER_OVERFLOW);
 
     if (status) SetLastError( RtlNtStatusToDosError(status) );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return hrgn;
 }
 
@@ -593,6 +602,7 @@ static HRGN get_update_region( HWND hwnd, UINT *flags, HWND *child )
  */
 static BOOL get_update_flags( HWND hwnd, HWND *child, UINT *flags )
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( get_update_region )
@@ -608,6 +618,9 @@ static BOOL get_update_flags( HWND hwnd, HWND *child, UINT *flags )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -623,6 +636,7 @@ static BOOL redraw_window_rects( HWND hwnd, UINT flags, const RECT *rects, UINT 
     if (!(flags & (RDW_INVALIDATE|RDW_VALIDATE|RDW_INTERNALPAINT|RDW_NOINTERNALPAINT)))
         return TRUE;  /* nothing to do */
 
+#if 0
     SERVER_START_REQ( redraw_window )
     {
         req->window = wine_server_user_handle( hwnd );
@@ -632,6 +646,9 @@ static BOOL redraw_window_rects( HWND hwnd, UINT flags, const RECT *rects, UINT 
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -1263,13 +1280,13 @@ BOOL WINAPI RedrawWindow( HWND hwnd, const RECT *rect, HRGN hrgn, UINT flags )
         RGNDATA *data;
 
         if (!(size = GetRegionData( hrgn, 0, NULL ))) return FALSE;
-        if (!(data = HeapAlloc( GetProcessHeap(), 0, size ))) return FALSE;
+        if (!(data = heap_alloc( size ))) return FALSE;
         GetRegionData( hrgn, size, data );
         if (!data->rdh.nCount)  /* empty region -> use a single all-zero rectangle */
             ret = redraw_window_rects( hwnd, flags, &empty, 1 );
         else
             ret = redraw_window_rects( hwnd, flags, (const RECT *)data->Buffer, data->rdh.nCount );
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
 
     if (flags & RDW_UPDATENOW) update_now( hwnd, flags );
@@ -1578,7 +1595,7 @@ static INT scroll_window( HWND hwnd, INT dx, INT dy, const RECT *rect, const REC
                                   SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE |
                                   SWP_NOREDRAW | SWP_DEFERERASE );
             }
-            HeapFree( GetProcessHeap(), 0, list );
+            heap_free( list );
         }
     }
 

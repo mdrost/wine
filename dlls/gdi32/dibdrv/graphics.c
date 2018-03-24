@@ -341,7 +341,7 @@ static BOOL draw_arc( PHYSDEV dev, INT left, INT top, INT right, INT bottom,
     pt[1].x -= rect.left + width / 2;
     pt[1].y -= rect.top + height / 2;
 
-    points = HeapAlloc( GetProcessHeap(), 0, (width + height) * 3 * sizeof(*points) );
+    points = heap_alloc( (width + height) * 3 * sizeof(*points) );
     if (!points) return FALSE;
 
     if (extra_lines == -1)
@@ -360,20 +360,20 @@ static BOOL draw_arc( PHYSDEV dev, INT left, INT top, INT right, INT bottom,
     }
     if (count < 2)
     {
-        HeapFree( GetProcessHeap(), 0, points );
+        heap_free( points );
         return TRUE;
     }
 
     if (pdev->pen_uses_region && !(outline = CreateRectRgn( 0, 0, 0, 0 )))
     {
-        HeapFree( GetProcessHeap(), 0, points );
+        heap_free( points );
         return FALSE;
     }
 
     if (pdev->brush.style != BS_NULL && extra_lines > 0 &&
         !(interior = CreatePolygonRgn( points, count, WINDING )))
     {
-        HeapFree( GetProcessHeap(), 0, points );
+        heap_free( points );
         if (outline) DeleteObject( outline );
         return FALSE;
     }
@@ -401,7 +401,7 @@ static BOOL draw_arc( PHYSDEV dev, INT left, INT top, INT right, INT bottom,
         if (ret) ret = pen_region( pdev, outline );
         DeleteObject( outline );
     }
-    HeapFree( GetProcessHeap(), 0, points );
+    heap_free( points );
     return ret;
 }
 
@@ -520,6 +520,7 @@ static inline void get_aa_ranges( COLORREF col, struct intensity_range intensiti
 
 static DWORD font_cache_hash( struct cached_font *font )
 {
+#if 0
     DWORD hash = 0, *ptr, two_chars;
     WORD *pwc;
     int i;
@@ -540,6 +541,24 @@ static DWORD font_cache_hash( struct cached_font *font )
         if (!*pwc) break;
     }
     return hash;
+#else
+    DWORD hash = 0, *ptr;
+    WCHAR wc;
+    int i;
+
+    hash ^= font->aa_flags;
+    for(i = 0, ptr = (DWORD*)&font->xform; i < sizeof(XFORM)/sizeof(DWORD); i++, ptr++)
+        hash ^= *ptr;
+    for(i = 0, ptr = (DWORD*)&font->lf; i < 7; i++, ptr++)
+        hash ^= *ptr;
+    for(i = 0; i < LF_FACESIZE; i++) {
+        wc = font->lf.lfFaceName[i];
+        if (!wc) break;
+        wc = toupperW(wc);
+        hash ^= wc;
+    }
+    return hash;
+#endif
 }
 
 static int font_cache_cmp( const struct cached_font *p1, const struct cached_font *p2 )
@@ -595,13 +614,13 @@ static struct cached_font *add_cached_font( DC *dc, HFONT hfont, UINT aa_flags )
             {
                 if (!ptr->glyphs[i][j]) continue;
                 for (k = 0; k < GLYPH_CACHE_PAGE_SIZE; k++)
-                    HeapFree( GetProcessHeap(), 0, ptr->glyphs[i][j][k] );
-                HeapFree( GetProcessHeap(), 0, ptr->glyphs[i][j] );
+                    heap_free( ptr->glyphs[i][j][k] );
+                heap_free( ptr->glyphs[i][j] );
             }
         }
         list_remove( &ptr->entry );
     }
-    else if (!(ptr = HeapAlloc( GetProcessHeap(), 0, sizeof(*ptr) )))
+    else if (!(ptr = heap_alloc( sizeof(*ptr) )))
     {
         LeaveCriticalSection( &font_cache_cs );
         return NULL;
@@ -634,18 +653,18 @@ static struct cached_glyph *add_cached_glyph( struct cached_font *font, UINT ind
     {
         struct cached_glyph **ptr;
 
-        ptr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, GLYPH_CACHE_PAGE_SIZE * sizeof(*ptr) );
+        ptr = heap_alloc_zero( GLYPH_CACHE_PAGE_SIZE * sizeof(*ptr) );
         if (!ptr)
         {
-            HeapFree( GetProcessHeap(), 0, glyph );
+            heap_free( glyph );
             return NULL;
         }
         if (InterlockedCompareExchangePointer( (void **)&font->glyphs[type][page], ptr, NULL ))
-            HeapFree( GetProcessHeap(), 0, ptr );
+            heap_free( ptr );
     }
     ret = InterlockedCompareExchangePointer( (void **)&font->glyphs[type][page][entry], glyph, NULL );
     if (!ret) ret = glyph;
-    else HeapFree( GetProcessHeap(), 0, glyph );
+    else heap_free( glyph );
     return ret;
 }
 
@@ -769,7 +788,7 @@ static struct cached_glyph *cache_glyph_bitmap( DC *dc, struct cached_font *font
     bit_count = get_glyph_depth( font->aa_flags );
     stride = get_dib_stride( metrics.gmBlackBoxX, bit_count );
     size = metrics.gmBlackBoxY * stride;
-    glyph = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( struct cached_glyph, bits[size] ));
+    glyph = heap_alloc( FIELD_OFFSET( struct cached_glyph, bits[size] ));
     if (!glyph) return NULL;
     if (!size) goto done;  /* empty glyph */
 
@@ -778,7 +797,7 @@ static struct cached_glyph *cache_glyph_bitmap( DC *dc, struct cached_font *font
     ret = GetGlyphOutlineW( dc->hSelf, index, ggo_flags, &metrics, size, glyph->bits, &identity );
     if (ret == GDI_ERROR)
     {
-        HeapFree( GetProcessHeap(), 0, glyph );
+        heap_free( glyph );
         return NULL;
     }
     assert( ret <= size );
@@ -1259,7 +1278,7 @@ BOOL dibdrv_PolyPolygon( PHYSDEV dev, const POINT *pt, const INT *counts, DWORD 
 
     if (total > sizeof(pt_buf) / sizeof(pt_buf[0]))
     {
-        points = HeapAlloc( GetProcessHeap(), 0, total * sizeof(*pt) );
+        points = heap_alloc( total * sizeof(*pt) );
         if (!points) return FALSE;
     }
     memcpy( points, pt, total * sizeof(*pt) );
@@ -1303,7 +1322,7 @@ BOOL dibdrv_PolyPolygon( PHYSDEV dev, const POINT *pt, const INT *counts, DWORD 
     }
 
 done:
-    if (points != pt_buf) HeapFree( GetProcessHeap(), 0, points );
+    if (points != pt_buf) heap_free( points );
     return ret;
 }
 
@@ -1328,7 +1347,7 @@ BOOL dibdrv_PolyPolyline( PHYSDEV dev, const POINT* pt, const DWORD* counts, DWO
 
     if (total > sizeof(pt_buf) / sizeof(pt_buf[0]))
     {
-        points = HeapAlloc( GetProcessHeap(), 0, total * sizeof(*pt) );
+        points = heap_alloc( total * sizeof(*pt) );
         if (!points) return FALSE;
     }
     memcpy( points, pt, total * sizeof(*pt) );
@@ -1355,7 +1374,7 @@ BOOL dibdrv_PolyPolyline( PHYSDEV dev, const POINT* pt, const DWORD* counts, DWO
     }
 
 done:
-    if (points != pt_buf) HeapFree( GetProcessHeap(), 0, points );
+    if (points != pt_buf) heap_free( points );
     return ret;
 }
 
@@ -1480,12 +1499,12 @@ BOOL dibdrv_RoundRect( PHYSDEV dev, INT left, INT top, INT right, INT bottom,
     if (ellipse_width <= 2|| ellipse_height <= 2)
         return dibdrv_Rectangle( dev, left, top, right, bottom );
 
-    points = HeapAlloc( GetProcessHeap(), 0, (ellipse_width + ellipse_height) * 2 * sizeof(*points) );
+    points = heap_alloc( (ellipse_width + ellipse_height) * 2 * sizeof(*points) );
     if (!points) return FALSE;
 
     if (pdev->pen_uses_region && !(outline = CreateRectRgn( 0, 0, 0, 0 )))
     {
-        HeapFree( GetProcessHeap(), 0, points );
+        heap_free( points );
         return FALSE;
     }
 
@@ -1493,7 +1512,7 @@ BOOL dibdrv_RoundRect( PHYSDEV dev, INT left, INT top, INT right, INT bottom,
         !(interior = CreateRoundRectRgn( rect.left, rect.top, rect.right + 1, rect.bottom + 1,
                                          ellipse_width, ellipse_height )))
     {
-        HeapFree( GetProcessHeap(), 0, points );
+        heap_free( points );
         if (outline) DeleteObject( outline );
         return FALSE;
     }
@@ -1564,7 +1583,7 @@ BOOL dibdrv_RoundRect( PHYSDEV dev, INT left, INT top, INT right, INT bottom,
         if (ret) ret = pen_region( pdev, outline );
         DeleteObject( outline );
     }
-    HeapFree( GetProcessHeap(), 0, points );
+    heap_free( points );
     return ret;
 }
 

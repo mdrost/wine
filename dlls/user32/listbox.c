@@ -28,6 +28,7 @@
 #include "windef.h"
 #include "winbase.h"
 #include "wingdi.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "user_private.h"
 #include "controls.h"
@@ -697,17 +698,18 @@ static void LISTBOX_DrawFocusRect( LB_DESCR *descr, BOOL on )
  */
 static LRESULT LISTBOX_InitStorage( LB_DESCR *descr, INT nb_items )
 {
+#if 0
     LB_ITEMDATA *item;
 
     nb_items += LB_ARRAY_GRANULARITY - 1;
     nb_items -= (nb_items % LB_ARRAY_GRANULARITY);
     if (descr->items) {
         nb_items += HeapSize( GetProcessHeap(), 0, descr->items ) / sizeof(*item);
-	item = HeapReAlloc( GetProcessHeap(), 0, descr->items,
+	item = heap_realloc( descr->items,
                               nb_items * sizeof(LB_ITEMDATA));
     }
     else {
-	item = HeapAlloc( GetProcessHeap(), 0,
+	item = heap_alloc(
                               nb_items * sizeof(LB_ITEMDATA));
     }
 
@@ -718,6 +720,9 @@ static LRESULT LISTBOX_InitStorage( LB_DESCR *descr, INT nb_items )
     }
     descr->items = item;
     return LB_OKAY;
+#else
+    return LB_ERR;
+#endif
 }
 
 
@@ -734,13 +739,13 @@ static BOOL LISTBOX_SetTabStops( LB_DESCR *descr, INT count, LPINT tabs )
         return FALSE;
     }
 
-    HeapFree( GetProcessHeap(), 0, descr->tabs );
+    heap_free( descr->tabs );
     if (!(descr->nb_tabs = count))
     {
         descr->tabs = NULL;
         return TRUE;
     }
-    if (!(descr->tabs = HeapAlloc( GetProcessHeap(), 0,
+    if (!(descr->tabs = heap_alloc(
                                             descr->nb_tabs * sizeof(INT) )))
         return FALSE;
     memcpy( descr->tabs, tabs, descr->nb_tabs * sizeof(INT) );
@@ -1505,6 +1510,7 @@ static void LISTBOX_MoveCaret( LB_DESCR *descr, INT index, BOOL fully_visible )
 static LRESULT LISTBOX_InsertItem( LB_DESCR *descr, INT index,
                                    LPWSTR str, ULONG_PTR data )
 {
+#if 0
     LB_ITEMDATA *item;
     INT max_items;
     INT oldfocus = descr->focus_item;
@@ -1518,10 +1524,10 @@ static LRESULT LISTBOX_InsertItem( LB_DESCR *descr, INT index,
         /* We need to grow the array */
         max_items += LB_ARRAY_GRANULARITY;
 	if (descr->items)
-    	    item = HeapReAlloc( GetProcessHeap(), 0, descr->items,
+    	    item = heap_realloc( descr->items,
                                   max_items * sizeof(LB_ITEMDATA) );
 	else
-	    item = HeapAlloc( GetProcessHeap(), 0,
+	    item = heap_alloc(
                                   max_items * sizeof(LB_ITEMDATA) );
         if (!item)
         {
@@ -1585,6 +1591,9 @@ static LRESULT LISTBOX_InsertItem( LB_DESCR *descr, INT index,
         }
     }
     return LB_OKAY;
+#else
+    return LB_ERR;
+#endif
 }
 
 
@@ -1600,7 +1609,7 @@ static LRESULT LISTBOX_InsertString( LB_DESCR *descr, INT index, LPCWSTR str )
     {
         static const WCHAR empty_stringW[] = { 0 };
         if (!str) str = empty_stringW;
-        if (!(new_str = HeapAlloc( GetProcessHeap(), 0, (strlenW(str) + 1) * sizeof(WCHAR) )))
+        if (!(new_str = heap_alloc( (strlenW(str) + 1) * sizeof(WCHAR) )))
         {
             SEND_NOTIFICATION( descr, LBN_ERRSPACE );
             return LB_ERRSPACE;
@@ -1611,7 +1620,7 @@ static LRESULT LISTBOX_InsertString( LB_DESCR *descr, INT index, LPCWSTR str )
     if (index == -1) index = descr->nb_items;
     if ((ret = LISTBOX_InsertItem( descr, index, new_str, (ULONG_PTR)str )) != 0)
     {
-        HeapFree( GetProcessHeap(), 0, new_str );
+        heap_free( new_str );
         return ret;
     }
 
@@ -1653,7 +1662,7 @@ static void LISTBOX_DeleteItem( LB_DESCR *descr, INT index )
         SendMessageW( descr->owner, WM_DELETEITEM, id, (LPARAM)&dis );
     }
     if (HAS_STRINGS(descr))
-        HeapFree( GetProcessHeap(), 0, item_str );
+        heap_free( item_str );
 }
 
 
@@ -1664,6 +1673,7 @@ static void LISTBOX_DeleteItem( LB_DESCR *descr, INT index )
  */
 static LRESULT LISTBOX_RemoveItem( LB_DESCR *descr, INT index )
 {
+#if 0
     LB_ITEMDATA *item;
     INT max_items;
 
@@ -1691,7 +1701,7 @@ static LRESULT LISTBOX_RemoveItem( LB_DESCR *descr, INT index )
     if (descr->nb_items < max_items - 2*LB_ARRAY_GRANULARITY)
     {
         max_items -= LB_ARRAY_GRANULARITY;
-        item = HeapReAlloc( GetProcessHeap(), 0, descr->items,
+        item = heap_realloc( descr->items,
                             max_items * sizeof(LB_ITEMDATA) );
         if (item) descr->items = item;
     }
@@ -1722,6 +1732,9 @@ static LRESULT LISTBOX_RemoveItem( LB_DESCR *descr, INT index )
           if (descr->focus_item < 0) descr->focus_item = 0;
     }
     return LB_OKAY;
+#else
+    return LB_ERR;
+#endif
 }
 
 
@@ -1733,7 +1746,7 @@ static void LISTBOX_ResetContent( LB_DESCR *descr )
     INT i;
 
     for(i = descr->nb_items - 1; i>=0; i--) LISTBOX_DeleteItem( descr, i);
-    HeapFree( GetProcessHeap(), 0, descr->items );
+    heap_free( descr->items );
     descr->nb_items      = 0;
     descr->top_item      = 0;
     descr->selected_item = -1;
@@ -1781,6 +1794,7 @@ static LRESULT LISTBOX_SetCount( LB_DESCR *descr, INT count )
 static LRESULT LISTBOX_Directory( LB_DESCR *descr, UINT attrib,
                                   LPCWSTR filespec, BOOL long_names )
 {
+#if 0
     HANDLE handle;
     LRESULT ret = LB_OKAY;
     WIN32_FIND_DATAW entry;
@@ -1855,6 +1869,9 @@ static LRESULT LISTBOX_Directory( LB_DESCR *descr, UINT attrib,
         }
     }
     return ret;
+#else
+    return LB_ERR;
+#endif
 }
 
 
@@ -2471,7 +2488,7 @@ static BOOL LISTBOX_Create( HWND hwnd, LPHEADCOMBO lphc )
     MEASUREITEMSTRUCT mis;
     RECT rect;
 
-    if (!(descr = HeapAlloc( GetProcessHeap(), 0, sizeof(*descr) )))
+    if (!(descr = heap_alloc( sizeof(*descr) )))
         return FALSE;
 
     GetClientRect( hwnd, &rect );
@@ -2550,7 +2567,7 @@ static BOOL LISTBOX_Destroy( LB_DESCR *descr )
 {
     LISTBOX_ResetContent( descr );
     SetWindowLongPtrW( descr->self, 0, 0 );
-    HeapFree( GetProcessHeap(), 0, descr );
+    heap_free( descr );
     return TRUE;
 }
 
@@ -2560,6 +2577,7 @@ static BOOL LISTBOX_Destroy( LB_DESCR *descr )
  */
 LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode )
 {
+#if 0
     LB_DESCR *descr = (LB_DESCR *)GetWindowLongPtrW( hwnd, 0 );
     LPHEADCOMBO lphc = 0;
     LRESULT ret;
@@ -2603,7 +2621,7 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         {
             LPSTR textA = (LPSTR)lParam;
             INT countW = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-            if((textW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR))))
+            if((textW = heap_alloc(countW * sizeof(WCHAR))))
                 MultiByteToWideChar(CP_ACP, 0, textA, -1, textW, countW);
             else
                 return LB_ERRSPACE;
@@ -2611,7 +2629,7 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         wParam = LISTBOX_FindStringPos( descr, textW, FALSE );
         ret = LISTBOX_InsertString( descr, wParam, textW );
         if (!unicode && HAS_STRINGS(descr))
-            HeapFree(GetProcessHeap(), 0, textW);
+            heap_free(textW);
         return ret;
     }
 
@@ -2625,14 +2643,14 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         {
             LPSTR textA = (LPSTR)lParam;
             INT countW = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-            if((textW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR))))
+            if((textW = heap_alloc(countW * sizeof(WCHAR))))
                 MultiByteToWideChar(CP_ACP, 0, textA, -1, textW, countW);
             else
                 return LB_ERRSPACE;
         }
         ret = LISTBOX_InsertString( descr, wParam, textW );
         if(!unicode && HAS_STRINGS(descr))
-            HeapFree(GetProcessHeap(), 0, textW);
+            heap_free(textW);
         return ret;
     }
 
@@ -2646,7 +2664,7 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         {
             LPSTR textA = (LPSTR)lParam;
             INT countW = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-            if((textW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR))))
+            if((textW = heap_alloc(countW * sizeof(WCHAR))))
                 MultiByteToWideChar(CP_ACP, 0, textA, -1, textW, countW);
             else
                 return LB_ERRSPACE;
@@ -2654,7 +2672,7 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         wParam = LISTBOX_FindFileStrPos( descr, textW );
         ret = LISTBOX_InsertString( descr, wParam, textW );
         if(!unicode && HAS_STRINGS(descr))
-            HeapFree(GetProcessHeap(), 0, textW);
+            heap_free(textW);
         return ret;
     }
 
@@ -2790,12 +2808,12 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         {
             LPSTR textA = (LPSTR)lParam;
             INT countW = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-            if((textW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR))))
+            if((textW = heap_alloc(countW * sizeof(WCHAR))))
                 MultiByteToWideChar(CP_ACP, 0, textA, -1, textW, countW);
         }
         ret = LISTBOX_FindString( descr, wParam, textW, FALSE );
         if(!unicode && HAS_STRINGS(descr))
-            HeapFree(GetProcessHeap(), 0, textW);
+            heap_free(textW);
         return ret;
     }
 
@@ -2809,12 +2827,12 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         {
             LPSTR textA = (LPSTR)lParam;
             INT countW = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-            if((textW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR))))
+            if((textW = heap_alloc(countW * sizeof(WCHAR))))
                 MultiByteToWideChar(CP_ACP, 0, textA, -1, textW, countW);
         }
         ret = LISTBOX_FindString( descr, wParam, textW, TRUE );
         if(!unicode && HAS_STRINGS(descr))
-            HeapFree(GetProcessHeap(), 0, textW);
+            heap_free(textW);
         return ret;
     }
 
@@ -2832,12 +2850,12 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         {
             LPSTR textA = (LPSTR)lParam;
             INT countW = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-            if((textW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR))))
+            if((textW = heap_alloc(countW * sizeof(WCHAR))))
                 MultiByteToWideChar(CP_ACP, 0, textA, -1, textW, countW);
         }
         index = LISTBOX_FindString( descr, wParam, textW, FALSE );
         if(!unicode && HAS_STRINGS(descr))
-            HeapFree(GetProcessHeap(), 0, textW);
+            heap_free(textW);
         if (index != LB_ERR)
 	{
             LISTBOX_MoveCaret( descr, index, TRUE );
@@ -2909,12 +2927,12 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         {
             LPSTR textA = (LPSTR)lParam;
             INT countW = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-            if((textW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR))))
+            if((textW = heap_alloc(countW * sizeof(WCHAR))))
                 MultiByteToWideChar(CP_ACP, 0, textA, -1, textW, countW);
         }
         ret = LISTBOX_Directory( descr, wParam, textW, msg == LB_DIR );
         if(!unicode)
-            HeapFree(GetProcessHeap(), 0, textW);
+            heap_free(textW);
         return ret;
     }
 
@@ -3150,6 +3168,9 @@ LRESULT ListBoxWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 
     return unicode ? DefWindowProcW( hwnd, msg, wParam, lParam ) :
                      DefWindowProcA( hwnd, msg, wParam, lParam );
+#else
+    return 0;
+#endif
 }
 
 DWORD WINAPI GetListBoxInfo(HWND hwnd)

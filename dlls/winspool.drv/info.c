@@ -378,7 +378,7 @@ static LPWSTR strdupW(LPCWSTR p)
 
     if(!p) return NULL;
     len = (strlenW(p) + 1) * sizeof(WCHAR);
-    ret = HeapAlloc(GetProcessHeap(), 0, len);
+    ret = heap_alloc(len);
     memcpy(ret, p, len);
     return ret;
 }
@@ -390,7 +390,7 @@ static LPSTR strdupWtoA( LPCWSTR str )
 
     if (!str) return NULL;
     len = WideCharToMultiByte( CP_ACP, 0, str, -1, NULL, 0, NULL, NULL );
-    ret = HeapAlloc( GetProcessHeap(), 0, len );
+    ret = heap_alloc( len );
     if(ret) WideCharToMultiByte( CP_ACP, 0, str, -1, ret, len, NULL, NULL );
     return ret;
 }
@@ -400,7 +400,7 @@ static DEVMODEW *dup_devmode( const DEVMODEW *dm )
     DEVMODEW *ret;
 
     if (!dm) return NULL;
-    ret = HeapAlloc( GetProcessHeap(), 0, dm->dmSize + dm->dmDriverExtra );
+    ret = heap_alloc( dm->dmSize + dm->dmDriverExtra );
     if (ret) memcpy( ret, dm, dm->dmSize + dm->dmDriverExtra );
     return ret;
 }
@@ -418,7 +418,7 @@ static DEVMODEA *DEVMODEdupWtoA( const DEVMODEW *dmW )
     size = dmW->dmSize - CCHDEVICENAME -
                         ((dmW->dmSize > FIELD_OFFSET( DEVMODEW, dmFormName )) ? CCHFORMNAME : 0);
 
-    dmA = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size + dmW->dmDriverExtra );
+    dmA = heap_alloc_zero( size + dmW->dmDriverExtra );
     if (!dmA) return NULL;
 
     WideCharToMultiByte( CP_ACP, 0, dmW->dmDeviceName, -1,
@@ -567,7 +567,7 @@ WINSPOOL_SetDefaultPrinter(const char *devname, const char *name, BOOL force) {
 	!strcmp(qbuf,"*")						||
 	!strstr(qbuf,"WINEPS.DRV")
     ) {
-    	char *buf = HeapAlloc(GetProcessHeap(),0,strlen(name)+strlen(devname)+strlen(",WINEPS.DRV,LPR:")+1);
+    	char *buf = heap_alloc(strlen(name)+strlen(devname)+strlen(",WINEPS.DRV,LPR:")+1);
         HKEY hkey;
 
 	sprintf(buf,"%s,WINEPS.DRV,LPR:%s",devname,name);
@@ -576,7 +576,7 @@ WINSPOOL_SetDefaultPrinter(const char *devname, const char *name, BOOL force) {
             RegSetValueExA(hkey, "Device", 0, REG_SZ, (LPBYTE)buf, strlen(buf) + 1);
             RegCloseKey(hkey);
         }
-	HeapFree(GetProcessHeap(),0,buf);
+	heap_free(buf);
     }
 }
 
@@ -623,11 +623,11 @@ static inline char *expand_env_string( char *str, DWORD type )
     {
         char *tmp;
         DWORD needed = ExpandEnvironmentStringsA( str, NULL, 0 );
-        tmp = HeapAlloc( GetProcessHeap(), 0, needed );
+        tmp = heap_alloc( needed );
         if (tmp)
         {
             ExpandEnvironmentStringsA( str, tmp, needed );
-            HeapFree( GetProcessHeap(), 0, str );
+            heap_free( str );
             return tmp;
         }
     }
@@ -653,7 +653,7 @@ static char *get_fallback_ppd_name( const char *printer_name )
 
         if (value_name)
         {
-            ret = HeapAlloc( GetProcessHeap(), 0, needed );
+            ret = heap_alloc( needed );
             if (!ret) return NULL;
             RegQueryValueExA( hkey, value_name, 0, &type, (BYTE *)ret, &needed );
         }
@@ -726,8 +726,8 @@ static BOOL get_fallback_ppd( const char *printer_name, const WCHAR *ppd )
 
     ret = TRUE;
 fail:
-    HeapFree( GetProcessHeap(), 0, dst );
-    HeapFree( GetProcessHeap(), 0, src );
+    heap_free( dst );
+    heap_free( src );
     return ret;
 }
 
@@ -735,7 +735,7 @@ static WCHAR *get_ppd_filename( const WCHAR *dir, const WCHAR *file_name )
 {
     static const WCHAR dot_ppd[] = {'.','p','p','d',0};
     int len = (strlenW( dir ) + strlenW( file_name )) * sizeof(WCHAR) + sizeof(dot_ppd);
-    WCHAR *ppd = HeapAlloc( GetProcessHeap(), 0, len );
+    WCHAR *ppd = heap_alloc( len );
 
     if (!ppd) return NULL;
     strcpyW( ppd, dir );
@@ -754,7 +754,7 @@ static WCHAR *get_ppd_dir( void )
 
     len = GetTempPathW( sizeof(tmp_path) / sizeof(tmp_path[0]), tmp_path );
     if (!len) return NULL;
-    dir = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) + sizeof(wine_ppds) ) ;
+    dir = heap_alloc( len * sizeof(WCHAR) + sizeof(wine_ppds) ) ;
     if (!dir) return NULL;
 
     memcpy( dir, tmp_path, len * sizeof(WCHAR) );
@@ -762,7 +762,7 @@ static WCHAR *get_ppd_dir( void )
     res = CreateDirectoryW( dir, NULL );
     if (!res && GetLastError() != ERROR_ALREADY_EXISTS)
     {
-        HeapFree( GetProcessHeap(), 0, dir );
+        heap_free( dir );
         dir = NULL;
     }
     TRACE( "ppd temporary dir: %s\n", debugstr_w(dir) );
@@ -773,7 +773,7 @@ static void unlink_ppd( const WCHAR *ppd )
 {
     char *unix_name = wine_get_unix_file_name( ppd );
     unlink( unix_name );
-    HeapFree( GetProcessHeap(), 0, unix_name );
+    heap_free( unix_name );
 }
 
 #ifdef SONAME_LIBCUPS
@@ -843,7 +843,7 @@ static BOOL get_cups_ppd( const char *printer_name, const WCHAR *ppd )
                                        unix_name, strlen( unix_name ) + 1 );
 
     if (http_status != HTTP_OK) unlink( unix_name );
-    HeapFree( GetProcessHeap(), 0, unix_name );
+    heap_free( unix_name );
 
     if (http_status == HTTP_OK) return TRUE;
 
@@ -862,7 +862,7 @@ static WCHAR *get_cups_option( const char *name, int num_options, cups_option_t 
     if (!value) return NULL;
 
     len = MultiByteToWideChar( CP_UNIXCP, 0, value, -1, NULL, 0 );
-    ret = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+    ret = heap_alloc( len * sizeof(WCHAR) );
     if (ret) MultiByteToWideChar( CP_UNIXCP, 0, value, -1, ret, len );
 
     return ret;
@@ -878,7 +878,7 @@ static cups_ptype_t get_cups_printer_type( const cups_dest_t *dest )
         ret = (cups_ptype_t)strtoulW( type, &end, 10 );
         if (*end) ret = 0;
     }
-    HeapFree( GetProcessHeap(), 0, type );
+    heap_free( type );
     return ret;
 }
 
@@ -938,7 +938,7 @@ static BOOL CUPS_LoadPrinters(void)
             continue;
         }
 
-        port = HeapAlloc(GetProcessHeap(), 0, sizeof(CUPS_Port) + lstrlenW(nameW) * sizeof(WCHAR));
+        port = heap_alloc(sizeof(CUPS_Port) + lstrlenW(nameW) * sizeof(WCHAR));
         lstrcpyW(port, CUPS_Port);
         lstrcatW(port, nameW);
 
@@ -958,7 +958,7 @@ static BOOL CUPS_LoadPrinters(void)
 
             if (!ppd_dir && !(ppd_dir = get_ppd_dir()))
             {
-                HeapFree( GetProcessHeap(), 0, port );
+                heap_free( port );
                 break;
             }
             ppd = get_ppd_filename( ppd_dir, nameW );
@@ -967,10 +967,10 @@ static BOOL CUPS_LoadPrinters(void)
                 added_driver = add_printer_driver( nameW, ppd );
                 unlink_ppd( ppd );
             }
-            HeapFree( GetProcessHeap(), 0, ppd );
+            heap_free( ppd );
             if (!added_driver)
             {
-                HeapFree( GetProcessHeap(), 0, port );
+                heap_free( port );
                 continue;
             }
 
@@ -991,10 +991,10 @@ static BOOL CUPS_LoadPrinters(void)
             else if (GetLastError() != ERROR_PRINTER_ALREADY_EXISTS)
                 ERR( "printer '%s' not added by AddPrinter (error %d)\n", debugstr_w(nameW), GetLastError() );
 
-            HeapFree( GetProcessHeap(), 0, pi2.pComment );
-            HeapFree( GetProcessHeap(), 0, pi2.pLocation );
+            heap_free( pi2.pComment );
+            heap_free( pi2.pLocation );
         }
-        HeapFree( GetProcessHeap(), 0, port );
+        heap_free( port );
 
         hadprinter = TRUE;
         if (dests[i].is_default) {
@@ -1006,7 +1006,7 @@ static BOOL CUPS_LoadPrinters(void)
     if (ppd_dir)
     {
         RemoveDirectoryW( ppd_dir );
-        HeapFree( GetProcessHeap(), 0, ppd_dir );
+        heap_free( ppd_dir );
     }
 
     if (hadprinter && !haddefault) {
@@ -1033,7 +1033,7 @@ static char *get_queue_name( HANDLE printer, BOOL *cups )
     if (err) return NULL;
     err = RegQueryValueExW( key, PortW, 0, &type, NULL, &needed );
     if (err) goto end;
-    port = HeapAlloc( GetProcessHeap(), 0, needed );
+    port = heap_alloc( needed );
     if (!port) goto end;
     RegQueryValueExW( key, PortW, 0, &type, (BYTE*)port, &needed );
 
@@ -1047,10 +1047,10 @@ static char *get_queue_name( HANDLE printer, BOOL *cups )
     if (name)
     {
         needed = WideCharToMultiByte( CP_UNIXCP, 0, name, -1, NULL, 0, NULL, NULL );
-        ret = HeapAlloc( GetProcessHeap(), 0, needed );
+        ret = heap_alloc( needed );
         if(ret) WideCharToMultiByte( CP_UNIXCP, 0, name, -1, ret, needed, NULL, NULL );
     }
-    HeapFree( GetProcessHeap(), 0, port );
+    heap_free( port );
 end:
     RegCloseKey( key );
     return ret;
@@ -1088,7 +1088,7 @@ static void set_ppd_overrides( HANDLE printer )
     range.length = CFStringGetLength( paper_name );
     size = (range.length + 1) * sizeof(WCHAR);
 
-    wstr = HeapAlloc( GetProcessHeap(), 0, size );
+    wstr = heap_alloc( size );
     CFStringGetCharacters( paper_name, range, (UniChar*)wstr );
     wstr[range.length] = 0;
 
@@ -1098,7 +1098,7 @@ end:
 #endif
 
     SetPrinterDataExW( printer, PPD_Overrides, DefaultPageSize, REG_SZ, (BYTE*)wstr, size );
-    HeapFree( GetProcessHeap(), 0, wstr );
+    heap_free( wstr );
 }
 
 static BOOL update_driver( HANDLE printer )
@@ -1114,7 +1114,7 @@ static BOOL update_driver( HANDLE printer )
 
     if (!(ppd_dir = get_ppd_dir()))
     {
-        HeapFree( GetProcessHeap(), 0, queue_name );
+        heap_free( queue_name );
         return FALSE;
     }
     ppd = get_ppd_filename( ppd_dir, name );
@@ -1132,9 +1132,9 @@ static BOOL update_driver( HANDLE printer )
         ret = add_printer_driver( name, ppd );
         unlink_ppd( ppd );
     }
-    HeapFree( GetProcessHeap(), 0, ppd_dir );
-    HeapFree( GetProcessHeap(), 0, ppd );
-    HeapFree( GetProcessHeap(), 0, queue_name );
+    heap_free( ppd_dir );
+    heap_free( ppd );
+    heap_free( queue_name );
 
     set_ppd_overrides( printer );
 
@@ -1162,7 +1162,7 @@ static BOOL PRINTCAP_ParseEntry( const char *pent, BOOL isfirst )
         name_len = r - pent;
     else
         name_len = strlen(pent);
-    name = HeapAlloc(GetProcessHeap(), 0, name_len + 1);
+    name = heap_alloc(name_len + 1);
     memcpy(name, pent, name_len);
     name[name_len] = '\0';
     if (r)
@@ -1212,7 +1212,7 @@ static BOOL PRINTCAP_ParseEntry( const char *pent, BOOL isfirst )
         goto end;
     }
 
-    port = HeapAlloc(GetProcessHeap(),0,strlen("LPR:")+strlen(name)+1);
+    port = heap_alloc(strlen("LPR:")+strlen(name)+1);
     sprintf(port,"LPR:%s",name);
 
     if(RegCreateKeyW(HKEY_LOCAL_MACHINE, PrintersW, &hkeyPrinters) !=
@@ -1249,7 +1249,7 @@ static BOOL PRINTCAP_ParseEntry( const char *pent, BOOL isfirst )
             added_driver = add_printer_driver( devnameW, ppd );
             unlink_ppd( ppd );
         }
-        HeapFree( GetProcessHeap(), 0, ppd );
+        heap_free( ppd );
         if (!added_driver) goto end;
 
         memset(&pinfo2a,0,sizeof(pinfo2a));
@@ -1278,10 +1278,10 @@ static BOOL PRINTCAP_ParseEntry( const char *pent, BOOL isfirst )
     if (ppd_dir)
     {
         RemoveDirectoryW( ppd_dir );
-        HeapFree( GetProcessHeap(), 0, ppd_dir );
+        heap_free( ppd_dir );
     }
-    HeapFree(GetProcessHeap(), 0, port);
-    HeapFree(GetProcessHeap(), 0, name);
+    heap_free(port);
+    heap_free(name);
     return ret;
 }
 
@@ -1310,7 +1310,7 @@ PRINTCAP_LoadPrinters(void) {
 
         if(pent && !had_bash && *start != ':' && *start != '|') { /* start of new entry, parse the previous one */
 	    hadprinter |= PRINTCAP_ParseEntry(pent,!hadprinter);
-            HeapFree(GetProcessHeap(),0,pent);
+            heap_free(pent);
             pent = NULL;
         }
 
@@ -1321,17 +1321,17 @@ PRINTCAP_LoadPrinters(void) {
             had_bash = FALSE;
 
         if (pent) {
-            pent=HeapReAlloc(GetProcessHeap(),0,pent,strlen(pent)+strlen(start)+1);
+            pent=heap_realloc(pent,strlen(pent)+strlen(start)+1);
             strcat(pent,start);
         } else {
-            pent=HeapAlloc(GetProcessHeap(),0,strlen(start)+1);
+            pent=heap_alloc(strlen(start)+1);
             strcpy(pent,start);
         }
 
     }
     if(pent) {
         hadprinter |= PRINTCAP_ParseEntry(pent,!hadprinter);
-        HeapFree(GetProcessHeap(),0,pent);
+        heap_free(pent);
     }
     fclose(f);
     return hadprinter;
@@ -1360,7 +1360,7 @@ static inline DWORD set_reg_devmode( HKEY key, const WCHAR *name, const DEVMODEW
     {
         ret = RegSetValueExW( key, name, 0, REG_BINARY,
                               (LPBYTE)dmA, dmA->dmSize + dmA->dmDriverExtra );
-        HeapFree( GetProcessHeap(), 0, dmA );
+        heap_free( dmA );
     }
 
     return ret;
@@ -1395,7 +1395,7 @@ static LPWSTR get_servername_from_name(LPCWSTR name)
     if (GetComputerNameW(buffer, &len)) {
         if (lstrcmpW(buffer, server) == 0) {
             /* The requested Servername is our computername */
-            HeapFree(GetProcessHeap(), 0, server);
+            heap_free(server);
             return NULL;
         }
     }
@@ -1431,10 +1431,10 @@ static LPCWSTR get_basename_from_name(LPCWSTR name)
 static void free_printer_entry( opened_printer_t *printer )
 {
     /* the queue is shared, so don't free that here */
-    HeapFree( GetProcessHeap(), 0, printer->printername );
-    HeapFree( GetProcessHeap(), 0, printer->name );
-    HeapFree( GetProcessHeap(), 0, printer->devmode );
-    HeapFree( GetProcessHeap(), 0, printer );
+    heap_free( printer->printername );
+    heap_free( printer->name );
+    heap_free( printer->devmode );
+    heap_free( printer );
 }
 
 /******************************************************************
@@ -1457,7 +1457,7 @@ static HANDLE get_opened_printer_entry(LPWSTR name, LPPRINTER_DEFAULTSW pDefault
     servername = get_servername_from_name(name);
     if (servername) {
         FIXME("server %s not supported\n", debugstr_w(servername));
-        HeapFree(GetProcessHeap(), 0, servername);
+        heap_free(servername);
         SetLastError(ERROR_INVALID_PRINTER_NAME);
         return NULL;
     }
@@ -1494,7 +1494,7 @@ static HANDLE get_opened_printer_entry(LPWSTR name, LPPRINTER_DEFAULTSW pDefault
             new_array = HeapReAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, printer_handles,
                                      (nb_printer_handles + 16) * sizeof(*new_array) );
         else
-            new_array = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
+            new_array = heap_alloc_zero(
                                    (nb_printer_handles + 16) * sizeof(*new_array) );
 
         if (!new_array)
@@ -1506,7 +1506,7 @@ static HANDLE get_opened_printer_entry(LPWSTR name, LPPRINTER_DEFAULTSW pDefault
         nb_printer_handles += 16;
     }
 
-    if (!(printer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*printer))))
+    if (!(printer = heap_alloc_zero(sizeof(*printer))))
     {
         handle = 0;
         goto end;
@@ -1535,7 +1535,7 @@ static HANDLE get_opened_printer_entry(LPWSTR name, LPPRINTER_DEFAULTSW pDefault
         printer->queue = queue;
     else
     {
-        printer->queue = HeapAlloc(GetProcessHeap(), 0, sizeof(*queue));
+        printer->queue = heap_alloc(sizeof(*queue));
         if (!printer->queue) {
             handle = 0;
             goto end;
@@ -1550,7 +1550,7 @@ static HANDLE get_opened_printer_entry(LPWSTR name, LPPRINTER_DEFAULTSW pDefault
 end:
     LeaveCriticalSection(&printer_handles_cs);
     if (!handle && printer) {
-        if (!queue) HeapFree(GetProcessHeap(), 0, printer->queue);
+        if (!queue) heap_free(printer->queue);
         free_printer_entry( printer );
     }
 
@@ -1568,7 +1568,7 @@ static void old_printer_check( BOOL delete_phase )
     EnumPrintersW( PRINTER_ENUM_LOCAL, NULL, 5, NULL, 0, &needed, &num );
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) return;
 
-    pi = HeapAlloc( GetProcessHeap(), 0, needed );
+    pi = heap_alloc( needed );
     EnumPrintersW( PRINTER_ENUM_LOCAL, NULL, 5, (LPBYTE)pi, needed, &needed, &num );
     for (i = 0; i < num; i++)
     {
@@ -1601,7 +1601,7 @@ static void old_printer_check( BOOL delete_phase )
             }
         }
     }
-    HeapFree(GetProcessHeap(), 0, pi);
+    heap_free(pi);
 }
 
 static const WCHAR winspool_mutex_name[] = {'_','_','W','I','N','E','_','W','I','N','S','P','O','O','L','_',
@@ -1838,7 +1838,7 @@ static void convert_printerinfo_W_to_A(LPBYTE out, LPBYTE pPrintersW,
                         piA->pDevMode = (LPDEVMODEA) ptr;
                         len = dmA->dmSize + dmA->dmDriverExtra;
                         memcpy(ptr, dmA, len);
-                        HeapFree(GetProcessHeap(), 0, dmA);
+                        heap_free(dmA);
 
                         ptr += len;
                         outlen -= len;
@@ -1964,7 +1964,7 @@ static void convert_printerinfo_W_to_A(LPBYTE out, LPBYTE pPrintersW,
                         piA->pDevMode = (LPDEVMODEA) ptr;
                         len = dmA->dmSize + dmA->dmDriverExtra;
                         memcpy(ptr, dmA, len);
-                        HeapFree(GetProcessHeap(), 0, dmA);
+                        heap_free(dmA);
 
                         ptr += len;
                         outlen -= len;
@@ -2176,7 +2176,7 @@ static void *printer_info_AtoW( const void *data, DWORD level )
 
     if (level < 1 || level > 9) return NULL;
 
-    ret = HeapAlloc( GetProcessHeap(), 0, pi_sizeof[level] );
+    ret = heap_alloc( pi_sizeof[level] );
     if (!ret) return NULL;
 
     memcpy( ret, data, pi_sizeof[level] ); /* copy everything first */
@@ -2215,7 +2215,7 @@ static void *printer_info_AtoW( const void *data, DWORD level )
 
     default:
         FIXME( "Unhandled level %d\n", level );
-        HeapFree( GetProcessHeap(), 0, ret );
+        heap_free( ret );
         return NULL;
     }
 
@@ -2235,18 +2235,18 @@ static void free_printer_info( void *data, DWORD level )
     {
         PRINTER_INFO_2W *piW = (PRINTER_INFO_2W *)data;
 
-        HeapFree( GetProcessHeap(), 0, piW->pServerName );
-        HeapFree( GetProcessHeap(), 0, piW->pPrinterName );
-        HeapFree( GetProcessHeap(), 0, piW->pShareName );
-        HeapFree( GetProcessHeap(), 0, piW->pPortName );
-        HeapFree( GetProcessHeap(), 0, piW->pDriverName );
-        HeapFree( GetProcessHeap(), 0, piW->pComment );
-        HeapFree( GetProcessHeap(), 0, piW->pLocation );
-        HeapFree( GetProcessHeap(), 0, piW->pDevMode );
-        HeapFree( GetProcessHeap(), 0, piW->pSepFile );
-        HeapFree( GetProcessHeap(), 0, piW->pPrintProcessor );
-        HeapFree( GetProcessHeap(), 0, piW->pDatatype );
-        HeapFree( GetProcessHeap(), 0, piW->pParameters );
+        heap_free( piW->pServerName );
+        heap_free( piW->pPrinterName );
+        heap_free( piW->pShareName );
+        heap_free( piW->pPortName );
+        heap_free( piW->pDriverName );
+        heap_free( piW->pComment );
+        heap_free( piW->pLocation );
+        heap_free( piW->pDevMode );
+        heap_free( piW->pSepFile );
+        heap_free( piW->pPrintProcessor );
+        heap_free( piW->pDatatype );
+        heap_free( piW->pParameters );
         break;
     }
 
@@ -2255,7 +2255,7 @@ static void free_printer_info( void *data, DWORD level )
     {
         PRINTER_INFO_9W *piW = (PRINTER_INFO_9W *)data;
 
-        HeapFree( GetProcessHeap(), 0, piW->pDevMode );
+        heap_free( piW->pDevMode );
         break;
     }
 
@@ -2263,7 +2263,7 @@ static void free_printer_info( void *data, DWORD level )
         FIXME( "Unhandled level %d\n", level );
     }
 
-    HeapFree( GetProcessHeap(), 0, data );
+    heap_free( data );
     return;
 }
 
@@ -2289,7 +2289,7 @@ INT WINAPI DeviceCapabilitiesA(LPCSTR pDevice,LPCSTR pPort, WORD cap,
 
     /* If DC_PAPERSIZE map POINT16s to POINTs */
     if(ret != -1 && cap == DC_PAPERSIZE && pOutput) {
-        POINT16 *tmp = HeapAlloc( GetProcessHeap(), 0, ret * sizeof(POINT16) );
+        POINT16 *tmp = heap_alloc( ret * sizeof(POINT16) );
         POINT *pt = (POINT *)pOutput;
 	INT i;
 	memcpy(tmp, pOutput, ret * sizeof(POINT16));
@@ -2298,7 +2298,7 @@ INT WINAPI DeviceCapabilitiesA(LPCSTR pDevice,LPCSTR pPort, WORD cap,
             pt->x = tmp[i].x;
             pt->y = tmp[i].y;
         }
-	HeapFree( GetProcessHeap(), 0, tmp );
+	heap_free( tmp );
     }
     return ret;
 }
@@ -2340,20 +2340,20 @@ INT WINAPI DeviceCapabilitiesW(LPCWSTR pDevice, LPCWSTR pPort,
 	    size = 64;
 	    break;
 	}
-	pOutputA = HeapAlloc(GetProcessHeap(), 0, size * ret);
+	pOutputA = heap_alloc(size * ret);
 	ret = DeviceCapabilitiesA(pDeviceA, pPortA, fwCapability, pOutputA,
 				  dmA);
 	for(i = 0; i < ret; i++)
 	    MultiByteToWideChar(CP_ACP, 0, pOutputA + (i * size), -1,
 				pOutput + (i * size), size);
-	HeapFree(GetProcessHeap(), 0, pOutputA);
+	heap_free(pOutputA);
     } else {
         ret = DeviceCapabilitiesA(pDeviceA, pPortA, fwCapability,
 				  (LPSTR)pOutput, dmA);
     }
-    HeapFree(GetProcessHeap(),0,pPortA);
-    HeapFree(GetProcessHeap(),0,pDeviceA);
-    HeapFree(GetProcessHeap(),0,dmA);
+    heap_free(pPortA);
+    heap_free(pDeviceA);
+    heap_free(dmA);
     return ret;
 }
 
@@ -2398,7 +2398,7 @@ LONG WINAPI DocumentPropertiesA(HWND hWnd,HANDLE hPrinter,
 				  pDevModeInput, NULL, fMode);
 
 end:
-    HeapFree(GetProcessHeap(), 0, dupname);
+    heap_free(dupname);
     return ret;
 }
 
@@ -2425,19 +2425,19 @@ LONG WINAPI DocumentPropertiesW(HWND hWnd, HANDLE hPrinter,
     if(pDevModeOutput) {
         ret = DocumentPropertiesA(hWnd, hPrinter, pDeviceNameA, NULL, NULL, 0);
 	if(ret < 0) return ret;
-	pDevModeOutputA = HeapAlloc(GetProcessHeap(), 0, ret);
+	pDevModeOutputA = heap_alloc(ret);
     }
     pDevModeInputA = (fMode & DM_IN_BUFFER) ? DEVMODEdupWtoA(pDevModeInput) : NULL;
     ret = DocumentPropertiesA(hWnd, hPrinter, pDeviceNameA, pDevModeOutputA,
 			      pDevModeInputA, fMode);
     if(pDevModeOutput) {
         DEVMODEcpyAtoW(pDevModeOutput, pDevModeOutputA);
-	HeapFree(GetProcessHeap(),0,pDevModeOutputA);
+	heap_free(pDevModeOutputA);
     }
     if(fMode == 0 && ret > 0)
         ret += (CCHDEVICENAME + CCHFORMNAME);
-    HeapFree(GetProcessHeap(),0,pDevModeInputA);
-    HeapFree(GetProcessHeap(),0,pDeviceNameA);
+    heap_free(pDevModeInputA);
+    heap_free(pDeviceNameA);
     return ret;
 }
 
@@ -2501,7 +2501,7 @@ BOOL WINAPI OpenPrinterA(LPSTR lpPrinterName,HANDLE *phPrinter,
     ret = OpenPrinterW(pwstrPrinterNameW, phPrinter, pDefaultW);
     if(pDefault) {
         RtlFreeUnicodeString(&usBuffer);
-	HeapFree(GetProcessHeap(), 0, DefaultW.pDevMode);
+	heap_free(DefaultW.pDevMode);
     }
     RtlFreeUnicodeString(&lpPrinterNameW);
     return ret;
@@ -2599,34 +2599,34 @@ BOOL WINAPI AddMonitorA(LPSTR pName, DWORD Level, LPBYTE pMonitors)
 
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
 
     memset(&mi2w, 0, sizeof(MONITOR_INFO_2W));
     if (mi2a->pName) {
         len = MultiByteToWideChar(CP_ACP, 0, mi2a->pName, -1, NULL, 0);
-        mi2w.pName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        mi2w.pName = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, mi2a->pName, -1, mi2w.pName, len);
     }
     if (mi2a->pEnvironment) {
         len = MultiByteToWideChar(CP_ACP, 0, mi2a->pEnvironment, -1, NULL, 0);
-        mi2w.pEnvironment = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        mi2w.pEnvironment = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, mi2a->pEnvironment, -1, mi2w.pEnvironment, len);
     }
     if (mi2a->pDLLName) {
         len = MultiByteToWideChar(CP_ACP, 0, mi2a->pDLLName, -1, NULL, 0);
-        mi2w.pDLLName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        mi2w.pDLLName = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, mi2a->pDLLName, -1, mi2w.pDLLName, len);
     }
 
     res = AddMonitorW(nameW, Level, (LPBYTE) &mi2w);
 
-    HeapFree(GetProcessHeap(), 0, mi2w.pName); 
-    HeapFree(GetProcessHeap(), 0, mi2w.pEnvironment); 
-    HeapFree(GetProcessHeap(), 0, mi2w.pDLLName); 
+    heap_free(mi2w.pName); 
+    heap_free(mi2w.pEnvironment); 
+    heap_free(mi2w.pDLLName); 
 
-    HeapFree(GetProcessHeap(), 0, nameW); 
+    heap_free(nameW); 
     return (res);
 }
 
@@ -2707,26 +2707,26 @@ BOOL WINAPI DeleteMonitorA (LPSTR pName, LPSTR pEnvironment, LPSTR pMonitorName)
 
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
 
     if (pEnvironment) {
         len = MultiByteToWideChar(CP_ACP, 0, pEnvironment, -1, NULL, 0);
-        EnvironmentW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        EnvironmentW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pEnvironment, -1, EnvironmentW, len);
     }
     if (pMonitorName) {
         len = MultiByteToWideChar(CP_ACP, 0, pMonitorName, -1, NULL, 0);
-        MonitorNameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        MonitorNameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pMonitorName, -1, MonitorNameW, len);
     }
 
     res = DeleteMonitorW(nameW, EnvironmentW, MonitorNameW);
 
-    HeapFree(GetProcessHeap(), 0, MonitorNameW); 
-    HeapFree(GetProcessHeap(), 0, EnvironmentW);
-    HeapFree(GetProcessHeap(), 0, nameW); 
+    heap_free(MonitorNameW); 
+    heap_free(EnvironmentW);
+    heap_free(nameW); 
     return (res);
 }
 
@@ -2778,20 +2778,20 @@ BOOL WINAPI DeletePortA (LPSTR pName, HWND hWnd, LPSTR pPortName)
     /* convert servername to unicode */
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
 
     /* convert portname to unicode */
     if (pPortName) {
         len = MultiByteToWideChar(CP_ACP, 0, pPortName, -1, NULL, 0);
-        portW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        portW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pPortName, -1, portW, len);
     }
 
     res = DeletePortW(nameW, hWnd, portW);
-    HeapFree(GetProcessHeap(), 0, nameW);
-    HeapFree(GetProcessHeap(), 0, portW);
+    heap_free(nameW);
+    heap_free(portW);
     return res;
 }
 
@@ -2935,7 +2935,7 @@ BOOL WINAPI AddJobW(HANDLE hPrinter, DWORD Level, LPBYTE pData, DWORD cbBuf, LPD
         goto end;
     }
 
-    job = HeapAlloc(GetProcessHeap(), 0, sizeof(*job));
+    job = heap_alloc(sizeof(*job));
     if(!job)
         goto end;
 
@@ -2948,7 +2948,7 @@ BOOL WINAPI AddJobW(HANDLE hPrinter, DWORD Level, LPBYTE pData, DWORD cbBuf, LPD
     sprintfW(filename, fmtW, path, job->job_id);
 
     len = strlenW(filename);
-    job->filename = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+    job->filename = heap_alloc((len + 1) * sizeof(WCHAR));
     memcpy(job->filename, filename, (len + 1) * sizeof(WCHAR));
     job->portname = NULL;
     job->document_title = strdupW(default_doc_title);
@@ -2995,13 +2995,13 @@ BOOL WINAPI GetPrintProcessorDirectoryA(LPSTR server, LPSTR env,
 
     if (server) {
         len = MultiByteToWideChar(CP_ACP, 0, server, -1, NULL, 0);
-        serverW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        serverW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, server, -1, serverW, len);
     }
 
     if (env) {
         len = MultiByteToWideChar(CP_ACP, 0, env, -1, NULL, 0);
-        envW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        envW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, env, -1, envW, len);
     }
 
@@ -3016,8 +3016,8 @@ BOOL WINAPI GetPrintProcessorDirectoryA(LPSTR server, LPSTR env,
 
 
     TRACE(" required: 0x%x/%d\n", pcbNeeded ? *pcbNeeded : 0, pcbNeeded ? *pcbNeeded : 0);
-    HeapFree(GetProcessHeap(), 0, envW);
-    HeapFree(GetProcessHeap(), 0, serverW);
+    heap_free(envW);
+    heap_free(serverW);
     return ret;
 }
 
@@ -3097,13 +3097,13 @@ static HKEY WINSPOOL_OpenDriverReg( LPCVOID pEnvironment)
     env = validate_envW(pEnvironment);
     if (!env) return NULL;
 
-    buffer = HeapAlloc( GetProcessHeap(), 0,
+    buffer = heap_alloc(
                 (strlenW(DriversW) + strlenW(env->envname) + 
                  strlenW(env->versionregpath) + 1) * sizeof(WCHAR));
     if(buffer) {
         wsprintfW(buffer, DriversW, env->envname, env->versionregpath);
         RegCreateKeyW(HKEY_LOCAL_MACHINE, buffer, &retval);
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     }
     return retval;
 }
@@ -3123,7 +3123,7 @@ static void set_devices_and_printerports(PRINTER_INFO_2W *pi)
     TRACE("(%p) %s\n", pi, debugstr_w(pi->pPrinterName));
 
     /* FIXME: the driver must change to "winspool" */
-    devline = HeapAlloc(GetProcessHeap(), 0, sizeof(driver_nt) + portlen + sizeof(timeout_15_45));
+    devline = heap_alloc(sizeof(driver_nt) + portlen + sizeof(timeout_15_45));
     if (devline) {
         lstrcpyW(devline, driver_nt);
         lstrcatW(devline, commaW);
@@ -3144,7 +3144,7 @@ static void set_devices_and_printerports(PRINTER_INFO_2W *pi)
                             (lstrlenW(devline) + 1) * sizeof(WCHAR));
             RegCloseKey(hkey);
         }
-        HeapFree(GetProcessHeap(), 0, devline);
+        heap_free(devline);
     }
 }
 
@@ -3253,12 +3253,12 @@ HANDLE WINAPI AddPrinterW(LPWSTR pName, DWORD Level, LPBYTE pPrinter)
         dm = pi->pDevMode;
     else
     {
-        dm = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size );
+        dm = heap_alloc_zero( size );
         dm->dmSize = size;
         if (DocumentPropertiesW(0, 0, pi->pPrinterName, dm, NULL, DM_OUT_BUFFER) < 0)
         {
             WARN("DocumentPropertiesW on printer %s failed!\n", debugstr_w(pi->pPrinterName));
-            HeapFree( GetProcessHeap(), 0, dm );
+            heap_free( dm );
             dm = NULL;
         }
         else
@@ -3269,7 +3269,7 @@ HANDLE WINAPI AddPrinterW(LPWSTR pName, DWORD Level, LPBYTE pPrinter)
     }
 
     set_reg_devmode( hkeyPrinter, Default_DevModeW, dm );
-    if (!pi->pDevMode) HeapFree( GetProcessHeap(), 0, dm );
+    if (!pi->pDevMode) heap_free( dm );
 
     RegCloseKey(hkeyPrinter);
     RegCloseKey(hkeyPrinters);
@@ -3340,7 +3340,7 @@ BOOL WINAPI ClosePrinter(HANDLE hPrinter)
                 job_t *job = LIST_ENTRY(cursor, job_t, entry);
                 ScheduleJob(hPrinter, job->job_id);
             }
-            HeapFree(GetProcessHeap(), 0, printer->queue);
+            heap_free(printer->queue);
         }
 
         if (printer->backend_printer) {
@@ -3540,7 +3540,7 @@ BOOL WINAPI SetJobA(HANDLE hPrinter, DWORD JobId, DWORD Level,
         break;
     case 1:
       {
-        JOB_INFO_1W *info1W = HeapAlloc(GetProcessHeap(), 0, sizeof(*info1W));
+        JOB_INFO_1W *info1W = heap_alloc(sizeof(*info1W));
         JOB_INFO_1A *info1A = (JOB_INFO_1A*)pJob;
 
         JobW = (LPBYTE)info1W;
@@ -3556,7 +3556,7 @@ BOOL WINAPI SetJobA(HANDLE hPrinter, DWORD JobId, DWORD Level,
       }
     case 2:
       {
-        JOB_INFO_2W *info2W = HeapAlloc(GetProcessHeap(), 0, sizeof(*info2W));
+        JOB_INFO_2W *info2W = heap_alloc(sizeof(*info2W));
         JOB_INFO_2A *info2A = (JOB_INFO_2A*)pJob;
 
         JobW = (LPBYTE)info2W;
@@ -3578,7 +3578,7 @@ BOOL WINAPI SetJobA(HANDLE hPrinter, DWORD JobId, DWORD Level,
         break;
       }
     case 3:
-        JobW = HeapAlloc(GetProcessHeap(), 0, sizeof(JOB_INFO_3));
+        JobW = heap_alloc(sizeof(JOB_INFO_3));
         memcpy(JobW, pJob, sizeof(JOB_INFO_3));
         break;
     default:
@@ -3593,27 +3593,27 @@ BOOL WINAPI SetJobA(HANDLE hPrinter, DWORD JobId, DWORD Level,
     case 1:
       {
         JOB_INFO_1W *info1W = (JOB_INFO_1W*)JobW;
-        HeapFree(GetProcessHeap(), 0, info1W->pUserName);
-        HeapFree(GetProcessHeap(), 0, info1W->pDocument); 
-        HeapFree(GetProcessHeap(), 0, info1W->pDatatype);
-        HeapFree(GetProcessHeap(), 0, info1W->pStatus);
+        heap_free(info1W->pUserName);
+        heap_free(info1W->pDocument); 
+        heap_free(info1W->pDatatype);
+        heap_free(info1W->pStatus);
         break;
       }
     case 2:
       {
         JOB_INFO_2W *info2W = (JOB_INFO_2W*)JobW;
-        HeapFree(GetProcessHeap(), 0, info2W->pUserName);
-        HeapFree(GetProcessHeap(), 0, info2W->pDocument); 
-        HeapFree(GetProcessHeap(), 0, info2W->pNotifyName);
-        HeapFree(GetProcessHeap(), 0, info2W->pDatatype);
-        HeapFree(GetProcessHeap(), 0, info2W->pPrintProcessor);
-        HeapFree(GetProcessHeap(), 0, info2W->pParameters);
-        HeapFree(GetProcessHeap(), 0, info2W->pDevMode);
-        HeapFree(GetProcessHeap(), 0, info2W->pStatus);
+        heap_free(info2W->pUserName);
+        heap_free(info2W->pDocument); 
+        heap_free(info2W->pNotifyName);
+        heap_free(info2W->pDatatype);
+        heap_free(info2W->pPrintProcessor);
+        heap_free(info2W->pParameters);
+        heap_free(info2W->pDevMode);
+        heap_free(info2W->pStatus);
         break;
       }
     }
-    HeapFree(GetProcessHeap(), 0, JobW);
+    heap_free(JobW);
 
     return ret;
 }
@@ -3642,16 +3642,16 @@ BOOL WINAPI SetJobW(HANDLE hPrinter, DWORD JobId, DWORD Level,
     case 1:
       {
         JOB_INFO_1W *info1 = (JOB_INFO_1W*)pJob;
-        HeapFree(GetProcessHeap(), 0, job->document_title);
+        heap_free(job->document_title);
         job->document_title = strdupW(info1->pDocument);
         break;
       }
     case 2:
       {
         JOB_INFO_2W *info2 = (JOB_INFO_2W*)pJob;
-        HeapFree(GetProcessHeap(), 0, job->document_title);
+        heap_free(job->document_title);
         job->document_title = strdupW(info2->pDocument);
-        HeapFree(GetProcessHeap(), 0, job->devmode);
+        heap_free(job->devmode);
         job->devmode = dup_devmode( info2->pDevMode );
         break;
       }
@@ -3693,7 +3693,7 @@ BOOL WINAPI EndDocPrinter(HANDLE hPrinter)
 
     CloseHandle(printer->doc->hf);
     ScheduleJob(hPrinter, printer->doc->job_id);
-    HeapFree(GetProcessHeap(), 0, printer->doc);
+    heap_free(printer->doc);
     printer->doc = NULL;
     ret = TRUE;
 end:
@@ -3743,9 +3743,9 @@ DWORD WINAPI StartDocPrinterA(HANDLE hPrinter, DWORD Level, LPBYTE pDocInfo)
 
     ret = StartDocPrinterW(hPrinter, Level, (LPBYTE)&doc2W);
 
-    HeapFree(GetProcessHeap(), 0, doc2W.pDatatype);
-    HeapFree(GetProcessHeap(), 0, doc2W.pOutputFile);
-    HeapFree(GetProcessHeap(), 0, doc2W.pDocName);
+    heap_free(doc2W.pDatatype);
+    heap_free(doc2W.pOutputFile);
+    heap_free(doc2W.pDocName);
 
     return ret;
 }
@@ -3812,7 +3812,7 @@ DWORD WINAPI StartDocPrinterW(HANDLE hPrinter, DWORD Level, LPBYTE pDocInfo)
     job_info.pDocument = doc->pDocName;
     SetJobW(hPrinter, addjob->JobId, 1, (LPBYTE)&job_info, 0);
 
-    printer->doc = HeapAlloc(GetProcessHeap(), 0, sizeof(*printer->doc));
+    printer->doc = heap_alloc(sizeof(*printer->doc));
     printer->doc->hf = hf;
     ret = printer->doc->job_id = addjob->JobId;
     job = get_job(hPrinter, ret);
@@ -3929,7 +3929,7 @@ static BOOL get_filename_from_reg(HKEY hkey, LPCWSTR driverdir, DWORD dirlen, LP
     ret = RegQueryValueExW(hkey, ValueName, NULL, &type, (LPBYTE) buffer, &size);
     if (ret == ERROR_MORE_DATA) {
         TRACE("need dynamic buffer: %u\n", size);
-        buffer = HeapAlloc(GetProcessHeap(), 0, size);
+        buffer = heap_alloc(size);
         if (!buffer) {
             /* No Memory is bad */
             return FALSE;
@@ -3939,7 +3939,7 @@ static BOOL get_filename_from_reg(HKEY hkey, LPCWSTR driverdir, DWORD dirlen, LP
     }
 
     if ((ret != ERROR_SUCCESS) || (!buffer[0])) {
-        if (buffer != filename) HeapFree(GetProcessHeap(), 0, buffer);
+        if (buffer != filename) heap_free(buffer);
         return FALSE;
     }
 
@@ -3975,7 +3975,7 @@ static BOOL get_filename_from_reg(HKEY hkey, LPCWSTR driverdir, DWORD dirlen, LP
         if ((type != REG_MULTI_SZ) || (!ptr[0]))  ptr = NULL;
     }
 
-    if (buffer != filename) HeapFree(GetProcessHeap(), 0, buffer);
+    if (buffer != filename) heap_free(buffer);
 
     /* write the multisz-termination */
     if (type == REG_MULTI_SZ) {
@@ -4066,7 +4066,7 @@ static BOOL WINSPOOL_GetDevModeFromReg(HKEY hkey, LPCWSTR ValueName,
     if (ptr && (buflen >= sz)) {
         DEVMODEW *dmW = GdiConvertToDevmodeW((DEVMODEA*)ptr);
         memcpy(ptr, dmW, sz);
-        HeapFree(GetProcessHeap(),0,dmW);
+        heap_free(dmW);
     }
     *needed = sz;
     return TRUE;
@@ -4577,12 +4577,12 @@ BOOL WINAPI GetPrinterA(HANDLE hPrinter, DWORD Level, LPBYTE pPrinter,
     LPBYTE buf = NULL;
 
     if (cbBuf)
-        buf = HeapAlloc(GetProcessHeap(), 0, cbBuf);
+        buf = heap_alloc(cbBuf);
 
     ret = GetPrinterW(hPrinter, Level, buf, cbBuf, pcbNeeded);
     if (ret)
         convert_printerinfo_W_to_A(pPrinter, buf, Level, cbBuf, 1);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     return ret;
 }
@@ -4825,7 +4825,7 @@ BOOL WINAPI EnumPrintersA(DWORD flags, LPSTR pName, DWORD level, LPBYTE pPrinter
 
     /* Request a buffer with a size, that is big enough for EnumPrintersW.
        MS Office need this */
-    pPrintersW = (pPrinters && cbBuf) ? HeapAlloc(GetProcessHeap(), 0, cbBuf) : NULL;
+    pPrintersW = (pPrinters && cbBuf) ? heap_alloc(cbBuf) : NULL;
 
     ret = EnumPrintersW(flags, pNameW, level, pPrintersW, cbBuf, pcbNeeded, pcReturned);
 
@@ -4833,7 +4833,7 @@ BOOL WINAPI EnumPrintersA(DWORD flags, LPSTR pName, DWORD level, LPBYTE pPrinter
     if (ret) {
         convert_printerinfo_W_to_A(pPrinters, pPrintersW, level, *pcbNeeded, *pcReturned);
     }
-    HeapFree(GetProcessHeap(), 0, pPrintersW);
+    heap_free(pPrintersW);
     return ret;
 }
 
@@ -5177,7 +5177,7 @@ BOOL WINAPI GetPrinterDriverA(HANDLE hPrinter, LPSTR pEnvironment,
     if (cbBuf)
     {
         ZeroMemory(pDriverInfo, cbBuf);
-        buf = HeapAlloc(GetProcessHeap(), 0, cbBuf);
+        buf = heap_alloc(cbBuf);
     }
 
     pwstrEnvW = asciitounicode(&pEnvW, pEnvironment);
@@ -5186,7 +5186,7 @@ BOOL WINAPI GetPrinterDriverA(HANDLE hPrinter, LPSTR pEnvironment,
     if (ret)
         convert_driverinfo_W_to_A(pDriverInfo, buf, Level, cbBuf, 1);
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     RtlFreeUnicodeString(&pEnvW);
     return ret;
@@ -5272,7 +5272,7 @@ BOOL WINAPI GetPrinterDriverDirectoryA(LPSTR pName, LPSTR pEnvironment,
     TRACE("(%s, %s, %d, %p, %d, %p)\n", debugstr_a(pName), 
           debugstr_a(pEnvironment), Level, pDriverDirectory, cbBuf, pcbNeeded);
  
-    if (len) driverDirectoryW = HeapAlloc( GetProcessHeap(), 0, len );
+    if (len) driverDirectoryW = heap_alloc( len );
 
     if(pName) RtlCreateUnicodeStringFromAsciiz(&nameW, pName);
     else nameW.Buffer = NULL;
@@ -5293,7 +5293,7 @@ BOOL WINAPI GetPrinterDriverDirectoryA(LPSTR pName, LPSTR pEnvironment,
 
     TRACE("required: 0x%x/%d\n", pcbNeeded ? *pcbNeeded : 0, pcbNeeded ? *pcbNeeded : 0);
 
-    HeapFree( GetProcessHeap(), 0, driverDirectoryW );
+    heap_free( driverDirectoryW );
     RtlFreeUnicodeString(&environmentW);
     RtlFreeUnicodeString(&nameW);
 
@@ -5638,7 +5638,7 @@ BOOL WINAPI EnumPrinterDriversA(LPSTR pName, LPSTR pEnvironment, DWORD Level,
     LPBYTE buf = NULL;
 
     if (cbBuf)
-        buf = HeapAlloc(GetProcessHeap(), 0, cbBuf);
+        buf = heap_alloc(cbBuf);
 
     pwstrNameW = asciitounicode(&pNameW, pName);
     pwstrEnvironmentW = asciitounicode(&pEnvironmentW, pEnvironment);
@@ -5648,7 +5648,7 @@ BOOL WINAPI EnumPrinterDriversA(LPSTR pName, LPSTR pEnvironment, DWORD Level,
     if (ret)
         convert_driverinfo_W_to_A(pDriverInfo, buf, Level, cbBuf, *pcReturned);
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     RtlFreeUnicodeString(&pNameW);
     RtlFreeUnicodeString(&pEnvironmentW);
@@ -5678,19 +5678,19 @@ BOOL WINAPI EnumPortsA( LPSTR pName, DWORD Level, LPBYTE pPorts, DWORD cbBuf,
     /* convert servername to unicode */
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
     /* alloc (userbuffersize*sizeof(WCHAR) and try to enum the Ports */
     needed = cbBuf * sizeof(WCHAR);    
-    if (needed) bufferW = HeapAlloc(GetProcessHeap(), 0, needed);
+    if (needed) bufferW = heap_alloc(needed);
     res = EnumPortsW(nameW, Level, bufferW, needed, pcbNeeded, pcReturned);
 
     if(!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
         if (pcbNeeded) needed = *pcbNeeded;
         /* HeapReAlloc return NULL, when bufferW was NULL */
-        bufferW = (bufferW) ? HeapReAlloc(GetProcessHeap(), 0, bufferW, needed) :
-                              HeapAlloc(GetProcessHeap(), 0, needed);
+        bufferW = (bufferW) ? heap_realloc(bufferW, needed) :
+                              heap_alloc(needed);
 
         /* Try again with the large Buffer */
         res = EnumPortsW(nameW, Level, bufferW, needed, pcbNeeded, pcReturned);
@@ -5783,8 +5783,8 @@ cleanup:
     if (pcbNeeded)  *pcbNeeded = needed;
     if (pcReturned) *pcReturned = (res) ? numentries : 0;
 
-    HeapFree(GetProcessHeap(), 0, nameW);
-    HeapFree(GetProcessHeap(), 0, bufferW);
+    heap_free(nameW);
+    heap_free(bufferW);
 
     TRACE("returning %d with %d (%d byte for %d of %d entries)\n", 
             (res), GetLastError(), needed, (res)? numentries : 0, numentries);
@@ -5858,7 +5858,7 @@ BOOL WINAPI GetDefaultPrinterW(LPWSTR name, LPDWORD namesize)
      * (20 for ,driver,port) */
     insize = *namesize;
     len = max(100, (insize + 20));
-    buffer = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR));
+    buffer = heap_alloc( len * sizeof(WCHAR));
 
     if (!GetProfileStringW(windowsW, deviceW, emptyStringW, buffer, len))
     {
@@ -5886,7 +5886,7 @@ BOOL WINAPI GetDefaultPrinterW(LPWSTR name, LPDWORD namesize)
     strcpyW(name, buffer);
 
 end:
-    HeapFree( GetProcessHeap(), 0, buffer);
+    heap_free( buffer);
     return retval;
 }
 
@@ -5908,7 +5908,7 @@ BOOL WINAPI GetDefaultPrinterA(LPSTR name, LPDWORD namesize)
 
     if(name && *namesize) {
 	insize = *namesize;
-	bufferW = HeapAlloc( GetProcessHeap(), 0, insize * sizeof(WCHAR));
+	bufferW = heap_alloc( insize * sizeof(WCHAR));
     }
 
     if(!GetDefaultPrinterW( bufferW, namesize)) {
@@ -5926,7 +5926,7 @@ BOOL WINAPI GetDefaultPrinterA(LPSTR name, LPDWORD namesize)
     TRACE("0x%08x/0x%08x:%s\n", *namesize, insize, debugstr_w(bufferW));
 
 end:
-    HeapFree( GetProcessHeap(), 0, bufferW);
+    heap_free( bufferW);
     return retval;
 }
 
@@ -5993,10 +5993,10 @@ BOOL WINAPI SetDefaultPrinterW(LPCWSTR pszPrinter)
     /* "pszPrinter" is never empty or NULL here. */
     namelen = lstrlenW(pszPrinter);
     size = namelen + (MAX_PATH * 2) + 3; /* printer,driver,port and a 0 */
-    buffer = HeapAlloc(GetProcessHeap(), 0, size * sizeof(WCHAR));
+    buffer = heap_alloc(size * sizeof(WCHAR));
     if (!buffer ||
         (RegOpenKeyExW(HKEY_CURRENT_USER, user_printers_reg_key, 0, KEY_READ, &hreg) != ERROR_SUCCESS)) {
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
         SetLastError(ERROR_FILE_NOT_FOUND);
         return FALSE;
     }
@@ -6035,7 +6035,7 @@ BOOL WINAPI SetDefaultPrinterW(LPCWSTR pszPrinter)
     }
 
     RegCloseKey(hreg);
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
     return (lres == ERROR_SUCCESS);
 }
 
@@ -6053,11 +6053,11 @@ BOOL WINAPI SetDefaultPrinterA(LPCSTR pszPrinter)
     TRACE("(%s)\n", debugstr_a(pszPrinter));
     if(pszPrinter) {
         INT len = MultiByteToWideChar(CP_ACP, 0, pszPrinter, -1, NULL, 0);
-        bufferW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        bufferW = heap_alloc(len * sizeof(WCHAR));
         if (bufferW) MultiByteToWideChar(CP_ACP, 0, pszPrinter, -1, bufferW, len);
     }
     res = SetDefaultPrinterW(bufferW);
-    HeapFree(GetProcessHeap(), 0, bufferW);
+    heap_free(bufferW);
     return res;
 }
 
@@ -6667,18 +6667,18 @@ BOOL WINAPI AddPortA(LPSTR pName, HWND hWnd, LPSTR pMonitorName)
 
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
 
     if (pMonitorName) {
         len = MultiByteToWideChar(CP_ACP, 0, pMonitorName, -1, NULL, 0);
-        monitorW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        monitorW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pMonitorName, -1, monitorW, len);
     }
     res = AddPortW(nameW, hWnd, monitorW);
-    HeapFree(GetProcessHeap(), 0, nameW);
-    HeapFree(GetProcessHeap(), 0, monitorW);
+    heap_free(nameW);
+    heap_free(monitorW);
     return res;
 }
 
@@ -6743,13 +6743,13 @@ BOOL WINAPI AddPortExA(LPSTR pName, DWORD level, LPBYTE pBuffer, LPSTR pMonitorN
 
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
 
     if (pMonitorName) {
         len = MultiByteToWideChar(CP_ACP, 0, pMonitorName, -1, NULL, 0);
-        monitorW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        monitorW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pMonitorName, -1, monitorW, len);
     }
 
@@ -6757,20 +6757,20 @@ BOOL WINAPI AddPortExA(LPSTR pName, DWORD level, LPBYTE pBuffer, LPSTR pMonitorN
 
     if (pi2A->pPortName) {
         len = MultiByteToWideChar(CP_ACP, 0, pi2A->pPortName, -1, NULL, 0);
-        pi2W.pPortName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        pi2W.pPortName = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pi2A->pPortName, -1, pi2W.pPortName, len);
     }
 
     if (level > 1) {
         if (pi2A->pMonitorName) {
             len = MultiByteToWideChar(CP_ACP, 0, pi2A->pMonitorName, -1, NULL, 0);
-            pi2W.pMonitorName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+            pi2W.pMonitorName = heap_alloc(len * sizeof(WCHAR));
             MultiByteToWideChar(CP_ACP, 0, pi2A->pMonitorName, -1, pi2W.pMonitorName, len);
         }
 
         if (pi2A->pDescription) {
             len = MultiByteToWideChar(CP_ACP, 0, pi2A->pDescription, -1, NULL, 0);
-            pi2W.pDescription = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+            pi2W.pDescription = heap_alloc(len * sizeof(WCHAR));
             MultiByteToWideChar(CP_ACP, 0, pi2A->pDescription, -1, pi2W.pDescription, len);
         }
         pi2W.fPortType = pi2A->fPortType;
@@ -6779,11 +6779,11 @@ BOOL WINAPI AddPortExA(LPSTR pName, DWORD level, LPBYTE pBuffer, LPSTR pMonitorN
 
     res = AddPortExW(nameW, level, (LPBYTE) &pi2W, monitorW);
 
-    HeapFree(GetProcessHeap(), 0, nameW);
-    HeapFree(GetProcessHeap(), 0, monitorW);
-    HeapFree(GetProcessHeap(), 0, pi2W.pPortName);
-    HeapFree(GetProcessHeap(), 0, pi2W.pMonitorName);
-    HeapFree(GetProcessHeap(), 0, pi2W.pDescription);
+    heap_free(nameW);
+    heap_free(monitorW);
+    heap_free(pi2W.pPortName);
+    heap_free(pi2W.pMonitorName);
+    heap_free(pi2W.pDescription);
     return res;
 
 }
@@ -6911,7 +6911,7 @@ BOOL WINAPI AddPrinterDriverExA(LPSTR pName, DWORD Level, LPBYTE pDriverInfo, DW
     /* convert servername to unicode */
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
 
@@ -6920,63 +6920,63 @@ BOOL WINAPI AddPrinterDriverExA(LPSTR pName, DWORD Level, LPBYTE pDriverInfo, DW
 
     if (diA->pName) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pName, -1, NULL, 0);
-        diW.pName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pName = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pName, -1, diW.pName, len);
     }
 
     if (diA->pEnvironment) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pEnvironment, -1, NULL, 0);
-        diW.pEnvironment = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pEnvironment = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pEnvironment, -1, diW.pEnvironment, len);
     }
 
     if (diA->pDriverPath) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pDriverPath, -1, NULL, 0);
-        diW.pDriverPath = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pDriverPath = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pDriverPath, -1, diW.pDriverPath, len);
     }
 
     if (diA->pDataFile) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pDataFile, -1, NULL, 0);
-        diW.pDataFile = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pDataFile = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pDataFile, -1, diW.pDataFile, len);
     }
 
     if (diA->pConfigFile) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pConfigFile, -1, NULL, 0);
-        diW.pConfigFile = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pConfigFile = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pConfigFile, -1, diW.pConfigFile, len);
     }
 
     if ((Level > 2) && diA->pHelpFile) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pHelpFile, -1, NULL, 0);
-        diW.pHelpFile = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pHelpFile = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pHelpFile, -1, diW.pHelpFile, len);
     }
 
     if ((Level > 2) && diA->pDependentFiles) {
         lenA = multi_sz_lenA(diA->pDependentFiles);
         len = MultiByteToWideChar(CP_ACP, 0, diA->pDependentFiles, lenA, NULL, 0);
-        diW.pDependentFiles = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pDependentFiles = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pDependentFiles, lenA, diW.pDependentFiles, len);
     }
 
     if ((Level > 2) && diA->pMonitorName) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pMonitorName, -1, NULL, 0);
-        diW.pMonitorName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pMonitorName = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pMonitorName, -1, diW.pMonitorName, len);
     }
 
     if ((Level > 2) && diA->pDefaultDataType) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pDefaultDataType, -1, NULL, 0);
-        diW.pDefaultDataType = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pDefaultDataType = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pDefaultDataType, -1, diW.pDefaultDataType, len);
     }
 
     if ((Level > 3) && diA->pszzPreviousNames) {
         lenA = multi_sz_lenA(diA->pszzPreviousNames);
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszzPreviousNames, lenA, NULL, 0);
-        diW.pszzPreviousNames = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszzPreviousNames = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszzPreviousNames, lenA, diW.pszzPreviousNames, len);
     }
 
@@ -6987,57 +6987,57 @@ BOOL WINAPI AddPrinterDriverExA(LPSTR pName, DWORD Level, LPBYTE pDriverInfo, DW
 
     if ((Level > 5) && diA->pszMfgName) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszMfgName, -1, NULL, 0);
-        diW.pszMfgName = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszMfgName = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszMfgName, -1, diW.pszMfgName, len);
     }
 
     if ((Level > 5) && diA->pszOEMUrl) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszOEMUrl, -1, NULL, 0);
-        diW.pszOEMUrl = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszOEMUrl = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszOEMUrl, -1, diW.pszOEMUrl, len);
     }
 
     if ((Level > 5) && diA->pszHardwareID) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszHardwareID, -1, NULL, 0);
-        diW.pszHardwareID = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszHardwareID = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszHardwareID, -1, diW.pszHardwareID, len);
     }
 
     if ((Level > 5) && diA->pszProvider) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszProvider, -1, NULL, 0);
-        diW.pszProvider = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszProvider = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszProvider, -1, diW.pszProvider, len);
     }
 
     if ((Level > 7) && diA->pszPrintProcessor) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszPrintProcessor, -1, NULL, 0);
-        diW.pszPrintProcessor = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszPrintProcessor = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszPrintProcessor, -1, diW.pszPrintProcessor, len);
     }
 
     if ((Level > 7) && diA->pszVendorSetup) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszVendorSetup, -1, NULL, 0);
-        diW.pszVendorSetup = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszVendorSetup = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszVendorSetup, -1, diW.pszVendorSetup, len);
     }
 
     if ((Level > 7) && diA->pszzColorProfiles) {
         lenA = multi_sz_lenA(diA->pszzColorProfiles);
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszzColorProfiles, lenA, NULL, 0);
-        diW.pszzColorProfiles = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszzColorProfiles = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszzColorProfiles, lenA, diW.pszzColorProfiles, len);
     }
 
     if ((Level > 7) && diA->pszInfPath) {
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszInfPath, -1, NULL, 0);
-        diW.pszInfPath = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszInfPath = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszInfPath, -1, diW.pszInfPath, len);
     }
 
     if ((Level > 7) && diA->pszzCoreDriverDependencies) {
         lenA = multi_sz_lenA(diA->pszzCoreDriverDependencies);
         len = MultiByteToWideChar(CP_ACP, 0, diA->pszzCoreDriverDependencies, lenA, NULL, 0);
-        diW.pszzCoreDriverDependencies = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        diW.pszzCoreDriverDependencies = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, diA->pszzCoreDriverDependencies, lenA, diW.pszzCoreDriverDependencies, len);
     }
 
@@ -7049,26 +7049,26 @@ BOOL WINAPI AddPrinterDriverExA(LPSTR pName, DWORD Level, LPBYTE pDriverInfo, DW
 
     res = AddPrinterDriverExW(nameW, Level, (LPBYTE) &diW, dwFileCopyFlags);
     TRACE("got %u with %u\n", res, GetLastError());
-    HeapFree(GetProcessHeap(), 0, nameW);
-    HeapFree(GetProcessHeap(), 0, diW.pName);
-    HeapFree(GetProcessHeap(), 0, diW.pEnvironment);
-    HeapFree(GetProcessHeap(), 0, diW.pDriverPath);
-    HeapFree(GetProcessHeap(), 0, diW.pDataFile);
-    HeapFree(GetProcessHeap(), 0, diW.pConfigFile);
-    HeapFree(GetProcessHeap(), 0, diW.pHelpFile);
-    HeapFree(GetProcessHeap(), 0, diW.pDependentFiles);
-    HeapFree(GetProcessHeap(), 0, diW.pMonitorName);
-    HeapFree(GetProcessHeap(), 0, diW.pDefaultDataType);
-    HeapFree(GetProcessHeap(), 0, diW.pszzPreviousNames);
-    HeapFree(GetProcessHeap(), 0, diW.pszMfgName);
-    HeapFree(GetProcessHeap(), 0, diW.pszOEMUrl);
-    HeapFree(GetProcessHeap(), 0, diW.pszHardwareID);
-    HeapFree(GetProcessHeap(), 0, diW.pszProvider);
-    HeapFree(GetProcessHeap(), 0, diW.pszPrintProcessor);
-    HeapFree(GetProcessHeap(), 0, diW.pszVendorSetup);
-    HeapFree(GetProcessHeap(), 0, diW.pszzColorProfiles);
-    HeapFree(GetProcessHeap(), 0, diW.pszInfPath);
-    HeapFree(GetProcessHeap(), 0, diW.pszzCoreDriverDependencies);
+    heap_free(nameW);
+    heap_free(diW.pName);
+    heap_free(diW.pEnvironment);
+    heap_free(diW.pDriverPath);
+    heap_free(diW.pDataFile);
+    heap_free(diW.pConfigFile);
+    heap_free(diW.pHelpFile);
+    heap_free(diW.pDependentFiles);
+    heap_free(diW.pMonitorName);
+    heap_free(diW.pDefaultDataType);
+    heap_free(diW.pszzPreviousNames);
+    heap_free(diW.pszMfgName);
+    heap_free(diW.pszOEMUrl);
+    heap_free(diW.pszHardwareID);
+    heap_free(diW.pszProvider);
+    heap_free(diW.pszPrintProcessor);
+    heap_free(diW.pszVendorSetup);
+    heap_free(diW.pszzColorProfiles);
+    heap_free(diW.pszInfPath);
+    heap_free(diW.pszzCoreDriverDependencies);
 
     TRACE("=> %u with %u\n", res, GetLastError());
     return res;
@@ -7092,20 +7092,20 @@ BOOL WINAPI ConfigurePortA(LPSTR pName, HWND hWnd, LPSTR pPortName)
     /* convert servername to unicode */
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
 
     /* convert portname to unicode */
     if (pPortName) {
         len = MultiByteToWideChar(CP_ACP, 0, pPortName, -1, NULL, 0);
-        portW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        portW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pPortName, -1, portW, len);
     }
 
     res = ConfigurePortW(nameW, hWnd, portW);
-    HeapFree(GetProcessHeap(), 0, nameW);
-    HeapFree(GetProcessHeap(), 0, portW);
+    heap_free(nameW);
+    heap_free(portW);
     return res;
 }
 
@@ -7336,19 +7336,19 @@ BOOL WINAPI EnumMonitorsA(LPSTR pName, DWORD Level, LPBYTE pMonitors,
     /* convert servername to unicode */
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
     /* alloc (userbuffersize*sizeof(WCHAR) and try to enum the monitors */
     needed = cbBuf * sizeof(WCHAR);    
-    if (needed) bufferW = HeapAlloc(GetProcessHeap(), 0, needed);
+    if (needed) bufferW = heap_alloc(needed);
     res = EnumMonitorsW(nameW, Level, bufferW, needed, pcbNeeded, pcReturned);
 
     if(!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
         if (pcbNeeded) needed = *pcbNeeded;
         /* HeapReAlloc return NULL, when bufferW was NULL */
-        bufferW = (bufferW) ? HeapReAlloc(GetProcessHeap(), 0, bufferW, needed) :
-                              HeapAlloc(GetProcessHeap(), 0, needed);
+        bufferW = (bufferW) ? heap_realloc(bufferW, needed) :
+                              heap_alloc(needed);
 
         /* Try again with the large Buffer */
         res = EnumMonitorsW(nameW, Level, bufferW, needed, pcbNeeded, pcReturned);
@@ -7435,8 +7435,8 @@ emA_cleanup:
     if (pcbNeeded)  *pcbNeeded = needed;
     if (pcReturned) *pcReturned = (res) ? numentries : 0;
 
-    HeapFree(GetProcessHeap(), 0, nameW);
-    HeapFree(GetProcessHeap(), 0, bufferW);
+    heap_free(nameW);
+    heap_free(bufferW);
 
     TRACE("returning %d with %d (%d byte for %d entries)\n", 
             (res), GetLastError(), needed, numentries);
@@ -7666,25 +7666,25 @@ BOOL WINAPI EnumPrintProcessorsA(LPSTR pName, LPSTR pEnvironment, DWORD Level,
     /* convert names to unicode */
     if (pName) {
         len = MultiByteToWideChar(CP_ACP, 0, pName, -1, NULL, 0);
-        nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        nameW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pName, -1, nameW, len);
     }
     if (pEnvironment) {
         len = MultiByteToWideChar(CP_ACP, 0, pEnvironment, -1, NULL, 0);
-        envW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        envW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, pEnvironment, -1, envW, len);
     }
 
     /* alloc (userbuffersize*sizeof(WCHAR) and try to enum the monitors */
     needed = cbBuf * sizeof(WCHAR);
-    if (needed) bufferW = HeapAlloc(GetProcessHeap(), 0, needed);
+    if (needed) bufferW = heap_alloc(needed);
     res = EnumPrintProcessorsW(nameW, envW, Level, bufferW, needed, pcbNeeded, pcReturned);
 
     if(!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
         if (pcbNeeded) needed = *pcbNeeded;
         /* HeapReAlloc return NULL, when bufferW was NULL */
-        bufferW = (bufferW) ? HeapReAlloc(GetProcessHeap(), 0, bufferW, needed) :
-                              HeapAlloc(GetProcessHeap(), 0, needed);
+        bufferW = (bufferW) ? heap_realloc(bufferW, needed) :
+                              heap_alloc(needed);
 
         /* Try again with the large Buffer */
         res = EnumPrintProcessorsW(nameW, envW, Level, bufferW, needed, pcbNeeded, pcReturned);
@@ -7747,9 +7747,9 @@ epp_cleanup:
     if (pcbNeeded)  *pcbNeeded = needed;
     if (pcReturned) *pcReturned = (res) ? numentries : 0;
 
-    HeapFree(GetProcessHeap(), 0, nameW);
-    HeapFree(GetProcessHeap(), 0, envW);
-    HeapFree(GetProcessHeap(), 0, bufferW);
+    heap_free(nameW);
+    heap_free(envW);
+    heap_free(bufferW);
 
     TRACE("returning %d with %d (%d byte for %d entries)\n",
             (res), GetLastError(), needed, numentries);
@@ -8010,7 +8010,7 @@ static BOOL get_job_info_2(job_t *job, JOB_INFO_2W *ji2, LPBYTE buf, DWORD cbBuf
                 ptr += shift;
                 memcpy(ptr, devmode, size-shift);
                 ji2->pDevMode = (LPDEVMODEW)ptr;
-                if (!unicode) HeapFree(GetProcessHeap(), 0, dmA);
+                if (!unicode) heap_free(dmA);
                 ptr += size-shift;
                 left -= size;
             }
@@ -8133,7 +8133,7 @@ static BOOL schedule_pipe(LPCWSTR cmd, LPCWSTR filename)
         return FALSE;
 
     len = WideCharToMultiByte(CP_UNIXCP, 0, cmd, -1, NULL, 0, NULL, NULL);
-    cmdA = HeapAlloc(GetProcessHeap(), 0, len);
+    cmdA = heap_alloc(len);
     WideCharToMultiByte(CP_UNIXCP, 0, cmd, -1, cmdA, len, NULL, NULL);
 
     TRACE("printing with: %s\n", cmdA);
@@ -8195,8 +8195,8 @@ end:
     if(fds[0] != -1) close(fds[0]);
     if(fds[1] != -1) close(fds[1]);
 
-    HeapFree(GetProcessHeap(), 0, cmdA);
-    HeapFree(GetProcessHeap(), 0, unixname);
+    heap_free(cmdA);
+    heap_free(unixname);
     return ret;
 #else
     return FALSE;
@@ -8212,12 +8212,12 @@ static BOOL schedule_lpr(LPCWSTR printer_name, LPCWSTR filename)
     const WCHAR fmtW[] = {'l','p','r',' ','-','P','\'','%','s','\'',0};
     BOOL r;
 
-    cmd = HeapAlloc(GetProcessHeap(), 0, strlenW(printer_name) * sizeof(WCHAR) + sizeof(fmtW));
+    cmd = heap_alloc(strlenW(printer_name) * sizeof(WCHAR) + sizeof(fmtW));
     sprintfW(cmd, fmtW, printer_name);
 
     r = schedule_pipe(cmd, filename);
 
-    HeapFree(GetProcessHeap(), 0, cmd);
+    heap_free(cmd);
     return r;
 }
 
@@ -8291,11 +8291,11 @@ static BOOL schedule_cups(LPCWSTR printer_name, LPCWSTR filename, LPCWSTR docume
             return FALSE;
 
         len = WideCharToMultiByte(CP_UNIXCP, 0, printer_name, -1, NULL, 0, NULL, NULL);
-        queue = HeapAlloc(GetProcessHeap(), 0, len);
+        queue = heap_alloc(len);
         WideCharToMultiByte(CP_UNIXCP, 0, printer_name, -1, queue, len, NULL, NULL);
 
         len = WideCharToMultiByte(CP_UNIXCP, 0, document_title, -1, NULL, 0, NULL, NULL);
-        unix_doc_title = HeapAlloc(GetProcessHeap(), 0, len);
+        unix_doc_title = heap_alloc(len);
         WideCharToMultiByte(CP_UNIXCP, 0, document_title, -1, unix_doc_title, len, NULL, NULL);
 
         num_options = get_cups_job_ticket_options( unixname, num_options, &options );
@@ -8311,9 +8311,9 @@ static BOOL schedule_cups(LPCWSTR printer_name, LPCWSTR filename, LPCWSTR docume
 
         pcupsFreeOptions( num_options, options );
 
-        HeapFree(GetProcessHeap(), 0, unix_doc_title);
-        HeapFree(GetProcessHeap(), 0, queue);
-        HeapFree(GetProcessHeap(), 0, unixname);
+        heap_free(unix_doc_title);
+        heap_free(queue);
+        heap_free(unixname);
         return ret;
     }
     else
@@ -8342,7 +8342,7 @@ static INT_PTR CALLBACK file_dlg_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
                 DWORD len = SendDlgItemMessageW(hwnd, EDITBOX, WM_GETTEXTLENGTH, 0, 0);
                 LPWSTR *output;
 
-                filename = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+                filename = heap_alloc((len + 1) * sizeof(WCHAR));
                 GetDlgItemTextW(hwnd, EDITBOX, filename, len + 1);
 
                 if(GetFileAttributesW(filename) != INVALID_FILE_ATTRIBUTES)
@@ -8355,7 +8355,7 @@ static INT_PTR CALLBACK file_dlg_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
                     mb_ret = MessageBoxW(hwnd, message, caption, MB_OKCANCEL | MB_ICONEXCLAMATION);
                     if(mb_ret == IDCANCEL)
                     {
-                        HeapFree(GetProcessHeap(), 0, filename);
+                        heap_free(filename);
                         return TRUE;
                     }
                 }
@@ -8367,7 +8367,7 @@ static INT_PTR CALLBACK file_dlg_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
                     LoadStringW(WINSPOOL_hInstance, IDS_CAPTION, caption, sizeof(caption) / sizeof(WCHAR));
                     LoadStringW(WINSPOOL_hInstance, IDS_CANNOT_OPEN, message, sizeof(message) / sizeof(WCHAR));
                     MessageBoxW(hwnd, message, caption, MB_OK | MB_ICONEXCLAMATION);
-                    HeapFree(GetProcessHeap(), 0, filename);
+                    heap_free(filename);
                     return TRUE;
                 }
                 CloseHandle(hf);
@@ -8409,7 +8409,7 @@ static BOOL schedule_file(LPCWSTR filename)
         BOOL r;
         TRACE("copy to %s\n", debugstr_w(output));
         r = CopyFileW(filename, output, FALSE);
-        HeapFree(GetProcessHeap(), 0, output);
+        heap_free(output);
         return r;
     }
     return FALSE;
@@ -8430,7 +8430,7 @@ static BOOL schedule_unixfile(LPCWSTR output, LPCWSTR filename)
         return FALSE;
 
     len = WideCharToMultiByte(CP_UNIXCP, 0, output, -1, NULL, 0, NULL, NULL);
-    outputA = HeapAlloc(GetProcessHeap(), 0, len);
+    outputA = heap_alloc(len);
     WideCharToMultiByte(CP_UNIXCP, 0, output, -1, outputA, len, NULL, NULL);
     
     out_fd = open(outputA, O_CREAT | O_TRUNC | O_WRONLY, 0666);
@@ -8445,8 +8445,8 @@ static BOOL schedule_unixfile(LPCWSTR output, LPCWSTR filename)
 end:
     if(in_fd != -1) close(in_fd);
     if(out_fd != -1) close(out_fd);
-    HeapFree(GetProcessHeap(), 0, outputA);
-    HeapFree(GetProcessHeap(), 0, unixname);
+    heap_free(outputA);
+    heap_free(unixname);
     return ret;
 }
 
@@ -8487,7 +8487,7 @@ BOOL WINAPI ScheduleJob( HANDLE hPrinter, DWORD dwJobID )
             if (!portname)
             {
                 GetPrinterW(hPrinter, 5, NULL, 0, &needed);
-                pi5 = HeapAlloc(GetProcessHeap(), 0, needed);
+                pi5 = heap_alloc(needed);
                 GetPrinterW(hPrinter, 5, (LPBYTE)pi5, needed, &needed);
                 portname = pi5->pPortName;
             }
@@ -8532,17 +8532,17 @@ BOOL WINAPI ScheduleJob( HANDLE hPrinter, DWORD dwJobID )
             {
                 FIXME("can't schedule to port %s\n", debugstr_w(portname));
             }
-            HeapFree(GetProcessHeap(), 0, pi5);
+            heap_free(pi5);
             CloseHandle(hf);
             DeleteFileW(job->filename);
         }
         list_remove(cursor);
-        HeapFree(GetProcessHeap(), 0, job->document_title);
-        HeapFree(GetProcessHeap(), 0, job->printer_name);
-        HeapFree(GetProcessHeap(), 0, job->portname);
-        HeapFree(GetProcessHeap(), 0, job->filename);
-        HeapFree(GetProcessHeap(), 0, job->devmode);
-        HeapFree(GetProcessHeap(), 0, job);
+        heap_free(job->document_title);
+        heap_free(job->printer_name);
+        heap_free(job->portname);
+        heap_free(job->filename);
+        heap_free(job->devmode);
+        heap_free(job);
         break;
     }
 end:
@@ -8584,15 +8584,15 @@ LPSTR WINAPI StartDocDlgA( HANDLE hPrinter, DOCINFOA *doc )
     if(retW)
     {
         DWORD len = WideCharToMultiByte(CP_ACP, 0, retW, -1, NULL, 0, NULL, NULL);
-        ret = HeapAlloc(GetProcessHeap(), 0, len);
+        ret = heap_alloc(len);
         WideCharToMultiByte(CP_ACP, 0, retW, -1, ret, len, NULL, NULL);
-        HeapFree(GetProcessHeap(), 0, retW);
+        heap_free(retW);
     }
 
 failed:
-    HeapFree(GetProcessHeap(), 0, datatypeW);
-    HeapFree(GetProcessHeap(), 0, outputW);
-    HeapFree(GetProcessHeap(), 0, docnameW);
+    heap_free(datatypeW);
+    heap_free(outputW);
+    heap_free(docnameW);
 
     return ret;
 }
@@ -8617,14 +8617,14 @@ LPWSTR WINAPI StartDocDlgW( HANDLE hPrinter, DOCINFOW *doc )
         GetPrinterW(hPrinter, 5, NULL, 0, &len);
         if(GetLastError() != ERROR_INSUFFICIENT_BUFFER)
             return NULL;
-        pi5 = HeapAlloc(GetProcessHeap(), 0, len);
+        pi5 = heap_alloc(len);
         GetPrinterW(hPrinter, 5, (LPBYTE)pi5, len, &len);
         if(!pi5->pPortName || strcmpW(pi5->pPortName, FILE_Port))
         {
-            HeapFree(GetProcessHeap(), 0, pi5);
+            heap_free(pi5);
             return NULL;
         }
-        HeapFree(GetProcessHeap(), 0, pi5);
+        heap_free(pi5);
     }
 
     if(doc->lpszOutput == NULL || !strcmpW(doc->lpszOutput, FILE_Port))
@@ -8635,12 +8635,12 @@ LPWSTR WINAPI StartDocDlgW( HANDLE hPrinter, DOCINFOW *doc )
         {
             if(!(len = GetFullPathNameW(name, 0, NULL, NULL)))
             {
-                HeapFree(GetProcessHeap(), 0, name);
+                heap_free(name);
                 return NULL;
             }
-            ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+            ret = heap_alloc(len * sizeof(WCHAR));
             GetFullPathNameW(name, len, ret, NULL);
-            HeapFree(GetProcessHeap(), 0, name);
+            heap_free(name);
         }
         return ret;
     }
@@ -8648,13 +8648,13 @@ LPWSTR WINAPI StartDocDlgW( HANDLE hPrinter, DOCINFOW *doc )
     if(!(len = GetFullPathNameW(doc->lpszOutput, 0, NULL, NULL)))
         return NULL;
 
-    ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    ret = heap_alloc(len * sizeof(WCHAR));
     GetFullPathNameW(doc->lpszOutput, len, ret, NULL);
         
     attr = GetFileAttributesW(ret);
     if(attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY))
     {
-        HeapFree(GetProcessHeap(), 0, ret);
+        heap_free(ret);
         ret = NULL;
     }
     return ret;

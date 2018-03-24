@@ -864,7 +864,7 @@ static void test_RpcServerInqDefaultPrincName(void)
     ULONG len = 0;
 
     GetUserNameExA( NameSamCompatible, NULL, &len );
-    username = HeapAlloc( GetProcessHeap(), 0, len );
+    username = heap_alloc( len );
     GetUserNameExA( NameSamCompatible, username, &len );
 
     ret = RpcServerInqDefaultPrincNameA( 0, NULL );
@@ -899,7 +899,7 @@ static void test_RpcServerInqDefaultPrincName(void)
     ok( ret == RPC_S_OK, "got %u\n", ret );
 
     RpcStringFreeA( &saved_principal );
-    HeapFree( GetProcessHeap(), 0, username );
+    heap_free( username );
 }
 
 static void test_RpcServerRegisterAuthInfo(void)

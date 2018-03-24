@@ -25,6 +25,7 @@
 #include "wingdi.h"
 #include "winuser.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "wine/gdi_driver.h"
 #include "wine/unicode.h"
 
@@ -41,6 +42,7 @@ static char driver_load_error[80];
 
 static BOOL CDECL nodrv_CreateWindow( HWND hwnd );
 
+#if 0
 static HMODULE load_desktop_driver( HWND hwnd )
 {
     static const WCHAR display_device_guid_propW[] = {
@@ -95,7 +97,7 @@ static const USER_DRIVER *load_driver(void)
     HMODULE graphics_driver;
     USER_DRIVER *driver, *prev;
 
-    driver = HeapAlloc( GetProcessHeap(), 0, sizeof(*driver) );
+    driver = heap_alloc( sizeof(*driver) );
     *driver = null_driver;
 
     graphics_driver = load_desktop_driver( GetDesktopWindow() );
@@ -169,7 +171,7 @@ static const USER_DRIVER *load_driver(void)
     if (prev != &lazy_load_driver)
     {
         /* another thread beat us to it */
-        HeapFree( GetProcessHeap(), 0, driver );
+        heap_free( driver );
         driver = prev;
     }
     else LdrAddRefDll( 0, graphics_driver );
@@ -187,7 +189,7 @@ void USER_unload_driver(void)
     /* make sure we don't try to call the driver after it has been detached */
     prev = InterlockedExchangePointer( (void **)&USER_Driver, &null_driver );
     if (prev != &lazy_load_driver && prev != &null_driver)
-        HeapFree( GetProcessHeap(), 0, prev );
+        heap_free( prev );
 }
 
 
@@ -778,3 +780,4 @@ static USER_DRIVER lazy_load_driver =
     /* thread management */
     nulldrv_ThreadDetach
 };
+#endif

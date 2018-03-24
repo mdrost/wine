@@ -27,6 +27,7 @@
 #include "winbase.h"
 #include "wingdi.h"
 #include "winreg.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "win.h"
 #include "user_private.h"
@@ -2561,8 +2562,9 @@ static BOOL spy_init(void)
     }
 
     if (spy_exclude) return TRUE;
-    exclude = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, SPY_MAX_MSGNUM + 2 );
+    exclude = heap_alloc_zero( SPY_MAX_MSGNUM + 2 );
 
+#if 0
     /* @@ Wine registry key: HKCU\Software\Wine\Debug */
     if(!RegOpenKeyA(HKEY_CURRENT_USER, "Software\\Wine\\Debug", &hkey))
     {
@@ -2595,9 +2597,10 @@ static BOOL spy_init(void)
 
         RegCloseKey(hkey);
     }
+#endif
 
     if (InterlockedCompareExchangePointer( (void **)&spy_exclude, exclude, NULL ))
-        HeapFree( GetProcessHeap(), 0, exclude );
+        heap_free( exclude );
 
     return TRUE;
 }

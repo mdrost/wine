@@ -117,7 +117,7 @@ BOOL nulldrv_PolyBezier( PHYSDEV dev, const POINT *points, DWORD count )
     if ((pts = GDI_Bezier( points, count, &n )))
     {
         ret = Polyline( dev->hdc, pts, n );
-        HeapFree( GetProcessHeap(), 0, pts );
+        heap_free( pts );
     }
     return ret;
 }
@@ -126,14 +126,14 @@ BOOL nulldrv_PolyBezierTo( PHYSDEV dev, const POINT *points, DWORD count )
 {
     DC *dc = get_nulldrv_dc( dev );
     BOOL ret = FALSE;
-    POINT *pts = HeapAlloc( GetProcessHeap(), 0, sizeof(POINT) * (count + 1) );
+    POINT *pts = heap_alloc( sizeof(POINT) * (count + 1) );
 
     if (pts)
     {
         pts[0] = dc->cur_pos;
         memcpy( pts + 1, points, sizeof(POINT) * count );
         ret = PolyBezier( dev->hdc, pts, count + 1 );
-        HeapFree( GetProcessHeap(), 0, pts );
+        heap_free( pts );
     }
     return ret;
 }
@@ -166,7 +166,7 @@ BOOL nulldrv_PolyDraw( PHYSDEV dev, const POINT *points, const BYTE *types, DWOR
     }
 
     space = count + 300;
-    line_pts = HeapAlloc( GetProcessHeap(), 0, space * sizeof(POINT) );
+    line_pts = heap_alloc( space * sizeof(POINT) );
     num_pts = 1;
 
     line_pts[0] = dc->cur_pos;
@@ -194,11 +194,11 @@ BOOL nulldrv_PolyDraw( PHYSDEV dev, const POINT *points, const BYTE *types, DWOR
                 if (space < size)
                 {
                     space = size * 2;
-                    line_pts = HeapReAlloc( GetProcessHeap(), 0, line_pts, space * sizeof(POINT) );
+                    line_pts = heap_realloc( line_pts, space * sizeof(POINT) );
                 }
                 memcpy( &line_pts[num_pts], &bzr_pts[1], (num_bzr_pts - 1) * sizeof(POINT) );
                 num_pts += num_bzr_pts - 1;
-                HeapFree( GetProcessHeap(), 0, bzr_pts );
+                heap_free( bzr_pts );
             }
             i += 2;
             break;
@@ -207,7 +207,7 @@ BOOL nulldrv_PolyDraw( PHYSDEV dev, const POINT *points, const BYTE *types, DWOR
     }
 
     if (num_pts >= 2) Polyline( dev->hdc, line_pts, num_pts );
-    HeapFree( GetProcessHeap(), 0, line_pts );
+    heap_free( line_pts );
     return TRUE;
 }
 
@@ -218,12 +218,12 @@ BOOL nulldrv_PolylineTo( PHYSDEV dev, const POINT *points, INT count )
     POINT *pts;
 
     if (!count) return FALSE;
-    if ((pts = HeapAlloc( GetProcessHeap(), 0, sizeof(POINT) * (count + 1) )))
+    if ((pts = heap_alloc( sizeof(POINT) * (count + 1) )))
     {
         pts[0] = dc->cur_pos;
         memcpy( pts + 1, points, sizeof(POINT) * count );
         ret = Polyline( dev->hdc, pts, count + 1 );
-        HeapFree( GetProcessHeap(), 0, pts );
+        heap_free( pts );
     }
     return ret;
 }
@@ -1056,7 +1056,7 @@ static void GDI_InternalBezier( POINT *Points, POINT **PtsOut, INT *dwOut,
 {
     if(*nPtsOut == *dwOut) {
         *dwOut *= 2;
-	*PtsOut = HeapReAlloc( GetProcessHeap(), 0, *PtsOut,
+	*PtsOut = heap_realloc( *PtsOut,
 			       *dwOut * sizeof(POINT) );
     }
 
@@ -1124,7 +1124,7 @@ POINT *GDI_Bezier( const POINT *Points, INT count, INT *nPtsOut )
 	return NULL;
     }
     *nPtsOut = 0;
-    out = HeapAlloc( GetProcessHeap(), 0, dwOut * sizeof(POINT));
+    out = heap_alloc( dwOut * sizeof(POINT));
     for(Bezier = 0; Bezier < (count-1)/3; Bezier++) {
 	POINT ptBuf[4];
 	memcpy(ptBuf, Points + Bezier * 3, sizeof(POINT) * 4);

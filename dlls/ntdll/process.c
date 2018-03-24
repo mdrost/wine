@@ -59,6 +59,7 @@ static ULONG execute_flags = MEM_EXECUTE_OPTION_DISABLE;
  */
 NTSTATUS WINAPI NtTerminateProcess( HANDLE handle, LONG exit_code )
 {
+#if 0
     NTSTATUS ret;
     BOOL self;
     SERVER_START_REQ( terminate_process )
@@ -71,8 +72,12 @@ NTSTATUS WINAPI NtTerminateProcess( HANDLE handle, LONG exit_code )
     SERVER_END_REQ;
     if (self && handle) _exit( exit_code );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
+#if 0
 /******************************************************************************
  *  RtlGetCurrentPeb  [NTDLL.@]
  *
@@ -98,6 +103,7 @@ HANDLE CDECL __wine_make_process_system(void)
     SERVER_END_REQ;
     return ret;
 }
+#endif
 
 static UINT process_error_mode;
 
@@ -109,7 +115,7 @@ static UINT process_error_mode;
 
 ULONG_PTR get_system_affinity_mask(void)
 {
-    ULONG num_cpus = NtCurrentTeb()->Peb->NumberOfProcessors;
+    ULONG num_cpus = max(sysconf(_SC_NPROCESSORS_ONLN), 1);
     if (num_cpus >= sizeof(ULONG_PTR) * 8) return ~(ULONG_PTR)0;
     return ((ULONG_PTR)1 << num_cpus) - 1;
 }
@@ -191,6 +197,7 @@ NTSTATUS WINAPI NtQueryInformationProcess(
           ProcessInformation,ProcessInformationLength,
           ReturnLength);
 
+#if 0
     switch (ProcessInformationClass) 
     {
     UNIMPLEMENTED_INFO_CLASS(ProcessQuotaLimits);
@@ -584,6 +591,9 @@ NTSTATUS WINAPI NtQueryInformationProcess(
     if (ReturnLength) *ReturnLength = len;
     
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -596,6 +606,7 @@ NTSTATUS WINAPI NtSetInformationProcess(
 	IN PVOID ProcessInformation,
 	IN ULONG ProcessInformationLength)
 {
+#if 0
     NTSTATUS ret = STATUS_SUCCESS;
 
     switch (ProcessInformationClass)
@@ -674,6 +685,9 @@ NTSTATUS WINAPI NtSetInformationProcess(
         break;
     }
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -708,6 +722,7 @@ NTSTATUS WINAPI NtFlushInstructionCache( HANDLE handle, const void *addr, SIZE_T
 NTSTATUS  WINAPI NtOpenProcess(PHANDLE handle, ACCESS_MASK access,
                                const OBJECT_ATTRIBUTES* attr, const CLIENT_ID* cid)
 {
+#if 0
     NTSTATUS    status;
 
     SERVER_START_REQ( open_process )
@@ -720,6 +735,9 @@ NTSTATUS  WINAPI NtOpenProcess(PHANDLE handle, ACCESS_MASK access,
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************

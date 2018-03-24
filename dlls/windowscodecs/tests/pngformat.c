@@ -326,7 +326,7 @@ static WCHAR *save_profile( BYTE *buffer, UINT size )
     WriteFile(handle, buffer, size, &count, NULL);
     CloseHandle( handle );
 
-    ret = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(filename) + 1) * sizeof(WCHAR));
+    ret = heap_alloc((lstrlenW(filename) + 1) * sizeof(WCHAR));
     lstrcpyW(ret, filename);
     return ret;
 }
@@ -468,12 +468,12 @@ static void test_color_contexts(void)
     ok(hr == S_OK, "GetProfileBytes error %#x\n", hr);
     ok(size, "unexpected size %u\n", size);
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, size);
+    buffer = heap_alloc(size);
     hr = IWICColorContext_GetProfileBytes(context, size, buffer, &size);
     ok(hr == S_OK, "GetProfileBytes error %#x\n", hr);
 
     tmpfile = save_profile( buffer, size );
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 
     type = 0xdeadbeef;
     hr = IWICColorContext_GetType(context, &type);
@@ -517,12 +517,12 @@ static void test_color_contexts(void)
         ok(hr == S_OK, "GetProfileBytes error %#x\n", hr);
         ok(size, "unexpected size %u\n", size);
 
-        buffer = HeapAlloc(GetProcessHeap(), 0, size);
+        buffer = heap_alloc(size);
         hr = IWICColorContext_GetProfileBytes(context, size, buffer, &size);
         ok(hr == S_OK, "GetProfileBytes error %#x\n", hr);
 
-        HeapFree(GetProcessHeap(), 0, buffer);
-        HeapFree(GetProcessHeap(), 0, tmpfile);
+        heap_free(buffer);
+        heap_free(tmpfile);
     }
     IWICColorContext_Release(context);
     IWICBitmapFrameDecode_Release(frame);

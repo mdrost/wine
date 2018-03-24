@@ -30,6 +30,12 @@
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+#ifdef HAVE_DLFCN_H
+# include <dlfcn.h>
+#endif
+#include <errno.h>
+#include <link.h>
+#include <pthread.h>
 #include "ntstatus.h"
 #define WIN32_NO_STATUS
 #include "winerror.h"
@@ -39,7 +45,9 @@
 #include "kernel_private.h"
 #include "psapi.h"
 
+#include "wine/error.h"
 #include "wine/exception.h"
+#include "wine/heap.h"
 #include "wine/list.h"
 #include "wine/debug.h"
 #include "wine/unicode.h"
@@ -67,6 +75,7 @@ struct exclusive_datafile
 };
 static struct list exclusive_datafile_list = LIST_INIT( exclusive_datafile_list );
 
+#if 0
 static CRITICAL_SECTION dlldir_section;
 static CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -75,6 +84,9 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": dlldir_section") }
 };
 static CRITICAL_SECTION dlldir_section = { &critsect_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t dlldir_section = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 /****************************************************************************
  *              GetDllDirectoryA   (KERNEL32.@)
@@ -83,7 +95,7 @@ DWORD WINAPI GetDllDirectoryA( DWORD buf_len, LPSTR buffer )
 {
     DWORD len;
 
-    RtlEnterCriticalSection( &dlldir_section );
+    pthread_mutex_lock( &dlldir_section );
     len = dll_directory ? FILE_name_WtoA( dll_directory, strlenW(dll_directory), NULL, 0 ) : 0;
     if (buffer && buf_len > len)
     {
@@ -95,7 +107,7 @@ DWORD WINAPI GetDllDirectoryA( DWORD buf_len, LPSTR buffer )
         len++;  /* for terminating null */
         if (buffer) *buffer = 0;
     }
-    RtlLeaveCriticalSection( &dlldir_section );
+    pthread_mutex_unlock( &dlldir_section );
     return len;
 }
 
@@ -107,7 +119,7 @@ DWORD WINAPI GetDllDirectoryW( DWORD buf_len, LPWSTR buffer )
 {
     DWORD len;
 
-    RtlEnterCriticalSection( &dlldir_section );
+    pthread_mutex_lock( &dlldir_section );
     len = dll_directory ? strlenW( dll_directory ) : 0;
     if (buffer && buf_len > len)
     {
@@ -119,7 +131,7 @@ DWORD WINAPI GetDllDirectoryW( DWORD buf_len, LPWSTR buffer )
         len++;  /* for terminating null */
         if (buffer) *buffer = 0;
     }
-    RtlLeaveCriticalSection( &dlldir_section );
+    pthread_mutex_unlock( &dlldir_section );
     return len;
 }
 
@@ -134,7 +146,7 @@ BOOL WINAPI SetDllDirectoryA( LPCSTR dir )
 
     if (!(dirW = FILE_name_AtoW( dir, TRUE ))) return FALSE;
     ret = SetDllDirectoryW( dirW );
-    HeapFree( GetProcessHeap(), 0, dirW );
+    heap_free( dirW );
     return ret;
 }
 
@@ -149,7 +161,7 @@ BOOL WINAPI SetDllDirectoryW( LPCWSTR dir )
     if (dir)
     {
         DWORD len = (strlenW(dir) + 1) * sizeof(WCHAR);
-        if (!(newdir = HeapAlloc( GetProcessHeap(), 0, len )))
+        if (!(newdir = heap_alloc( len )))
         {
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
             return FALSE;
@@ -157,10 +169,10 @@ BOOL WINAPI SetDllDirectoryW( LPCWSTR dir )
         memcpy( newdir, dir, len );
     }
 
-    RtlEnterCriticalSection( &dlldir_section );
-    HeapFree( GetProcessHeap(), 0, dll_directory );
+    pthread_mutex_lock( &dlldir_section );
+    heap_free( dll_directory );
     dll_directory = newdir;
-    RtlLeaveCriticalSection( &dlldir_section );
+    pthread_mutex_unlock( &dlldir_section );
     return TRUE;
 }
 
@@ -183,13 +195,13 @@ DLL_DIRECTORY_COOKIE WINAPI AddDllDirectory( const WCHAR *dir )
     if (!(len = GetFullPathNameW( dir, MAX_PATH, path, NULL ))) return NULL;
     if (GetFileAttributesW( path ) == INVALID_FILE_ATTRIBUTES) return NULL;
 
-    if (!(ptr = HeapAlloc( GetProcessHeap(), 0, offsetof(struct dll_dir_entry, dir[++len] )))) return NULL;
+    if (!(ptr = heap_alloc( offsetof(struct dll_dir_entry, dir[++len] )))) return NULL;
     memcpy( ptr->dir, path, len * sizeof(WCHAR) );
     TRACE( "%s\n", debugstr_w( ptr->dir ));
 
-    RtlEnterCriticalSection( &dlldir_section );
+    pthread_mutex_lock( &dlldir_section );
     list_add_head( &dll_dir_list, &ptr->entry );
-    RtlLeaveCriticalSection( &dlldir_section );
+    pthread_mutex_unlock( &dlldir_section );
     return ptr;
 }
 
@@ -203,10 +215,10 @@ BOOL WINAPI RemoveDllDirectory( DLL_DIRECTORY_COOKIE cookie )
 
     TRACE( "%s\n", debugstr_w( ptr->dir ));
 
-    RtlEnterCriticalSection( &dlldir_section );
+    pthread_mutex_lock( &dlldir_section );
     list_remove( &ptr->entry );
-    HeapFree( GetProcessHeap(), 0, ptr );
-    RtlLeaveCriticalSection( &dlldir_section );
+    heap_free( ptr );
+    pthread_mutex_unlock( &dlldir_section );
     return TRUE;
 }
 
@@ -219,7 +231,9 @@ BOOL WINAPI SetDefaultDllDirectories( DWORD flags )
     /* LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR doesn't make sense in default dirs */
     const DWORD load_library_search_flags = (LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
                                              LOAD_LIBRARY_SEARCH_USER_DIRS |
+#if 0
                                              LOAD_LIBRARY_SEARCH_SYSTEM32 |
+#endif
                                              LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
     if (!flags || (flags & ~load_library_search_flags))
@@ -232,6 +246,7 @@ BOOL WINAPI SetDefaultDllDirectories( DWORD flags )
 }
 
 
+#if 0
 /****************************************************************************
  *              DisableThreadLibraryCalls (KERNEL32.@)
  *
@@ -257,6 +272,7 @@ BOOL WINAPI DisableThreadLibraryCalls( HMODULE hModule )
     SetLastError( RtlNtStatusToDosError( nts ) );
     return FALSE;
 }
+#endif
 
 
 /* Check whether a file is an OS/2 or a very old Windows executable
@@ -276,14 +292,14 @@ static DWORD MODULE_Decide_OS2_OldWin(HANDLE hfile, const IMAGE_DOS_HEADER *mz, 
 
     /* read modref table */
     if ( (SetFilePointer( hfile, mz->e_lfanew + ne->ne_modtab, NULL, SEEK_SET ) == -1)
-      || (!(modtab = HeapAlloc( GetProcessHeap(), 0, ne->ne_cmod*sizeof(WORD))))
+      || (!(modtab = heap_alloc( ne->ne_cmod*sizeof(WORD))))
       || (!(ReadFile(hfile, modtab, ne->ne_cmod*sizeof(WORD), &len, NULL)))
       || (len != ne->ne_cmod*sizeof(WORD)) )
 	goto done;
 
     /* read imported names table */
     if ( (SetFilePointer( hfile, mz->e_lfanew + ne->ne_imptab, NULL, SEEK_SET ) == -1)
-      || (!(nametab = HeapAlloc( GetProcessHeap(), 0, ne->ne_enttab - ne->ne_imptab)))
+      || (!(nametab = heap_alloc( ne->ne_enttab - ne->ne_imptab)))
       || (!(ReadFile(hfile, nametab, ne->ne_enttab - ne->ne_imptab, &len, NULL)))
       || (len != ne->ne_enttab - ne->ne_imptab) )
 	goto done;
@@ -301,8 +317,8 @@ static DWORD MODULE_Decide_OS2_OldWin(HANDLE hfile, const IMAGE_DOS_HEADER *mz, 
     }
 
 done:
-    HeapFree( GetProcessHeap(), 0, modtab);
-    HeapFree( GetProcessHeap(), 0, nametab);
+    heap_free( modtab);
+    heap_free( nametab);
     SetFilePointer( hfile, currpos, NULL, SEEK_SET); /* restore filepos */
     return ret;
 }
@@ -648,6 +664,7 @@ BOOL WINAPI GetBinaryTypeA( LPCSTR lpApplicationName, LPDWORD lpBinaryType )
 
     TRACE("%s\n", debugstr_a(lpApplicationName));
 
+#if 0
     /* Sanity check.
      */
     if ( lpApplicationName == NULL || lpBinaryType == NULL )
@@ -658,8 +675,12 @@ BOOL WINAPI GetBinaryTypeA( LPCSTR lpApplicationName, LPDWORD lpBinaryType )
                                           &app_nameA, FALSE);
     if (!status)
         return GetBinaryTypeW(NtCurrentTeb()->StaticUnicodeString.Buffer, lpBinaryType);
+    status = STATUS_NOT_IMPLEMENTED;
 
     SetLastError(RtlNtStatusToDosError(status));
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+#endif
     return FALSE;
 }
 
@@ -668,6 +689,7 @@ BOOL WINAPI GetBinaryTypeA( LPCSTR lpApplicationName, LPDWORD lpBinaryType )
  */
 BOOL WINAPI GetModuleHandleExA( DWORD flags, LPCSTR name, HMODULE *module )
 {
+#if 0
     WCHAR *nameW;
 
     if (!name || (flags & GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS))
@@ -675,6 +697,45 @@ BOOL WINAPI GetModuleHandleExA( DWORD flags, LPCSTR name, HMODULE *module )
 
     if (!(nameW = FILE_name_AtoW( name, FALSE ))) return FALSE;
     return GetModuleHandleExW( flags, nameW, module );
+#else
+    NTSTATUS status = STATUS_SUCCESS;
+    int flag = RTLD_NOW;
+
+    if (!module)
+    {
+        SetLastError( ERROR_INVALID_PARAMETER );
+        *module = NULL;
+        return FALSE;
+    }
+
+    if (flags & GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        *module = NULL;
+        return FALSE;
+    }
+    if (flags & GET_MODULE_HANDLE_EX_FLAG_PIN)
+    {
+        flag |= RTLD_NODELETE;
+    }
+
+    if (!(*module = (HMODULE)dlopen(name, flag | RTLD_NOLOAD)))
+    {
+        SetLastError( RtlNtStatusToDosError( STATUS_DLL_NOT_FOUND ) );
+        return FALSE;
+    }
+    
+    if (!(flags & GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT))
+    {
+        if (!(*module = (HMODULE)dlopen(name, flag)))
+        {
+            SetLastError( RtlNtStatusToDosError( STATUS_DLL_NOT_FOUND ) );
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+#endif
 }
 
 /***********************************************************************
@@ -682,6 +743,7 @@ BOOL WINAPI GetModuleHandleExA( DWORD flags, LPCSTR name, HMODULE *module )
  */
 BOOL WINAPI GetModuleHandleExW( DWORD flags, LPCWSTR name, HMODULE *module )
 {
+#if 0
     NTSTATUS status = STATUS_SUCCESS;
     HMODULE ret;
     ULONG_PTR magic;
@@ -730,6 +792,28 @@ BOOL WINAPI GetModuleHandleExW( DWORD flags, LPCWSTR name, HMODULE *module )
     else *module = NULL;
 
     return (status == STATUS_SUCCESS);
+#else
+    int len;
+    char *nameA;
+    BOOL ret;
+
+    if (!name || (flags & GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS))
+        return GetModuleHandleExA( flags, 0, module );
+
+    len = WideCharToMultiByte(CP_UNIXCP, 0, name, -1, NULL, 0, NULL, NULL);
+    nameA = heap_alloc(len);
+    if (!nameA)
+    {
+        SetLastError( ERROR_NOT_ENOUGH_MEMORY );
+        return FALSE;
+    }
+    
+    ret = GetModuleHandleExA( flags, nameA, module );
+
+    heap_free( nameA );
+
+    return ret;
+#endif
 }
 
 /***********************************************************************
@@ -777,7 +861,7 @@ HMODULE WINAPI GetModuleHandleW(LPCWSTR module)
  *
  * NOTES
  *  This function always returns the long path of hModule
- *  The function doesn't write a terminating '\0' if the buffer is too 
+ *  The function doesn't write a terminating '\0' if the buffer is too
  *  small.
  */
 DWORD WINAPI GetModuleFileNameA(
@@ -785,7 +869,8 @@ DWORD WINAPI GetModuleFileNameA(
 	LPSTR lpFileName,	/* [out] Destination for file name */
         DWORD size )		/* [in] Size of lpFileName in characters */
 {
-    LPWSTR filenameW = HeapAlloc( GetProcessHeap(), 0, size * sizeof(WCHAR) );
+#if 0
+    LPWSTR filenameW = heap_alloc( size * sizeof(WCHAR) );
     DWORD len;
 
     if (!filenameW)
@@ -801,8 +886,48 @@ DWORD WINAPI GetModuleFileNameA(
         else
             SetLastError( ERROR_INSUFFICIENT_BUFFER );
     }
-    HeapFree( GetProcessHeap(), 0, filenameW );
+    heap_free( filenameW );
     return len;
+#else
+    DWORD ret;
+    const struct link_map* link_map;
+
+    if (!hModule) hModule = GetModuleHandleA(NULL);
+    if (!hModule) return 0;
+
+    if (dlinfo( hModule, RTLD_DI_LINKMAP, &link_map ) != 0)
+    {
+        SetLastError( ERROR_INVALID_PARAMETER );
+        return 0;
+    }
+
+    ret = strlen(link_map->l_name);
+
+    if (ret > 0)
+    {
+        memcpy( lpFileName, link_map->l_name, ret );
+    }
+    else
+    {
+        ssize_t r;
+        if ((r = readlink( "/proc/self/exe", lpFileName, size )) == -1)
+        {
+            SetLastError( wine_errno_to_error(errno) );
+            return 0;
+        }
+        ret = r;
+    }
+
+    ret = min( ret, size );
+
+    if (ret < size)
+        lpFileName[ret] = '\0';
+    else
+        SetLastError( ERROR_INSUFFICIENT_BUFFER );
+
+    SetLastError( ERROR_SUCCESS );
+    return ret;
+#endif
 }
 
 /***********************************************************************
@@ -812,6 +937,7 @@ DWORD WINAPI GetModuleFileNameA(
  */
 DWORD WINAPI GetModuleFileNameW( HMODULE hModule, LPWSTR lpFileName, DWORD size )
 {
+#if 0
     ULONG len = 0;
     ULONG_PTR magic;
     LDR_MODULE *pldr;
@@ -846,11 +972,31 @@ DWORD WINAPI GetModuleFileNameW( HMODULE hModule, LPWSTR lpFileName, DWORD size 
 
     LdrUnlockLoaderLock( 0, magic );
 done:
-    TRACE( "%s\n", debugstr_wn(lpFileName, len) );
     return len;
+#else
+    DWORD ret;
+    LPSTR nameA = heap_alloc( size * sizeof(CHAR) );
+
+    if (!nameA)
+    {
+        SetLastError( ERROR_NOT_ENOUGH_MEMORY );
+        return 0;
+    }
+    if ((ret = GetModuleFileNameA( hModule, nameA, size )))
+    {
+        ret = MultiByteToWideChar(CP_UNIXCP, 0, nameA, ret, lpFileName, size );
+        if (ret < size)
+            lpFileName[ret] = '\0';
+        else
+            SetLastError( ERROR_INSUFFICIENT_BUFFER );
+    }
+    heap_free( nameA );
+    return ret;
+#endif
 }
 
 
+#if 0
 /***********************************************************************
  *           get_dll_system_path
  */
@@ -865,7 +1011,7 @@ static const WCHAR *get_dll_system_path(void)
 
         len += 2 * GetSystemDirectoryW( NULL, 0 );
         len += GetWindowsDirectoryW( NULL, 0 );
-        p = path = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        p = path = heap_alloc( len * sizeof(WCHAR) );
         GetSystemDirectoryW( p, path + len - p);
         p += strlenW(p);
         /* if system directory ends in "32" add 16-bit version too */
@@ -981,6 +1127,7 @@ static inline WCHAR *append_path( WCHAR *p, const WCHAR *str )
  */
 WCHAR *MODULE_get_dll_load_path( LPCWSTR module, int safe_mode )
 {
+#if 0
     static const WCHAR pathW[] = {'P','A','T','H',0};
     static const WCHAR dotW[] = {'.',0};
 
@@ -1014,11 +1161,11 @@ WCHAR *MODULE_get_dll_load_path( LPCWSTR module, int safe_mode )
     if (RtlQueryEnvironmentVariable_U( NULL, &name, &value ) == STATUS_BUFFER_TOO_SMALL)
         path_len = value.Length;
 
-    RtlEnterCriticalSection( &dlldir_section );
+    pthread_mutex_lock( &dlldir_section );
     if (safe_mode == -1) safe_mode = get_dll_safe_mode();
     if (dll_directory) len += strlenW(dll_directory) + 1;
     else len += 2;  /* current directory */
-    if ((p = ret = HeapAlloc( GetProcessHeap(), 0, path_len + len * sizeof(WCHAR) )))
+    if ((p = ret = heap_alloc( path_len + len * sizeof(WCHAR) )))
     {
         if (module) p = append_path_len( p, module, mod_end - module );
 
@@ -1029,7 +1176,7 @@ WCHAR *MODULE_get_dll_load_path( LPCWSTR module, int safe_mode )
 
         if (!dll_directory && safe_mode) p = append_path( p, dotW );
     }
-    RtlLeaveCriticalSection( &dlldir_section );
+    pthread_mutex_unlock( &dlldir_section );
     if (!ret) return NULL;
 
     value.Buffer = p;
@@ -1041,9 +1188,9 @@ WCHAR *MODULE_get_dll_load_path( LPCWSTR module, int safe_mode )
 
         /* grow the buffer and retry */
         path_len = value.Length;
-        if (!(new_ptr = HeapReAlloc( GetProcessHeap(), 0, ret, path_len + len * sizeof(WCHAR) )))
+        if (!(new_ptr = heap_realloc( ret, path_len + len * sizeof(WCHAR) )))
         {
-            HeapFree( GetProcessHeap(), 0, ret );
+            heap_free( ret );
             return NULL;
         }
         value.Buffer = new_ptr + (value.Buffer - ret);
@@ -1052,6 +1199,9 @@ WCHAR *MODULE_get_dll_load_path( LPCWSTR module, int safe_mode )
     }
     value.Buffer[value.Length / sizeof(WCHAR)] = 0;
     return ret;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -1060,6 +1210,7 @@ WCHAR *MODULE_get_dll_load_path( LPCWSTR module, int safe_mode )
  */
 static WCHAR *get_dll_load_path_search_flags( LPCWSTR module, DWORD flags )
 {
+#if 0
     const WCHAR *image = NULL, *mod_end, *image_end;
     struct dll_dir_entry *dir;
     WCHAR *p, *ret;
@@ -1083,7 +1234,7 @@ static WCHAR *get_dll_load_path_search_flags( LPCWSTR module, DWORD flags )
     }
     else module = NULL;
 
-    RtlEnterCriticalSection( &dlldir_section );
+    pthread_mutex_lock( &dlldir_section );
 
     if (flags & LOAD_LIBRARY_SEARCH_APPLICATION_DIR)
     {
@@ -1101,7 +1252,7 @@ static WCHAR *get_dll_load_path_search_flags( LPCWSTR module, DWORD flags )
 
     if (flags & LOAD_LIBRARY_SEARCH_SYSTEM32) len += GetSystemDirectoryW( NULL, 0 );
 
-    if ((p = ret = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+    if ((p = ret = heap_alloc( len * sizeof(WCHAR) )))
     {
         if (module) p = append_path_len( p, module, mod_end - module );
         if (image) p = append_path_len( p, image, image_end - image );
@@ -1119,8 +1270,11 @@ static WCHAR *get_dll_load_path_search_flags( LPCWSTR module, DWORD flags )
         }
     }
 
-    RtlLeaveCriticalSection( &dlldir_section );
+    pthread_mutex_unlock( &dlldir_section );
     return ret;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -1245,9 +1399,10 @@ static HMODULE load_library( const UNICODE_STRING *libname, DWORD flags )
             SetLastError( RtlNtStatusToDosError( nts ) );
     }
 done:
-    HeapFree( GetProcessHeap(), 0, load_path );
+    heap_free( load_path );
     return hModule;
 }
+#endif
 
 
 /******************************************************************
@@ -1272,10 +1427,74 @@ done:
  */
 HMODULE WINAPI DECLSPEC_HOTPATCH LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 {
+#if 0
     WCHAR *libnameW;
 
     if (!(libnameW = FILE_name_AtoW( libname, FALSE ))) return 0;
     return LoadLibraryExW( libnameW, hfile, flags );
+#else
+    HMODULE ret;
+    int flag = RTLD_NOW;
+
+    if (!libname)
+    {
+        SetLastError( ERROR_INVALID_PARAMETER );
+        return NULL;
+    }
+
+    if (flags & LOAD_IGNORE_CODE_AUTHZ_LEVEL)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+    if (flags & LOAD_LIBRARY_AS_DATAFILE)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+    if (flags & LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+    if (flags & LOAD_LIBRARY_AS_IMAGE_RESOURCE)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+    if (flags & LOAD_LIBRARY_SEARCH_APPLICATION_DIR)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+    if (flags & LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+    if (flags & LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+    if (flags & LOAD_LIBRARY_SEARCH_USER_DIRS)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+    if (flags & LOAD_WITH_ALTERED_SEARCH_PATH)
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+
+    if (!(ret = (HMODULE)dlopen(libname, flag)))
+    {
+        SetLastError( RtlNtStatusToDosError( STATUS_DLL_NOT_FOUND ) );
+    }
+    
+    return ret;
+#endif
 }
 
 /***********************************************************************
@@ -1285,6 +1504,7 @@ HMODULE WINAPI DECLSPEC_HOTPATCH LoadLibraryExA(LPCSTR libname, HANDLE hfile, DW
  */
 HMODULE WINAPI DECLSPEC_HOTPATCH LoadLibraryExW(LPCWSTR libnameW, HANDLE hfile, DWORD flags)
 {
+#if 0
     UNICODE_STRING      wstr;
     HMODULE             res;
 
@@ -1308,6 +1528,25 @@ HMODULE WINAPI DECLSPEC_HOTPATCH LoadLibraryExW(LPCWSTR libnameW, HANDLE hfile, 
     res = load_library( &wstr, flags );
     RtlFreeUnicodeString( &wstr );
     return res;
+#else
+    int len;
+    char *name;
+    HMODULE ret;
+
+    len = WideCharToMultiByte(CP_UNIXCP, 0, libnameW, -1, NULL, 0, NULL, NULL);
+    name = heap_alloc(len);
+    if (!name)
+    {
+        SetLastError( ERROR_NOT_ENOUGH_MEMORY );
+        return 0;
+    }
+
+    ret = LoadLibraryExA( name, hfile, flags );
+
+    heap_free( name );
+
+    return ret;
+#endif
 }
 
 /***********************************************************************
@@ -1363,6 +1602,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH FreeLibrary(HINSTANCE hLibModule)
         return FALSE;
     }
 
+#if 0
     if ((ULONG_PTR)hLibModule & 3) /* this is a datafile module */
     {
         if ((ULONG_PTR)hLibModule & 1)
@@ -1387,6 +1627,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH FreeLibrary(HINSTANCE hLibModule)
 
     if ((nts = LdrUnloadDll( hLibModule )) == STATUS_SUCCESS) retv = TRUE;
     else SetLastError( RtlNtStatusToDosError( nts ) );
+#else
+    retv = (dlclose((void *)hLibModule) == 0);
+#endif
 
     return retv;
 }
@@ -1406,6 +1649,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH FreeLibrary(HINSTANCE hLibModule)
  */
 FARPROC get_proc_address( HMODULE hModule, LPCSTR function )
 {
+#if 0
     NTSTATUS    nts;
     FARPROC     fp;
 
@@ -1426,8 +1670,17 @@ FARPROC get_proc_address( HMODULE hModule, LPCSTR function )
         fp = NULL;
     }
     return fp;
+#else
+    FARPROC ret;
+    dlerror();
+    ret = dlsym(hModule, function);
+    if (dlerror())
+        SetLastError( RtlNtStatusToDosError( STATUS_PROCEDURE_NOT_FOUND ) );
+    return ret;
+#endif
 }
 
+#if 0
 #ifdef __x86_64__
 /*
  * Work around a Delphi bug on x86_64.  When delay loading a symbol,
@@ -1470,12 +1723,19 @@ static inline FARPROC get_proc_address_wrapper( HMODULE module, LPCSTR function 
 }
 
 #endif /* __x86_64__ */
+#else
+static inline FARPROC get_proc_address_wrapper( HMODULE module, LPCSTR function )
+{
+    return get_proc_address( module, function );
+}
+#endif
 
 FARPROC WINAPI GetProcAddress( HMODULE hModule, LPCSTR function )
 {
     return get_proc_address_wrapper( hModule, function );
 }
 
+#if 0
 /***********************************************************************
  *           DelayLoadFailureHook  (KERNEL32.@)
  */
@@ -1658,7 +1918,7 @@ DWORD WINAPI K32GetModuleBaseNameA(HANDLE process, HMODULE module,
         return 0;
     }
 
-    base_name_w = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * size);
+    base_name_w = heap_alloc(sizeof(WCHAR) * size);
     if(!base_name_w)
         return 0;
 
@@ -1670,7 +1930,7 @@ DWORD WINAPI K32GetModuleBaseNameA(HANDLE process, HMODULE module,
                                   base_name, size, NULL, NULL);
         if (ret < size) base_name[ret] = 0;
     }
-    HeapFree(GetProcessHeap(), 0, base_name_w);
+    heap_free(base_name_w);
     return ret;
 }
 
@@ -1729,7 +1989,7 @@ DWORD WINAPI K32GetModuleFileNameExA(HANDLE process, HMODULE module,
         return len;
     }
 
-    if (!(ptr = HeapAlloc(GetProcessHeap(), 0, size * sizeof(WCHAR)))) return 0;
+    if (!(ptr = heap_alloc(size * sizeof(WCHAR)))) return 0;
 
     len = K32GetModuleFileNameExW(process, module, ptr, size);
     if (!len)
@@ -1746,7 +2006,7 @@ DWORD WINAPI K32GetModuleFileNameExA(HANDLE process, HMODULE module,
         else if (len < size) len = strlen( file_name );
     }
 
-    HeapFree(GetProcessHeap(), 0, ptr);
+    heap_free(ptr);
     return len;
 }
 
@@ -1795,4 +2055,5 @@ void __wine_dll_unregister_16( const IMAGE_DOS_HEADER *header )
 {
 }
 
+#endif
 #endif

@@ -132,9 +132,9 @@ const char* dbg_W2A(const WCHAR* buffer, unsigned len)
     {
         static char* newansi;
         if (ansi)
-            newansi = HeapReAlloc(GetProcessHeap(), 0, ansi, newlen);
+            newansi = heap_realloc(ansi, newlen);
         else
-            newansi = HeapAlloc(GetProcessHeap(), 0, newlen);
+            newansi = heap_alloc(newlen);
         if (!newansi) return NULL;
         ansilen = newlen;
         ansi = newansi;
@@ -298,7 +298,7 @@ struct dbg_process*	dbg_add_process(const struct be_process_io* pio, DWORD pid, 
         return p;
     }
 
-    if (!(p = HeapAlloc(GetProcessHeap(), 0, sizeof(struct dbg_process)))) return NULL;
+    if (!(p = heap_alloc(sizeof(struct dbg_process)))) return NULL;
     p->handle = h;
     p->pid = pid;
     p->process_io = pio;
@@ -326,7 +326,7 @@ void dbg_set_process_name(struct dbg_process* p, const WCHAR* imageName)
     assert(p->imageName == NULL);
     if (imageName)
     {
-        WCHAR* tmp = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(imageName) + 1) * sizeof(WCHAR));
+        WCHAR* tmp = heap_alloc((lstrlenW(imageName) + 1) * sizeof(WCHAR));
         if (tmp) p->imageName = lstrcpyW(tmp, imageName);
     }
 }
@@ -342,15 +342,15 @@ void dbg_del_process(struct dbg_process* p)
 
     for (i = 0; i < p->num_delayed_bp; i++)
         if (p->delayed_bp[i].is_symbol)
-            HeapFree(GetProcessHeap(), 0, p->delayed_bp[i].u.symbol.name);
+            heap_free(p->delayed_bp[i].u.symbol.name);
 
-    HeapFree(GetProcessHeap(), 0, p->delayed_bp);
+    heap_free(p->delayed_bp);
     source_nuke_path(p);
     source_free_files(p);
     list_remove(&p->entry);
     if (p == dbg_curr_process) dbg_curr_process = NULL;
-    HeapFree(GetProcessHeap(), 0, (char*)p->imageName);
-    HeapFree(GetProcessHeap(), 0, p);
+    heap_free((char*)p->imageName);
+    heap_free(p);
 }
 
 /******************************************************************
@@ -373,7 +373,7 @@ BOOL dbg_init(HANDLE hProc, const WCHAR* in, BOOL invade)
             if (*last == '/' || *last == '\\')
             {
                 WCHAR*  tmp;
-                tmp = HeapAlloc(GetProcessHeap(), 0, (1024 + 1 + (last - in) + 1) * sizeof(WCHAR));
+                tmp = heap_alloc((1024 + 1 + (last - in) + 1) * sizeof(WCHAR));
                 if (tmp && SymGetSearchPathW(hProc, tmp, 1024))
                 {
                     WCHAR*      x = tmp + lstrlenW(tmp);
@@ -384,7 +384,7 @@ BOOL dbg_init(HANDLE hProc, const WCHAR* in, BOOL invade)
                     ret = SymSetSearchPathW(hProc, tmp);
                 }
                 else ret = FALSE;
-                HeapFree(GetProcessHeap(), 0, tmp);
+                heap_free(tmp);
                 break;
             }
         }
@@ -457,7 +457,7 @@ struct dbg_thread* dbg_get_thread(struct dbg_process* p, DWORD tid)
 struct dbg_thread* dbg_add_thread(struct dbg_process* p, DWORD tid,
                                   HANDLE h, void* teb)
 {
-    struct dbg_thread*	t = HeapAlloc(GetProcessHeap(), 0, sizeof(struct dbg_thread));
+    struct dbg_thread*	t = heap_alloc(sizeof(struct dbg_thread));
 
     if (!t)
 	return NULL;
@@ -486,10 +486,10 @@ struct dbg_thread* dbg_add_thread(struct dbg_process* p, DWORD tid,
 
 void dbg_del_thread(struct dbg_thread* t)
 {
-    HeapFree(GetProcessHeap(), 0, t->frames);
+    heap_free(t->frames);
     list_remove(&t->entry);
     if (t == dbg_curr_thread) dbg_curr_thread = NULL;
-    HeapFree(GetProcessHeap(), 0, t);
+    heap_free(t);
 }
 
 void dbg_set_option(const char* option, const char* val)

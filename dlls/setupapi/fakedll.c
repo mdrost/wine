@@ -43,6 +43,7 @@
 #include "winuser.h"
 #include "winnt.h"
 #include "winternl.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/library.h"
 #include "wine/debug.h"
@@ -152,7 +153,7 @@ static BOOL add_handled_dll( const WCHAR *name )
     int i, min, max, pos, res;
     char *nameA;
 
-    if (!(nameA = HeapAlloc( GetProcessHeap(), 0, len + 1 ))) return FALSE;
+    if (!(nameA = heap_alloc( len + 1 ))) return FALSE;
     if (!dll_name_WtoA( nameA, name, len )) goto failed;
 
     min = 0;
@@ -171,9 +172,9 @@ static BOOL add_handled_dll( const WCHAR *name )
         char **new_dlls;
         unsigned int new_count = max( 64, handled_total * 2 );
 
-        if (handled_dlls) new_dlls = HeapReAlloc( GetProcessHeap(), 0, handled_dlls,
+        if (handled_dlls) new_dlls = heap_realloc( handled_dlls,
                                                   new_count * sizeof(*handled_dlls) );
-        else new_dlls = HeapAlloc( GetProcessHeap(), 0, new_count * sizeof(*handled_dlls) );
+        else new_dlls = heap_alloc( new_count * sizeof(*handled_dlls) );
         if (!new_dlls) goto failed;
         handled_dlls = new_dlls;
         handled_total = new_count;
@@ -185,7 +186,7 @@ static BOOL add_handled_dll( const WCHAR *name )
     return TRUE;
 
 failed:
-    HeapFree( GetProcessHeap(), 0, nameA );
+    heap_free( nameA );
     return FALSE;
 }
 
@@ -257,7 +258,7 @@ static BOOL build_fake_dll( HANDLE file, const WCHAR *name )
     DWORD size, header_size = lfanew + sizeof(*nt);
 
     info.handle = file;
-    buffer = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, header_size + 8 * sizeof(IMAGE_SECTION_HEADER) );
+    buffer = heap_alloc_zero( header_size + 8 * sizeof(IMAGE_SECTION_HEADER) );
 
     dos = (IMAGE_DOS_HEADER *)buffer;
     dos->e_magic    = IMAGE_DOS_SIGNATURE;
@@ -345,7 +346,7 @@ static BOOL build_fake_dll( HANDLE file, const WCHAR *name )
     nt->OptionalHeader.SizeOfImage   = ALIGN( info.mem_pos, section_alignment );
     ret = xwrite( &info, buffer, header_size, 0 );
 done:
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     return ret;
 }
 
@@ -370,7 +371,7 @@ static void create_directories( const WCHAR *name )
     WCHAR *path, *p;
 
     /* create the directory/directories */
-    path = HeapAlloc(GetProcessHeap(), 0, (strlenW(name) + 1)*sizeof(WCHAR));
+    path = heap_alloc((strlenW(name) + 1)*sizeof(WCHAR));
     strcpyW(path, name);
 
     p = strchrW(path, '\\');
@@ -382,7 +383,7 @@ static void create_directories( const WCHAR *name )
         *p = '\\';
         p = strchrW(p+1, '\\');
     }
-    HeapFree(GetProcessHeap(), 0, path);
+    heap_free(path);
 }
 
 static inline char *prepend( char *buffer, const char *str, size_t len )
@@ -409,7 +410,7 @@ static void *load_fake_dll( const WCHAR *name, SIZE_T *size )
     while ((path = wine_dll_enum_load_path( i++ ))) maxlen = max( maxlen, strlen(path) );
     maxlen += sizeof("/fakedlls") + len + sizeof(".fake");
 
-    if (!(file = HeapAlloc( GetProcessHeap(), 0, maxlen ))) return NULL;
+    if (!(file = heap_alloc( maxlen ))) return NULL;
 
     pos = maxlen - len - sizeof(".fake");
     if (!dll_name_WtoA( file + pos, name, len )) goto done;
@@ -447,7 +448,7 @@ static void *load_fake_dll( const WCHAR *name, SIZE_T *size )
     }
 
 done:
-    HeapFree( GetProcessHeap(), 0, file );
+    heap_free( file );
     if (res == 1) return data;
     return NULL;
 }
@@ -640,7 +641,7 @@ static BOOL create_winsxs_dll( const WCHAR *dll_name, const xmlstr_t *arch, cons
     path_len = GetWindowsDirectoryW( NULL, 0 ) + 1 + sizeof(winsxsW)/sizeof(WCHAR)
         + arch->len + name->len + key->len + version->len + 18 + strlenW( filename ) + 1;
 
-    path = HeapAlloc( GetProcessHeap(), 0, path_len * sizeof(WCHAR) );
+    path = heap_alloc( path_len * sizeof(WCHAR) );
     pos = GetWindowsDirectoryW( path, path_len );
     path[pos++] = '\\';
     memcpy( path + pos, winsxsW, sizeof(winsxsW) );
@@ -658,7 +659,7 @@ static BOOL create_winsxs_dll( const WCHAR *dll_name, const xmlstr_t *arch, cons
         CloseHandle( handle );
         if (!ret) DeleteFileW( path );
     }
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( path );
     return ret;
 }
 
@@ -675,7 +676,7 @@ static BOOL create_manifest( const xmlstr_t *arch, const xmlstr_t *name, const x
     path_len = GetWindowsDirectoryW( NULL, 0 ) + 1 + sizeof(winsxsW)/sizeof(WCHAR)
         + arch->len + name->len + key->len + version->len + 18 + sizeof(extensionW)/sizeof(WCHAR);
 
-    path = HeapAlloc( GetProcessHeap(), 0, path_len * sizeof(WCHAR) );
+    path = heap_alloc( path_len * sizeof(WCHAR) );
     pos = GetWindowsDirectoryW( path, MAX_PATH );
     path[pos++] = '\\';
     memcpy( path + pos, winsxsW, sizeof(winsxsW) );
@@ -697,7 +698,7 @@ static BOOL create_manifest( const xmlstr_t *arch, const xmlstr_t *name, const x
         CloseHandle( handle );
         if (!ret) DeleteFileW( path );
     }
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( path );
     return ret;
 }
 
@@ -762,7 +763,7 @@ static BOOL CALLBACK register_manifest( HMODULE module, const WCHAR *type, WCHAR
             }
             if (!arch.len)  /* fixup the architecture */
             {
-                char *new_buffer = HeapAlloc( GetProcessHeap(), 0, len + sizeof(current_arch) );
+                char *new_buffer = heap_alloc( len + sizeof(current_arch) );
                 memcpy( new_buffer, manifest, arch.ptr - manifest );
                 strcpy( new_buffer + (arch.ptr - manifest), current_arch );
                 memcpy( new_buffer + strlen(new_buffer), arch.ptr, len - (arch.ptr - manifest) );
@@ -770,7 +771,7 @@ static BOOL CALLBACK register_manifest( HMODULE module, const WCHAR *type, WCHAR
                 arch.len = strlen( current_arch );
                 if (create_winsxs_dll( dll_data->name, &arch, &name, &key, &version, &lang, dll_data->data, dll_data->size ))
                     create_manifest( &arch, &name, &key, &version, &lang, new_buffer, len + arch.len );
-                HeapFree( GetProcessHeap(), 0, new_buffer );
+                heap_free( new_buffer );
             }
             else
             {
@@ -793,11 +794,11 @@ static BOOL CALLBACK register_resource( HMODULE module, LPCWSTR type, LPWSTR nam
 
     if (!str) return FALSE;
     lenW = MultiByteToWideChar( CP_UTF8, 0, str, lenA, NULL, 0 ) + 1;
-    if (!(buffer = HeapAlloc( GetProcessHeap(), 0, lenW * sizeof(WCHAR) ))) return FALSE;
+    if (!(buffer = heap_alloc( lenW * sizeof(WCHAR) ))) return FALSE;
     MultiByteToWideChar( CP_UTF8, 0, str, lenA, buffer, lenW );
     buffer[lenW - 1] = 0;
     *hr = IRegistrar_StringRegister( registrar, buffer );
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     return TRUE;
 }
 
@@ -917,11 +918,11 @@ static BOOL create_wildcard_dlls( const WCHAR *dirname )
     if (build_dir) maxlen = strlen(build_dir) + sizeof("/programs/");
     for (i = 0; (path = wine_dll_enum_load_path(i)); i++) maxlen = max( maxlen, strlen(path) );
     maxlen += 2 * max_dll_name_len + 2 + sizeof(".dll.fake");
-    if (!(file = HeapAlloc( GetProcessHeap(), 0, maxlen ))) return FALSE;
+    if (!(file = heap_alloc( maxlen ))) return FALSE;
 
-    if (!(dest = HeapAlloc( GetProcessHeap(), 0, (strlenW(dirname) + max_dll_name_len) * sizeof(WCHAR) )))
+    if (!(dest = heap_alloc( (strlenW(dirname) + max_dll_name_len) * sizeof(WCHAR) )))
     {
-        HeapFree( GetProcessHeap(), 0, file );
+        heap_free( file );
         return FALSE;
     }
     strcpyW( dest, dirname );
@@ -942,8 +943,8 @@ static BOOL create_wildcard_dlls( const WCHAR *dirname )
         strcat( file, "/fakedlls" );
         install_lib_dir( dest, file, NULL );
     }
-    HeapFree( GetProcessHeap(), 0, file );
-    HeapFree( GetProcessHeap(), 0, dest );
+    heap_free( file );
+    heap_free( dest );
     return TRUE;
 }
 
@@ -1007,7 +1008,7 @@ void cleanup_fake_dlls(void)
 {
     if (file_buffer) VirtualFree( file_buffer, 0, MEM_RELEASE );
     file_buffer = NULL;
-    HeapFree( GetProcessHeap(), 0, handled_dlls );
+    heap_free( handled_dlls );
     handled_dlls = NULL;
     handled_count = handled_total = 0;
     if (registrar) IRegistrar_Release( registrar );

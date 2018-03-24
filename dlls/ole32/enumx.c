@@ -28,6 +28,7 @@
 
 #include "enumx.h"
 
+#include "wine/heap.h"
 #include "wine/list.h"
 #include "wine/debug.h"
 
@@ -89,9 +90,9 @@ ULONG WINAPI enumx_Release(enumx_impl *This)
         {
              struct list *x = list_head(&This->elements);
              list_remove(x);
-             HeapFree(GetProcessHeap(), 0, x);
+             heap_free(x);
         }
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -173,7 +174,7 @@ enumx_impl *enumx_allocate(REFIID riid, const void *vtbl, ULONG elem_size)
 {
     enumx_impl *enumx;
 
-    enumx = HeapAlloc(GetProcessHeap(), 0, sizeof *enumx);
+    enumx = heap_alloc(sizeof *enumx);
     if (enumx)
     {
         enumx->vtbl = vtbl;
@@ -196,7 +197,7 @@ void *enumx_add_element(enumx_impl *enumx, const void *data)
 {
     struct list *element;
 
-    element = HeapAlloc(GetProcessHeap(), 0, sizeof *element + enumx->elem_size);
+    element = heap_alloc(sizeof *element + enumx->elem_size);
     if (!element)
         return NULL;
     memcpy(&element[1], data, enumx->elem_size);

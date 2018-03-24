@@ -126,13 +126,13 @@ void PRINTERROR(void); /* WINE_TRACE() the plaintext error message from GetLastE
 /* returns a string in the win32 heap  */
 static inline char *strdupA(const char *s)
 {
-    char *r = HeapAlloc(GetProcessHeap(), 0, strlen(s)+1);
+    char *r = heap_alloc(strlen(s)+1);
     return strcpy(r, s);
 }
 
 static inline WCHAR *strdupW(const WCHAR *s)
 {
-    WCHAR *r = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(s)+1)*sizeof(WCHAR));
+    WCHAR *r = heap_alloc((lstrlenW(s)+1)*sizeof(WCHAR));
     return lstrcpyW(r, s);
 }
 
@@ -143,7 +143,7 @@ static inline WCHAR *strdupU2W(const char *unix_str)
     int lenW;
 
     lenW = MultiByteToWideChar(CP_UNIXCP, 0, unix_str, -1, NULL, 0);
-    unicode_str = HeapAlloc(GetProcessHeap(), 0, lenW * sizeof(WCHAR));
+    unicode_str = heap_alloc(lenW * sizeof(WCHAR));
     if (unicode_str)
         MultiByteToWideChar(CP_UNIXCP, 0, unix_str, -1, unicode_str, lenW);
     return unicode_str;
@@ -153,10 +153,10 @@ static inline char *get_text(HWND dialog, WORD id)
 {
     HWND item = GetDlgItem(dialog, id);
     int len = GetWindowTextLengthA(item) + 1;
-    char *result = len ? HeapAlloc(GetProcessHeap(), 0, len) : NULL;
+    char *result = len ? heap_alloc(len) : NULL;
     if (!result) return NULL;
     if (GetWindowTextA(item, result, len) == 0) {
-        HeapFree (GetProcessHeap(), 0, result);
+        heap_free(result);
         return NULL;
     }
     return result;
@@ -166,10 +166,10 @@ static inline WCHAR *get_textW(HWND dialog, WORD id)
 {
     HWND item = GetDlgItem(dialog, id);
     int len = GetWindowTextLengthW(item) + 1;
-    WCHAR *result = len ? HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR)) : NULL;
+    WCHAR *result = len ? heap_alloc(len * sizeof(WCHAR)) : NULL;
     if (!result) return NULL;
     if(GetWindowTextW(item, result, len) == 0) {
-        HeapFree (GetProcessHeap(), 0, result);
+        heap_free(result);
         return NULL;
     }
     return result;

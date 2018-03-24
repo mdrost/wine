@@ -73,7 +73,7 @@ static LRESULT registry_get_handle(HKEY *hKey, LPDWORD action, LPCWSTR subKey)
         }
 
         if(subKey)
-            HeapFree(GetProcessHeap(), 0, key);
+            heap_free(key);
 
         return ret;
 }

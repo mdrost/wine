@@ -68,9 +68,9 @@ static char *get_temp_buffer( int size )
 
     idx = ++pos % (sizeof(list)/sizeof(list[0]));
     if (list[idx])
-        ret = HeapReAlloc( GetProcessHeap(), 0, list[idx], size );
+        ret = heap_realloc( list[idx], size );
     else
-        ret = HeapAlloc( GetProcessHeap(), 0, size );
+        ret = heap_alloc( size );
     if (ret) list[idx] = ret;
     return ret;
 }
@@ -225,7 +225,7 @@ static void _test_hkey_main_Value_A(int line, LPCSTR name, LPCSTR string,
     lok(type == REG_SZ, "RegQueryValueExA/1 returned type %d\n", type);
     lok(cbData == full_byte_len, "cbData=%d instead of %d or %d\n", cbData, full_byte_len, str_byte_len);
 
-    value = HeapAlloc(GetProcessHeap(), 0, cbData+1);
+    value = heap_alloc(cbData+1);
     memset(value, 0xbd, cbData+1);
     type=0xdeadbeef;
     ret = RegQueryValueExA(hkey_main, name, NULL, &type, value, &cbData);
@@ -243,7 +243,7 @@ static void _test_hkey_main_Value_A(int line, LPCSTR name, LPCSTR string,
            wine_debugstr_an(string, full_byte_len), full_byte_len);
         lok(*(value+cbData) == 0xbd, "RegQueryValueExA/2 overflowed at offset %u: %02x != bd\n", cbData, *(value+cbData));
     }
-    HeapFree(GetProcessHeap(), 0, value);
+    heap_free(value);
 }
 
 #define test_hkey_main_Value_W(name, string, full_byte_len) _test_hkey_main_Value_W(__LINE__, name, string, full_byte_len)
@@ -273,7 +273,7 @@ static void _test_hkey_main_Value_W(int line, LPCWSTR name, LPCWSTR string,
         "cbData=%d instead of %d\n", cbData, full_byte_len);
 
     /* Give enough space to overflow by one WCHAR */
-    value = HeapAlloc(GetProcessHeap(), 0, cbData+2);
+    value = heap_alloc(cbData+2);
     memset(value, 0xbd, cbData+2);
     type=0xdeadbeef;
     ret = RegQueryValueExW(hkey_main, name, NULL, &type, value, &cbData);
@@ -288,7 +288,7 @@ static void _test_hkey_main_Value_W(int line, LPCWSTR name, LPCWSTR string,
     /* This implies that when cbData == 0, RegQueryValueExW() should not modify the buffer */
     lok(*(value+cbData) == 0xbd, "RegQueryValueExW/2 overflowed at %u: %02x != bd\n", cbData, *(value+cbData));
     lok(*(value+cbData+1) == 0xbd, "RegQueryValueExW/2 overflowed at %u+1: %02x != bd\n", cbData, *(value+cbData+1));
-    HeapFree(GetProcessHeap(), 0, value);
+    heap_free(value);
 }
 
 static void test_set_value(void)
@@ -1233,7 +1233,7 @@ static void test_reg_open_key(void)
     ok(ret == ERROR_SUCCESS,
        "Expected SetEntriesInAclA to return ERROR_SUCCESS, got %u, last error %u\n", ret, GetLastError());
 
-    sd = HeapAlloc(GetProcessHeap(), 0, SECURITY_DESCRIPTOR_MIN_LENGTH);
+    sd = heap_alloc(SECURITY_DESCRIPTOR_MIN_LENGTH);
     bRet = InitializeSecurityDescriptor(sd, SECURITY_DESCRIPTOR_REVISION);
     ok(bRet == TRUE,
        "Expected InitializeSecurityDescriptor to return TRUE, got %d, last error %u\n", bRet, GetLastError());
@@ -1271,7 +1271,7 @@ static void test_reg_open_key(void)
         RegCloseKey(hkResult);
     }
 
-    HeapFree(GetProcessHeap(), 0, sd);
+    heap_free(sd);
     LocalFree(key_acl);
     FreeSid(world_sid);
     RegDeleteKeyA(hkRoot64, "");
@@ -1401,7 +1401,7 @@ static void test_reg_create_key(void)
     ok(dwRet == ERROR_SUCCESS,
        "Expected SetEntriesInAclA to return ERROR_SUCCESS, got %u, last error %u\n", dwRet, GetLastError());
 
-    sd = HeapAlloc(GetProcessHeap(), 0, SECURITY_DESCRIPTOR_MIN_LENGTH);
+    sd = heap_alloc(SECURITY_DESCRIPTOR_MIN_LENGTH);
     bRet = InitializeSecurityDescriptor(sd, SECURITY_DESCRIPTOR_REVISION);
     ok(bRet == TRUE,
        "Expected InitializeSecurityDescriptor to return TRUE, got %d, last error %u\n", bRet, GetLastError());
@@ -1439,7 +1439,7 @@ static void test_reg_create_key(void)
         RegCloseKey(hkey1);
     }
 
-    HeapFree(GetProcessHeap(), 0, sd);
+    heap_free(sd);
     LocalFree(key_acl);
     FreeSid(world_sid);
     RegDeleteKeyA(hkRoot64, "");
@@ -2356,7 +2356,7 @@ static void test_symlinks(void)
     pRtlFormatCurrentUserKeyPath( &target_str );
 
     target_len = target_str.Length + sizeof(targetW);
-    target = HeapAlloc( GetProcessHeap(), 0, target_len );
+    target = heap_alloc( target_len );
     memcpy( target, target_str.Buffer, target_str.Length );
     memcpy( target + target_str.Length/sizeof(WCHAR), targetW, sizeof(targetW) );
 
@@ -2461,7 +2461,7 @@ static void test_symlinks(void)
     ok( !status, "NtDeleteKey failed: 0x%08x\n", status );
     RegCloseKey( link );
 
-    HeapFree( GetProcessHeap(), 0, target );
+    heap_free( target );
     pRtlFreeUnicodeString( &target_str );
 }
 
@@ -3501,14 +3501,14 @@ static void test_RegQueryValueExPerformanceData(void)
 
     /* Test ERROR_MORE_DATA, start with small buffer */
     len = 10;
-    value = HeapAlloc(GetProcessHeap(), 0, len);
+    value = heap_alloc(len);
     cbData = len;
     dwret = RegQueryValueExA( HKEY_PERFORMANCE_DATA, "Global", NULL, NULL, value, &cbData );
     todo_wine ok( dwret == ERROR_MORE_DATA, "expected ERROR_MORE_DATA, got %d\n", dwret );
     while( dwret == ERROR_MORE_DATA && limit)
     {
         len = len * 10;
-        value = HeapReAlloc( GetProcessHeap(), 0, value, len );
+        value = heap_realloc( value, len );
         cbData = len;
         dwret = RegQueryValueExA( HKEY_PERFORMANCE_DATA, "Global", NULL, NULL, value, &cbData );
         limit--;
@@ -3531,7 +3531,7 @@ static void test_RegQueryValueExPerformanceData(void)
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, value);
+    heap_free(value);
 }
 
 

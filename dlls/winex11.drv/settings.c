@@ -72,9 +72,9 @@ struct x11drv_mode_info *X11DRV_Settings_SetHandlers(const char *name,
     if (dd_modes) 
     {
         TRACE("Destroying old display modes array\n");
-        HeapFree(GetProcessHeap(), 0, dd_modes);
+        heap_free(dd_modes);
     }
-    dd_modes = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*dd_modes) * dd_max_modes);
+    dd_modes = heap_alloc_zero(sizeof(*dd_modes) * dd_max_modes);
     dd_mode_count = 0;
     TRACE("Initialized new display modes array\n");
     return dd_modes;

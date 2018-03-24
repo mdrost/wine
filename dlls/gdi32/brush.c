@@ -28,6 +28,7 @@
 #include "wingdi.h"
 #include "gdi_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(gdi);
 
@@ -73,12 +74,12 @@ static BOOL copy_bitmap( struct brush_pattern *brush, HBITMAP bitmap )
     brush->bits = bits;
     if (!bits.free)
     {
-        if (!(brush->bits.ptr = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage ))) goto done;
+        if (!(brush->bits.ptr = heap_alloc( info->bmiHeader.biSizeImage ))) goto done;
         memcpy( brush->bits.ptr, bits.ptr, info->bmiHeader.biSizeImage );
         brush->bits.free = free_heap_bits;
     }
 
-    if (!(brush->info = HeapAlloc( GetProcessHeap(), 0, get_dib_info_size( info, DIB_RGB_COLORS ))))
+    if (!(brush->info = heap_alloc( get_dib_info_size( info, DIB_RGB_COLORS ))))
     {
         if (brush->bits.free) brush->bits.free( &brush->bits );
         goto done;
@@ -122,10 +123,13 @@ BOOL store_brush_pattern( LOGBRUSH *brush, struct brush_pattern *pattern )
         return copy_bitmap( pattern, (HBITMAP)brush->lbHatch );
 
     case BS_DIBPATTERN:
+#if 0
         hmem = (HGLOBAL)brush->lbHatch;
         if (!(brush->lbHatch = (ULONG_PTR)GlobalLock( hmem ))) return FALSE;
+#endif
         /* fall through */
     case BS_DIBPATTERNPT:
+#if 0
         pattern->usage = brush->lbColor;
         pattern->info = copy_packed_dib( (BITMAPINFO *)brush->lbHatch, pattern->usage );
         if (hmem) GlobalUnlock( hmem );
@@ -134,6 +138,10 @@ BOOL store_brush_pattern( LOGBRUSH *brush, struct brush_pattern *pattern )
         brush->lbStyle = BS_DIBPATTERN;
         brush->lbColor = 0;
         return TRUE;
+#else
+        FIXME( "not implemented: %u\n", brush->lbStyle );
+        return FALSE;
+#endif
 
     case BS_DIBPATTERN8X8:
     case BS_MONOPATTERN:
@@ -147,7 +155,7 @@ BOOL store_brush_pattern( LOGBRUSH *brush, struct brush_pattern *pattern )
 void free_brush_pattern( struct brush_pattern *pattern )
 {
     if (pattern->bits.free) pattern->bits.free( &pattern->bits );
-    HeapFree( GetProcessHeap(), 0, pattern->info );
+    heap_free( pattern->info );
 }
 
 BOOL get_brush_bitmap_info( HBRUSH handle, BITMAPINFO *info, void **bits, UINT *usage )
@@ -180,7 +188,7 @@ BOOL get_brush_bitmap_info( HBRUSH handle, BITMAPINFO *info, void **bits, UINT *
  *  brush [I] Pointer to a LOGBRUSH structure describing the desired brush.
  *
  * RETURNS
- *  A handle to the created brush, or a NULL handle if the brush cannot be 
+ *  A handle to the created brush, or a NULL handle if the brush cannot be
  *  created.
  *
  * NOTES
@@ -195,7 +203,7 @@ HBRUSH WINAPI CreateBrushIndirect( const LOGBRUSH * brush )
     BRUSHOBJ * ptr;
     HBRUSH hbrush;
 
-    if (!(ptr = HeapAlloc( GetProcessHeap(), 0, sizeof(*ptr) ))) return 0;
+    if (!(ptr = heap_alloc( sizeof(*ptr) ))) return 0;
 
     ptr->logbrush = *brush;
 
@@ -207,7 +215,7 @@ HBRUSH WINAPI CreateBrushIndirect( const LOGBRUSH * brush )
     }
 
     free_brush_pattern( &ptr->pattern );
-    HeapFree( GetProcessHeap(), 0, ptr );
+    heap_free( ptr );
     return 0;
 }
 
@@ -253,7 +261,7 @@ HBRUSH WINAPI CreateHatchBrush( INT style, COLORREF color )
  *  hbitmap  [I] Bitmap containing pattern for the brush
  *
  * RETURNS
- *  A handle to the created brush, or a NULL handle if the brush cannot 
+ *  A handle to the created brush, or a NULL handle if the brush cannot
  *  be created.
  *
  * NOTES
@@ -281,14 +289,14 @@ HBRUSH WINAPI CreatePatternBrush( HBITMAP hbitmap )
  *  coloruse [I] Specifies color format, if provided
  *
  * RETURNS
- *  A handle to the created brush, or a NULL handle if the brush cannot 
+ *  A handle to the created brush, or a NULL handle if the brush cannot
  *  be created.
  *
  * NOTES
  * - This function uses CreateBrushIndirect() to create the brush.
  * - The brush returned should be freed by the caller using DeleteObject()
  *   when it is no longer required.
- * - This function is for compatibility only. CreateDIBPatternBrushPt() should 
+ * - This function is for compatibility only. CreateDIBPatternBrushPt() should
  *   be used instead.
  */
 HBRUSH WINAPI CreateDIBPatternBrush( HGLOBAL hbitmap, UINT coloruse )
@@ -467,7 +475,7 @@ static BOOL BRUSH_DeleteObject( HGDIOBJ handle )
 
     if (!brush) return FALSE;
     free_brush_pattern( &brush->pattern );
-    HeapFree( GetProcessHeap(), 0, brush );
+    heap_free( brush );
     return TRUE;
 }
 

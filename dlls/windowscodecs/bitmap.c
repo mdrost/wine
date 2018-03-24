@@ -164,7 +164,7 @@ static ULONG WINAPI BitmapLockImpl_Release(IWICBitmapLock *iface)
     {
         BitmapImpl_ReleaseLock(This->parent);
         IWICBitmap_Release(&This->parent->IWICBitmap_iface);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -284,8 +284,8 @@ static ULONG WINAPI BitmapImpl_Release(IWICBitmap *iface)
         if (This->palette) IWICPalette_Release(This->palette);
         This->cs.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->cs);
-        HeapFree(GetProcessHeap(), 0, This->data);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->data);
+        heap_free(This);
     }
 
     return ref;
@@ -389,13 +389,13 @@ static HRESULT WINAPI BitmapImpl_Lock(IWICBitmap *iface, const WICRect *prcLock,
         return E_FAIL;
     }
 
-    result = HeapAlloc(GetProcessHeap(), 0, sizeof(BitmapLockImpl));
+    result = heap_alloc(sizeof(BitmapLockImpl));
     if (!result)
         return E_OUTOFMEMORY;
 
     if (!BitmapImpl_AcquireLock(This, flags & WICBitmapLockWrite))
     {
-        HeapFree(GetProcessHeap(), 0, result);
+        heap_free(result);
         return WINCODEC_ERR_ALREADYLOCKED;
     }
 
@@ -712,12 +712,12 @@ HRESULT BitmapImpl_Create(UINT uiWidth, UINT uiHeight,
     if (datasize < stride * uiHeight) return WINCODEC_ERR_INSUFFICIENTBUFFER;
     if (stride < ((bpp*uiWidth)+7)/8) return E_INVALIDARG;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(BitmapImpl));
-    data = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, datasize);
+    This = heap_alloc(sizeof(BitmapImpl));
+    data = heap_alloc_zero(datasize);
     if (!This || !data)
     {
-        HeapFree(GetProcessHeap(), 0, This);
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(This);
+        heap_free(data);
         return E_OUTOFMEMORY;
     }
     if (bits) memcpy(data, bits, datasize);

@@ -136,7 +136,11 @@ void *alloc_object(object_header_t *parent, const object_vtbl_t *vtbl, size_t si
         }
     }else if(next_handle == handle_table_size) {
         num = handle_table_size * 2;
+#if 0
         p = heap_realloc_zero(handle_table, sizeof(handle_table[0]) * num);
+#else
+        p = NULL;
+#endif
         if(p) {
             handle_table = p;
             handle_table_size = num;

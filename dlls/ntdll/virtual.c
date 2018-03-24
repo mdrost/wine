@@ -53,6 +53,7 @@
 #define NONAMELESSUNION
 #include "windef.h"
 #include "winternl.h"
+#include "wine/error.h"
 #include "wine/library.h"
 #include "wine/server.h"
 #include "wine/exception.h"
@@ -108,6 +109,7 @@ static const BYTE VIRTUAL_Win32Flags[16] =
     PAGE_EXECUTE_WRITECOPY      /* READ | WRITE | EXEC | WRITECOPY */
 };
 
+#if 0
 static struct wine_rb_tree views_tree;
 
 static RTL_CRITICAL_SECTION csVirtual;
@@ -118,6 +120,7 @@ static RTL_CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": csVirtual") }
 };
 static RTL_CRITICAL_SECTION csVirtual = { &critsect_debug, -1, 0, 0, 0, 0 };
+#endif
 
 #ifdef __i386__
 static const UINT page_shift = 12;
@@ -266,6 +269,7 @@ static BOOL alloc_pages_vprot( const void *addr, size_t size )
 }
 
 
+#if 0
 /***********************************************************************
  *           compare_view
  *
@@ -279,6 +283,7 @@ static int compare_view( const void *addr, const struct wine_rb_entry *entry )
     if (addr > view->base) return 1;
     return 0;
 }
+#endif
 
 
 /***********************************************************************
@@ -355,6 +360,7 @@ static void VIRTUAL_DumpView( struct file_view *view )
 }
 
 
+#if 0
 /***********************************************************************
  *           VIRTUAL_Dump
  */
@@ -404,6 +410,7 @@ static struct file_view *VIRTUAL_FindView( const void *addr, size_t size )
     }
     return NULL;
 }
+#endif
 
 
 /***********************************************************************
@@ -418,6 +425,7 @@ static inline UINT_PTR get_mask( ULONG zero_bits )
 }
 
 
+#if 0
 /***********************************************************************
  *           is_write_watch_range
  */
@@ -1846,6 +1854,7 @@ void virtual_init_threading(void)
 {
     use_locks = TRUE;
 }
+#endif
 
 
 /***********************************************************************
@@ -1874,10 +1883,15 @@ void virtual_get_system_info( SYSTEM_BASIC_INFORMATION *info )
     info->LowestUserAddress       = (void *)0x10000;
     info->HighestUserAddress      = (char *)user_space_limit - 1;
     info->ActiveProcessorsAffinityMask = get_system_affinity_mask();
+#if 0
     info->NumberOfProcessors      = NtCurrentTeb()->Peb->NumberOfProcessors;
+#else
+    info->NumberOfProcessors      = max(sysconf(_SC_NPROCESSORS_ONLN), 1);
+#endif
 }
 
 
+#if 0
 /***********************************************************************
  *           virtual_create_builtin_view
  */
@@ -2446,6 +2460,24 @@ void virtual_set_large_address_space(void)
 
     user_space_limit = working_set_limit = address_space_limit;
 }
+#endif
+
+
+int VIRTUAL_WinProtToUnixProt(ULONG prot)
+{
+    int unix_prot= 0;
+
+    if (prot & PAGE_NOACCESS) unix_prot |= PROT_NONE;
+    if (prot & PAGE_READONLY) unix_prot |= PROT_READ;
+    if (prot & PAGE_READWRITE) unix_prot |= (PROT_READ | PROT_WRITE);
+    if (prot & PAGE_WRITECOPY) unix_prot |= (PROT_READ | PROT_WRITE);
+    if (prot & PAGE_EXECUTE) unix_prot |= PROT_EXEC;
+    if (prot & PAGE_EXECUTE_READ) unix_prot |= (PROT_READ | PROT_EXEC);
+    if (prot & PAGE_EXECUTE_READWRITE) unix_prot |= (PROT_READ | PROT_WRITE | PROT_EXEC);
+    if (prot & PAGE_EXECUTE_WRITECOPY) unix_prot |= (PROT_READ | PROT_WRITE | PROT_EXEC);
+
+    return unix_prot;
+}
 
 
 /***********************************************************************
@@ -2455,6 +2487,7 @@ void virtual_set_large_address_space(void)
 NTSTATUS WINAPI NtAllocateVirtualMemory( HANDLE process, PVOID *ret, ULONG zero_bits,
                                          SIZE_T *size_ptr, ULONG type, ULONG protect )
 {
+#if 0
     void *base;
     unsigned int vprot;
     SIZE_T size = *size_ptr;
@@ -2581,6 +2614,29 @@ NTSTATUS WINAPI NtAllocateVirtualMemory( HANDLE process, PVOID *ret, ULONG zero_
         *size_ptr = size;
     }
     return status;
+#else
+    void *base;
+    SIZE_T size = *size_ptr;
+    SIZE_T mask = get_mask( zero_bits );
+
+    TRACE("%p %p %08lx %x %08x\n", process, *ret, size, type, protect );
+
+    if (!size) return STATUS_INVALID_PARAMETER;
+    if (!mask) return STATUS_INVALID_PARAMETER_3;
+
+    if (process != NtCurrentProcess())
+    {
+        return STATUS_ACCESS_DENIED;
+    }
+
+    if ((base = mmap( ret, size, MAP_PRIVATE | MAP_ANONYMOUS, VIRTUAL_WinProtToUnixProt(protect), -1, 0 )) == MAP_FAILED)
+    {
+        return wine_errno_to_status( errno );
+    }
+
+    *ret = base;
+    return STATUS_SUCCESS;
+#endif
 }
 
 
@@ -2590,6 +2646,7 @@ NTSTATUS WINAPI NtAllocateVirtualMemory( HANDLE process, PVOID *ret, ULONG zero_
  */
 NTSTATUS WINAPI NtFreeVirtualMemory( HANDLE process, PVOID *addr_ptr, SIZE_T *size_ptr, ULONG type )
 {
+#if 0
     struct file_view *view;
     char *base;
     sigset_t sigset;
@@ -2664,6 +2721,24 @@ NTSTATUS WINAPI NtFreeVirtualMemory( HANDLE process, PVOID *addr_ptr, SIZE_T *si
 
     server_leave_uninterrupted_section( &csVirtual, &sigset );
     return status;
+#else
+    LPVOID addr = *addr_ptr;
+    SIZE_T size = *size_ptr;
+
+    TRACE("%p %p %08lx %x\n", process, addr, size, type );
+
+    if (process != NtCurrentProcess())
+    {
+        return STATUS_ACCESS_DENIED;
+    }
+    
+    if (munmap(addr, size) != 0)
+    {
+        return wine_errno_to_status( errno );
+    }
+
+    return STATUS_SUCCESS;
+#endif
 }
 
 
@@ -2674,6 +2749,7 @@ NTSTATUS WINAPI NtFreeVirtualMemory( HANDLE process, PVOID *addr_ptr, SIZE_T *si
 NTSTATUS WINAPI NtProtectVirtualMemory( HANDLE process, PVOID *addr_ptr, SIZE_T *size_ptr,
                                         ULONG new_prot, ULONG *old_prot )
 {
+#if 0
     struct file_view *view;
     sigset_t sigset;
     NTSTATUS status = STATUS_SUCCESS;
@@ -2741,6 +2817,27 @@ NTSTATUS WINAPI NtProtectVirtualMemory( HANDLE process, PVOID *addr_ptr, SIZE_T 
         *old_prot = old;
     }
     return status;
+#else
+    SIZE_T size = *size_ptr;
+    LPVOID addr = *addr_ptr;
+
+    TRACE("%p %p %08lx %08x\n", process, addr, size, new_prot );
+
+    if (!old_prot)
+        return STATUS_ACCESS_VIOLATION;
+
+    if (process != NtCurrentProcess())
+    {
+        return STATUS_ACCESS_DENIED;
+    }
+
+    if (mprotect( addr, size, VIRTUAL_WinProtToUnixProt( new_prot ) ) == -1)
+    {
+        return wine_errno_to_status( errno );
+    }
+
+    return STATUS_SUCCESS;
+#endif
 }
 
 
@@ -2793,6 +2890,7 @@ NTSTATUS WINAPI NtQueryVirtualMemory( HANDLE process, LPCVOID addr,
                                       MEMORY_INFORMATION_CLASS info_class, PVOID buffer,
                                       SIZE_T len, SIZE_T *res_len )
 {
+#if 0
     struct file_view *view;
     char *base, *alloc_base = 0, *alloc_end = working_set_limit;
     struct wine_rb_entry *ptr;
@@ -2816,6 +2914,7 @@ NTSTATUS WINAPI NtQueryVirtualMemory( HANDLE process, LPCVOID addr,
 
     if (process != NtCurrentProcess())
     {
+#if 0
         NTSTATUS status;
         apc_call_t call;
         apc_result_t result;
@@ -2841,6 +2940,9 @@ NTSTATUS WINAPI NtQueryVirtualMemory( HANDLE process, LPCVOID addr,
             if (res_len) *res_len = sizeof(*info);
         }
         return result.virtual_query.status;
+#else
+        return STATUS_ACCESS_DENIED;
+#endif
     }
 
     base = ROUND_ADDR( addr, page_mask );
@@ -2922,6 +3024,9 @@ NTSTATUS WINAPI NtQueryVirtualMemory( HANDLE process, LPCVOID addr,
 
     if (res_len) *res_len = sizeof(*info);
     return STATUS_SUCCESS;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -2935,6 +3040,7 @@ NTSTATUS WINAPI NtLockVirtualMemory( HANDLE process, PVOID *addr, SIZE_T *size, 
 
     if (process != NtCurrentProcess())
     {
+#if 0
         apc_call_t call;
         apc_result_t result;
 
@@ -2952,6 +3058,9 @@ NTSTATUS WINAPI NtLockVirtualMemory( HANDLE process, PVOID *addr, SIZE_T *size, 
             *size = result.virtual_lock.size;
         }
         return result.virtual_lock.status;
+#else
+        return STATUS_ACCESS_DENIED;
+#endif
     }
 
     *size = ROUND_SIZE( *addr, *size );
@@ -2972,6 +3081,7 @@ NTSTATUS WINAPI NtUnlockVirtualMemory( HANDLE process, PVOID *addr, SIZE_T *size
 
     if (process != NtCurrentProcess())
     {
+#if 0
         apc_call_t call;
         apc_result_t result;
 
@@ -2989,6 +3099,9 @@ NTSTATUS WINAPI NtUnlockVirtualMemory( HANDLE process, PVOID *addr, SIZE_T *size
             *size = result.virtual_unlock.size;
         }
         return result.virtual_unlock.status;
+#else
+        return STATUS_ACCESS_DENIED;
+#endif
     }
 
     *size = ROUND_SIZE( *addr, *size );
@@ -3007,6 +3120,7 @@ NTSTATUS WINAPI NtCreateSection( HANDLE *handle, ACCESS_MASK access, const OBJEC
                                  const LARGE_INTEGER *size, ULONG protect,
                                  ULONG sec_flags, HANDLE file )
 {
+#if 0
     NTSTATUS ret;
     unsigned int vprot, file_access = 0;
     data_size_t len;
@@ -3031,8 +3145,11 @@ NTSTATUS WINAPI NtCreateSection( HANDLE *handle, ACCESS_MASK access, const OBJEC
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3042,6 +3159,7 @@ NTSTATUS WINAPI NtCreateSection( HANDLE *handle, ACCESS_MASK access, const OBJEC
  */
 NTSTATUS WINAPI NtOpenSection( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr )
 {
+#if 0
     NTSTATUS ret;
 
     if ((ret = validate_open_object_attributes( attr ))) return ret;
@@ -3058,6 +3176,9 @@ NTSTATUS WINAPI NtOpenSection( HANDLE *handle, ACCESS_MASK access, const OBJECT_
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3084,6 +3205,7 @@ NTSTATUS WINAPI NtMapViewOfSection( HANDLE handle, HANDLE process, PVOID *addr_p
     if ((*addr_ptr && zero_bits) || !mask)
         return STATUS_INVALID_PARAMETER_4;
 
+#if 0
 #ifndef _WIN64
     if (!is_wow64 && (alloc_type & AT_ROUND_TO_PAGE))
     {
@@ -3097,6 +3219,7 @@ NTSTATUS WINAPI NtMapViewOfSection( HANDLE handle, HANDLE process, PVOID *addr_p
 
     if (process != NtCurrentProcess())
     {
+#if 0
         apc_call_t call;
         apc_result_t result;
 
@@ -3119,10 +3242,16 @@ NTSTATUS WINAPI NtMapViewOfSection( HANDLE handle, HANDLE process, PVOID *addr_p
             *size_ptr = result.map_view.size;
         }
         return result.map_view.status;
+#else
+        return STATUS_ACCESS_DENIED;
+#endif
     }
 
     return virtual_map_section( handle, addr_ptr, zero_bits, commit_size,
                                 offset_ptr, size_ptr, protect, &image_info );
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3132,6 +3261,7 @@ NTSTATUS WINAPI NtMapViewOfSection( HANDLE handle, HANDLE process, PVOID *addr_p
  */
 NTSTATUS WINAPI NtUnmapViewOfSection( HANDLE process, PVOID addr )
 {
+#if 0
     struct file_view *view;
     NTSTATUS status = STATUS_NOT_MAPPED_VIEW;
     sigset_t sigset;
@@ -3172,6 +3302,9 @@ NTSTATUS WINAPI NtUnmapViewOfSection( HANDLE process, PVOID addr )
     }
     server_leave_uninterrupted_section( &csVirtual, &sigset );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3182,6 +3315,7 @@ NTSTATUS WINAPI NtUnmapViewOfSection( HANDLE process, PVOID addr )
 NTSTATUS WINAPI NtQuerySection( HANDLE handle, SECTION_INFORMATION_CLASS class, void *ptr,
                                 SIZE_T size, SIZE_T *ret_size )
 {
+#if 0
     NTSTATUS status;
     pe_image_info_t image_info;
 
@@ -3250,6 +3384,9 @@ NTSTATUS WINAPI NtQuerySection( HANDLE handle, SECTION_INFORMATION_CLASS class, 
     SERVER_END_REQ;
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3260,6 +3397,7 @@ NTSTATUS WINAPI NtQuerySection( HANDLE handle, SECTION_INFORMATION_CLASS class, 
 NTSTATUS WINAPI NtFlushVirtualMemory( HANDLE process, LPCVOID *addr_ptr,
                                       SIZE_T *size_ptr, ULONG unknown )
 {
+#if 0
     struct file_view *view;
     NTSTATUS status = STATUS_SUCCESS;
     sigset_t sigset;
@@ -3298,6 +3436,9 @@ NTSTATUS WINAPI NtFlushVirtualMemory( HANDLE process, LPCVOID *addr_ptr,
     }
     server_leave_uninterrupted_section( &csVirtual, &sigset );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3323,6 +3464,7 @@ NTSTATUS WINAPI NtGetWriteWatch( HANDLE process, ULONG flags, PVOID base, SIZE_T
     TRACE( "%p %x %p-%p %p %lu\n", process, flags, base, (char *)base + size,
            addresses, *count );
 
+#if 0
     server_enter_uninterrupted_section( &csVirtual, &sigset );
 
     if (is_write_watch_range( base, size ))
@@ -3344,6 +3486,9 @@ NTSTATUS WINAPI NtGetWriteWatch( HANDLE process, ULONG flags, PVOID base, SIZE_T
 
     server_leave_uninterrupted_section( &csVirtual, &sigset );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3363,6 +3508,7 @@ NTSTATUS WINAPI NtResetWriteWatch( HANDLE process, PVOID base, SIZE_T size )
 
     if (!size) return STATUS_INVALID_PARAMETER;
 
+#if 0
     server_enter_uninterrupted_section( &csVirtual, &sigset );
 
     if (is_write_watch_range( base, size ))
@@ -3372,6 +3518,9 @@ NTSTATUS WINAPI NtResetWriteWatch( HANDLE process, PVOID base, SIZE_T size )
 
     server_leave_uninterrupted_section( &csVirtual, &sigset );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3382,6 +3531,7 @@ NTSTATUS WINAPI NtResetWriteWatch( HANDLE process, PVOID base, SIZE_T size )
 NTSTATUS WINAPI NtReadVirtualMemory( HANDLE process, const void *addr, void *buffer,
                                      SIZE_T size, SIZE_T *bytes_read )
 {
+#if 0
     NTSTATUS status;
 
     if (virtual_check_buffer_for_write( buffer, size ))
@@ -3402,6 +3552,9 @@ NTSTATUS WINAPI NtReadVirtualMemory( HANDLE process, const void *addr, void *buf
     }
     if (bytes_read) *bytes_read = size;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3412,6 +3565,7 @@ NTSTATUS WINAPI NtReadVirtualMemory( HANDLE process, const void *addr, void *buf
 NTSTATUS WINAPI NtWriteVirtualMemory( HANDLE process, void *addr, const void *buffer,
                                       SIZE_T size, SIZE_T *bytes_written )
 {
+#if 0
     NTSTATUS status;
 
     if (virtual_check_buffer_for_read( buffer, size ))
@@ -3432,6 +3586,9 @@ NTSTATUS WINAPI NtWriteVirtualMemory( HANDLE process, void *addr, const void *bu
     }
     if (bytes_written) *bytes_written = size;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3447,6 +3604,7 @@ NTSTATUS WINAPI NtAreMappedFilesTheSame(PVOID addr1, PVOID addr2)
 
     TRACE("%p %p\n", addr1, addr2);
 
+#if 0
     server_enter_uninterrupted_section( &csVirtual, &sigset );
 
     view1 = VIRTUAL_FindView( addr1, 0 );
@@ -3473,4 +3631,7 @@ NTSTATUS WINAPI NtAreMappedFilesTheSame(PVOID addr1, PVOID addr2)
 
     server_leave_uninterrupted_section( &csVirtual, &sigset );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }

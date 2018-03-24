@@ -29,6 +29,7 @@
 #include "controls.h"
 #include "win.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "user_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(scroll);
@@ -172,7 +173,7 @@ static SCROLLBAR_INFO *SCROLL_GetInternalInfo( HWND hwnd, INT nBar, BOOL alloc )
 
         if (nBar != SB_HORZ && nBar != SB_VERT)
             WARN("Cannot initialize nBar=%d\n",nBar);
-        else if ((winInfoPtr = HeapAlloc( GetProcessHeap(), 0, sizeof(WINSCROLLBAR_INFO) )))
+        else if ((winInfoPtr = heap_alloc( sizeof(WINSCROLLBAR_INFO) )))
         {
             /* Set default values */
             winInfoPtr->horz.minVal = 0;
@@ -1391,6 +1392,7 @@ static BOOL SCROLL_SetScrollRange(HWND hwnd, INT nBar, INT minVal, INT maxVal)
  */
 LRESULT ScrollBarWndProc_common( HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, BOOL unicode )
 {
+#if 0
     if (!IsWindow( hwnd )) return 0;
 
     switch(message)
@@ -1572,6 +1574,7 @@ LRESULT ScrollBarWndProc_common( HWND hwnd, UINT message, WPARAM wParam, LPARAM 
         else
             return DefWindowProcA( hwnd, message, wParam, lParam );
     }
+#endif
     return 0;
 }
 

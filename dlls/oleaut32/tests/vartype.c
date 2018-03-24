@@ -5013,7 +5013,7 @@ static void test_SysAllocStringByteLen(void)
   }
 
   /* Make sure terminating null is aligned properly */
-  buf = HeapAlloc(GetProcessHeap(), 0, 1025);
+  buf = heap_alloc(1025);
   ok (buf != NULL, "Expected non-NULL\n");
   for (i = 0; i < 1024; i++)
   {
@@ -5036,7 +5036,7 @@ static void test_SysAllocStringByteLen(void)
     ok (!bstr->szString[(i+sizeof(WCHAR)-1)/sizeof(WCHAR)], "String not terminated\n");
     SysFreeString(str);
   }
-  HeapFree(GetProcessHeap(), 0, buf);
+  heap_free(buf);
 }
 
 static void test_SysReAllocString(void)

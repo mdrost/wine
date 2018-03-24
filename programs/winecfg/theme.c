@@ -107,11 +107,11 @@ static void color_or_size_dsa_add (WrappedDsa* wdsa, const WCHAR* name,
 {
     ThemeColorOrSize item;
     
-    item.name = HeapAlloc (GetProcessHeap(), 0, 
+    item.name = heap_alloc(
 	(lstrlenW (name) + 1) * sizeof(WCHAR));
     lstrcpyW (item.name, name);
 
-    item.fancyName = HeapAlloc (GetProcessHeap(), 0, 
+    item.fancyName = heap_alloc(
 	(lstrlenW (fancyName) + 1) * sizeof(WCHAR));
     lstrcpyW (item.fancyName, fancyName);
 
@@ -122,8 +122,8 @@ static void color_or_size_dsa_add (WrappedDsa* wdsa, const WCHAR* name,
 static int CALLBACK dsa_destroy_callback (LPVOID p, LPVOID pData)
 {
     ThemeColorOrSize* item = p;
-    HeapFree (GetProcessHeap(), 0, item->name);
-    HeapFree (GetProcessHeap(), 0, item->fancyName);
+    heap_free(item->name);
+    heap_free(item->fancyName);
     return 1;
 }
 
@@ -169,8 +169,8 @@ static int themeFilesCount = 0;
 static int CALLBACK theme_dsa_destroy_callback (LPVOID p, LPVOID pData)
 {
     ThemeFile* item = p;
-    HeapFree (GetProcessHeap(), 0, item->themeFileName);
-    HeapFree (GetProcessHeap(), 0, item->fancyName);
+    heap_free(item->themeFileName);
+    heap_free(item->fancyName);
     free_color_or_size_dsa (&item->colors);
     free_color_or_size_dsa (&item->sizes);
     return 1;
@@ -221,11 +221,11 @@ static BOOL CALLBACK myEnumThemeProc (LPVOID lpReserved,
     create_color_or_size_dsa (&newEntry.sizes);
     fill_theme_string_array (pszThemeFileName, &newEntry.sizes, EnumThemeSizes);
 
-    newEntry.themeFileName = HeapAlloc (GetProcessHeap(), 0, 
+    newEntry.themeFileName = heap_alloc(
 	(lstrlenW (pszThemeFileName) + 1) * sizeof(WCHAR));
     lstrcpyW (newEntry.themeFileName, pszThemeFileName);
   
-    newEntry.fancyName = HeapAlloc (GetProcessHeap(), 0, 
+    newEntry.fancyName = heap_alloc(
 	(lstrlenW (pszThemeName) + 1) * sizeof(WCHAR));
     lstrcpyW (newEntry.fancyName, pszThemeName);
   
@@ -557,7 +557,7 @@ static void set_color_from_theme(WCHAR *keyName, COLORREF color)
     int keyNameSize=0, i=0;
 
     keyNameSize = WideCharToMultiByte(CP_ACP, 0, keyName, -1, keyNameA, 0, NULL, NULL);
-    keyNameA = HeapAlloc(GetProcessHeap(), 0, keyNameSize);
+    keyNameA = heap_alloc(keyNameSize);
     WideCharToMultiByte(CP_ACP, 0, keyName, -1, keyNameA, keyNameSize, NULL, NULL);
 
     for (i=0; i<sizeof(metrics)/sizeof(metrics[0]); i++)
@@ -569,7 +569,7 @@ static void set_color_from_theme(WCHAR *keyName, COLORREF color)
             break;
         }
     }
-    HeapFree(GetProcessHeap(), 0, keyNameA);
+    heap_free(keyNameA);
 }
 
 static void do_parse_theme(WCHAR *file)
@@ -596,7 +596,7 @@ static void do_parse_theme(WCHAR *file)
 
         keyNameValueSize = WideCharToMultiByte(CP_ACP, 0, keyNameValue, -1,
                                                keyNameValueA, 0, NULL, NULL);
-        keyNameValueA = HeapAlloc(GetProcessHeap(), 0, keyNameValueSize);
+        keyNameValueA = heap_alloc(keyNameValueSize);
         WideCharToMultiByte(CP_ACP, 0, keyNameValue, -1, keyNameValueA, keyNameValueSize, NULL, NULL);
 
         WINE_TRACE("parsing key: %s with value: %s\n",
@@ -606,7 +606,7 @@ static void do_parse_theme(WCHAR *file)
 
         color = RGB((BYTE)red, (BYTE)green, (BYTE)blue);
 
-        HeapFree(GetProcessHeap(), 0, keyNameValueA);
+        heap_free(keyNameValueA);
 
         set_color_from_theme(keyNamePtr, color);
 
@@ -784,7 +784,7 @@ static void read_shell_folder_link_targets(void) {
                     int cLen = readlink(pszUnixPath, asfiInfo[i].szLinkTarget, FILENAME_MAX-1);
                     if (cLen >= 0) asfiInfo[i].szLinkTarget[cLen] = '\0';
                 }
-                HeapFree(GetProcessHeap(), 0, pszUnixPath);
+                heap_free(pszUnixPath);
             }
         } 
     }    
@@ -839,7 +839,7 @@ static void update_shell_folder_listview(HWND dialog) {
         item.iSubItem = 1;
         item.pszText = strdupU2W(asfiInfo[i].szLinkTarget);
         SendDlgItemMessageW(dialog, IDC_LIST_SFPATHS, LVM_SETITEMW, 0, (LPARAM)&item);
-        HeapFree(GetProcessHeap(), 0, item.pszText);
+        heap_free(item.pszText);
     }
 
     /* Ensure that the previously selected item is selected again. */
@@ -862,7 +862,7 @@ static void on_shell_folder_selection_changed(HWND hDlg, LPNMLISTVIEW lpnm) {
             EnableWindow(GetDlgItem(hDlg, IDC_BROWSE_SFPATH), 1);
             link = strdupU2W(psfiSelected->szLinkTarget);
             set_textW(hDlg, IDC_EDIT_SFPATH, link);
-            HeapFree(GetProcessHeap(), 0, link);
+            heap_free(link);
         } else {
             CheckDlgButton(hDlg, IDC_LINK_SFPATH, BST_UNCHECKED);
             EnableWindow(GetDlgItem(hDlg, IDC_EDIT_SFPATH), 0);
@@ -888,7 +888,7 @@ static void on_shell_folder_edit_changed(HWND hDlg) {
                                     MAKELPARAM(LVNI_SELECTED,0));
 
     if (!text || !psfiSelected || iSel < 0) {
-        HeapFree(GetProcessHeap(), 0, text);
+        heap_free(text);
         return;
     }
 
@@ -901,7 +901,7 @@ static void on_shell_folder_edit_changed(HWND hDlg) {
     item.pszText = text;
     SendDlgItemMessageW(hDlg, IDC_LIST_SFPATHS, LVM_SETITEMW, 0, (LPARAM)&item);
 
-    HeapFree(GetProcessHeap(), 0, text);
+    heap_free(text);
 
     SendMessageW(GetParent(hDlg), PSM_CHANGED, 0, 0);
 }
@@ -926,7 +926,7 @@ static void apply_shell_folder_changes(void) {
         pszUnixPath = wine_get_unix_file_name(wszPath);
         if (!pszUnixPath) continue;
         lstrcpyA(szUnixPath, pszUnixPath);
-        HeapFree(GetProcessHeap(), 0, pszUnixPath);
+        heap_free(pszUnixPath);
             
         /* Derive name for folder backup. */
         lstrcpyA(szBackupPath, szUnixPath);
@@ -1225,7 +1225,7 @@ ThemeDlgProc (HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                             if (text)
                             {
                                 metrics[index].size = atoi(text);
-                                HeapFree(GetProcessHeap(), 0, text);
+                                heap_free(text);
                             }
                             else
                             {

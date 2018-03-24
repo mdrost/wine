@@ -147,7 +147,7 @@ static UINT_PTR handle_appbarmessage(DWORD msg, struct appbar_data_msg *abd)
             return FALSE;
         }
 
-        data = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct appbar_data));
+        data = heap_alloc_zero(sizeof(struct appbar_data));
         if (!data)
         {
             WINE_ERR("out of memory\n");
@@ -166,7 +166,7 @@ static UINT_PTR handle_appbarmessage(DWORD msg, struct appbar_data_msg *abd)
 
             send_poschanged(hwnd);
 
-            HeapFree(GetProcessHeap(), 0, data);
+            heap_free(data);
         }
         else
             WINE_WARN("removing hwnd %p not on the list\n", hwnd);

@@ -156,6 +156,7 @@ static inline DWORD multisz_cb(LPCWSTR wmultisz)
     return (wptr - wmultisz + 1)*sizeof(WCHAR);
 }
 
+#if 0
 /******************************************************************************
  * RPC connection with services.exe
  */
@@ -247,6 +248,7 @@ static LONG WINAPI rpc_filter(EXCEPTION_POINTERS *eptr)
 {
     return I_RpcExceptionFilter(eptr->ExceptionRecord->ExceptionCode);
 }
+#endif
 
 static DWORD map_exception_code(DWORD exception_code)
 {
@@ -265,6 +267,7 @@ static DWORD map_exception_code(DWORD exception_code)
     }
 }
 
+#if 0
 /******************************************************************************
  * Service IPC functions
  */
@@ -300,9 +303,11 @@ static LPWSTR service_get_pipe_name(void)
     snprintfW(name, len, format, service_current);
     return name;
 }
+#endif
 
 static HANDLE service_open_pipe(void)
 {
+#if 0
     LPWSTR szPipe = service_get_pipe_name();
     HANDLE handle = INVALID_HANDLE_VALUE;
 
@@ -317,6 +322,10 @@ static HANDLE service_open_pipe(void)
     heap_free(szPipe);
 
     return handle;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return INVALID_HANDLE_VALUE;
+#endif
 }
 
 static service_data *find_service_by_name( const WCHAR *name )
@@ -366,7 +375,7 @@ static DWORD WINAPI service_thread(LPVOID arg)
     {
         LPSTR strA, *argv, p;
         DWORD lenA;
-        
+
         lenA = WideCharToMultiByte(CP_ACP,0, str, len, NULL, 0, NULL, NULL);
         strA = heap_alloc(lenA);
         WideCharToMultiByte(CP_ACP,0, str, len, strA, lenA, NULL, NULL);
@@ -531,7 +540,7 @@ static void handle_shutdown_msg(DWORD msg, DWORD accept)
     DWORD i, n = 0, sz, timeout = 2000;
     ULONGLONG stop_time;
     BOOL res, done = TRUE;
-    SC_HANDLE *wait_handles = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(SC_HANDLE) * nb_services );
+    SC_HANDLE *wait_handles = heap_alloc( sizeof(SC_HANDLE) * nb_services );
 
     pthread_mutex_lock( &service_cs );
     for (i = 0; i < nb_services; i++)
@@ -577,7 +586,7 @@ static void handle_shutdown_msg(DWORD msg, DWORD accept)
         }
     }
 
-    HeapFree( GetProcessHeap(), 0, wait_handles );
+    heap_free( wait_handles );
 }
 
 /******************************************************************************
@@ -585,6 +594,7 @@ static void handle_shutdown_msg(DWORD msg, DWORD accept)
  */
 static BOOL service_run_main_thread(void)
 {
+#if 0
     DWORD i, n, ret;
     HANDLE wait_handles[MAXIMUM_WAIT_OBJECTS];
     UINT wait_services[MAXIMUM_WAIT_OBJECTS];
@@ -660,6 +670,10 @@ static BOOL service_run_main_thread(void)
     }
 
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /******************************************************************************
@@ -760,6 +774,7 @@ SC_LOCK WINAPI LockServiceDatabase (SC_HANDLE hSCManager)
 
     TRACE("%p\n",hSCManager);
 
+#if 0
     __TRY
     {
         err = svcctl_LockServiceDatabase(hSCManager, &hLock);
@@ -774,6 +789,9 @@ SC_LOCK WINAPI LockServiceDatabase (SC_HANDLE hSCManager)
         SetLastError(err);
         return NULL;
     }
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+#endif
     return hLock;
 }
 
@@ -787,6 +805,7 @@ BOOL WINAPI UnlockServiceDatabase (SC_LOCK ScLock)
 
     TRACE("%p\n",ScLock);
 
+#if 0
     __TRY
     {
         err = svcctl_UnlockServiceDatabase(&hRpcLock);
@@ -802,6 +821,10 @@ BOOL WINAPI UnlockServiceDatabase (SC_LOCK ScLock)
         return FALSE;
     }
     return TRUE;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 /******************************************************************************
@@ -822,6 +845,7 @@ SetServiceStatus( SERVICE_STATUS_HANDLE hService, LPSERVICE_STATUS lpStatus )
           lpStatus->dwServiceSpecificExitCode, lpStatus->dwCheckPoint,
           lpStatus->dwWaitHint);
 
+#if 0
     __TRY
     {
         err = svcctl_SetServiceStatus( hService, lpStatus );
@@ -855,6 +879,10 @@ SetServiceStatus( SERVICE_STATUS_HANDLE hService, LPSERVICE_STATUS lpStatus )
     }
 
     return TRUE;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -899,6 +927,7 @@ DWORD SERV_OpenSCManagerW( LPCWSTR lpMachineName, LPCWSTR lpDatabaseName,
     TRACE("(%s,%s,0x%08x)\n", debugstr_w(lpMachineName),
           debugstr_w(lpDatabaseName), dwDesiredAccess);
 
+#if 0
     __TRY
     {
         r = svcctl_OpenSCManagerW(lpMachineName, lpDatabaseName, dwDesiredAccess, (SC_RPC_HANDLE *)handle);
@@ -908,6 +937,9 @@ DWORD SERV_OpenSCManagerW( LPCWSTR lpMachineName, LPCWSTR lpDatabaseName,
         r = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    r = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     if (r!=ERROR_SUCCESS)
         *handle = 0;
@@ -953,6 +985,7 @@ BOOL WINAPI ControlService( SC_HANDLE hService, DWORD dwControl,
 
     TRACE("%p %d %p\n", hService, dwControl, lpServiceStatus);
 
+#if 0
     __TRY
     {
         err = svcctl_ControlService(hService, dwControl, lpServiceStatus);
@@ -969,11 +1002,15 @@ BOOL WINAPI ControlService( SC_HANDLE hService, DWORD dwControl,
     }
 
     return TRUE;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 /******************************************************************************
  * CloseServiceHandle [ADVAPI32.@]
- * 
+ *
  * Close a handle to a service or the service control manager database.
  *
  * PARAMS
@@ -990,6 +1027,7 @@ CloseServiceHandle( SC_HANDLE hSCObject )
 
     TRACE("%p\n", hSCObject);
 
+#if 0
     __TRY
     {
         err = svcctl_CloseServiceHandle((SC_RPC_HANDLE *)&hSCObject);
@@ -1006,6 +1044,10 @@ CloseServiceHandle( SC_HANDLE hSCObject )
         return FALSE;
     }
     return TRUE;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -1053,6 +1095,7 @@ DWORD SERV_OpenServiceW( SC_HANDLE hSCManager, LPCWSTR lpServiceName,
     if (!hSCManager)
         return ERROR_INVALID_HANDLE;
 
+#if 0
     __TRY
     {
         err = svcctl_OpenServiceW(hSCManager, lpServiceName, dwDesiredAccess, (SC_RPC_HANDLE *)handle);
@@ -1062,6 +1105,9 @@ DWORD SERV_OpenServiceW( SC_HANDLE hSCManager, LPCWSTR lpServiceName,
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     if (err != ERROR_SUCCESS)
         *handle = 0;
@@ -1098,7 +1144,7 @@ CreateServiceW( SC_HANDLE hSCManager, LPCWSTR lpServiceName,
     DWORD err;
     SIZE_T passwdlen;
 
-    TRACE("%p %s %s\n", hSCManager, 
+    TRACE("%p %s %s\n", hSCManager,
           debugstr_w(lpServiceName), debugstr_w(lpDisplayName));
 
     if (!hSCManager)
@@ -1112,6 +1158,7 @@ CreateServiceW( SC_HANDLE hSCManager, LPCWSTR lpServiceName,
     else
         passwdlen = 0;
 
+#if 0
     __TRY
     {
         BOOL is_wow64;
@@ -1136,6 +1183,9 @@ CreateServiceW( SC_HANDLE hSCManager, LPCWSTR lpServiceName,
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     if (err != ERROR_SUCCESS)
     {
@@ -1208,6 +1258,7 @@ BOOL WINAPI DeleteService( SC_HANDLE hService )
 
     TRACE("%p\n", hService);
 
+#if 0
     __TRY
     {
         err = svcctl_DeleteService(hService);
@@ -1217,6 +1268,9 @@ BOOL WINAPI DeleteService( SC_HANDLE hService )
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
     if (err != 0)
     {
         SetLastError(err);
@@ -1280,7 +1334,7 @@ BOOL WINAPI StartServiceA( SC_HANDLE hService, DWORD dwNumServiceArgs,
 
 /******************************************************************************
  * StartServiceW [ADVAPI32.@]
- * 
+ *
  * See StartServiceA.
  */
 BOOL WINAPI StartServiceW(SC_HANDLE hService, DWORD dwNumServiceArgs,
@@ -1290,6 +1344,7 @@ BOOL WINAPI StartServiceW(SC_HANDLE hService, DWORD dwNumServiceArgs,
 
     TRACE("%p %d %p\n", hService, dwNumServiceArgs, lpServiceArgVectors);
 
+#if 0
     __TRY
     {
         err = svcctl_StartServiceW(hService, dwNumServiceArgs, lpServiceArgVectors);
@@ -1299,6 +1354,9 @@ BOOL WINAPI StartServiceW(SC_HANDLE hService, DWORD dwNumServiceArgs,
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
     if (err != ERROR_SUCCESS)
     {
         SetLastError(err);
@@ -1378,6 +1436,7 @@ BOOL WINAPI QueryServiceStatusEx(SC_HANDLE hService, SC_STATUS_TYPE InfoLevel,
     }
     else
     {
+#if 0
         __TRY
         {
             err = svcctl_QueryServiceStatusEx(hService, InfoLevel, lpBuffer, cbBufSize, pcbBytesNeeded);
@@ -1387,6 +1446,9 @@ BOOL WINAPI QueryServiceStatusEx(SC_HANDLE hService, SC_STATUS_TYPE InfoLevel,
             err = map_exception_code(GetExceptionCode());
         }
         __ENDTRY
+#else
+        err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
     }
     if (err != ERROR_SUCCESS)
     {
@@ -1489,7 +1551,7 @@ static DWORD size_string(LPCWSTR string)
 /******************************************************************************
  * QueryServiceConfigW [ADVAPI32.@]
  */
-BOOL WINAPI 
+BOOL WINAPI
 QueryServiceConfigW( SC_HANDLE hService,
                      LPQUERY_SERVICE_CONFIGW lpServiceConfig,
                      DWORD cbBufSize, LPDWORD pcbBytesNeeded)
@@ -1504,6 +1566,7 @@ QueryServiceConfigW( SC_HANDLE hService,
 
     memset(&config, 0, sizeof(config));
 
+#if 0
     __TRY
     {
         err = svcctl_QueryServiceConfigW(hService, &config, cbBufSize, pcbBytesNeeded);
@@ -1513,6 +1576,9 @@ QueryServiceConfigW( SC_HANDLE hService,
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     if (err != ERROR_SUCCESS)
     {
@@ -1661,6 +1727,7 @@ BOOL WINAPI QueryServiceConfig2W(SC_HANDLE hService, DWORD dwLevel, LPBYTE buffe
         return FALSE;
     }
 
+#if 0
     __TRY
     {
         err = svcctl_QueryServiceConfig2W(hService, dwLevel, bufptr, size, needed);
@@ -1670,6 +1737,9 @@ BOOL WINAPI QueryServiceConfig2W(SC_HANDLE hService, DWORD dwLevel, LPBYTE buffe
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     switch (dwLevel)
     {
@@ -1825,6 +1895,7 @@ EnumServicesStatusW( SC_HANDLE hmngr, DWORD type, DWORD state, LPENUM_SERVICE_ST
         return FALSE;
     }
 
+#if 0
     __TRY
     {
         err = svcctl_EnumServicesStatusW( hmngr, type, state, buf, buflen, needed, &count, resume_handle );
@@ -1834,6 +1905,9 @@ EnumServicesStatusW( SC_HANDLE hmngr, DWORD type, DWORD state, LPENUM_SERVICE_ST
         err = map_exception_code( GetExceptionCode() );
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     *returned = 0;
     if (err != ERROR_SUCCESS)
@@ -2012,6 +2086,7 @@ EnumServicesStatusExW( SC_HANDLE hmngr, SC_ENUM_TYPE level, DWORD type, DWORD st
         return FALSE;
     }
 
+#if 0
     __TRY
     {
         err = svcctl_EnumServicesStatusExW( hmngr, SC_ENUM_PROCESS_INFO, type, state, buf, buflen, needed,
@@ -2022,6 +2097,9 @@ EnumServicesStatusExW( SC_HANDLE hmngr, SC_ENUM_TYPE level, DWORD type, DWORD st
         err = map_exception_code( GetExceptionCode() );
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     *returned = 0;
     if (err != ERROR_SUCCESS)
@@ -2167,6 +2245,7 @@ BOOL WINAPI GetServiceKeyNameW( SC_HANDLE hSCManager, LPCWSTR lpDisplayName,
      * includes the nul-terminator on input. */
     size = *lpcchBuffer - 1;
 
+#if 0
     __TRY
     {
         err = svcctl_GetServiceKeyNameW(hSCManager, lpDisplayName, lpServiceName,
@@ -2177,6 +2256,9 @@ BOOL WINAPI GetServiceKeyNameW( SC_HANDLE hSCManager, LPCWSTR lpDisplayName,
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     /* The value of *lpcchBuffer excludes nul-terminator on output. */
     if (err == ERROR_SUCCESS || err == ERROR_INSUFFICIENT_BUFFER)
@@ -2291,6 +2373,7 @@ BOOL WINAPI GetServiceDisplayNameW( SC_HANDLE hSCManager, LPCWSTR lpServiceName,
      * includes the nul-terminator on input. */
     size = *lpcchBuffer - 1;
 
+#if 0
     __TRY
     {
         err = svcctl_GetServiceDisplayNameW(hSCManager, lpServiceName, lpDisplayName,
@@ -2301,6 +2384,9 @@ BOOL WINAPI GetServiceDisplayNameW( SC_HANDLE hSCManager, LPCWSTR lpServiceName,
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     /* The value of *lpcchBuffer excludes nul-terminator on output. */
     if (err == ERROR_SUCCESS || err == ERROR_INSUFFICIENT_BUFFER)
@@ -2323,13 +2409,14 @@ BOOL WINAPI ChangeServiceConfigW( SC_HANDLE hService, DWORD dwServiceType,
     DWORD err;
 
     TRACE("%p %d %d %d %s %s %p %p %s %s %s\n",
-          hService, dwServiceType, dwStartType, dwErrorControl, 
+          hService, dwServiceType, dwStartType, dwErrorControl,
           debugstr_w(lpBinaryPathName), debugstr_w(lpLoadOrderGroup),
           lpdwTagId, lpDependencies, debugstr_w(lpServiceStartName),
           debugstr_w(lpPassword), debugstr_w(lpDisplayName) );
 
     cb_pwd = lpPassword ? (strlenW(lpPassword) + 1)*sizeof(WCHAR) : 0;
 
+#if 0
     __TRY
     {
         err = svcctl_ChangeServiceConfigW(hService, dwServiceType,
@@ -2342,6 +2429,9 @@ BOOL WINAPI ChangeServiceConfigW( SC_HANDLE hService, DWORD dwServiceType,
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     if (err != ERROR_SUCCESS)
         SetLastError(err);
@@ -2362,7 +2452,7 @@ BOOL WINAPI ChangeServiceConfigA( SC_HANDLE hService, DWORD dwServiceType,
     BOOL r;
 
     TRACE("%p %d %d %d %s %s %p %p %s %s %s\n",
-          hService, dwServiceType, dwStartType, dwErrorControl, 
+          hService, dwServiceType, dwStartType, dwErrorControl,
           debugstr_a(lpBinaryPathName), debugstr_a(lpLoadOrderGroup),
           lpdwTagId, lpDependencies, debugstr_a(lpServiceStartName),
           debugstr_a(lpPassword), debugstr_a(lpDisplayName) );
@@ -2392,7 +2482,7 @@ BOOL WINAPI ChangeServiceConfigA( SC_HANDLE hService, DWORD dwServiceType,
 /******************************************************************************
  * ChangeServiceConfig2A  [ADVAPI32.@]
  */
-BOOL WINAPI ChangeServiceConfig2A( SC_HANDLE hService, DWORD dwInfoLevel, 
+BOOL WINAPI ChangeServiceConfig2A( SC_HANDLE hService, DWORD dwInfoLevel,
     LPVOID lpInfo)
 {
     BOOL r = FALSE;
@@ -2439,11 +2529,12 @@ BOOL WINAPI ChangeServiceConfig2A( SC_HANDLE hService, DWORD dwInfoLevel,
 /******************************************************************************
  * ChangeServiceConfig2W  [ADVAPI32.@]
  */
-BOOL WINAPI ChangeServiceConfig2W( SC_HANDLE hService, DWORD dwInfoLevel, 
+BOOL WINAPI ChangeServiceConfig2W( SC_HANDLE hService, DWORD dwInfoLevel,
     LPVOID lpInfo)
 {
     DWORD err;
 
+#if 0
     __TRY
     {
         SC_RPC_CONFIG_INFOW info;
@@ -2457,6 +2548,9 @@ BOOL WINAPI ChangeServiceConfig2W( SC_HANDLE hService, DWORD dwInfoLevel,
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     if (err != ERROR_SUCCESS)
         SetLastError(err);
@@ -2635,6 +2729,7 @@ static DWORD WINAPI notify_thread(void *user)
     SERVICE_NOTIFY_STATUS_CHANGE_PARAMS_2 *cparams;
     BOOL dummy;
 
+#if 0
     __TRY
     {
         /* GetNotifyResults blocks until there is an event */
@@ -2645,6 +2740,9 @@ static DWORD WINAPI notify_thread(void *user)
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     pthread_mutex_lock( &service_cs );
 
@@ -2665,12 +2763,13 @@ static DWORD WINAPI notify_thread(void *user)
         QueueUserAPC((PAPCFUNC)data->notify_buffer->pfnNotifyCallback,
                 data->calling_thread, (ULONG_PTR)data->notify_buffer);
 
-        HeapFree(GetProcessHeap(), 0, list);
+        heap_free(list);
     }
     else
         WARN("GetNotifyResults server call failed: %u\n", err);
 
 
+#if 0
     __TRY
     {
         err = svcctl_CloseNotifyHandle(&data->notify_handle, &dummy);
@@ -2680,12 +2779,15 @@ static DWORD WINAPI notify_thread(void *user)
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     if (err != ERROR_SUCCESS)
         WARN("CloseNotifyHandle server call failed: %u\n", err);
 
     CloseHandle(data->calling_thread);
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     return 0;
 }
@@ -2703,7 +2805,7 @@ DWORD WINAPI NotifyServiceStatusChangeW(SC_HANDLE hService, DWORD dwNotifyMask,
 
     TRACE("%p 0x%x %p\n", hService, dwNotifyMask, pNotifyBuffer);
 
-    data = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data));
+    data = heap_alloc_zero(sizeof(*data));
     if (!data)
         return ERROR_NOT_ENOUGH_MEMORY;
 
@@ -2714,7 +2816,7 @@ DWORD WINAPI NotifyServiceStatusChangeW(SC_HANDLE hService, DWORD dwNotifyMask,
             DUPLICATE_SAME_ACCESS))
     {
         ERR("DuplicateHandle failed: %u\n", GetLastError());
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return ERROR_NOT_ENOUGH_MEMORY;
     }
 
@@ -2725,6 +2827,7 @@ DWORD WINAPI NotifyServiceStatusChangeW(SC_HANDLE hService, DWORD dwNotifyMask,
 
     pthread_mutex_lock( &service_cs );
 
+#if 0
     __TRY
     {
         err = svcctl_NotifyServiceStatusChange(hService, data->params,
@@ -2735,6 +2838,9 @@ DWORD WINAPI NotifyServiceStatusChangeW(SC_HANDLE hService, DWORD dwNotifyMask,
         err = map_exception_code(GetExceptionCode());
     }
     __ENDTRY
+#else
+    err = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 
     if (err != ERROR_SUCCESS)
     {
@@ -2742,7 +2848,7 @@ DWORD WINAPI NotifyServiceStatusChangeW(SC_HANDLE hService, DWORD dwNotifyMask,
         pthread_mutex_unlock( &service_cs );
         CloseHandle(data->calling_thread);
         CloseHandle(data->ready_evt);
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return err;
     }
 

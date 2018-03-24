@@ -23,8 +23,8 @@
 #ifndef _WINE_INTERNET_H_
 #define _WINE_INTERNET_H_
 
-#include "wine/unicode.h"
 #include "wine/heap.h"
+#include "wine/unicode.h"
 #include "wine/list.h"
 
 #include <time.h>
@@ -89,11 +89,6 @@ typedef struct
 
 BOOL is_valid_netconn(netconn_t *) DECLSPEC_HIDDEN;
 void close_netconn(netconn_t *) DECLSPEC_HIDDEN;
-
-static inline void * __WINE_ALLOC_SIZE(2) heap_realloc_zero(void *mem, size_t len)
-{
-    return HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, mem, len);
-}
 
 static inline LPWSTR heap_strdupW(LPCWSTR str)
 {

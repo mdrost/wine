@@ -384,16 +384,17 @@ BOOL TRASH_CanTrashFile(LPCWSTR wszPath)
 {
     struct stat file_stat;
     char *unix_path;
-    int ret;
-
+    
     TRACE("(%s)\n", debugstr_w(wszPath));
     if (!TRASH_EnsureInitialized()) return FALSE;
     if (!(unix_path = wine_get_unix_file_name(wszPath)))
         return FALSE;
-    ret = lstat(unix_path, &file_stat);
-    heap_free(unix_path);
-    if (ret == -1)
+    if (lstat(unix_path, &file_stat)==-1)
+    {
+        heap_free(unix_path);
         return FALSE;
+    }
+    heap_free(unix_path);
     return file_good_for_bucket(home_trash, &file_stat);
 }
 

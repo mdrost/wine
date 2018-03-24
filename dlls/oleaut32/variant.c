@@ -37,6 +37,7 @@
 
 #include "windef.h"
 #include "winbase.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "winerror.h"
 #include "variant.h"
@@ -711,7 +712,7 @@ static HRESULT VARIANT_CopyIRecordInfo(VARIANT *dest, VARIANT *src)
   /* This could look cleaner if only RecordCreate() was used, but native doesn't use it.
      Memory should be allocated in a same way as RecordCreate() does, so RecordDestroy()
      could free it later. */
-  dest_rec->pvRecord = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+  dest_rec->pvRecord = heap_alloc_zero(size);
   if (!dest_rec->pvRecord) return E_OUTOFMEMORY;
 
   dest_rec->pRecInfo = src_rec->pRecInfo;

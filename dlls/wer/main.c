@@ -25,7 +25,6 @@
 #include "winbase.h"
 #include "winreg.h"
 #include "werapi.h"
-#include "wine/heap.h"
 #include "wine/list.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
@@ -56,6 +55,20 @@ static const WCHAR regpath_exclude[] =
      'M','i','c','r','o','s','o','f','t','\\',
      'W','i','n','d','o','w','s',' ','E','r','r','o','r',' ','R','e','p','o','r','t','i','n','g','\\',
      'E','x','c','l','u','d','e','d','A','p','p','l','i','c','a','t','i','o','n','s',0};
+
+/***********************************************************************
+ * Memory allocation helper
+ */
+
+static inline void * __WINE_ALLOC_SIZE(1) heap_alloc_zero(size_t len)
+{
+    return heap_alloc_zero(len);
+}
+
+static inline BOOL heap_free(void *mem)
+{
+    return heap_free(mem);
+}
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {

@@ -192,8 +192,8 @@ check (const struct listbox_test test)
             ok(!strcmp (txt, strings[i]), "returned string for item %d does not match %s vs %s\n", i, txt, strings[i]);
 	}
 
-	HeapFree (GetProcessHeap(), 0, txtw);
-	HeapFree (GetProcessHeap(), 0, txt);
+	heap_free(txtw);
+	heap_free(txt);
   }
   
   /* Confirm the count of items, and that an invalid delete does not remove anything */

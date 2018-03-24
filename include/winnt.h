@@ -43,6 +43,7 @@ extern "C" {
 
 #define NTAPI __stdcall
 
+#if 0
 #ifndef MIDL_PASS
 # if defined(_MSC_VER)
 #  define DECLSPEC_IMPORT __declspec(dllimport)
@@ -51,6 +52,9 @@ extern "C" {
 # else
 #  define DECLSPEC_IMPORT DECLSPEC_HIDDEN
 # endif
+#else
+# define DECLSPEC_IMPORT
+#endif
 #else
 # define DECLSPEC_IMPORT
 #endif
@@ -1206,11 +1210,13 @@ typedef struct _KNONVOLATILE_CONTEXT_POINTERS
 
 typedef PRUNTIME_FUNCTION (CALLBACK *PGET_RUNTIME_FUNCTION_CALLBACK)(DWORD64,PVOID);
 
+#if 0
 BOOLEAN CDECL            RtlAddFunctionTable(RUNTIME_FUNCTION*,DWORD,DWORD64);
 BOOLEAN CDECL            RtlDeleteFunctionTable(RUNTIME_FUNCTION*);
 BOOLEAN CDECL            RtlInstallFunctionTableCallback(DWORD64,DWORD64,DWORD,PGET_RUNTIME_FUNCTION_CALLBACK,PVOID,PCWSTR);
 PRUNTIME_FUNCTION WINAPI RtlLookupFunctionEntry(DWORD64,DWORD64*,UNWIND_HISTORY_TABLE*);
 PVOID WINAPI             RtlVirtualUnwind(ULONG,ULONG64,ULONG64,RUNTIME_FUNCTION*,CONTEXT*,PVOID*,ULONG64*,KNONVOLATILE_CONTEXT_POINTERS*);
+#endif
 
 #define UNW_FLAG_NHANDLER  0
 #define UNW_FLAG_EHANDLER  1
@@ -2383,6 +2389,7 @@ typedef struct _NT_TIB
 
 struct _TEB;
 
+#if 0
 #if defined(__i386__) && defined(__GNUC__) && ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 2)))
 static FORCEINLINE struct _TEB * WINAPI NtCurrentTeb(void)
 {
@@ -2413,6 +2420,7 @@ static FORCEINLINE struct _TEB * WINAPI NtCurrentTeb(void)
 }
 #else
 extern struct _TEB * WINAPI NtCurrentTeb(void);
+#endif
 #endif
 
 #ifdef NONAMELESSUNION

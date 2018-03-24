@@ -28,6 +28,7 @@
 #include "shlguid.h"
 #include "shlobj.h"
 #include "shlwapi.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -56,8 +57,7 @@ static BOOL SHLWAPI_ParamAToW(LPCSTR lpszParam, LPWSTR lpszBuff, DWORD dwLen,
     else
     {
       /* Create a new buffer big enough for the string */
-      *lpszOut = HeapAlloc(GetProcessHeap(), 0,
-                                   dwStrLen * sizeof(WCHAR));
+      *lpszOut = heap_alloc(dwStrLen * sizeof(WCHAR));
       if (!*lpszOut)
         return FALSE;
     }
@@ -198,10 +198,10 @@ HRESULT WINAPI AssocQueryKeyA(ASSOCF cfFlags, ASSOCKEY assockey, LPCSTR pszAssoc
   }
 
   if (lpszAssocW != szAssocW)
-    HeapFree(GetProcessHeap(), 0, lpszAssocW);
+    heap_free(lpszAssocW);
 
   if (lpszExtraW != szExtraW)
-    HeapFree(GetProcessHeap(), 0, lpszExtraW);
+    heap_free(lpszExtraW);
 
   return hRet;
 }
@@ -273,8 +273,7 @@ HRESULT WINAPI AssocQueryStringA(ASSOCF cfFlags, ASSOCSTR str, LPCSTR pszAssoc,
     DWORD dwLenOut = *pcchOut;
 
     if (dwLenOut >= MAX_PATH)
-      lpszReturnW = HeapAlloc(GetProcessHeap(), 0,
-                                      (dwLenOut + 1) * sizeof(WCHAR));
+      lpszReturnW = heap_alloc((dwLenOut + 1) * sizeof(WCHAR));
     else
       dwLenOut = sizeof(szReturnW) / sizeof(szReturnW[0]);
 
@@ -291,14 +290,14 @@ HRESULT WINAPI AssocQueryStringA(ASSOCF cfFlags, ASSOCSTR str, LPCSTR pszAssoc,
 
       *pcchOut = dwLenOut;
       if (lpszReturnW != szReturnW)
-        HeapFree(GetProcessHeap(), 0, lpszReturnW);
+        heap_free(lpszReturnW);
     }
   }
 
   if (lpszAssocW != szAssocW)
-    HeapFree(GetProcessHeap(), 0, lpszAssocW);
+    heap_free(lpszAssocW);
   if (lpszExtraW != szExtraW)
-    HeapFree(GetProcessHeap(), 0, lpszExtraW);
+    heap_free(lpszExtraW);
   return hRet;
 }
 
@@ -365,8 +364,7 @@ HRESULT WINAPI AssocQueryStringByKeyA(ASSOCF cfFlags, ASSOCSTR str, HKEY hkAssoc
   {
     DWORD dwLenOut = *pcchOut;
     if (dwLenOut >= MAX_PATH)
-      lpszReturnW = HeapAlloc(GetProcessHeap(), 0,
-                                      (dwLenOut + 1) * sizeof(WCHAR));
+      lpszReturnW = heap_alloc((dwLenOut + 1) * sizeof(WCHAR));
 
     if (lpszReturnW)
     {
@@ -378,12 +376,12 @@ HRESULT WINAPI AssocQueryStringByKeyA(ASSOCF cfFlags, ASSOCSTR str, HKEY hkAssoc
       *pcchOut = dwLenOut;
 
       if (lpszReturnW != szReturnW)
-        HeapFree(GetProcessHeap(), 0, lpszReturnW);
+        heap_free(lpszReturnW);
     }
   }
 
   if (lpszExtraW != szExtraW)
-    HeapFree(GetProcessHeap(), 0, lpszExtraW);
+    heap_free(lpszExtraW);
   return hRet;
 }
 

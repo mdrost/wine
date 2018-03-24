@@ -260,9 +260,9 @@ static HRESULT WINAPI ClientIdentity_QueryMultipleInterfaces(IMultiQI *iface, UL
     ULONG nonlocal_mqis = 0;
     ULONG i;
     ULONG successful_mqis = 0;
-    IID *iids = HeapAlloc(GetProcessHeap(), 0, cMQIs * sizeof(*iids));
+    IID *iids = heap_alloc(cMQIs * sizeof(*iids));
     /* mapping of RemQueryInterface index to QueryMultipleInterfaces index */
-    ULONG *mapping = HeapAlloc(GetProcessHeap(), 0, cMQIs * sizeof(*mapping));
+    ULONG *mapping = heap_alloc(cMQIs * sizeof(*mapping));
 
     TRACE("cMQIs: %d\n", cMQIs);
 
@@ -339,8 +339,8 @@ static HRESULT WINAPI ClientIdentity_QueryMultipleInterfaces(IMultiQI *iface, UL
 
     TRACE("%d/%d successfully queried\n", successful_mqis, cMQIs);
 
-    HeapFree(GetProcessHeap(), 0, iids);
-    HeapFree(GetProcessHeap(), 0, mapping);
+    heap_free(iids);
+    heap_free(mapping);
 
     if (successful_mqis == cMQIs)
         return S_OK; /* we got all requested interfaces */
@@ -701,20 +701,20 @@ static void ifproxy_destroy(struct ifproxy * This)
 
     if (This->proxy) IRpcProxyBuffer_Release(This->proxy);
 
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 }
 
 static HRESULT proxy_manager_construct(
     APARTMENT * apt, ULONG sorflags, OXID oxid, OID oid,
     const OXID_INFO *oxid_info, struct proxy_manager ** proxy_manager)
 {
-    struct proxy_manager * This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    struct proxy_manager * This = heap_alloc(sizeof(*This));
     if (!This) return E_OUTOFMEMORY;
 
     This->remoting_mutex = CreateMutexW(NULL, FALSE, NULL);
     if (!This->remoting_mutex)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return HRESULT_FROM_WIN32(GetLastError());
     }
 
@@ -732,7 +732,7 @@ static HRESULT proxy_manager_construct(
         if (FAILED(hr))
         {
             CloseHandle(This->remoting_mutex);
-            HeapFree(GetProcessHeap(), 0, This);
+            heap_free(This);
             return hr;
         }
     }
@@ -888,7 +888,7 @@ static HRESULT proxy_manager_create_ifproxy(
 {
     HRESULT hr;
     IPSFactoryBuffer * psfb;
-    struct ifproxy * ifproxy = HeapAlloc(GetProcessHeap(), 0, sizeof(*ifproxy));
+    struct ifproxy * ifproxy = heap_alloc(sizeof(*ifproxy));
     if (!ifproxy) return E_OUTOFMEMORY;
 
     list_init(&ifproxy->entry);
@@ -1105,7 +1105,7 @@ static void proxy_manager_destroy(struct proxy_manager * This)
 
     CloseHandle(This->remoting_mutex);
 
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 }
 
 /* finds the proxy manager corresponding to a given OXID and OID that has
@@ -1164,7 +1164,7 @@ static inline StdMarshalImpl *impl_from_StdMarshal(IMarshal *iface)
     return CONTAINING_RECORD(iface, StdMarshalImpl, IMarshal_iface);
 }
 
-static HRESULT WINAPI 
+static HRESULT WINAPI
 StdMarshalImpl_QueryInterface(IMarshal *iface, REFIID riid, void **ppv)
 {
     *ppv = NULL;
@@ -1191,7 +1191,7 @@ StdMarshalImpl_Release(IMarshal *iface)
     StdMarshalImpl *This = impl_from_StdMarshal(iface);
     ULONG ref = InterlockedDecrement(&This->ref);
 
-    if (!ref) HeapFree(GetProcessHeap(),0,This);
+    if (!ref) heap_free(This);
     return ref;
 }
 
@@ -1349,9 +1349,9 @@ StdMarshalImpl_UnmarshalInterface(IMarshal *iface, IStream *pStm, REFIID riid, v
     {
         TRACE("Unmarshalling object marshalled in same apartment for iid %s, "
               "returning original object %p\n", debugstr_guid(riid), stubmgr->object);
-    
+
         hres = IUnknown_QueryInterface(stubmgr->object, riid, ppv);
-      
+
         /* unref the ifstub. FIXME: only do this on success? */
         if (!stub_manager_is_table_marshaled(stubmgr, &stdobjref.ipid))
             stub_manager_ext_release(stubmgr, stdobjref.cPublicRefs, stdobjref.flags & SORFP_TABLEWEAK, FALSE);
@@ -1408,7 +1408,7 @@ StdMarshalImpl_ReleaseMarshalData(IMarshal *iface, IStream *pStm)
     APARTMENT           *apt;
 
     TRACE("iface=%p, pStm=%p\n", iface, pStm);
-    
+
     hres = IStream_Read(pStm, &stdobjref, sizeof(stdobjref), &res);
     if (hres != S_OK) return STG_E_READFAULT;
 
@@ -1464,7 +1464,7 @@ static HRESULT StdMarshalImpl_Construct(REFIID riid, DWORD dest_context, void *d
 {
     HRESULT hr;
 
-    StdMarshalImpl *pStdMarshal = HeapAlloc(GetProcessHeap(), 0, sizeof(StdMarshalImpl));
+    StdMarshalImpl *pStdMarshal = heap_alloc(sizeof(StdMarshalImpl));
     if (!pStdMarshal)
         return E_OUTOFMEMORY;
 
@@ -1475,7 +1475,7 @@ static HRESULT StdMarshalImpl_Construct(REFIID riid, DWORD dest_context, void *d
 
     hr = IMarshal_QueryInterface(&pStdMarshal->IMarshal_iface, riid, ppvObject);
     if (FAILED(hr))
-        HeapFree(GetProcessHeap(), 0, pStdMarshal);
+        heap_free(pStdMarshal);
 
     return hr;
 }
@@ -1577,7 +1577,7 @@ static HRESULT get_unmarshaler_from_stream(IStream *stream, IMarshal **marshal, 
     }
     else if (objref.flags & OBJREF_CUSTOM)
     {
-        ULONG custom_header_size = FIELD_OFFSET(OBJREF, u_objref.u_custom.pData) - 
+        ULONG custom_header_size = FIELD_OFFSET(OBJREF, u_objref.u_custom.pData) -
                                    FIELD_OFFSET(OBJREF, u_objref.u_custom);
         TRACE("Using custom unmarshaling\n");
         /* read constant sized OR_CUSTOM data from stream */
@@ -1796,7 +1796,7 @@ cleanup:
     IMarshal_Release(pMarshal);
 
     TRACE("completed with hr 0x%08x\n", hr);
-    
+
     return hr;
 }
 
@@ -1862,7 +1862,7 @@ HRESULT WINAPI CoUnmarshalInterface(IStream *pStream, REFIID riid, LPVOID *ppv)
     IMarshal_Release(pMarshal);
 
     TRACE("completed with hr 0x%x\n", hr);
-    
+
     return hr;
 }
 
@@ -1881,7 +1881,7 @@ HRESULT WINAPI CoUnmarshalInterface(IStream *pStream, REFIID riid, LPVOID *ppv)
  *  Failure: HRESULT error code.
  *
  * NOTES
- * 
+ *
  * Call this function to release resources associated with a normal or
  * table-weak marshal that will not be unmarshaled, and all table-strong
  * marshals when they are no longer needed.

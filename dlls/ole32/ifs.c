@@ -38,6 +38,7 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(olemalloc);
 
+#if 0
 /******************************************************************************
  *	IMalloc32 implementation
  *
@@ -48,6 +49,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(olemalloc);
  *****************************************************************************/
 /* set the vtable later */
 static const IMallocVtbl VT_IMalloc32;
+#endif
 
 typedef struct {
         IMalloc IMalloc_iface;
@@ -59,8 +61,10 @@ typedef struct {
         DWORD SpyedBlockTableLength;/* size of the table*/
 } _Malloc32;
 
+#if 0
 /* this is the static object instance */
 static _Malloc32 Malloc32 = {{&VT_IMalloc32}, 0, NULL, 0, 0, NULL, 0};
+#endif
 
 /* with a spy active all calls from pre to post methods are threadsave */
 static CRITICAL_SECTION IMalloc32_SpyCS;
@@ -173,7 +177,7 @@ static void * WINAPI IMalloc_fnAlloc(IMalloc *iface, SIZE_T cb)
 
 	if(Malloc32.pSpy) {
 	    SIZE_T preAllocResult;
-	    
+
 	    EnterCriticalSection(&IMalloc32_SpyCS);
 	    preAllocResult = IMallocSpy_PreAlloc(Malloc32.pSpy, cb);
 	    if ((cb != 0) && (preAllocResult == 0)) {
@@ -183,8 +187,8 @@ static void * WINAPI IMalloc_fnAlloc(IMalloc *iface, SIZE_T cb)
 		return NULL;
 	    }
 	}
- 	
-	addr = HeapAlloc(GetProcessHeap(),0,cb);
+
+	addr = heap_alloc(cb);
 
 	if(Malloc32.pSpy) {
 	    addr = IMallocSpy_PostAlloc(Malloc32.pSpy, addr);
@@ -231,10 +235,10 @@ static void * WINAPI IMalloc_fnRealloc(IMalloc *iface, void *pv, SIZE_T cb)
 	    pv = pRealMemory;
 	}
 
-        if (!pv) pNewMemory = HeapAlloc(GetProcessHeap(),0,cb);
-	else if (cb) pNewMemory = HeapReAlloc(GetProcessHeap(),0,pv,cb);
+        if (!pv) pNewMemory = heap_alloc(cb);
+	else if (cb) pNewMemory = heap_realloc(pv,cb);
 	else {
-	    HeapFree(GetProcessHeap(),0,pv);
+	    heap_free(pv);
 	    pNewMemory = NULL;
 	}
 
@@ -266,7 +270,7 @@ static void WINAPI IMalloc_fnFree(IMalloc *iface, void *pv)
 	    pv = IMallocSpy_PreFree(Malloc32.pSpy, pv, fSpyed);
 	}
 
-	HeapFree(GetProcessHeap(),0,pv);
+	heap_free(pv);
 
 	if(Malloc32.pSpy) {
 	    IMallocSpy_PostFree(Malloc32.pSpy, fSpyed);
@@ -282,6 +286,7 @@ static void WINAPI IMalloc_fnFree(IMalloc *iface, void *pv)
         }
 }
 
+#if 0
 /******************************************************************************
  * IMalloc32_GetSize [VTABLE]
  *
@@ -311,6 +316,7 @@ static SIZE_T WINAPI IMalloc_fnGetSize(IMalloc *iface, void *pv)
 
 	return cb;
 }
+#endif
 
 /******************************************************************************
  * IMalloc32_DidAlloc [VTABLE]
@@ -354,6 +360,7 @@ static void WINAPI IMalloc_fnHeapMinimize(IMalloc *iface)
 	}
 }
 
+#if 0
 static const IMallocVtbl VT_IMalloc32 =
 {
 	IMalloc_fnQueryInterface,
@@ -366,6 +373,7 @@ static const IMallocVtbl VT_IMalloc32 =
 	IMalloc_fnDidAlloc,
 	IMalloc_fnHeapMinimize
 };
+#endif
 
 /******************************************************************************
  *		CoGetMalloc	[OLE32.@]

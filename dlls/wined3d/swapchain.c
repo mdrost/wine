@@ -473,8 +473,12 @@ static void swapchain_gl_present(struct wined3d_swapchain *swapchain,
     if (swapchain->num_contexts > 1)
         gl_info->gl_ops.gl.p_glFinish();
 
+#if 0
     /* call wglSwapBuffers through the gl table to avoid confusing the Steam overlay */
     gl_info->gl_ops.wgl.p_wglSwapBuffers(context->hdc);
+#else
+    gl_info->gl_ops.glx.p_glXSwapBuffers(context->hdc, context->win_handle);
+#endif
 
     wined3d_swapchain_rotate(swapchain, context);
 
@@ -684,12 +688,21 @@ static void wined3d_swapchain_update_swap_interval_cs(void *object)
 
     swap_interval = swapchain->desc.swap_interval > 4 ? 1 : swapchain->desc.swap_interval;
 
+#if 0
     if (gl_info->supported[WGL_EXT_SWAP_CONTROL])
     {
         if (!GL_EXTCALL(wglSwapIntervalEXT(swap_interval)))
             ERR("wglSwapIntervalEXT failed to set swap interval %d for context %p, last error %#x.\n",
                     swap_interval, context, GetLastError());
     }
+#else
+    if (gl_info->supported[GLX_EXT_SWAP_CONTROL])
+    {
+        if (!GL_EXTCALL(glXSwapIntervalEXT(context->hdc, context->win_handle, swap_interval)))
+            ERR("glXSwapIntervalEXT failed to set swap interval %d for context %p, last error %#x\n",
+                swap_interval, context, GetLastError());
+    }
+#endif
 
     context_release(context);
 }
@@ -1069,7 +1082,11 @@ struct wined3d_context *swapchain_get_context(struct wined3d_swapchain *swapchai
     return swapchain_create_context(swapchain);
 }
 
+#if 0
 HDC swapchain_get_backup_dc(struct wined3d_swapchain *swapchain)
+#else
+Display *swapchain_get_backup_dc(struct wined3d_swapchain *swapchain)
+#endif
 {
     if (!swapchain->backup_dc)
     {

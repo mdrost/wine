@@ -32,6 +32,7 @@
 #include "userenv.h"
 
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL( userenv );
@@ -68,13 +69,13 @@ static BOOL get_reg_value(WCHAR *env, HKEY hkey, const WCHAR *name, WCHAR *val, 
     else if (type == REG_EXPAND_SZ)
     {
         UNICODE_STRING us_buf, us_expanded;
-        WCHAR *buf = HeapAlloc(GetProcessHeap(), 0, res_size);
+        WCHAR *buf = heap_alloc(res_size);
         if (!buf)
             return FALSE;
 
         if (RegQueryValueExW(hkey, name, 0, NULL, (BYTE*)buf, &res_size) != ERROR_SUCCESS)
         {
-            HeapFree(GetProcessHeap(), 0, buf);
+            heap_free(buf);
             return FALSE;
         }
 
@@ -83,11 +84,11 @@ static BOOL get_reg_value(WCHAR *env, HKEY hkey, const WCHAR *name, WCHAR *val, 
         us_expanded.MaximumLength = size;
         if (RtlExpandEnvironmentStrings_U(env, &us_buf, &us_expanded, &size) != STATUS_SUCCESS)
         {
-            HeapFree(GetProcessHeap(), 0, buf);
+            heap_free(buf);
             return FALSE;
         }
 
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
         return TRUE;
     }
 
@@ -369,6 +370,7 @@ BOOL WINAPI CreateEnvironmentBlock( LPVOID* lpEnvironment,
     }
     else
     {
+#if 0
         TOKEN_USER *token_user = NULL;
         SID_NAME_USE use;
         WCHAR *sidW;
@@ -376,11 +378,11 @@ BOOL WINAPI CreateEnvironmentBlock( LPVOID* lpEnvironment,
 
         if (GetTokenInformation(hToken, TokenUser, NULL, 0, &len) ||
                 GetLastError()!=ERROR_INSUFFICIENT_BUFFER ||
-                !(token_user = HeapAlloc(GetProcessHeap(), 0, len)) ||
+                !(token_user = heap_alloc(len)) ||
                 !GetTokenInformation(hToken, TokenUser, token_user, len, &len) ||
                 !ConvertSidToStringSidW(token_user->User.Sid, &sidW))
         {
-            HeapFree(GetProcessHeap(), 0, token_user);
+            heap_free(token_user);
             RtlDestroyEnvironment(env);
             return FALSE;
         }
@@ -404,9 +406,13 @@ BOOL WINAPI CreateEnvironmentBlock( LPVOID* lpEnvironment,
             }
         }
 
-        HeapFree(GetProcessHeap(), 0, token_user);
+        heap_free(token_user);
         strcpyW(buf, sidW);
         LocalFree(sidW);
+#else
+        RtlDestroyEnvironment(env);
+        return FALSE;
+#endif
     }
 
     if (RegOpenKeyExW(HKEY_USERS, buf, 0, KEY_READ, &hkey) == ERROR_SUCCESS)
@@ -491,13 +497,13 @@ BOOL WINAPI GetUserProfileDirectoryA( HANDLE hToken, LPSTR lpProfileDir,
         SetLastError( ERROR_INVALID_PARAMETER );
         return FALSE;
     }
-    if (!(dirW = HeapAlloc( GetProcessHeap(), 0, *lpcchSize * sizeof(WCHAR) )))
+    if (!(dirW = heap_alloc( *lpcchSize * sizeof(WCHAR) )))
         return FALSE;
 
     if ((ret = GetUserProfileDirectoryW( hToken, dirW, lpcchSize )))
         WideCharToMultiByte( CP_ACP, 0, dirW, *lpcchSize, lpProfileDir, *lpcchSize, NULL, NULL );
 
-    HeapFree( GetProcessHeap(), 0, dirW );
+    heap_free( dirW );
     return ret;
 }
 
@@ -522,19 +528,19 @@ BOOL WINAPI GetUserProfileDirectoryW( HANDLE hToken, LPWSTR lpProfileDir,
     len = 0;
     GetTokenInformation( hToken, TokenUser, NULL, 0, &len );
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) return FALSE;
-    if (!(t = HeapAlloc( GetProcessHeap(), 0, len ))) return FALSE;
+    if (!(t = heap_alloc( len ))) return FALSE;
     if (!GetTokenInformation( hToken, TokenUser, t, len, &len )) goto done;
 
     len = domain_len = 0;
     LookupAccountSidW( NULL, t->User.Sid, NULL, &len, NULL, &domain_len, NULL );
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) goto done;
-    if (!(userW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) ))) goto done;
+    if (!(userW = heap_alloc( len * sizeof(WCHAR) ))) goto done;
     if (!LookupAccountSidW( NULL, t->User.Sid, userW, &len, NULL, &domain_len, &use )) goto done;
 
     dir_len = 0;
     GetProfilesDirectoryW( NULL, &dir_len );
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) goto done;
-    if (!(dirW = HeapAlloc( GetProcessHeap(), 0, (dir_len + 1) * sizeof(WCHAR) ))) goto done;
+    if (!(dirW = heap_alloc( (dir_len + 1) * sizeof(WCHAR) ))) goto done;
     if (!GetProfilesDirectoryW( dirW, &dir_len )) goto done;
 
     len += dir_len + 2;
@@ -551,9 +557,9 @@ BOOL WINAPI GetUserProfileDirectoryW( HANDLE hToken, LPWSTR lpProfileDir,
     ret = TRUE;
 
 done:
-    HeapFree( GetProcessHeap(), 0, t );
-    HeapFree( GetProcessHeap(), 0, userW );
-    HeapFree( GetProcessHeap(), 0, dirW );
+    heap_free( t );
+    heap_free( userW );
+    heap_free( dirW );
     return ret;
 }
 
@@ -588,7 +594,7 @@ BOOL WINAPI GetProfilesDirectoryA( LPSTR lpProfilesDir, LPDWORD lpcchSize )
         SetLastError(l);
         goto end;
     }
-    unexpanded_profiles_dir = HeapAlloc(GetProcessHeap(), 0, len);
+    unexpanded_profiles_dir = heap_alloc(len);
     if (!unexpanded_profiles_dir)
     {
         SetLastError(ERROR_OUTOFMEMORY);
@@ -614,7 +620,7 @@ BOOL WINAPI GetProfilesDirectoryA( LPSTR lpProfilesDir, LPDWORD lpcchSize )
     ret = ExpandEnvironmentStringsA(unexpanded_profiles_dir, lpProfilesDir,
                                     expanded_len) - 1;
 end:
-    HeapFree(GetProcessHeap(), 0, unexpanded_profiles_dir);
+    heap_free(unexpanded_profiles_dir);
     RegCloseKey(key);
     return ret;
 }
@@ -650,7 +656,7 @@ BOOL WINAPI GetProfilesDirectoryW( LPWSTR lpProfilesDir, LPDWORD lpcchSize )
         SetLastError(l);
         goto end;
     }
-    unexpanded_profiles_dir = HeapAlloc(GetProcessHeap(), 0, len);
+    unexpanded_profiles_dir = heap_alloc(len);
     if (!unexpanded_profiles_dir)
     {
         SetLastError(ERROR_OUTOFMEMORY);
@@ -676,7 +682,7 @@ BOOL WINAPI GetProfilesDirectoryW( LPWSTR lpProfilesDir, LPDWORD lpcchSize )
     ret = ExpandEnvironmentStringsW(unexpanded_profiles_dir, lpProfilesDir,
                                     expanded_len) - 1;
 end:
-    HeapFree(GetProcessHeap(), 0, unexpanded_profiles_dir);
+    heap_free(unexpanded_profiles_dir);
     RegCloseKey(key);
     return ret;
 }

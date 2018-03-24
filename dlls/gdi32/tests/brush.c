@@ -116,6 +116,7 @@ static void test_hatch_brush(void)
     }
 }
 
+#if 0
 static void test_pattern_brush(void)
 {
     char buffer[sizeof(BITMAPINFOHEADER) + 2 * sizeof(RGBQUAD) + 32 * 32 / 8];
@@ -270,6 +271,7 @@ static void test_pattern_brush(void)
 
     GlobalFree( mem );
 }
+#endif
 
 static void test_palette_brush(void)
 {
@@ -365,7 +367,9 @@ START_TEST(brush)
 {
     test_solidbrush();
     test_hatch_brush();
+#if 0
     test_pattern_brush();
+#endif
     test_palette_brush();
     test_brush_org();
 }

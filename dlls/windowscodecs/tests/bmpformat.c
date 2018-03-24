@@ -951,7 +951,7 @@ static void test_componentinfo(void)
                 ok(pattern_count != 0, "pattern count is 0\n");
                 ok(pattern_size > pattern_count * sizeof(WICBitmapPattern), "size=%i, count=%i\n", pattern_size, pattern_count);
 
-                patterns = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, pattern_size);
+                patterns = heap_alloc_zero(pattern_size);
                 hr = IWICBitmapDecoderInfo_GetPatterns(decoderinfo, pattern_size, patterns, &pattern_count, &pattern_size);
                 ok(SUCCEEDED(hr), "GetPatterns failed, hr=%x\n", hr);
                 ok(pattern_count != 0, "pattern count is 0\n");
@@ -964,7 +964,7 @@ static void test_componentinfo(void)
                 hr = IWICBitmapDecoderInfo_GetPatterns(decoderinfo, pattern_size, patterns, &pattern_count, &pattern_size);
                 ok(hr == WINCODEC_ERR_INSUFFICIENTBUFFER, "GetPatterns returned %x, expected WINCODEC_ERR_INSUFFICIENTBUFFER\n", hr);
 
-                HeapFree(GetProcessHeap(), 0, patterns);
+                heap_free(patterns);
 
                 hr = IWICBitmapDecoderInfo_CreateInstance(decoderinfo, &decoder);
                 ok(SUCCEEDED(hr), "CreateInstance failed, hr=%x\n", hr);

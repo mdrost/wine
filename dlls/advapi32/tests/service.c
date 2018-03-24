@@ -998,14 +998,14 @@ static void test_query_svc(void)
     }
 
     /* Pass a correct buffer and buffersize but a NULL handle */
-    statusproc = HeapAlloc(GetProcessHeap(), 0, sizeof(SERVICE_STATUS_PROCESS));
+    statusproc = heap_alloc(sizeof(SERVICE_STATUS_PROCESS));
     bufsize = needed;
     SetLastError(0xdeadbeef);
     ret = pQueryServiceStatusEx(NULL, SC_STATUS_PROCESS_INFO, (BYTE*)statusproc, bufsize, &needed);
     ok(!ret, "Expected failure\n");
     ok(GetLastError() == ERROR_INVALID_HANDLE,
        "Expected ERROR_INVALID_HANDLE, got %d\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, statusproc);
+    heap_free(statusproc);
 
     /* Correct handle and info level */
     SetLastError(0xdeadbeef);
@@ -1021,21 +1021,21 @@ static void test_query_svc(void)
     }
 
     /* All parameters are OK but we don't have enough rights */
-    statusproc = HeapAlloc(GetProcessHeap(), 0, sizeof(SERVICE_STATUS_PROCESS));
+    statusproc = heap_alloc(sizeof(SERVICE_STATUS_PROCESS));
     bufsize = sizeof(SERVICE_STATUS_PROCESS);
     SetLastError(0xdeadbeef);
     ret = pQueryServiceStatusEx(svc_handle, SC_STATUS_PROCESS_INFO, (BYTE*)statusproc, bufsize, &needed);
     ok(!ret, "Expected failure\n");
     ok(GetLastError() == ERROR_ACCESS_DENIED,
        "Expected ERROR_ACCESS_DENIED, got %d\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, statusproc);
+    heap_free(statusproc);
 
     /* Open the service with just enough rights. */
     CloseServiceHandle(svc_handle);
     svc_handle = OpenServiceA(scm_handle, spooler, SERVICE_QUERY_STATUS);
 
     /* Everything should be fine now. */
-    statusproc = HeapAlloc(GetProcessHeap(), 0, sizeof(SERVICE_STATUS_PROCESS));
+    statusproc = heap_alloc(sizeof(SERVICE_STATUS_PROCESS));
     bufsize = sizeof(SERVICE_STATUS_PROCESS);
     SetLastError(0xdeadbeef);
     ret = pQueryServiceStatusEx(svc_handle, SC_STATUS_PROCESS_INFO, (BYTE*)statusproc, bufsize, &needed);
@@ -1054,7 +1054,7 @@ static void test_query_svc(void)
     ok(broken(GetLastError() == ERROR_INVALID_PARAMETER) /* NT4 */ ||
        GetLastError() == ERROR_INVALID_ADDRESS, "got %d\n", GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, statusproc);
+    heap_free(statusproc);
 
     CloseServiceHandle(svc_handle);
     CloseServiceHandle(scm_handle);
@@ -1271,7 +1271,7 @@ static void test_enum_svc(void)
     tempneeded = needed;
 
     /* Allocate the correct needed bytes */
-    services = HeapAlloc(GetProcessHeap(), 0, needed);
+    services = heap_alloc(needed);
     bufsize = needed;
     needed = 0xdeadbeef;
     returned = 0xdeadbeef;
@@ -1281,12 +1281,12 @@ static void test_enum_svc(void)
     ok(ret, "Expected success, got error %u\n", GetLastError());
     ok(needed == 0, "Expected needed buffer to be 0 as we are done\n");
     ok(returned != 0xdeadbeef && returned > 0, "Expected some returned services\n");
-    HeapFree(GetProcessHeap(), 0, services);
+    heap_free(services);
 
     /* Store the number of returned services */
     tempreturned = returned;
 
-    servicesW = HeapAlloc(GetProcessHeap(), 0, neededW);
+    servicesW = heap_alloc(neededW);
     bufsize = neededW;
     neededW = 0xdeadbeef;
     returnedW = 0xdeadbeef;
@@ -1296,10 +1296,10 @@ static void test_enum_svc(void)
     ok(ret, "Expected success, got error %u\n", GetLastError());
     ok(neededW == 0, "Expected needed buffer to be 0 as we are done\n");
     ok(returnedW != 0xdeadbeef && returnedW > 0, "Expected some returned services\n");
-    HeapFree(GetProcessHeap(), 0, servicesW);
+    heap_free(servicesW);
 
     /* Allocate less than the needed bytes and don't specify a resume handle */
-    services = HeapAlloc(GetProcessHeap(), 0, tempneeded);
+    services = heap_alloc(tempneeded);
     bufsize = (tempreturned - 1) * sizeof(ENUM_SERVICE_STATUSA);
     needed = 0xdeadbeef;
     returned = 0xdeadbeef;
@@ -1339,7 +1339,7 @@ static void test_enum_svc(void)
     ok(needed == 0, "Expected needed buffer to be 0 as we are done\n");
     ok(returned == missing, "Expected %u services to be returned\n", missing);
     ok(resume == 0, "Expected the resume handle to be 0\n");
-    HeapFree(GetProcessHeap(), 0, services);
+    heap_free(services);
 
     /* See if things add up */
 
@@ -1356,30 +1356,30 @@ static void test_enum_svc(void)
     /* Get the number of active win32 services */
     EnumServicesStatusA(scm_handle, SERVICE_WIN32, SERVICE_ACTIVE, NULL, 0,
                         &needed, &returned, NULL);
-    services = HeapAlloc(GetProcessHeap(), 0, needed);
+    services = heap_alloc(needed);
     EnumServicesStatusA(scm_handle, SERVICE_WIN32, SERVICE_ACTIVE, services,
                         needed, &needed, &returned, NULL);
-    HeapFree(GetProcessHeap(), 0, services);
+    heap_free(services);
 
     servicecountactive = returned;
 
     /* Get the number of inactive win32 services */
     EnumServicesStatusA(scm_handle, SERVICE_WIN32, SERVICE_INACTIVE, NULL, 0,
                         &needed, &returned, NULL);
-    services = HeapAlloc(GetProcessHeap(), 0, needed);
+    services = heap_alloc(needed);
     EnumServicesStatusA(scm_handle, SERVICE_WIN32, SERVICE_INACTIVE, services,
                         needed, &needed, &returned, NULL);
-    HeapFree(GetProcessHeap(), 0, services);
+    heap_free(services);
 
     servicecountinactive = returned;
 
     /* Get the number of win32 services */
     EnumServicesStatusA(scm_handle, SERVICE_WIN32, SERVICE_STATE_ALL, NULL, 0,
                         &needed, &returned, NULL);
-    services = HeapAlloc(GetProcessHeap(), 0, needed);
+    services = heap_alloc(needed);
     EnumServicesStatusA(scm_handle, SERVICE_WIN32, SERVICE_STATE_ALL, services,
                         needed, &needed, &returned, NULL);
-    HeapFree(GetProcessHeap(), 0, services);
+    heap_free(services);
 
     /* Check if total is the same as active and inactive win32 services */
     ok(returned == (servicecountactive + servicecountinactive),
@@ -1392,7 +1392,7 @@ static void test_enum_svc(void)
      */
     EnumServicesStatusA(scm_handle, SERVICE_DRIVER | SERVICE_WIN32, SERVICE_STATE_ALL,
                         NULL, 0, &needed, &returned, NULL);
-    services = HeapAlloc(GetProcessHeap(), 0, needed);
+    services = heap_alloc(needed);
     ret = EnumServicesStatusA(scm_handle, SERVICE_DRIVER | SERVICE_WIN32, SERVICE_STATE_ALL,
                               services, needed, &needed, &returned, NULL);
 
@@ -1416,7 +1416,7 @@ static void test_enum_svc(void)
                 servicecountactive--;
         }
     }
-    HeapFree(GetProcessHeap(), 0, services);
+    heap_free(services);
 
     ok(servicecountactive == 0, "Active services mismatch %u\n", servicecountactive);
     ok(servicecountinactive == 0, "Inactive services mismatch %u\n", servicecountinactive);
@@ -1598,7 +1598,7 @@ static void test_enum_svc(void)
     tempneeded = needed;
 
     /* Allocate the correct needed bytes */
-    exservices = HeapAlloc(GetProcessHeap(), 0, needed);
+    exservices = heap_alloc(needed);
     bufsize = needed;
     needed = 0xdeadbeef;
     returned = 0xdeadbeef;
@@ -1608,13 +1608,13 @@ static void test_enum_svc(void)
     ok(ret, "Expected success, got error %u\n", GetLastError());
     ok(needed == 0, "Expected needed buffer to be 0 as we are done\n");
     ok(returned == tempreturned, "Expected the same number of service from this function\n");
-    HeapFree(GetProcessHeap(), 0, exservices);
+    heap_free(exservices);
 
     /* Store the number of returned services */
     tempreturned = returned;
 
     /* Allocate less than the needed bytes and don't specify a resume handle */
-    exservices = HeapAlloc(GetProcessHeap(), 0, tempneeded);
+    exservices = heap_alloc(tempneeded);
     bufsize = (tempreturned - 1) * sizeof(ENUM_SERVICE_STATUSA);
     needed = 0xdeadbeef;
     returned = 0xdeadbeef;
@@ -1654,37 +1654,37 @@ static void test_enum_svc(void)
     ok(needed == 0, "Expected needed buffer to be 0 as we are done\n");
     ok(returned == missing, "Expected %u services to be returned\n", missing);
     ok(resume == 0, "Expected the resume handle to be 0\n");
-    HeapFree(GetProcessHeap(), 0, exservices);
+    heap_free(exservices);
 
     /* See if things add up */
 
     /* Get the number of active win32 services */
     pEnumServicesStatusExA(scm_handle, 0, SERVICE_WIN32, SERVICE_ACTIVE,
                            NULL, 0, &needed, &returned, NULL, NULL);
-    exservices = HeapAlloc(GetProcessHeap(), 0, needed);
+    exservices = heap_alloc(needed);
     pEnumServicesStatusExA(scm_handle, 0, SERVICE_WIN32, SERVICE_ACTIVE,
                            (BYTE*)exservices, needed, &needed, &returned, NULL, NULL);
-    HeapFree(GetProcessHeap(), 0, exservices);
+    heap_free(exservices);
 
     servicecountactive = returned;
 
     /* Get the number of inactive win32 services */
     pEnumServicesStatusExA(scm_handle, 0, SERVICE_WIN32, SERVICE_INACTIVE,
                            NULL, 0, &needed, &returned, NULL, NULL);
-    exservices = HeapAlloc(GetProcessHeap(), 0, needed);
+    exservices = heap_alloc(needed);
     pEnumServicesStatusExA(scm_handle, 0, SERVICE_WIN32, SERVICE_INACTIVE,
                            (BYTE*)exservices, needed, &needed, &returned, NULL, NULL);
-    HeapFree(GetProcessHeap(), 0, exservices);
+    heap_free(exservices);
 
     servicecountinactive = returned;
 
     /* Get the number of win32 services */
     pEnumServicesStatusExA(scm_handle, 0, SERVICE_WIN32, SERVICE_STATE_ALL,
                            NULL, 0, &needed, &returned, NULL, NULL);
-    exservices = HeapAlloc(GetProcessHeap(), 0, needed);
+    exservices = heap_alloc(needed);
     pEnumServicesStatusExA(scm_handle, 0, SERVICE_WIN32, SERVICE_STATE_ALL,
                            (BYTE*)exservices, needed, &needed, &returned, NULL, NULL);
-    HeapFree(GetProcessHeap(), 0, exservices);
+    heap_free(exservices);
 
     /* Check if total is the same as active and inactive win32 services */
     ok(returned == (servicecountactive + servicecountinactive),
@@ -1694,7 +1694,7 @@ static void test_enum_svc(void)
     ret = pEnumServicesStatusExA(scm_handle, 0, SERVICE_WIN32 | SERVICE_DRIVER,
                                  SERVICE_STATE_ALL, NULL, 0, &needed, &returned, NULL, NULL);
     ok(!ret, "Expected failure\n");
-    exservices = HeapAlloc(GetProcessHeap(), 0, needed);
+    exservices = heap_alloc(needed);
     ret = pEnumServicesStatusExA(scm_handle, 0, SERVICE_WIN32 | SERVICE_DRIVER,
                                  SERVICE_STATE_ALL, (BYTE*)exservices, needed, &needed, &returned, NULL, NULL);
     ok(ret, "Expected success %u\n", GetLastError());
@@ -1739,7 +1739,7 @@ static void test_enum_svc(void)
             }
         }
     }
-    HeapFree(GetProcessHeap(), 0, exservices);
+    heap_free(exservices);
 
     ok(servicecountactive == 0, "Active services mismatch %u\n", servicecountactive);
     ok(servicecountinactive == 0, "Inactive services mismatch %u\n", servicecountinactive);
@@ -1895,7 +1895,7 @@ static void test_sequence(void)
     ok(!ret, "Expected failure\n");
     ok(GetLastError() == ERROR_INSUFFICIENT_BUFFER, "Expected ERROR_INSUFFICIENT_BUFFER, got %d\n", GetLastError());
 
-    config = HeapAlloc(GetProcessHeap(), 0, needed);
+    config = heap_alloc(needed);
     given = needed;
     SetLastError(0xdeadbeef);
     ret = QueryServiceConfigA(svc_handle, config, given, &needed);
@@ -1923,7 +1923,7 @@ static void test_sequence(void)
     ok(ret, "ChangeServiceConfig failed (err=%d)\n", GetLastError());
 
     QueryServiceConfigA(svc_handle, NULL, 0, &needed);
-    config = HeapReAlloc(GetProcessHeap(), 0, config, needed);
+    config = heap_realloc(config, needed);
     ok(QueryServiceConfigA(svc_handle, config, needed, &needed), "QueryServiceConfig failed\n");
     ok(config->lpBinaryPathName && config->lpLoadOrderGroup && config->lpDependencies && config->lpServiceStartName &&
         config->lpDisplayName, "Expected all string struct members to be non-NULL\n");
@@ -1946,7 +1946,7 @@ static void test_sequence(void)
     Sleep(1000);
 
     CloseServiceHandle(scm_handle);
-    HeapFree(GetProcessHeap(), 0, config);
+    heap_free(config);
 }
 
 static void test_queryconfig2(void)

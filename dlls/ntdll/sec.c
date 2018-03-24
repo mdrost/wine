@@ -35,6 +35,7 @@
 #include "ntstatus.h"
 #define WIN32_NO_STATUS
 #include "windef.h"
+#include "winbase.h"
 #include "ntdll_misc.h"
 #include "wine/exception.h"
 #include "wine/library.h"
@@ -153,7 +154,7 @@ NTSTATUS WINAPI RtlAllocateAndInitializeSid (
 
     if (nSubAuthorityCount > 8) return STATUS_INVALID_SID;
 
-    if (!(tmp_sid= RtlAllocateHeap( GetProcessHeap(), 0,
+    if (!(tmp_sid= malloc(
                                     RtlLengthRequiredSid(nSubAuthorityCount))))
         return STATUS_NO_MEMORY;
 
@@ -245,7 +246,7 @@ BOOL WINAPI RtlEqualPrefixSid (PSID pSid1, PSID pSid2)
 DWORD WINAPI RtlFreeSid(PSID pSid)
 {
 	TRACE("(%p)\n", pSid);
-	RtlFreeHeap( GetProcessHeap(), 0, pSid );
+	free( pSid );
 	return STATUS_SUCCESS;
 }
 
@@ -508,25 +509,25 @@ NTSTATUS WINAPI RtlCopySecurityDescriptor(PSECURITY_DESCRIPTOR pSourceSD, PSECUR
         if (src->Owner)
         {
             length = RtlLengthSid( src->Owner );
-            dst->Owner = RtlAllocateHeap(GetProcessHeap(), 0, length);
+            dst->Owner = malloc(length);
             RtlCopySid(length, dst->Owner, src->Owner);
         }
         if (src->Group)
         {
             length = RtlLengthSid( src->Group );
-            dst->Group = RtlAllocateHeap(GetProcessHeap(), 0, length);
+            dst->Group = malloc(length);
             RtlCopySid(length, dst->Group, src->Group);
         }
         if (src->Control & SE_SACL_PRESENT)
         {
             length = src->Sacl->AclSize;
-            dst->Sacl = RtlAllocateHeap(GetProcessHeap(), 0, length);
+            dst->Sacl = malloc(length);
             copy_acl(length, dst->Sacl, src->Sacl);
         }
         if (src->Control & SE_DACL_PRESENT)
         {
             length = src->Dacl->AclSize;
-            dst->Dacl = RtlAllocateHeap(GetProcessHeap(), 0, length);
+            dst->Dacl = malloc(length);
             copy_acl(length, dst->Dacl, src->Dacl);
         }
     }
@@ -1507,6 +1508,7 @@ RtlAdjustPrivilege(ULONG Privilege,
     TRACE("(%d, %s, %s, %p)\n", Privilege, Enable ? "TRUE" : "FALSE",
         CurrentThread ? "TRUE" : "FALSE", Enabled);
 
+#if 0
     if (CurrentThread)
     {
         Status = NtOpenThreadToken(GetCurrentThread(),
@@ -1558,6 +1560,9 @@ RtlAdjustPrivilege(ULONG Privilege,
         *Enabled = (OldState.Privileges[0].Attributes & SE_PRIVILEGE_ENABLED);
 
     return STATUS_SUCCESS;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -1583,6 +1588,7 @@ RtlImpersonateSelf(SECURITY_IMPERSONATION_LEVEL ImpersonationLevel)
 
     TRACE("(%08x)\n", ImpersonationLevel);
 
+#if 0
     Status = NtOpenProcessToken( NtCurrentProcess(), TOKEN_DUPLICATE,
                                  &ProcessToken);
     if (Status != STATUS_SUCCESS)
@@ -1611,6 +1617,9 @@ RtlImpersonateSelf(SECURITY_IMPERSONATION_LEVEL ImpersonationLevel)
     NtClose( ProcessToken );
 
     return Status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -1670,6 +1679,7 @@ NtAccessCheck(
     if (!PrivilegeSet || !ReturnLength)
         return STATUS_ACCESS_VIOLATION;
 
+#if 0
     SERVER_START_REQ( access_check )
     {
         struct security_descriptor sd;
@@ -1722,6 +1732,9 @@ NtAccessCheck(
     SERVER_END_REQ;
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -1755,6 +1768,7 @@ NTSTATUS WINAPI NtSetSecurityObject(HANDLE Handle,
 
     if (!SecurityDescriptor) return STATUS_ACCESS_VIOLATION;
 
+#if 0
     memset( &sd, 0, sizeof(sd) );
     status = RtlGetControlSecurityDescriptor( SecurityDescriptor, &control, &revision );
     if (status != STATUS_SUCCESS) return status;
@@ -1808,6 +1822,9 @@ NTSTATUS WINAPI NtSetSecurityObject(HANDLE Handle,
     SERVER_END_REQ;
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -1844,7 +1861,7 @@ NTSTATUS WINAPI RtlConvertSidToUnicodeString(
     if (AllocateString)
     {
         String->MaximumLength = len;
-        if (!(String->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, len )))
+        if (!(String->Buffer = malloc( len )))
             return STATUS_NO_MEMORY;
     }
     else if (len > String->MaximumLength) return STATUS_BUFFER_OVERFLOW;

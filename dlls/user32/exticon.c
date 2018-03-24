@@ -41,6 +41,7 @@
 #include "winnls.h"
 #include "user_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(icon);
 
@@ -231,7 +232,7 @@ static BYTE * ICO_GetIconDirectory( LPBYTE peimage, LPicoICONDIR* lplpiID, ULONG
 
 	/* allocate the phony ICONDIR structure */
         *uSize = FIELD_OFFSET(CURSORICONDIR, idEntries[lpcid->idCount]);
-	if( (lpID = HeapAlloc(GetProcessHeap(),0, *uSize) ))
+	if( (lpID = heap_alloc( *uSize) ))
 	{
 	  /* copy the header */
 	  lpID->idReserved = lpcid->idReserved;
@@ -371,7 +372,7 @@ static UINT ICO_ExtractIconExW(
 	    {
 	      ret = iconDirCount;
               if (lpiID)	/* *.ico file, deallocate heap pointer*/
-	        HeapFree(GetProcessHeap(), 0, pCIDir);
+	        heap_free(pCIDir);
 	    }
 	    else if (nIconIndex < iconDirCount)
 	    {
@@ -388,7 +389,7 @@ static UINT ICO_ExtractIconExW(
                 if (cx2 && cy2) pIconId[++i] = LookupIconIdFromDirectoryEx(pCIDir, TRUE,  cx2, cy2, flags);
 	      }
               if (lpiID)	/* *.ico file, deallocate heap pointer*/
-	        HeapFree(GetProcessHeap(), 0, pCIDir);
+	        heap_free(pCIDir);
 
 	      for (icon = 0; icon < nIcons; icon++)
 	      {
@@ -427,7 +428,11 @@ static UINT ICO_ExtractIconExW(
         ULONG size;
         UINT i;
 
+#if 0
         rootresdir = RtlImageDirectoryEntryToData((HMODULE)peimage, FALSE, IMAGE_DIRECTORY_ENTRY_RESOURCE, &size);
+#else
+        rootresdir = NULL;
+#endif
         if (!rootresdir)
         {
             WARN("haven't found section for resource directory.\n");
@@ -501,7 +506,11 @@ static UINT ICO_ExtractIconExW(
 	    igdataent = (const IMAGE_RESOURCE_DATA_ENTRY*)resdir;
 
 	    /* lookup address in mapped image for virtual address */
+#if 0
         igdata = RtlImageRvaToVa(RtlImageNtHeader((HMODULE)peimage), (HMODULE)peimage, igdataent->OffsetToData, NULL);
+#else
+        igdata = NULL;
+#endif
         if (!igdata)
 	    {
 	      FIXME("no matching real address for icongroup!\n");
@@ -530,7 +539,11 @@ static UINT ICO_ExtractIconExW(
 	    xresdir = find_entry_default(xresdir, rootresdir);
 	    idataent = (const IMAGE_RESOURCE_DATA_ENTRY*)xresdir;
 
+#if 0
         idata = RtlImageRvaToVa(RtlImageNtHeader((HMODULE)peimage), (HMODULE)peimage, idataent->OffsetToData, NULL);
+#else
+        idata = NULL;
+#endif
         if (!idata)
 	    {
 	      WARN("no matching real address found for icondata!\n");
@@ -601,12 +614,12 @@ UINT WINAPI PrivateExtractIconsA (
 {
     UINT ret;
     INT len = MultiByteToWideChar(CP_ACP, 0, lpstrFile, -1, NULL, 0);
-    LPWSTR lpwstrFile = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    LPWSTR lpwstrFile = heap_alloc(len * sizeof(WCHAR));
 
     MultiByteToWideChar(CP_ACP, 0, lpstrFile, -1, lpwstrFile, len);
     ret = PrivateExtractIconsW(lpwstrFile, nIndex, sizeX, sizeY, phicon, piconid, nIcons, flags);
 
-    HeapFree(GetProcessHeap(), 0, lpwstrFile);
+    heap_free(lpwstrFile);
     return ret;
 }
 
@@ -678,12 +691,12 @@ UINT WINAPI PrivateExtractIconExA (
 {
 	UINT ret;
 	INT len = MultiByteToWideChar(CP_ACP, 0, lpstrFile, -1, NULL, 0);
-	LPWSTR lpwstrFile = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+	LPWSTR lpwstrFile = heap_alloc(len * sizeof(WCHAR));
 
 	TRACE("%s %d %p %p %d\n", lpstrFile, nIndex, phIconLarge, phIconSmall, nIcons);
 
 	MultiByteToWideChar(CP_ACP, 0, lpstrFile, -1, lpwstrFile, len);
 	ret = PrivateExtractIconExW(lpwstrFile, nIndex, phIconLarge, phIconSmall, nIcons);
-	HeapFree(GetProcessHeap(), 0, lpwstrFile);
+	heap_free(lpwstrFile);
 	return ret;
 }

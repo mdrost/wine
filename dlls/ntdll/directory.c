@@ -100,6 +100,7 @@
 #define WIN32_NO_STATUS
 #define NONAMELESSUNION
 #include "windef.h"
+#include "winbase.h"
 #include "winnt.h"
 #include "winternl.h"
 #include "ddk/wdm.h"
@@ -207,6 +208,7 @@ static const BOOL is_case_sensitive = FALSE;
 
 static struct file_identity windir;
 
+#if 0
 static RTL_CRITICAL_SECTION dir_section;
 static RTL_CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -215,6 +217,9 @@ static RTL_CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": dir_section") }
 };
 static RTL_CRITICAL_SECTION dir_section = { &critsect_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t dir_section = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 
 /* check if a given Unicode char is OK in a DOS short name */
@@ -308,7 +313,7 @@ static void *get_dir_data_space( struct dir_data *data, unsigned int size )
     {
         unsigned int new_size = buffer ? buffer->size * 2 : dir_data_buffer_initial_size;
         if (new_size < size) new_size = size;
-        if (!(buffer = RtlAllocateHeap( GetProcessHeap(), 0,
+        if (!(buffer = malloc(
                                         offsetof( struct dir_data_buffer, data[new_size] ) ))) return NULL;
         buffer->pos  = 0;
         buffer->size = new_size;
@@ -348,8 +353,8 @@ static BOOL add_dir_data_names( struct dir_data *data, const WCHAR *long_name,
     {
         unsigned int new_size = max( data->size * 2, dir_data_names_initial_size );
 
-        if (names) names = RtlReAllocateHeap( GetProcessHeap(), 0, names, new_size * sizeof(*names) );
-        else names = RtlAllocateHeap( GetProcessHeap(), 0, new_size * sizeof(*names) );
+        if (names) names = realloc( names, new_size * sizeof(*names) );
+        else names = malloc( new_size * sizeof(*names) );
         if (!names) return FALSE;
         data->size  = new_size;
         data->names = names;
@@ -377,10 +382,10 @@ static void free_dir_data( struct dir_data *data )
     for (buffer = data->buffer; buffer; buffer = next)
     {
         next = buffer->next;
-        RtlFreeHeap( GetProcessHeap(), 0, buffer );
+        free( buffer );
     }
-    RtlFreeHeap( GetProcessHeap(), 0, data->names );
-    RtlFreeHeap( GetProcessHeap(), 0, data );
+    free( data->names );
+    free( data );
 }
 
 
@@ -397,7 +402,7 @@ static struct list dir_queue = LIST_INIT( dir_queue );
 static NTSTATUS add_dir_to_queue( const char *name )
 {
     int len = strlen( name ) + 1;
-    struct dir_name *dir = RtlAllocateHeap( GetProcessHeap(), 0,
+    struct dir_name *dir = malloc(
                                             FIELD_OFFSET( struct dir_name, name[len] ));
     if (!dir) return STATUS_NO_MEMORY;
     strcpy( dir->name, name );
@@ -413,7 +418,7 @@ static NTSTATUS next_dir_in_queue( char *name )
         struct dir_name *dir = LIST_ENTRY( head, struct dir_name, entry );
         strcpy( name, dir->name );
         list_remove( &dir->entry );
-        RtlFreeHeap( GetProcessHeap(), 0, dir );
+        free( dir );
         return STATUS_SUCCESS;
     }
     return STATUS_OBJECT_NAME_NOT_FOUND;
@@ -427,7 +432,7 @@ static void flush_dir_queue(void)
     {
         struct dir_name *dir = LIST_ENTRY( head, struct dir_name, entry );
         list_remove( &dir->entry );
-        RtlFreeHeap( GetProcessHeap(), 0, dir );
+        free( dir );
     }
 }
 
@@ -547,7 +552,7 @@ unsigned int DIR_get_drives_info( struct drive_info info[MAX_DOS_DRIVES] )
     unsigned int ret;
     time_t now = time(NULL);
 
-    RtlEnterCriticalSection( &dir_section );
+    pthread_mutex_lock( &dir_section );
     if (now != last_update)
     {
         const char *config_dir = wine_get_config_dir();
@@ -555,7 +560,7 @@ unsigned int DIR_get_drives_info( struct drive_info info[MAX_DOS_DRIVES] )
         struct stat st;
         unsigned int i;
 
-        if ((buffer = RtlAllocateHeap( GetProcessHeap(), 0,
+        if ((buffer = malloc(
                                        strlen(config_dir) + sizeof("/dosdevices/a:") )))
         {
             strcpy( buffer, config_dir );
@@ -577,13 +582,13 @@ unsigned int DIR_get_drives_info( struct drive_info info[MAX_DOS_DRIVES] )
                     cache[i].ino = 0;
                 }
             }
-            RtlFreeHeap( GetProcessHeap(), 0, buffer );
+            free( buffer );
         }
         last_update = now;
     }
     memcpy( info, cache, sizeof(cache) );
     ret = nb_drives;
-    RtlLeaveCriticalSection( &dir_section );
+    pthread_mutex_unlock( &dir_section );
     return ret;
 }
 
@@ -751,7 +756,7 @@ static char *get_default_drive_device( const char *root )
     if (res == -1) res = stat( root, &st );
     if (res == -1) return NULL;
 
-    RtlEnterCriticalSection( &dir_section );
+    pthread_mutex_lock( &dir_section );
 
 #ifdef __ANDROID__
     if ((f = fopen( "/proc/mounts", "r" )))
@@ -774,10 +779,10 @@ static char *get_default_drive_device( const char *root )
 #endif
     if (device)
     {
-        ret = RtlAllocateHeap( GetProcessHeap(), 0, strlen(device) + 1 );
+        ret = malloc( strlen(device) + 1 );
         if (ret) strcpy( ret, device );
     }
-    RtlLeaveCriticalSection( &dir_section );
+    pthread_mutex_unlock( &dir_section );
 
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__ ) || defined(__DragonFly__)
     char *device = NULL;
@@ -794,7 +799,7 @@ static char *get_default_drive_device( const char *root )
     if (res == -1) res = stat( root, &st );
     if (res == -1) return NULL;
 
-    RtlEnterCriticalSection( &dir_section );
+    pthread_mutex_lock( &dir_section );
 
     /* The FreeBSD parse_mount_entries doesn't require a file argument, so just
      * pass NULL.  Leave the argument in for symmetry.
@@ -802,10 +807,10 @@ static char *get_default_drive_device( const char *root )
     device = parse_mount_entries( NULL, st.st_dev, st.st_ino );
     if (device)
     {
-        ret = RtlAllocateHeap( GetProcessHeap(), 0, strlen(device) + 1 );
+        ret = malloc( strlen(device) + 1 );
         if (ret) strcpy( ret, device );
     }
-    RtlLeaveCriticalSection( &dir_section );
+    pthread_mutex_unlock( &dir_section );
 
 #elif defined( sun )
     FILE *f;
@@ -823,7 +828,7 @@ static char *get_default_drive_device( const char *root )
     if (res == -1) res = stat( root, &st );
     if (res == -1) return NULL;
 
-    RtlEnterCriticalSection( &dir_section );
+    pthread_mutex_lock( &dir_section );
 
     if ((f = fopen( "/etc/mnttab", "r" )))
     {
@@ -838,10 +843,10 @@ static char *get_default_drive_device( const char *root )
     }
     if (device)
     {
-        ret = RtlAllocateHeap( GetProcessHeap(), 0, strlen(device) + 1 );
+        ret = malloc( strlen(device) + 1 );
         if (ret) strcpy( ret, device );
     }
-    RtlLeaveCriticalSection( &dir_section );
+    pthread_mutex_unlock( &dir_section );
 
 #elif defined(__APPLE__)
     struct statfs *mntStat;
@@ -859,7 +864,7 @@ static char *get_default_drive_device( const char *root )
     dev = st.st_dev;
     ino = st.st_ino;
 
-    RtlEnterCriticalSection( &dir_section );
+    pthread_mutex_lock( &dir_section );
 
     mntSize = getmntinfo(&mntStat, MNT_NOWAIT);
 
@@ -872,7 +877,7 @@ static char *get_default_drive_device( const char *root )
         if ( strncmp(mntStat[i].f_mntfromname, path_bsd_device, strlen(path_bsd_device)) == 0)
         {
             /* set return value to the corresponding raw BSD node */
-            ret = RtlAllocateHeap( GetProcessHeap(), 0, strlen(mntStat[i].f_mntfromname) + 2 /* 2 : r and \0 */ );
+            ret = malloc( strlen(mntStat[i].f_mntfromname) + 2 /* 2 : r and \0 */ );
             if (ret)
             {
                 strcpy(ret, "/dev/r");
@@ -880,7 +885,7 @@ static char *get_default_drive_device( const char *root )
             }
         }
     }
-    RtlLeaveCriticalSection( &dir_section );
+    pthread_mutex_unlock( &dir_section );
 #else
     static int warned;
     if (!warned++) FIXME( "auto detection of DOS devices not supported on this platform\n" );
@@ -901,7 +906,7 @@ static char *get_device_mount_point( dev_t dev )
 #ifdef linux
     FILE *f;
 
-    RtlEnterCriticalSection( &dir_section );
+    pthread_mutex_lock( &dir_section );
 
 #ifdef __ANDROID__
     if ((f = fopen( "/proc/mounts", "r" )))
@@ -942,20 +947,20 @@ static char *get_device_mount_point( dev_t dev )
 
             if (device && !stat( device, &st ) && S_ISBLK(st.st_mode) && st.st_rdev == dev)
             {
-                ret = RtlAllocateHeap( GetProcessHeap(), 0, strlen(entry->mnt_dir) + 1 );
+                ret = malloc( strlen(entry->mnt_dir) + 1 );
                 if (ret) strcpy( ret, entry->mnt_dir );
                 break;
             }
         }
         fclose( f );
     }
-    RtlLeaveCriticalSection( &dir_section );
+    pthread_mutex_unlock( &dir_section );
 #elif defined(__APPLE__)
     struct statfs *entry;
     struct stat st;
     int i, size;
 
-    RtlEnterCriticalSection( &dir_section );
+    pthread_mutex_lock( &dir_section );
 
     size = getmntinfo( &entry, MNT_NOWAIT );
     for (i = 0; i < size; i++)
@@ -963,12 +968,12 @@ static char *get_device_mount_point( dev_t dev )
         if (stat( entry[i].f_mntfromname, &st ) == -1) continue;
         if (S_ISBLK(st.st_mode) && st.st_rdev == dev)
         {
-            ret = RtlAllocateHeap( GetProcessHeap(), 0, strlen(entry[i].f_mntonname) + 1 );
+            ret = malloc( strlen(entry[i].f_mntonname) + 1 );
             if (ret) strcpy( ret, entry[i].f_mntonname );
             break;
         }
     }
-    RtlLeaveCriticalSection( &dir_section );
+    pthread_mutex_unlock( &dir_section );
 #else
     static int warned;
     if (!warned++) FIXME( "unmounting devices not supported on this platform\n" );
@@ -1084,11 +1089,11 @@ static int get_dir_case_sensitivity_attr( const char *dir )
     attr.volattr = ATTR_VOL_INFO|ATTR_VOL_CAPABILITIES;
     if (getattrlist( mntpoint, &attr, &caps, sizeof(caps), 0 ) < 0)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, mntpoint );
+        free( mntpoint );
         add_fs_cache( get_fsid.dev, get_fsid.fsid, TRUE );
         return TRUE;
     }
-    RtlFreeHeap( GetProcessHeap(), 0, mntpoint );
+    free( mntpoint );
     if (caps.size == sizeof(caps) &&
         (caps.caps.valid[VOL_CAPABILITIES_FORMAT] &
          (VOL_CAP_FMT_CASE_SENSITIVE | VOL_CAP_FMT_CASE_PRESERVING)) ==
@@ -1180,16 +1185,16 @@ static BOOLEAN get_dir_case_sensitivity_stat( const char *dir )
      * This will break if somebody puts a file named ".ciopfs" in a non-
      * CIOPFS directory.
      */
-    cifile = RtlAllocateHeap( GetProcessHeap(), 0, strlen( dir )+sizeof("/.ciopfs") );
+    cifile = malloc( strlen( dir )+sizeof("/.ciopfs") );
     if (!cifile) return TRUE;
     strcpy( cifile, dir );
     strcat( cifile, "/.ciopfs" );
     if (stat( cifile, &st ) == 0)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, cifile );
+        free( cifile );
         return FALSE;
     }
-    RtlFreeHeap( GetProcessHeap(), 0, cifile );
+    free( cifile );
     return TRUE;
 #else
     return TRUE;
@@ -1214,6 +1219,7 @@ static BOOLEAN get_dir_case_sensitivity( const char *dir )
 }
 
 
+#if 0
 /***********************************************************************
  *           init_options
  *
@@ -1260,6 +1266,7 @@ static DWORD WINAPI init_options( RTL_RUN_ONCE *once, void *param, void **contex
 #endif
     return TRUE;
 }
+#endif
 
 
 /***********************************************************************
@@ -1271,7 +1278,9 @@ BOOL DIR_is_hidden_file( const UNICODE_STRING *name )
 {
     WCHAR *p, *end;
 
+#if 0
     RtlRunOnceExecuteOnce( &init_once, init_options, NULL, NULL );
+#endif
 
     if (show_dot_files) return FALSE;
 
@@ -1464,8 +1473,10 @@ static BOOL append_entry( struct dir_data *data, const char *long_name,
         BOOLEAN spaces;
 
         short_len = 0;
+#if 0
         if (!RtlIsNameLegalDOS8Dot3( &str, NULL, &spaces ) || spaces)
             short_len = hash_short_file_name( &str, short_nameW );
+#endif
     }
     short_nameW[short_len] = 0;
 
@@ -1826,12 +1837,13 @@ static int name_compare( const void *a, const void *b )
  */
 static NTSTATUS init_cached_dir_data( struct dir_data **data_ret, int fd, const UNICODE_STRING *mask )
 {
+#if 0
     struct dir_data *data;
     struct stat st;
     NTSTATUS status;
     unsigned int i;
 
-    if (!(data = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data) )))
+    if (!(data = calloc( 1,  sizeof(*data) )))
         return STATUS_NO_MEMORY;
 
     if ((status = read_directory_data( data, fd, mask )))
@@ -1868,6 +1880,9 @@ static NTSTATUS init_cached_dir_data( struct dir_data **data_ret, int fd, const 
 
     *data_ret = data;
     return data->count ? STATUS_SUCCESS : STATUS_NO_SUCH_FILE;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -1879,6 +1894,7 @@ static NTSTATUS init_cached_dir_data( struct dir_data **data_ret, int fd, const 
 static NTSTATUS get_cached_dir_data( HANDLE handle, struct dir_data **data_ret, int fd,
                                      const UNICODE_STRING *mask )
 {
+#if 0
     unsigned int i;
     int entry = -1, free_entries[16];
     NTSTATUS status;
@@ -1913,10 +1929,14 @@ static NTSTATUS get_cached_dir_data( HANDLE handle, struct dir_data **data_ret, 
         struct dir_data **new_cache;
 
         if (dir_data_cache)
+#if 0
             new_cache = RtlReAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, dir_data_cache,
                                            size * sizeof(*new_cache) );
+#else
+            new_cache = NULL;
+#endif
         else
-            new_cache = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, size * sizeof(*new_cache) );
+            new_cache = calloc( 1,  size * sizeof(*new_cache) );
         if (!new_cache) return STATUS_NO_MEMORY;
         dir_data_cache = new_cache;
         dir_data_cache_size = size;
@@ -1926,6 +1946,9 @@ static NTSTATUS get_cached_dir_data( HANDLE handle, struct dir_data **data_ret, 
 
     *data_ret = dir_data_cache[entry];
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -1951,6 +1974,7 @@ NTSTATUS WINAPI NtQueryDirectoryFile( HANDLE handle, HANDLE event,
           length, info_class, single_entry, debugstr_us(mask),
           restart_scan);
 
+#if 0
     if (event || apc_routine)
     {
         FIXME( "Unsupported yet option\n" );
@@ -1988,7 +2012,7 @@ NTSTATUS WINAPI NtQueryDirectoryFile( HANDLE handle, HANDLE event,
 
     RtlRunOnceExecuteOnce( &init_once, init_options, NULL, NULL );
 
-    RtlEnterCriticalSection( &dir_section );
+    pthread_mutex_lock( &dir_section );
 
     cwd = open( ".", O_RDONLY );
     if (fchdir( fd ) != -1)
@@ -2015,12 +2039,15 @@ NTSTATUS WINAPI NtQueryDirectoryFile( HANDLE handle, HANDLE event,
     }
     else status = FILE_GetNtStatus();
 
-    RtlLeaveCriticalSection( &dir_section );
+    pthread_mutex_unlock( &dir_section );
 
     if (needs_close) close( fd );
     if (cwd != -1) close( cwd );
     TRACE( "=> %x (%ld)\n", status, io->Information );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -2034,6 +2061,7 @@ NTSTATUS WINAPI NtQueryDirectoryFile( HANDLE handle, HANDLE event,
 static NTSTATUS find_file_in_dir( char *unix_name, int pos, const WCHAR *name, int length,
                                   BOOLEAN check_case, BOOLEAN *is_win_dir )
 {
+#if 0
     WCHAR buffer[MAX_DIR_ENTRY_LEN];
     UNICODE_STRING str;
     BOOLEAN spaces, is_name_8_dot_3;
@@ -2085,7 +2113,7 @@ static NTSTATUS find_file_in_dir( char *unix_name, int pos, const WCHAR *name, i
         {
             KERNEL_DIRENT *kde;
 
-            RtlEnterCriticalSection( &dir_section );
+            pthread_mutex_lock( &dir_section );
             if ((kde = start_vfat_ioctl( fd )))
             {
                 unix_name[pos - 1] = '/';
@@ -2104,7 +2132,7 @@ static NTSTATUS find_file_in_dir( char *unix_name, int pos, const WCHAR *name, i
                         if (ret == length && !memicmpW( buffer, name, length))
                         {
                             strcpy( unix_name + pos, kde[1].d_name );
-                            RtlLeaveCriticalSection( &dir_section );
+                            pthread_mutex_unlock( &dir_section );
                             close( fd );
                             goto success;
                         }
@@ -2115,19 +2143,19 @@ static NTSTATUS find_file_in_dir( char *unix_name, int pos, const WCHAR *name, i
                     {
                         strcpy( unix_name + pos,
                                 kde[1].d_name[0] ? kde[1].d_name : kde[0].d_name );
-                        RtlLeaveCriticalSection( &dir_section );
+                        pthread_mutex_unlock( &dir_section );
                         close( fd );
                         goto success;
                     }
                     if (ioctl( fd, VFAT_IOCTL_READDIR_BOTH, (long)kde ) == -1)
                     {
-                        RtlLeaveCriticalSection( &dir_section );
+                        pthread_mutex_unlock( &dir_section );
                         close( fd );
                         goto not_found;
                     }
                 }
             }
-            RtlLeaveCriticalSection( &dir_section );
+            pthread_mutex_lock( &dir_section );
             close( fd );
         }
         /* fall through to normal handling */
@@ -2176,11 +2204,15 @@ not_found:
 success:
     if (is_win_dir && !stat( unix_name, &st )) *is_win_dir = is_same_file( &windir, &st );
     return STATUS_SUCCESS;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
 #ifndef _WIN64
 
+#if 0
 static const WCHAR catrootW[] = {'s','y','s','t','e','m','3','2','\\','c','a','t','r','o','o','t',0};
 static const WCHAR catroot2W[] = {'s','y','s','t','e','m','3','2','\\','c','a','t','r','o','o','t','2',0};
 static const WCHAR driversstoreW[] = {'s','y','s','t','e','m','3','2','\\','d','r','i','v','e','r','s','s','t','o','r','e',0};
@@ -2225,7 +2257,7 @@ static const char *get_redirect_target( const char *windows_dir, const WCHAR *na
     char *unix_name, *unix_target = NULL;
     NTSTATUS status;
 
-    if (!(unix_name = RtlAllocateHeap( GetProcessHeap(), 0, win_len + MAX_DIR_ENTRY_LEN + 2 )))
+    if (!(unix_name = malloc( win_len + MAX_DIR_ENTRY_LEN + 2 )))
         return NULL;
     memcpy( unix_name, windows_dir, win_len );
     pos = win_len;
@@ -2255,11 +2287,11 @@ static const char *get_redirect_target( const char *windows_dir, const WCHAR *na
         name = next;
     }
 
-    if ((unix_target = RtlAllocateHeap( GetProcessHeap(), 0, pos - win_len )))
+    if ((unix_target = malloc( pos - win_len )))
         memcpy( unix_target, unix_name + win_len + 1, pos - win_len );
 
 done:
-    RtlFreeHeap( GetProcessHeap(), 0, unix_name );
+    free( unix_name );
     return unix_target;
 }
 
@@ -2337,6 +2369,7 @@ static int match_redirect( const WCHAR *path, int len, const WCHAR *redir, BOOLE
     while (i < len && IS_SEPARATOR(path[i])) i++;
     return i;
 }
+#endif
 
 
 /***********************************************************************
@@ -2346,6 +2379,7 @@ static int match_redirect( const WCHAR *path, int len, const WCHAR *redir, BOOLE
  */
 static int get_redirect_path( char *unix_name, int pos, const WCHAR *name, int length, BOOLEAN check_case )
 {
+#if 0
     unsigned int i;
     int len;
 
@@ -2359,6 +2393,7 @@ static int get_redirect_path( char *unix_name, int pos, const WCHAR *name, int l
             return len;
         }
     }
+#endif
     return 0;
 }
 
@@ -2405,7 +2440,7 @@ static NTSTATUS get_dos_device( const WCHAR *name, UINT name_len, ANSI_STRING *u
 
     unix_len = strlen(config_dir) + sizeof("/dosdevices/") + name_len + 1;
 
-    if (!(unix_name = RtlAllocateHeap( GetProcessHeap(), 0, unix_len )))
+    if (!(unix_name = malloc( unix_len )))
         return STATUS_NO_MEMORY;
 
     strcpy( unix_name, config_dir );
@@ -2455,12 +2490,12 @@ static NTSTATUS get_dos_device( const WCHAR *name, UINT name_len, ANSI_STRING *u
 
         if (!new_name) break;
 
-        RtlFreeHeap( GetProcessHeap(), 0, unix_name );
+        free( unix_name );
         unix_name = new_name;
         unix_len = strlen(unix_name) + 1;
         dev = NULL; /* last try */
     }
-    RtlFreeHeap( GetProcessHeap(), 0, unix_name );
+    free( unix_name );
     return STATUS_BAD_DEVICE_TYPE;
 }
 
@@ -2503,7 +2538,7 @@ static NTSTATUS find_file_id( ANSI_STRING *unix_name, ULONGLONG file_id, dev_t d
         pos = strlen( unix_name->Buffer );
         if (pos + MAX_DIR_ENTRY_LEN >= unix_name->MaximumLength/sizeof(WCHAR))
         {
-            char *new = RtlReAllocateHeap( GetProcessHeap(), 0, unix_name->Buffer,
+            char *new = realloc( unix_name->Buffer,
                                            unix_name->MaximumLength * 2 );
             if (!new)
             {
@@ -2545,6 +2580,7 @@ static NTSTATUS find_file_id( ANSI_STRING *unix_name, ULONGLONG file_id, dev_t d
  */
 NTSTATUS file_id_to_unix_file_name( const OBJECT_ATTRIBUTES *attr, ANSI_STRING *unix_name )
 {
+#if 0
     enum server_fd_type type;
     int old_cwd, root_fd, needs_close;
     NTSTATUS status;
@@ -2556,7 +2592,7 @@ NTSTATUS file_id_to_unix_file_name( const OBJECT_ATTRIBUTES *attr, ANSI_STRING *
     memcpy( &file_id, attr->ObjectName->Buffer, sizeof(file_id) );
 
     unix_name->MaximumLength = 2 * MAX_DIR_ENTRY_LEN + 4;
-    if (!(unix_name->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, unix_name->MaximumLength )))
+    if (!(unix_name->Buffer = malloc( unix_name->MaximumLength )))
         return STATUS_NO_MEMORY;
     strcpy( unix_name->Buffer, "." );
 
@@ -2576,7 +2612,7 @@ NTSTATUS file_id_to_unix_file_name( const OBJECT_ATTRIBUTES *attr, ANSI_STRING *
         goto done;
     }
 
-    RtlEnterCriticalSection( &dir_section );
+    pthread_mutex_lock( &dir_section );
     if ((old_cwd = open( ".", O_RDONLY )) != -1 && fchdir( root_fd ) != -1)
     {
         /* shortcut for ".." */
@@ -2597,7 +2633,7 @@ NTSTATUS file_id_to_unix_file_name( const OBJECT_ATTRIBUTES *attr, ANSI_STRING *
         if (fchdir( old_cwd ) == -1) chdir( "/" );
     }
     else status = FILE_GetNtStatus();
-    RtlLeaveCriticalSection( &dir_section );
+    pthread_mutex_unlock( &dir_section );
     if (old_cwd != -1) close( old_cwd );
 
 done:
@@ -2609,10 +2645,13 @@ done:
     else
     {
         TRACE( "%s not found in dir %p\n", wine_dbgstr_longlong(file_id), attr->RootDirectory );
-        RtlFreeHeap( GetProcessHeap(), 0, unix_name->Buffer );
+        free( unix_name->Buffer );
     }
     if (needs_close) close( root_fd );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -2628,7 +2667,11 @@ static NTSTATUS lookup_unix_name( const WCHAR *name, int name_len, char **buffer
     int ret, used_default, len;
     struct stat st;
     char *unix_name = *buffer;
+#if 0
     const BOOL redirect = nb_redirects && ntdll_get_thread_data()->wow64_redir;
+#else
+    const BOOL redirect = FALSE;
+#endif
 
     /* try a shortcut first */
 
@@ -2682,7 +2725,7 @@ static NTSTATUS lookup_unix_name( const WCHAR *name, int name_len, char **buffer
         {
             char *new_name;
             unix_len += 2 * MAX_DIR_ENTRY_LEN;
-            if (!(new_name = RtlReAllocateHeap( GetProcessHeap(), 0, unix_name, unix_len )))
+            if (!(new_name = realloc( unix_name, unix_len )))
                 return STATUS_NO_MEMORY;
             unix_name = *buffer = new_name;
         }
@@ -2739,6 +2782,7 @@ static NTSTATUS lookup_unix_name( const WCHAR *name, int name_len, char **buffer
 NTSTATUS nt_to_unix_file_name_attr( const OBJECT_ATTRIBUTES *attr, ANSI_STRING *unix_name_ret,
                                     UINT disposition )
 {
+#if 0
     static const WCHAR invalid_charsW[] = { INVALID_NT_CHARS, 0 };
     enum server_fd_type type;
     int old_cwd, root_fd, needs_close;
@@ -2762,7 +2806,7 @@ NTSTATUS nt_to_unix_file_name_attr( const OBJECT_ATTRIBUTES *attr, ANSI_STRING *
 
     unix_len = ntdll_wcstoumbs( 0, name, name_len, NULL, 0, NULL, NULL );
     unix_len += MAX_DIR_ENTRY_LEN + 3;
-    if (!(unix_name = RtlAllocateHeap( GetProcessHeap(), 0, unix_len )))
+    if (!(unix_name = malloc( unix_len )))
         return STATUS_NO_MEMORY;
     unix_name[0] = '.';
 
@@ -2775,7 +2819,7 @@ NTSTATUS nt_to_unix_file_name_attr( const OBJECT_ATTRIBUTES *attr, ANSI_STRING *
         }
         else
         {
-            RtlEnterCriticalSection( &dir_section );
+            pthread_mutex_lock( &dir_section );
             if ((old_cwd = open( ".", O_RDONLY )) != -1 && fchdir( root_fd ) != -1)
             {
                 status = lookup_unix_name( name, name_len, &unix_name, unix_len, 1,
@@ -2783,7 +2827,7 @@ NTSTATUS nt_to_unix_file_name_attr( const OBJECT_ATTRIBUTES *attr, ANSI_STRING *
                 if (fchdir( old_cwd ) == -1) chdir( "/" );
             }
             else status = FILE_GetNtStatus();
-            RtlLeaveCriticalSection( &dir_section );
+            pthread_mutex_unlock( &dir_section );
             if (old_cwd != -1) close( old_cwd );
             if (needs_close) close( root_fd );
         }
@@ -2800,9 +2844,12 @@ NTSTATUS nt_to_unix_file_name_attr( const OBJECT_ATTRIBUTES *attr, ANSI_STRING *
     else
     {
         TRACE( "%s not found in %s\n", debugstr_w(name), unix_name );
-        RtlFreeHeap( GetProcessHeap(), 0, unix_name );
+        free( unix_name );
     }
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -2880,7 +2927,7 @@ NTSTATUS CDECL wine_nt_to_unix_file_name( const UNICODE_STRING *nameW, ANSI_STRI
     unix_len += ntdll_wcstoumbs( 0, name, name_len, NULL, 0, NULL, NULL );
     unix_len += MAX_DIR_ENTRY_LEN + 3;
     unix_len += strlen(config_dir) + sizeof("/dosdevices/");
-    if (!(unix_name = RtlAllocateHeap( GetProcessHeap(), 0, unix_len )))
+    if (!(unix_name = malloc( unix_len )))
         return STATUS_NO_MEMORY;
     strcpy( unix_name, config_dir );
     strcat( unix_name, "/dosdevices/" );
@@ -2890,7 +2937,7 @@ NTSTATUS CDECL wine_nt_to_unix_file_name( const UNICODE_STRING *nameW, ANSI_STRI
                            NULL, &used_default );
     if (!ret || used_default)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, unix_name );
+        free( unix_name );
         return STATUS_OBJECT_NAME_INVALID;
     }
     pos += ret;
@@ -2904,7 +2951,7 @@ NTSTATUS CDECL wine_nt_to_unix_file_name( const UNICODE_STRING *nameW, ANSI_STRI
         {
             if (!is_unix)
             {
-                RtlFreeHeap( GetProcessHeap(), 0, unix_name );
+                free( unix_name );
                 return STATUS_BAD_DEVICE_TYPE;
             }
             pos = 0;  /* fall back to unix root */
@@ -2922,7 +2969,7 @@ NTSTATUS CDECL wine_nt_to_unix_file_name( const UNICODE_STRING *nameW, ANSI_STRI
     else
     {
         TRACE( "%s not found in %s\n", debugstr_w(name), unix_name );
-        RtlFreeHeap( GetProcessHeap(), 0, unix_name );
+        free( unix_name );
     }
     return status;
 }
@@ -2933,9 +2980,13 @@ NTSTATUS CDECL wine_nt_to_unix_file_name( const UNICODE_STRING *nameW, ANSI_STRI
  */
 NTSTATUS WINAPI RtlWow64EnableFsRedirection( BOOLEAN enable )
 {
+#if 0
     if (!is_wow64) return STATUS_NOT_IMPLEMENTED;
     ntdll_get_thread_data()->wow64_redir = enable;
     return STATUS_SUCCESS;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -2944,6 +2995,7 @@ NTSTATUS WINAPI RtlWow64EnableFsRedirection( BOOLEAN enable )
  */
 NTSTATUS WINAPI RtlWow64EnableFsRedirectionEx( ULONG disable, ULONG *old_value )
 {
+#if 0
     if (!is_wow64) return STATUS_NOT_IMPLEMENTED;
 
     __TRY
@@ -2958,6 +3010,9 @@ NTSTATUS WINAPI RtlWow64EnableFsRedirectionEx( ULONG disable, ULONG *old_value )
 
     ntdll_get_thread_data()->wow64_redir = !disable;
     return STATUS_SUCCESS;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -2994,6 +3049,7 @@ BOOLEAN WINAPI RtlDoesFileExists_U(LPCWSTR file_name)
  */
 NTSTATUS DIR_unmount_device( HANDLE handle )
 {
+#if 0
     NTSTATUS status;
     int unix_fd, needs_close;
 
@@ -3013,25 +3069,28 @@ NTSTATUS DIR_unmount_device( HANDLE handle )
 #else
                 static const char umount[] = "umount >/dev/null 2>&1 ";
 #endif
-                char *cmd = RtlAllocateHeap( GetProcessHeap(), 0, strlen(mount_point)+sizeof(umount));
+                char *cmd = malloc( strlen(mount_point)+sizeof(umount));
                 if (cmd)
                 {
                     strcpy( cmd, umount );
                     strcat( cmd, mount_point );
                     system( cmd );
-                    RtlFreeHeap( GetProcessHeap(), 0, cmd );
+                    free( cmd );
 #ifdef linux
                     /* umount will fail to release the loop device since we still have
                        a handle to it, so we release it here */
                     if (major(st.st_rdev) == LOOP_MAJOR) ioctl( unix_fd, 0x4c01 /*LOOP_CLR_FD*/, 0 );
 #endif
                 }
-                RtlFreeHeap( GetProcessHeap(), 0, mount_point );
+                free( mount_point );
             }
         }
         if (needs_close) close( unix_fd );
     }
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3043,6 +3102,7 @@ NTSTATUS DIR_unmount_device( HANDLE handle )
  */
 NTSTATUS DIR_get_unix_cwd( char **cwd )
 {
+#if 0
     int old_cwd, unix_fd, needs_close;
     CURDIR *curdir;
     HANDLE handle;
@@ -3081,7 +3141,7 @@ NTSTATUS DIR_get_unix_cwd( char **cwd )
 
     if ((status = server_get_unix_fd( handle, 0, &unix_fd, &needs_close, NULL, NULL )) == STATUS_SUCCESS)
     {
-        RtlEnterCriticalSection( &dir_section );
+        pthread_mutex_lock( &dir_section );
 
         if ((old_cwd = open(".", O_RDONLY)) != -1 && fchdir( unix_fd ) != -1)
         {
@@ -3089,13 +3149,13 @@ NTSTATUS DIR_get_unix_cwd( char **cwd )
 
             for (;;)
             {
-                if (!(*cwd = RtlAllocateHeap( GetProcessHeap(), 0, size )))
+                if (!(*cwd = malloc( size )))
                 {
                     status = STATUS_NO_MEMORY;
                     break;
                 }
                 if (getcwd( *cwd, size )) break;
-                RtlFreeHeap( GetProcessHeap(), 0, *cwd );
+                free( *cwd );
                 if (errno != ERANGE)
                 {
                     status = STATUS_OBJECT_PATH_INVALID;
@@ -3107,7 +3167,7 @@ NTSTATUS DIR_get_unix_cwd( char **cwd )
         }
         else status = FILE_GetNtStatus();
 
-        RtlLeaveCriticalSection( &dir_section );
+        pthread_mutex_unlock( &dir_section );
         if (old_cwd != -1) close( old_cwd );
         if (needs_close) close( unix_fd );
     }
@@ -3116,4 +3176,7 @@ NTSTATUS DIR_get_unix_cwd( char **cwd )
 done:
     RtlReleasePebLock();
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }

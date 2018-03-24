@@ -89,7 +89,7 @@ static ULONG WINAPI netcfg_Release(INetCfg *iface)
 
     if (ref == 0)
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -225,7 +225,7 @@ HRESULT INetCfg_CreateInstance(IUnknown **ppUnk)
 {
     NetConfiguration *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(NetConfiguration));
+    This = heap_alloc(sizeof(NetConfiguration));
     if (!This)
         return E_OUTOFMEMORY;
 

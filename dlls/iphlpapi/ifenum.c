@@ -85,6 +85,7 @@
 
 #include "ifenum.h"
 #include "ws2ipdef.h"
+#include "wine/heap.h"
 
 #ifdef HAVE_STRUCT_SOCKADDR_SA_LEN
 #define ifreq_len(ifr) \
@@ -183,7 +184,7 @@ DWORD get_interface_indices( BOOL skip_loopback, InterfaceIndexTable **table )
 
     if (table)
     {
-        ret = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET(InterfaceIndexTable, indexes[count]) );
+        ret = heap_alloc( FIELD_OFFSET(InterfaceIndexTable, indexes[count]) );
         if (!ret)
         {
             count = 0;
@@ -267,7 +268,7 @@ static void free_netlink_reply( struct netlink_reply *data )
     while( data )
     {
         ptr = data->next;
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
         data = ptr;
     }
 }
@@ -284,7 +285,7 @@ static int recv_netlink_reply( int fd, int pid, int seq, struct netlink_reply **
     char *buf;
 
     *data = NULL;
-    buf = HeapAlloc( GetProcessHeap(), 0, bufsize );
+    buf = heap_alloc( bufsize );
     if (!buf) return -1;
 
     do
@@ -303,7 +304,7 @@ static int recv_netlink_reply( int fd, int pid, int seq, struct netlink_reply **
             }
         }
 
-        cur = HeapAlloc( GetProcessHeap(), 0, sizeof(*cur) + read );
+        cur = heap_alloc( sizeof(*cur) + read );
         if (!cur) goto fail;
         cur->next = NULL;
         cur->size = read;
@@ -314,12 +315,12 @@ static int recv_netlink_reply( int fd, int pid, int seq, struct netlink_reply **
         last = cur;
     } while (!done);
 
-    HeapFree( GetProcessHeap(), 0, buf );
+    heap_free( buf );
     return 0;
 
 fail:
     free_netlink_reply( *data );
-    HeapFree( GetProcessHeap(), 0, buf );
+    heap_free( buf );
     return -1;
 }
 
@@ -372,7 +373,7 @@ DWORD get_interface_indices( BOOL skip_loopback, InterfaceIndexTable **table )
 
     if (table)
     {
-        InterfaceIndexTable *ret = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET(InterfaceIndexTable, indexes[count]) );
+        InterfaceIndexTable *ret = heap_alloc( FIELD_OFFSET(InterfaceIndexTable, indexes[count]) );
         if (!ret)
         {
             count = 0;
@@ -602,12 +603,12 @@ static DWORD getInterfacePhysicalByName(const char *name, PDWORD len, PBYTE addr
   if (sysctl(mib, 6, NULL, &mibLen, NULL, 0) < 0)
     return ERROR_NO_MORE_FILES;
 
-  buf = HeapAlloc(GetProcessHeap(), 0, mibLen);
+  buf = heap_alloc(mibLen);
   if (!buf)
     return ERROR_NOT_ENOUGH_MEMORY;
 
   if (sysctl(mib, 6, buf, &mibLen, NULL, 0) < 0) {
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     return ERROR_NO_MORE_FILES;
   }
 
@@ -669,7 +670,7 @@ static DWORD getInterfacePhysicalByName(const char *name, PDWORD len, PBYTE addr
       ret = NO_ERROR;
     }
   }
-  HeapFree(GetProcessHeap(), 0, buf);
+  heap_free(buf);
   return ret;
 }
 #endif
@@ -764,7 +765,7 @@ DWORD getInterfaceEntryByName(const char *name, PMIB_IFROW entry)
     const char *walker;
 
     memset(entry, 0, sizeof(MIB_IFROW));
-    for (assigner = entry->wszName, walker = name; *walker; 
+    for (assigner = entry->wszName, walker = name; *walker;
      walker++, assigner++)
       *assigner = *walker;
     *assigner = 0;
@@ -855,6 +856,7 @@ DWORD getIPAddrTable(PMIB_IPADDRTABLE *ppIpAddrTable, HANDLE heap, DWORD flags)
 
     if (!getifaddrs(&ifa))
     {
+#if 0
       DWORD size = sizeof(MIB_IPADDRTABLE);
       DWORD numAddresses = countIPv4Addresses(ifa);
 
@@ -878,11 +880,14 @@ DWORD getIPAddrTable(PMIB_IPADDRTABLE *ppIpAddrTable, HANDLE heap, DWORD flags)
           i++;
         }
         if (ret)
-          HeapFree(GetProcessHeap(), 0, *ppIpAddrTable);
+          heap_free(*ppIpAddrTable);
       }
       else
         ret = ERROR_OUTOFMEMORY;
       freeifaddrs(ifa);
+#else
+      ret = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
     }
     else
       ret = ERROR_INVALID_PARAMETER;
@@ -908,9 +913,9 @@ ULONG v6addressesFromIndex(IF_INDEX index, SOCKET_ADDRESS **addrs, ULONG *num_ad
         n++;
     if (n)
     {
-      *addrs = HeapAlloc(GetProcessHeap(), 0, n * (sizeof(SOCKET_ADDRESS) +
+      *addrs = heap_alloc(n * (sizeof(SOCKET_ADDRESS) +
                          sizeof(struct WS_sockaddr_in6)));
-      *masks = HeapAlloc(GetProcessHeap(), 0, n * (sizeof(SOCKET_ADDRESS) +
+      *masks = heap_alloc(n * (sizeof(SOCKET_ADDRESS) +
                          sizeof(struct WS_sockaddr_in6)));
       if (*addrs && *masks)
       {
@@ -954,8 +959,8 @@ ULONG v6addressesFromIndex(IF_INDEX index, SOCKET_ADDRESS **addrs, ULONG *num_ad
       }
       else
       {
-        HeapFree(GetProcessHeap(), 0, *addrs);
-        HeapFree(GetProcessHeap(), 0, *masks);
+        heap_free(*addrs);
+        heap_free(*masks);
         ret = ERROR_OUTOFMEMORY;
       }
     }
@@ -1001,13 +1006,13 @@ static DWORD enumIPAddresses(PDWORD pcAddresses, struct ifconf *ifc)
        until returned is constant across 2 calls */
     do {
       lastlen = ifc->ifc_len;
-      HeapFree(GetProcessHeap(), 0, ifc->ifc_buf);
+      heap_free(ifc->ifc_buf);
       if (guessedNumAddresses == 0)
         guessedNumAddresses = INITIAL_INTERFACES_ASSUMED;
       else
         guessedNumAddresses *= 2;
       ifc->ifc_len = sizeof(struct ifreq) * guessedNumAddresses;
-      ifc->ifc_buf = HeapAlloc(GetProcessHeap(), 0, ifc->ifc_len);
+      ifc->ifc_buf = heap_alloc(ifc->ifc_len);
       ioctlRet = ioctl(fd, SIOCGIFCONF, ifc);
     } while ((ioctlRet == 0) && (ifc->ifc_len != lastlen));
 
@@ -1028,7 +1033,7 @@ static DWORD enumIPAddresses(PDWORD pcAddresses, struct ifconf *ifc)
       *pcAddresses = numAddresses;
     else
     {
-      HeapFree(GetProcessHeap(), 0, ifc->ifc_buf);
+      heap_free(ifc->ifc_buf);
       ifc->ifc_buf = NULL;
     }
     close(fd);
@@ -1044,7 +1049,7 @@ DWORD getNumIPAddresses(void)
   struct ifconf ifc;
 
   if (!enumIPAddresses(&numAddresses, &ifc))
-    HeapFree(GetProcessHeap(), 0, ifc.ifc_buf);
+    heap_free(ifc.ifc_buf);
   return numAddresses;
 }
 
@@ -1056,6 +1061,7 @@ DWORD getIPAddrTable(PMIB_IPADDRTABLE *ppIpAddrTable, HANDLE heap, DWORD flags)
     ret = ERROR_INVALID_PARAMETER;
   else
   {
+#if 0
     DWORD numAddresses = 0;
     struct ifconf ifc;
 
@@ -1087,12 +1093,15 @@ DWORD getIPAddrTable(PMIB_IPADDRTABLE *ppIpAddrTable, HANDLE heap, DWORD flags)
           i++;
         }
         if (ret)
-          HeapFree(GetProcessHeap(), 0, *ppIpAddrTable);
+          heap_free(*ppIpAddrTable);
       }
       else
         ret = ERROR_OUTOFMEMORY;
-      HeapFree(GetProcessHeap(), 0, ifc.ifc_buf);
+      heap_free(ifc.ifc_buf);
     }
+#else
+    ret = ERROR_CALL_NOT_IMPLEMENTED;
+#endif
   }
   return ret;
 }

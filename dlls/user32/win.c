@@ -26,9 +26,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <pthread.h>
+
 #include "windef.h"
 #include "winbase.h"
 #include "winver.h"
+#include "wine/heap.h"
 #include "wine/server.h"
 #include "wine/unicode.h"
 #include "win.h"
@@ -47,6 +50,7 @@ static DWORD process_layout = ~0u;
 
 static struct list window_surfaces = LIST_INIT( window_surfaces );
 
+#if 0
 static CRITICAL_SECTION surfaces_section;
 static CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -55,6 +59,9 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": surfaces_section") }
 };
 static CRITICAL_SECTION surfaces_section = { &critsect_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t surfaces_section = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 /**********************************************************************/
 
@@ -110,6 +117,7 @@ HANDLE alloc_user_handle( struct user_object *ptr, enum user_obj_type type )
 {
     HANDLE handle = 0;
 
+#if 0
     SERVER_START_REQ( alloc_user_handle )
     {
         if (!wine_server_call_err( req )) handle = wine_server_ptr_handle( reply->handle );
@@ -125,6 +133,7 @@ HANDLE alloc_user_handle( struct user_object *ptr, enum user_obj_type type )
         ptr->type = type;
         InterlockedExchangePointer( &user_handles[index], ptr );
     }
+#endif
     return handle;
 }
 
@@ -169,6 +178,7 @@ void release_user_handle_ptr( void *ptr )
  */
 void *free_user_handle( HANDLE handle, enum user_obj_type type )
 {
+#if 0
     struct user_object *ptr;
     WORD index = USER_HANDLE_TO_INDEX( handle );
 
@@ -184,6 +194,9 @@ void *free_user_handle( HANDLE handle, enum user_obj_type type )
         USER_Unlock();
     }
     return ptr;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -195,6 +208,7 @@ void *free_user_handle( HANDLE handle, enum user_obj_type type )
 static WND *create_window_handle( HWND parent, HWND owner, LPCWSTR name,
                                   HINSTANCE instance, BOOL unicode )
 {
+#if 0
     WORD index;
     WND *win;
     HWND handle = 0, full_parent = 0, full_owner = 0;
@@ -225,7 +239,7 @@ static WND *create_window_handle( HWND parent, HWND owner, LPCWSTR name,
         return NULL;
     }
 
-    if (!(win = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
+    if (!(win = heap_alloc_zero(
                            sizeof(WND) + extra_bytes - sizeof(win->wExtra) )))
     {
         SERVER_START_REQ( destroy_window )
@@ -269,6 +283,10 @@ static WND *create_window_handle( HWND parent, HWND owner, LPCWSTR name,
     InterlockedExchangePointer( &user_handles[index], win );
     if (WINPROC_IsUnicode( win->winproc, unicode )) win->flags |= WIN_ISUNICODE;
     return win;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return NULL;
+#endif
 }
 
 
@@ -279,6 +297,7 @@ static WND *create_window_handle( HWND parent, HWND owner, LPCWSTR name,
  */
 static void free_window_handle( HWND hwnd )
 {
+#if 0
     struct user_object *ptr;
     WORD index = USER_HANDLE_TO_INDEX(hwnd);
 
@@ -292,8 +311,9 @@ static void free_window_handle( HWND hwnd )
         }
         SERVER_END_REQ;
         USER_Unlock();
-        HeapFree( GetProcessHeap(), 0, ptr );
+        heap_free( ptr );
     }
+#endif
 }
 
 
@@ -305,6 +325,7 @@ static void free_window_handle( HWND hwnd )
  */
 static HWND *list_window_children( HDESK desktop, HWND hwnd, LPCWSTR class, DWORD tid )
 {
+#if 0
     HWND *list;
     int i, size = 128;
     ATOM atom = get_int_atom_value( class );
@@ -316,7 +337,7 @@ static HWND *list_window_children( HDESK desktop, HWND hwnd, LPCWSTR class, DWOR
     {
         int count = 0;
 
-        if (!(list = HeapAlloc( GetProcessHeap(), 0, size * sizeof(HWND) ))) break;
+        if (!(list = heap_alloc( size * sizeof(HWND) ))) break;
 
         SERVER_START_REQ( get_window_children )
         {
@@ -337,10 +358,11 @@ static HWND *list_window_children( HDESK desktop, HWND hwnd, LPCWSTR class, DWOR
             list[count] = 0;
             return list;
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
         if (!count) break;
         size = count + 1;  /* restart with a large enough buffer */
     }
+#endif
     return NULL;
 }
 
@@ -353,11 +375,12 @@ static HWND *list_window_children( HDESK desktop, HWND hwnd, LPCWSTR class, DWOR
  */
 static HWND *list_window_parents( HWND hwnd )
 {
+#if 0
     WND *win;
     HWND current, *list;
     int i, pos = 0, size = 16, count;
 
-    if (!(list = HeapAlloc( GetProcessHeap(), 0, size * sizeof(HWND) ))) return NULL;
+    if (!(list = heap_alloc( size * sizeof(HWND) ))) return NULL;
 
     current = hwnd;
     for (;;)
@@ -376,7 +399,7 @@ static HWND *list_window_parents( HWND hwnd )
         if (++pos == size - 1)
         {
             /* need to grow the list */
-            HWND *new_list = HeapReAlloc( GetProcessHeap(), 0, list, (size+16) * sizeof(HWND) );
+            HWND *new_list = heap_realloc( list, (size+16) * sizeof(HWND) );
             if (!new_list) goto empty;
             list = new_list;
             size += 16;
@@ -404,13 +427,14 @@ static HWND *list_window_parents( HWND hwnd )
             list[count] = 0;
             return list;
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
         size = count + 1;
-        if (!(list = HeapAlloc( GetProcessHeap(), 0, size * sizeof(HWND) ))) return NULL;
+        if (!(list = heap_alloc( size * sizeof(HWND) ))) return NULL;
     }
 
  empty:
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
+#endif
     return NULL;
 }
 
@@ -448,6 +472,7 @@ static void update_window_state( HWND hwnd )
 }
 
 
+#if 0
 /*******************************************************************
  *		get_server_window_text
  *
@@ -466,6 +491,7 @@ static void get_server_window_text( HWND hwnd, LPWSTR text, INT count )
     SERVER_END_REQ;
     text[len / sizeof(WCHAR)] = 0;
 }
+#endif
 
 
 /*******************************************************************
@@ -579,10 +605,18 @@ struct window_surface dummy_surface = { &dummy_surface_funcs, { NULL, NULL }, 1,
 void register_window_surface( struct window_surface *old, struct window_surface *new )
 {
     if (old == new) return;
+#if 0
     EnterCriticalSection( &surfaces_section );
+#else
+    pthread_mutex_lock( &surfaces_section );
+#endif
     if (old && old != &dummy_surface) list_remove( &old->entry );
     if (new && new != &dummy_surface) list_add_tail( &window_surfaces, &new->entry );
+#if 0
     LeaveCriticalSection( &surfaces_section );
+#else
+    pthread_mutex_unlock( &surfaces_section );
+#endif
 }
 
 
@@ -597,7 +631,11 @@ void flush_window_surfaces( BOOL idle )
     DWORD now;
     struct window_surface *surface;
 
+#if 0
     EnterCriticalSection( &surfaces_section );
+#else
+    pthread_mutex_lock( &surfaces_section );
+#endif
     now = GetTickCount();
     if (idle) last_idle = now;
     /* if not idle, we only flush if there's evidence that the app never goes idle */
@@ -606,7 +644,11 @@ void flush_window_surfaces( BOOL idle )
     LIST_FOR_EACH_ENTRY( surface, &window_surfaces, struct window_surface, entry )
         surface->funcs->flush( surface );
 done:
+#if 0
     LeaveCriticalSection( &surfaces_section );
+#else
+    pthread_mutex_unlock( &surfaces_section );
+#endif
 }
 
 
@@ -710,12 +752,14 @@ HWND WIN_GetFullHandle( HWND hwnd )
     }
     else  /* may belong to another process */
     {
+#if 0
         SERVER_START_REQ( get_window_info )
         {
             req->handle = wine_server_user_handle( hwnd );
             if (!wine_server_call_err( req )) hwnd = wine_server_ptr_handle( reply->full_handle );
         }
         SERVER_END_REQ;
+#endif
     }
     return hwnd;
 }
@@ -737,6 +781,7 @@ HWND WIN_SetOwner( HWND hwnd, HWND owner )
         if (IsWindow(hwnd)) ERR( "cannot set owner %p on other process window %p\n", owner, hwnd );
         return 0;
     }
+#if 0
     SERVER_START_REQ( set_window_owner )
     {
         req->handle = wine_server_user_handle( hwnd );
@@ -749,6 +794,7 @@ HWND WIN_SetOwner( HWND hwnd, HWND owner )
     }
     SERVER_END_REQ;
     WIN_ReleasePtr( win );
+#endif
     return ret;
 }
 
@@ -778,6 +824,7 @@ ULONG WIN_SetStyle( HWND hwnd, ULONG set_bits, ULONG clear_bits )
         WIN_ReleasePtr( win );
         return style.styleNew;
     }
+#if 0
     SERVER_START_REQ( set_window_info )
     {
         req->handle = wine_server_user_handle( hwnd );
@@ -803,6 +850,7 @@ ULONG WIN_SetStyle( HWND hwnd, ULONG set_bits, ULONG clear_bits )
 
     USER_Driver->pSetWindowStyle( hwnd, GWL_STYLE, &style );
     if (made_visible) update_window_state( hwnd );
+#endif
 
     return style.styleOld;
 }
@@ -915,6 +963,7 @@ BOOL WIN_GetRectangles( HWND hwnd, enum coords_relative relative, RECT *rectWind
     }
 
 other_process:
+#if 0
     SERVER_START_REQ( get_window_rectangles )
     {
         req->handle = wine_server_user_handle( hwnd );
@@ -939,6 +988,10 @@ other_process:
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -973,9 +1026,10 @@ LRESULT WIN_DestroyWindow( HWND hwnd )
             if (WIN_IsCurrentThread( list[i] )) WIN_DestroyWindow( list[i] );
             else SendMessageW( list[i], WM_WINE_DESTROYWINDOW, 0, 0 );
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
     }
 
+#if 0
     /* Unlink now so we won't bother with the children later on */
     SERVER_START_REQ( set_parent )
     {
@@ -984,6 +1038,7 @@ LRESULT WIN_DestroyWindow( HWND hwnd )
         wine_server_call( req );
     }
     SERVER_END_REQ;
+#endif
 
     /*
      * Send the WM_NCDESTROY to the window being destroyed.
@@ -1001,9 +1056,9 @@ LRESULT WIN_DestroyWindow( HWND hwnd )
     free_dce( wndPtr->dce, hwnd );
     wndPtr->dce = NULL;
     icon_title = wndPtr->icon_title;
-    HeapFree( GetProcessHeap(), 0, wndPtr->text );
+    heap_free( wndPtr->text );
     wndPtr->text = NULL;
-    HeapFree( GetProcessHeap(), 0, wndPtr->pScroll );
+    heap_free( wndPtr->pScroll );
     wndPtr->pScroll = NULL;
     DestroyIcon( wndPtr->hIconSmall2 );
     surface = wndPtr->surface;
@@ -1049,7 +1104,7 @@ static void destroy_thread_window( HWND hwnd )
             if (WIN_IsCurrentThread( list[i] )) destroy_thread_window( list[i] );
             else SendMessageW( list[i], WM_WINE_DESTROYWINDOW, 0, 0 );
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
     }
 
     /* destroy the client-side storage */
@@ -1068,7 +1123,7 @@ static void destroy_thread_window( HWND hwnd )
     }
     USER_Unlock();
 
-    HeapFree( GetProcessHeap(), 0, wndPtr );
+    heap_free( wndPtr );
     if (menu) DestroyMenu( menu );
     if (sys_menu) DestroyMenu( sys_menu );
     if (surface)
@@ -1096,7 +1151,7 @@ static void destroy_thread_child_windows( HWND hwnd )
     else if ((list = WIN_ListChildren( hwnd )))
     {
         for (i = 0; list[i]; i++) destroy_thread_child_windows( list[i] );
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
     }
 }
 
@@ -1124,7 +1179,7 @@ void WIN_DestroyThreadWindows( HWND hwnd )
     }
 
     for (i = 0; list[i]; i++) destroy_thread_child_windows( list[i] );
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
 }
 
 
@@ -1169,6 +1224,7 @@ static void WIN_FixCoordinates( CREATESTRUCTW *cs, INT *sw)
     }
     else  /* overlapped window */
     {
+#if 0
         HMONITOR monitor;
         MONITORINFO mon_info;
         STARTUPINFOW info;
@@ -1209,6 +1265,7 @@ static void WIN_FixCoordinates( CREATESTRUCTW *cs, INT *sw)
             FIXME("Strange use of CW_USEDEFAULT in nHeight\n");
             cs->cy = (mon_info.rcWork.bottom - mon_info.rcWork.top) * 3 / 4 - cs->y;
         }
+#endif
     }
 #undef IS_DEFAULT
 }
@@ -1334,6 +1391,7 @@ static void dump_window_styles( DWORD style, DWORD exstyle )
  */
 HWND WIN_CreateWindowEx( CREATESTRUCTW *cs, LPCWSTR className, HINSTANCE module, BOOL unicode )
 {
+#if 0
     INT cx, cy, style, sw = SW_SHOW;
     LRESULT result;
     RECT rect;
@@ -1718,6 +1776,10 @@ HWND WIN_CreateWindowEx( CREATESTRUCTW *cs, LPCWSTR className, HINSTANCE module,
 failed:
     WIN_DestroyWindow( hwnd );
     return 0;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return NULL;
+#endif
 }
 
 
@@ -1822,7 +1884,7 @@ static void WIN_SendDestroyMsg( HWND hwnd )
         {
             if (IsWindow( pWndArray[i] )) WIN_SendDestroyMsg( pWndArray[i] );
         }
-        HeapFree( GetProcessHeap(), 0, pWndArray );
+        heap_free( pWndArray );
     }
     else
       WARN("\tdestroyed itself while in WM_DESTROY!\n");
@@ -1834,6 +1896,7 @@ static void WIN_SendDestroyMsg( HWND hwnd )
  */
 BOOL WINAPI DestroyWindow( HWND hwnd )
 {
+#if 0
     BOOL is_child;
 
     if (!(hwnd = WIN_IsCurrentThread( hwnd )) || is_desktop_window( hwnd ))
@@ -1901,7 +1964,7 @@ BOOL WINAPI DestroyWindow( HWND hwnd )
                     }
                     WIN_SetOwner( list[i], 0 );
                 }
-                HeapFree( GetProcessHeap(), 0, list );
+                heap_free( list );
             }
             if (!got_one) break;
         }
@@ -1916,6 +1979,10 @@ BOOL WINAPI DestroyWindow( HWND hwnd )
 
     WIN_DestroyWindow( hwnd );
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -1957,7 +2024,7 @@ HWND WINAPI FindWindowExW( HWND parent, HWND child, LPCWSTR className, LPCWSTR t
     if (title)
     {
         len = strlenW(title) + 1;  /* one extra char to check for chars beyond the end */
-        if (!(buffer = HeapAlloc( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) ))) return 0;
+        if (!(buffer = heap_alloc( (len + 1) * sizeof(WCHAR) ))) return 0;
     }
 
     if (!(list = list_window_children( 0, parent, className, 0 ))) goto done;
@@ -1988,8 +2055,8 @@ HWND WINAPI FindWindowExW( HWND parent, HWND child, LPCWSTR className, LPCWSTR t
     retvalue = list[i];
 
  done:
-    HeapFree( GetProcessHeap(), 0, list );
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( list );
+    heap_free( buffer );
     return retvalue;
 }
 
@@ -2017,7 +2084,7 @@ HWND WINAPI FindWindowExA( HWND parent, HWND child, LPCSTR className, LPCSTR tit
     if (title)
     {
         DWORD len = MultiByteToWideChar( CP_ACP, 0, title, -1, NULL, 0 );
-        if (!(titleW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) ))) return 0;
+        if (!(titleW = heap_alloc( len * sizeof(WCHAR) ))) return 0;
         MultiByteToWideChar( CP_ACP, 0, title, -1, titleW, len );
     }
 
@@ -2032,7 +2099,7 @@ HWND WINAPI FindWindowExA( HWND parent, HWND child, LPCSTR className, LPCSTR tit
         hwnd = FindWindowExW( parent, child, (LPCWSTR)className, titleW );
     }
 
-    HeapFree( GetProcessHeap(), 0, titleW );
+    heap_free( titleW );
     return hwnd;
 }
 
@@ -2055,6 +2122,7 @@ HWND WINAPI GetDesktopWindow(void)
 
     if (thread_info->top_window) return thread_info->top_window;
 
+#if 0
     SERVER_START_REQ( get_desktop_window )
     {
         req->force = 0;
@@ -2131,6 +2199,7 @@ HWND WINAPI GetDesktopWindow(void)
         }
         SERVER_END_REQ;
     }
+#endif
 
     if (!thread_info->top_window || !USER_Driver->pCreateDesktopWindow( thread_info->top_window ))
         ERR( "failed to create desktop window\n" );
@@ -2192,6 +2261,7 @@ BOOL WINAPI IsWindowUnicode( HWND hwnd )
 {
     WND * wndPtr;
     BOOL retvalue = FALSE;
+#if 0
 
     if (!(wndPtr = WIN_GetPtr(hwnd))) return FALSE;
 
@@ -2211,6 +2281,7 @@ BOOL WINAPI IsWindowUnicode( HWND hwnd )
         }
         SERVER_END_REQ;
     }
+#endif
     return retvalue;
 }
 
@@ -2267,6 +2338,7 @@ static LONG_PTR WIN_GetWindowLong( HWND hwnd, INT offset, UINT size, BOOL unicod
             SetLastError( ERROR_ACCESS_DENIED );
             return 0;
         }
+#if 0
         SERVER_START_REQ( set_window_info )
         {
             req->handle = wine_server_user_handle( hwnd );
@@ -2291,6 +2363,10 @@ static LONG_PTR WIN_GetWindowLong( HWND hwnd, INT offset, UINT size, BOOL unicod
         }
         SERVER_END_REQ;
         return retvalue;
+#else
+        SetLastError( ERROR_ACCESS_DENIED );
+        return 0;
+#endif
     }
 
     /* now we have a valid wndPtr */
@@ -2482,6 +2558,7 @@ LONG_PTR WIN_SetWindowLong( HWND hwnd, INT offset, UINT size, LONG_PTR newval, B
         break;
     }
 
+#if 0
     SERVER_START_REQ( set_window_info )
     {
         req->handle = wine_server_user_handle( hwnd );
@@ -2571,6 +2648,7 @@ LONG_PTR WIN_SetWindowLong( HWND hwnd, INT offset, UINT size, LONG_PTR newval, B
         if (made_visible) update_window_state( hwnd );
         SendMessageW( hwnd, WM_STYLECHANGED, offset, (LPARAM)&style );
     }
+    #endif
 
     return retval;
 }
@@ -2728,6 +2806,7 @@ LONG WINAPI DECLSPEC_HOTPATCH SetWindowLongW(
 }
 
 
+#if 0
 /*******************************************************************
  *		GetWindowTextA (USER32.@)
  */
@@ -2744,13 +2823,14 @@ INT WINAPI GetWindowTextA( HWND hwnd, LPSTR lpString, INT nMaxCount )
     }
 
     /* when window belongs to other process, don't send a message */
-    if (!(buffer = HeapAlloc( GetProcessHeap(), 0, nMaxCount * sizeof(WCHAR) ))) return 0;
+    if (!(buffer = heap_alloc( nMaxCount * sizeof(WCHAR) ))) return 0;
     get_server_window_text( hwnd, buffer, nMaxCount );
     if (!WideCharToMultiByte( CP_ACP, 0, buffer, -1, lpString, nMaxCount, NULL, NULL ))
         lpString[nMaxCount-1] = 0;
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     return strlen(lpString);
 }
+#endif
 
 
 /*******************************************************************
@@ -2758,6 +2838,7 @@ INT WINAPI GetWindowTextA( HWND hwnd, LPSTR lpString, INT nMaxCount )
  */
 INT WINAPI InternalGetWindowText(HWND hwnd,LPWSTR lpString,INT nMaxCount )
 {
+#if 0
     WND *win;
 
     if (nMaxCount <= 0) return 0;
@@ -2774,6 +2855,10 @@ INT WINAPI InternalGetWindowText(HWND hwnd,LPWSTR lpString,INT nMaxCount )
         get_server_window_text( hwnd, lpString, nMaxCount );
     }
     return strlenW(lpString);
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
@@ -2790,9 +2875,13 @@ INT WINAPI GetWindowTextW( HWND hwnd, LPWSTR lpString, INT nMaxCount )
         return (INT)SendMessageW( hwnd, WM_GETTEXT, nMaxCount, (LPARAM)lpString );
     }
 
+#if 0
     /* when window belongs to other process, don't send a message */
     get_server_window_text( hwnd, lpString, nMaxCount );
     return strlenW(lpString);
+#else
+    return 0;
+#endif
 }
 
 
@@ -2865,6 +2954,7 @@ BOOL WINAPI IsWindow( HWND hwnd )
         return TRUE;
     }
 
+#if 0
     /* check other processes */
     SERVER_START_REQ( get_window_info )
     {
@@ -2873,6 +2963,9 @@ BOOL WINAPI IsWindow( HWND hwnd )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -2884,6 +2977,7 @@ DWORD WINAPI GetWindowThreadProcessId( HWND hwnd, LPDWORD process )
     WND *ptr;
     DWORD tid = 0;
 
+#if 0
     if (!(ptr = WIN_GetPtr( hwnd )))
     {
         SetLastError( ERROR_INVALID_WINDOW_HANDLE);
@@ -2910,6 +3004,7 @@ DWORD WINAPI GetWindowThreadProcessId( HWND hwnd, LPDWORD process )
         }
     }
     SERVER_END_REQ;
+#endif
     return tid;
 }
 
@@ -2933,6 +3028,7 @@ HWND WINAPI GetParent( HWND hwnd )
         LONG style = GetWindowLongW( hwnd, GWL_STYLE );
         if (style & (WS_POPUP | WS_CHILD))
         {
+#if 0
             SERVER_START_REQ( get_window_tree )
             {
                 req->handle = wine_server_user_handle( hwnd );
@@ -2943,6 +3039,7 @@ HWND WINAPI GetParent( HWND hwnd )
                 }
             }
             SERVER_END_REQ;
+#endif
         }
     }
     else
@@ -2966,6 +3063,7 @@ HWND WINAPI GetAncestor( HWND hwnd, UINT type )
     switch(type)
     {
     case GA_PARENT:
+#if 0
         if (!(win = WIN_GetPtr( hwnd )))
         {
             SetLastError( ERROR_INVALID_WINDOW_HANDLE );
@@ -2987,6 +3085,10 @@ HWND WINAPI GetAncestor( HWND hwnd, UINT type )
             SERVER_END_REQ;
         }
         break;
+#else
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return 0;
+#endif
 
     case GA_ROOT:
         if (!(list = list_window_parents( hwnd ))) return 0;
@@ -2998,7 +3100,7 @@ HWND WINAPI GetAncestor( HWND hwnd, UINT type )
             while (list[count]) count++;
             ret = list[count - 2];  /* get the one before the desktop */
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
         break;
 
     case GA_ROOTOWNER:
@@ -3062,6 +3164,7 @@ HWND WINAPI SetParent( HWND hwnd, HWND parent )
         return 0;
     }
 
+#if 0
     /* Windows hides the window first, then shows it again
      * including the WM_SHOWWINDOW messages and all */
     was_visible = ShowWindow( hwnd, SW_HIDE );
@@ -3096,6 +3199,7 @@ HWND WINAPI SetParent( HWND hwnd, HWND parent )
     SetWindowPos( hwnd, HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE );
 
     if (was_visible) ShowWindow( hwnd, SW_SHOW );
+#endif
 
     return old_parent;
 }
@@ -3122,7 +3226,7 @@ BOOL WINAPI IsChild( HWND parent, HWND child )
         }
         if (!(GetWindowLongW( list[i], GWL_STYLE ) & WS_CHILD)) break;
     }
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return ret;
 }
 
@@ -3144,7 +3248,7 @@ BOOL WINAPI IsWindowVisible( HWND hwnd )
             if (!(GetWindowLongW( list[i], GWL_STYLE ) & WS_VISIBLE)) break;
         retval = !list[i+1] && (list[i] == GetDesktopWindow());  /* top message window isn't visible */
     }
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return retval;
 }
 
@@ -3174,7 +3278,7 @@ BOOL WIN_IsWindowDrawable( HWND hwnd, BOOL icon )
                 break;
         retval = !list[i+1] && (list[i] == GetDesktopWindow());  /* top message window isn't visible */
     }
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return retval;
 }
 
@@ -3214,6 +3318,7 @@ HWND WINAPI GetWindow( HWND hwnd, UINT rel )
         /* else fall through to server call */
     }
 
+#if 0
     SERVER_START_REQ( get_window_tree )
     {
         req->handle = wine_server_user_handle( hwnd );
@@ -3243,6 +3348,7 @@ HWND WINAPI GetWindow( HWND hwnd, UINT rel )
         }
     }
     SERVER_END_REQ;
+#endif
     return retval;
 }
 
@@ -3280,7 +3386,7 @@ BOOL WINAPI ShowOwnedPopups( HWND owner, BOOL fShow )
                 SendMessageW(win_array[count], WM_SHOWWINDOW, SW_HIDE, SW_PARENTCLOSING);
         }
     }
-    HeapFree( GetProcessHeap(), 0, win_array );
+    heap_free( win_array );
     return TRUE;
 }
 
@@ -3290,6 +3396,7 @@ BOOL WINAPI ShowOwnedPopups( HWND owner, BOOL fShow )
  */
 HWND WINAPI GetLastActivePopup( HWND hwnd )
 {
+#if 0
     HWND retval = hwnd;
 
     SERVER_START_REQ( get_window_info )
@@ -3299,6 +3406,9 @@ HWND WINAPI GetLastActivePopup( HWND hwnd )
     }
     SERVER_END_REQ;
     return retval;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -3344,7 +3454,7 @@ BOOL WINAPI EnumWindows( WNDENUMPROC lpEnumFunc, LPARAM lParam )
         if (!IsWindow( list[i] )) continue;
         if (!(ret = lpEnumFunc( list[i], lParam ))) break;
     }
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return ret;
 }
 
@@ -3366,7 +3476,7 @@ BOOL WINAPI EnumThreadWindows( DWORD id, WNDENUMPROC func, LPARAM lParam )
 
     for (i = 0; list[i]; i++)
         if (!(ret = func( list[i], lParam ))) break;
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return ret;
 }
 
@@ -3385,7 +3495,7 @@ BOOL WINAPI EnumDesktopWindows( HDESK desktop, WNDENUMPROC func, LPARAM lparam )
 
     for (i = 0; list[i]; i++)
         if (!func( list[i], lparam )) break;
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return TRUE;
 }
 
@@ -3437,7 +3547,7 @@ static BOOL WIN_EnumChildWindows( HWND *list, WNDENUMPROC func, LPARAM lParam )
         if (childList)
         {
             if (ret) ret = WIN_EnumChildWindows( childList, func, lParam );
-            HeapFree( GetProcessHeap(), 0, childList );
+            heap_free( childList );
         }
         if (!ret) return FALSE;
     }
@@ -3457,7 +3567,7 @@ BOOL WINAPI EnumChildWindows( HWND parent, WNDENUMPROC func, LPARAM lParam )
 
     if (!(list = WIN_ListChildren( parent ))) return FALSE;
     ret = WIN_EnumChildWindows( list, func, lParam );
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return ret;
 }
 
@@ -3477,7 +3587,7 @@ BOOL WINAPI AnyPopup(void)
         if (IsWindowVisible( list[i] ) && GetWindow( list[i], GW_OWNER )) break;
     }
     retvalue = (list[i] != 0);
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return retvalue;
 }
 
@@ -3737,6 +3847,7 @@ BOOL CDECL __wine_set_pixel_format( HWND hwnd, int format )
  */
 BOOL WINAPI SetLayeredWindowAttributes( HWND hwnd, COLORREF key, BYTE alpha, DWORD flags )
 {
+#if 0
     BOOL ret;
 
     TRACE("(%p,%08x,%d,%x)\n", hwnd, key, alpha, flags);
@@ -3758,6 +3869,9 @@ BOOL WINAPI SetLayeredWindowAttributes( HWND hwnd, COLORREF key, BYTE alpha, DWO
     }
 
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -3766,6 +3880,7 @@ BOOL WINAPI SetLayeredWindowAttributes( HWND hwnd, COLORREF key, BYTE alpha, DWO
  */
 BOOL WINAPI GetLayeredWindowAttributes( HWND hwnd, COLORREF *key, BYTE *alpha, DWORD *flags )
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( get_window_layered_info )
@@ -3781,6 +3896,9 @@ BOOL WINAPI GetLayeredWindowAttributes( HWND hwnd, COLORREF *key, BYTE *alpha, D
     SERVER_END_REQ;
 
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -3879,6 +3997,7 @@ BOOL WINAPI UpdateLayeredWindow( HWND hwnd, HDC hdcDst, POINT *pptDst, SIZE *psi
  */
 BOOL WINAPI GetProcessDefaultLayout( DWORD *layout )
 {
+#if 0
     if (!layout)
     {
         SetLastError( ERROR_NOACCESS );
@@ -3899,7 +4018,7 @@ BOOL WINAPI GetProcessDefaultLayout( DWORD *layout )
 
         GetModuleFileNameW( 0, buffer, MAX_PATH );
         if (!(len = GetFileVersionInfoSizeW( buffer, NULL ))) goto done;
-        if (!(data = HeapAlloc( GetProcessHeap(), 0, len ))) goto done;
+        if (!(data = heap_alloc( len ))) goto done;
         if (!GetFileVersionInfoW( buffer, 0, len, data )) goto done;
         if (!VerQueryValueW( data, translationW, (void **)&languages, &len ) || !len) goto done;
 
@@ -3916,11 +4035,15 @@ BOOL WINAPI GetProcessDefaultLayout( DWORD *layout )
         if (str[0] == 0x200e && str[1] == 0x200e) version_layout = LAYOUT_RTL;
 
     done:
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
         process_layout = version_layout;
     }
     *layout = process_layout;
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 

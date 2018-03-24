@@ -51,7 +51,10 @@
 #include "winbase.h"
 #include "wingdi.h"
 #include "winnls.h"
+#include "wine/heap.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/unicode.h"
 #include "wine/exception.h"
 #include "win.h"
@@ -649,7 +652,7 @@ static UINT MENU_FindSubMenu( HMENU *hmenu, HMENU hSubTarget )
 static void MENU_FreeItemData( MENUITEM* item )
 {
     /* delete text */
-    HeapFree( GetProcessHeap(), 0, item->text );
+    heap_free( item->text );
 }
 
 /***********************************************************************
@@ -2139,7 +2142,7 @@ static MENUITEM *MENU_InsertItem( HMENU hMenu, UINT pos, UINT flags )
 
     /* Create new items array */
 
-    newItems = HeapAlloc( GetProcessHeap(), 0, sizeof(MENUITEM) * (menu->nItems+1) );
+    newItems = heap_alloc( sizeof(MENUITEM) * (menu->nItems+1) );
     if (!newItems)
     {
         WARN("allocation failed\n" );
@@ -2151,7 +2154,7 @@ static MENUITEM *MENU_InsertItem( HMENU hMenu, UINT pos, UINT flags )
 	if (pos > 0) memcpy( newItems, menu->items, pos * sizeof(MENUITEM) );
 	if (pos < menu->nItems) memcpy( &newItems[pos+1], &menu->items[pos],
 					(menu->nItems-pos)*sizeof(MENUITEM) );
-        HeapFree( GetProcessHeap(), 0, menu->items );
+        heap_free( menu->items );
     }
     menu->items = newItems;
     menu->nItems++;
@@ -3933,12 +3936,12 @@ BOOL WINAPI InsertMenuA( HMENU hMenu, UINT pos, UINT flags,
     if (IS_STRING_ITEM(flags) && str)
     {
         INT len = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
-        LPWSTR newstr = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        LPWSTR newstr = heap_alloc( len * sizeof(WCHAR) );
         if (newstr)
         {
             MultiByteToWideChar( CP_ACP, 0, str, -1, newstr, len );
             ret = InsertMenuW( hMenu, pos, flags, id, newstr );
-            HeapFree( GetProcessHeap(), 0, newstr );
+            heap_free( newstr );
         }
         return ret;
     }
@@ -3984,7 +3987,7 @@ BOOL WINAPI RemoveMenu( HMENU hMenu, UINT nPos, UINT wFlags )
 
     if (--menu->nItems == 0)
     {
-        HeapFree( GetProcessHeap(), 0, menu->items );
+        heap_free( menu->items );
         menu->items = NULL;
     }
     else
@@ -3996,7 +3999,7 @@ BOOL WINAPI RemoveMenu( HMENU hMenu, UINT nPos, UINT wFlags )
 	    item++;
 	    nPos++;
 	}
-        new_items = HeapReAlloc( GetProcessHeap(), 0, menu->items,
+        new_items = heap_realloc( menu->items,
                                  menu->nItems * sizeof(MENUITEM) );
         if (new_items) menu->items = new_items;
     }
@@ -4055,12 +4058,12 @@ BOOL WINAPI ModifyMenuA( HMENU hMenu, UINT pos, UINT flags,
     if (IS_STRING_ITEM(flags) && str)
     {
         INT len = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
-        LPWSTR newstr = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        LPWSTR newstr = heap_alloc( len * sizeof(WCHAR) );
         if (newstr)
         {
             MultiByteToWideChar( CP_ACP, 0, str, -1, newstr, len );
             ret = ModifyMenuW( hMenu, pos, flags, id, newstr );
-            HeapFree( GetProcessHeap(), 0, newstr );
+            heap_free( newstr );
         }
         return ret;
     }
@@ -4125,10 +4128,10 @@ HMENU WINAPI CreateMenu(void)
     HMENU hMenu;
     LPPOPUPMENU menu;
 
-    if (!(menu = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*menu) ))) return 0;
+    if (!(menu = heap_alloc_zero( sizeof(*menu) ))) return 0;
     menu->FocusedItem = NO_SELECTED_ITEM;
 
-    if (!(hMenu = alloc_user_handle( &menu->obj, USER_MENU ))) HeapFree( GetProcessHeap(), 0, menu );
+    if (!(hMenu = alloc_user_handle( &menu->obj, USER_MENU ))) heap_free( menu );
 
     TRACE("return %p\n", hMenu );
 
@@ -4164,9 +4167,9 @@ BOOL WINAPI DestroyMenu( HMENU hMenu )
             if (item->fType & MF_POPUP) DestroyMenu(item->hSubMenu);
             MENU_FreeItemData( item );
         }
-        HeapFree( GetProcessHeap(), 0, lppop->items );
+        heap_free( lppop->items );
     }
-    HeapFree( GetProcessHeap(), 0, lppop );
+    heap_free( lppop );
     return TRUE;
 }
 
@@ -4742,14 +4745,14 @@ static inline void set_menu_item_text( MENUITEM *menu, LPCWSTR text, BOOL unicod
         menu->text = NULL;
     else if (unicode)
     {
-        if ((menu->text = HeapAlloc( GetProcessHeap(), 0, (strlenW(text)+1) * sizeof(WCHAR) )))
+        if ((menu->text = heap_alloc( (strlenW(text)+1) * sizeof(WCHAR) )))
             strcpyW( menu->text, text );
     }
     else
     {
         LPCSTR str = (LPCSTR)text;
         int len = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
-        if ((menu->text = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+        if ((menu->text = heap_alloc( len * sizeof(WCHAR) )))
             MultiByteToWideChar( CP_ACP, 0, str, -1, menu->text, len );
     }
 }
@@ -4804,7 +4807,7 @@ static BOOL SetMenuItemInfo_common(MENUITEM * menu,
     }
     if (lpmii->fMask & MIIM_STRING ) {
         /* free the string when used */
-        HeapFree(GetProcessHeap(), 0, menu->text);
+        heap_free(menu->text);
         set_menu_item_text( menu, lpmii->dwTypeData, unicode );
     }
 
@@ -5512,7 +5515,7 @@ INT WINAPI TranslateAcceleratorW( HWND hWnd, HACCEL hAccel, LPMSG msg )
     if (!(count = CopyAcceleratorTableW( hAccel, NULL, 0 ))) return 0;
     if (count > sizeof(data)/sizeof(data[0]))
     {
-        if (!(ptr = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*ptr) ))) return 0;
+        if (!(ptr = heap_alloc( count * sizeof(*ptr) ))) return 0;
     }
     count = CopyAcceleratorTableW( hAccel, ptr, count );
     for (i = 0; i < count; i++)
@@ -5521,6 +5524,6 @@ INT WINAPI TranslateAcceleratorW( HWND hWnd, HACCEL hAccel, LPMSG msg )
                                    ptr[i].fVirt, ptr[i].key, ptr[i].cmd))
             break;
     }
-    if (ptr != data) HeapFree( GetProcessHeap(), 0, ptr );
+    if (ptr != data) heap_free( ptr );
     return (i < count);
 }

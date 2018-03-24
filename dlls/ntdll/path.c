@@ -108,7 +108,7 @@ static NTSTATUS find_drive_rootA( LPCSTR *ppath, unsigned int len, int *drive_re
     while (len > 1 && path[len - 1] == '/') len--;
 
     /* make a copy of the path */
-    if (!(buffer = RtlAllocateHeap( GetProcessHeap(), 0, len + 1 ))) return STATUS_NO_MEMORY;
+    if (!(buffer = malloc( len + 1 ))) return STATUS_NO_MEMORY;
     memcpy( buffer, path, len );
     buffer[len] = 0;
 
@@ -126,7 +126,7 @@ static NTSTATUS find_drive_rootA( LPCSTR *ppath, unsigned int len, int *drive_re
                            debugstr_a(path), 'A' + drive, debugstr_a(buffer), debugstr_a(path + len));
                     *ppath += len;
                     *drive_ret = drive;
-                    RtlFreeHeap( GetProcessHeap(), 0, buffer );
+                    free( buffer );
                     return STATUS_SUCCESS;
                 }
             }
@@ -135,7 +135,7 @@ static NTSTATUS find_drive_rootA( LPCSTR *ppath, unsigned int len, int *drive_re
         len = remove_last_componentA( buffer, len );
         buffer[len] = 0;
     }
-    RtlFreeHeap( GetProcessHeap(), 0, buffer );
+    free( buffer );
     return STATUS_OBJECT_PATH_NOT_FOUND;
 }
 
@@ -201,7 +201,7 @@ static int find_drive_rootW( LPCWSTR *ppath )
 
     /* convert path to Unix encoding */
     lenA = ntdll_wcstoumbs( 0, path, lenW, NULL, 0, NULL, NULL );
-    if (!(buffer = RtlAllocateHeap( GetProcessHeap(), 0, lenA + 1 ))) return -1;
+    if (!(buffer = malloc( lenA + 1 ))) return -1;
     lenA = ntdll_wcstoumbs( 0, path, lenW, buffer, lenA, NULL, NULL );
     buffer[lenA] = 0;
     for (p = buffer; *p; p++) if (*p == '\\') *p = '/';
@@ -219,7 +219,7 @@ static int find_drive_rootW( LPCWSTR *ppath )
                     TRACE( "%s -> drive %c:, root=%s, name=%s\n",
                            debugstr_w(path), 'A' + drive, debugstr_a(buffer), debugstr_w(path + lenW));
                     *ppath += lenW;
-                    RtlFreeHeap( GetProcessHeap(), 0, buffer );
+                    free( buffer );
                     return drive;
                 }
             }
@@ -231,7 +231,7 @@ static int find_drive_rootW( LPCWSTR *ppath )
         lenA = ntdll_wcstoumbs( 0, path, lenW, NULL, 0, NULL, NULL );
         buffer[lenA] = 0;
     }
-    RtlFreeHeap( GetProcessHeap(), 0, buffer );
+    free( buffer );
     return -1;
 }
 
@@ -268,6 +268,7 @@ DOS_PATHNAME_TYPE WINAPI RtlDetermineDosPathNameType_U( PCWSTR path )
  */
 ULONG WINAPI RtlIsDosDeviceName_U( PCWSTR dos_name )
 {
+#if 0
     static const WCHAR consoleW[] = {'\\','\\','.','\\','C','O','N',0};
     static const WCHAR auxW[] = {'A','U','X'};
     static const WCHAR comW[] = {'C','O','M'};
@@ -322,6 +323,7 @@ ULONG WINAPI RtlIsDosDeviceName_U( PCWSTR dos_name )
     default:  /* can't match anything */
         break;
     }
+#endif
     return 0;
 }
 
@@ -360,7 +362,7 @@ NTSTATUS WINAPI RtlDosPathNameToNtPathName_U_WithStatus(const WCHAR *dos_path, U
     {
         ntpath->Length = strlenW(dos_path) * sizeof(WCHAR);
         ntpath->MaximumLength = ntpath->Length + sizeof(WCHAR);
-        ntpath->Buffer = RtlAllocateHeap(GetProcessHeap(), 0, ntpath->MaximumLength);
+        ntpath->Buffer = malloc(ntpath->MaximumLength);
         if (!ntpath->Buffer) return STATUS_NO_MEMORY;
         memcpy( ntpath->Buffer, dos_path, ntpath->MaximumLength );
         ntpath->Buffer[1] = '?';  /* change \\?\ to \??\ */
@@ -378,21 +380,21 @@ NTSTATUS WINAPI RtlDosPathNameToNtPathName_U_WithStatus(const WCHAR *dos_path, U
 
     if (sz > sizeof(local))
     {
-        if (!(ptr = RtlAllocateHeap(GetProcessHeap(), 0, sz))) return STATUS_NO_MEMORY;
+        if (!(ptr = malloc(sz))) return STATUS_NO_MEMORY;
         sz = RtlGetFullPathName_U(dos_path, sz, ptr, file_part);
     }
     sz += (1 /* NUL */ + 4 /* unc\ */ + 4 /* \??\ */) * sizeof(WCHAR);
     if (sz > MAXWORD)
     {
-        if (ptr != local) RtlFreeHeap(GetProcessHeap(), 0, ptr);
+        if (ptr != local) free(ptr);
         return STATUS_OBJECT_NAME_INVALID;
     }
 
     ntpath->MaximumLength = sz;
-    ntpath->Buffer = RtlAllocateHeap(GetProcessHeap(), 0, ntpath->MaximumLength);
+    ntpath->Buffer = malloc(ntpath->MaximumLength);
     if (!ntpath->Buffer)
     {
-        if (ptr != local) RtlFreeHeap(GetProcessHeap(), 0, ptr);
+        if (ptr != local) free(ptr);
         return STATUS_NO_MEMORY;
     }
 
@@ -419,7 +421,7 @@ NTSTATUS WINAPI RtlDosPathNameToNtPathName_U_WithStatus(const WCHAR *dos_path, U
 
     /* FIXME: cd filling */
 
-    if (ptr != local) RtlFreeHeap(GetProcessHeap(), 0, ptr);
+    if (ptr != local) free(ptr);
     return STATUS_SUCCESS;
 }
 
@@ -436,6 +438,7 @@ BOOLEAN  WINAPI RtlDosPathNameToNtPathName_U(PCWSTR dos_path,
     return RtlDosPathNameToNtPathName_U_WithStatus(dos_path, ntpath, file_part, cd) == STATUS_SUCCESS;
 }
 
+#if 0
 /******************************************************************
  *		RtlDosSearchPath_U
  *
@@ -472,13 +475,11 @@ ULONG WINAPI RtlDosSearchPath_U(LPCWSTR paths, LPCWSTR search, LPCWSTR ext,
             for (needed = 0, ptr = paths; *ptr != 0 && *ptr++ != ';'; needed++);
             if (needed + filelen > allocated)
             {
-                if (!name) name = RtlAllocateHeap(GetProcessHeap(), 0,
-                                                  (needed + filelen) * sizeof(WCHAR));
+                if (!name) name = malloc((needed + filelen) * sizeof(WCHAR));
                 else
                 {
-                    WCHAR *newname = RtlReAllocateHeap(GetProcessHeap(), 0, name,
-                                                       (needed + filelen) * sizeof(WCHAR));
-                    if (!newname) RtlFreeHeap(GetProcessHeap(), 0, name);
+                    WCHAR *newname = realloc(name, (needed + filelen) * sizeof(WCHAR));
+                    if (!newname) free(name);
                     name = newname;
                 }
                 if (!name) return 0;
@@ -496,7 +497,7 @@ ULONG WINAPI RtlDosSearchPath_U(LPCWSTR paths, LPCWSTR search, LPCWSTR ext,
             }
             paths = ptr;
         }
-        RtlFreeHeap(GetProcessHeap(), 0, name);
+        free(name);
     }
     else if (RtlDoesFileExists_U(search))
     {
@@ -505,6 +506,7 @@ ULONG WINAPI RtlDosSearchPath_U(LPCWSTR paths, LPCWSTR search, LPCWSTR ext,
 
     return len;
 }
+#endif
 
 
 /******************************************************************
@@ -606,6 +608,7 @@ static const WCHAR *skip_unc_prefix( const WCHAR *ptr )
  */
 static ULONG get_full_path_helper(LPCWSTR name, LPWSTR buffer, ULONG size)
 {
+#if 0
     ULONG                       reqsize = 0, mark = 0, dep = 0, deplen;
     LPWSTR                      ins_str = NULL;
     LPCWSTR                     ptr;
@@ -657,7 +660,7 @@ static ULONG get_full_path_helper(LPCWSTR name, LPWSTR buffer, ULONG size)
             var.Buffer = tmp;
             val.Length = 0;
             val.MaximumLength = size;
-            val.Buffer = RtlAllocateHeap(GetProcessHeap(), 0, size);
+            val.Buffer = malloc(size);
 
             switch (RtlQueryEnvironmentVariable_U(NULL, &var, &val))
             {
@@ -679,11 +682,11 @@ static ULONG get_full_path_helper(LPCWSTR name, LPWSTR buffer, ULONG size)
                 tmp[1] = ':';
                 tmp[2] = '\\';
                 ins_str = tmp;
-                RtlFreeHeap(GetProcessHeap(), 0, val.Buffer);
+                free(val.Buffer);
                 break;
             default:
                 ERR("Unsupported status code\n");
-                RtlFreeHeap(GetProcessHeap(), 0, val.Buffer);
+                free(val.Buffer);
                 break;
             }
             mark = 3;
@@ -764,7 +767,7 @@ static ULONG get_full_path_helper(LPCWSTR name, LPWSTR buffer, ULONG size)
     if (reqsize) memcpy(buffer, ins_str, reqsize);
 
     if (ins_str != tmp && ins_str != cd->Buffer)
-        RtlFreeHeap(GetProcessHeap(), 0, ins_str);
+        free(ins_str);
 
     collapse_path( buffer, mark );
     reqsize = strlenW(buffer) * sizeof(WCHAR);
@@ -772,6 +775,9 @@ static ULONG get_full_path_helper(LPCWSTR name, LPWSTR buffer, ULONG size)
 done:
     RtlReleasePebLock();
     return reqsize;
+#else
+    return 0;
+#endif
 }
 
 /******************************************************************
@@ -798,6 +804,7 @@ DWORD WINAPI RtlGetFullPathName_U(const WCHAR* name, ULONG size, WCHAR* buffer,
 
     if (file_part) *file_part = NULL;
 
+#if 0
     /* check for DOS device name */
     dosdev = RtlIsDosDeviceName_U(name);
     if (dosdev)
@@ -812,20 +819,21 @@ DWORD WINAPI RtlGetFullPathName_U(const WCHAR* name, ULONG size, WCHAR* buffer,
         /* file_part isn't set in this case */
         return sz + 8;
     }
+#endif
 
     reqsize = get_full_path_helper(name, buffer, size);
     if (!reqsize) return 0;
     if (reqsize > size)
     {
-        LPWSTR tmp = RtlAllocateHeap(GetProcessHeap(), 0, reqsize);
+        LPWSTR tmp = malloc(reqsize);
         reqsize = get_full_path_helper(name, tmp, reqsize);
         if (reqsize + sizeof(WCHAR) > size)  /* it may have worked the second time */
         {
-            RtlFreeHeap(GetProcessHeap(), 0, tmp);
+            free(tmp);
             return reqsize + sizeof(WCHAR);
         }
         memcpy( buffer, tmp, reqsize + sizeof(WCHAR) );
-        RtlFreeHeap(GetProcessHeap(), 0, tmp);
+        free(tmp);
     }
 
     /* find file part */
@@ -920,6 +928,7 @@ BOOLEAN WINAPI RtlIsNameLegalDOS8Dot3( const UNICODE_STRING *unicode,
     return TRUE;
 }
 
+#if 0
 /******************************************************************
  *		RtlGetCurrentDirectory_U (NTDLL.@)
  *
@@ -1029,6 +1038,7 @@ NTSTATUS WINAPI RtlSetCurrentDirectory_U(const UNICODE_STRING* dir)
     RtlReleasePebLock();
     return nts;
 }
+#endif
 
 
 /******************************************************************
@@ -1053,7 +1063,7 @@ NTSTATUS CDECL wine_unix_to_nt_file_name( const ANSI_STRING *name, UNICODE_STRIN
         if ((status = DIR_get_unix_cwd( &cwd )) != STATUS_SUCCESS) return status;
 
         size = strlen(cwd) + lenA + 1;
-        if (!(newcwd = RtlReAllocateHeap( GetProcessHeap(), 0, cwd, size )))
+        if (!(newcwd = realloc( cwd, size )))
         {
             status = STATUS_NO_MEMORY;
             goto done;
@@ -1080,7 +1090,7 @@ NTSTATUS CDECL wine_unix_to_nt_file_name( const ANSI_STRING *name, UNICODE_STRIN
         if (status == STATUS_OBJECT_PATH_NOT_FOUND)
         {
             lenW = ntdll_umbstowcs( 0, path, lenA, NULL, 0 );
-            nt->Buffer = RtlAllocateHeap( GetProcessHeap(), 0,
+            nt->Buffer = malloc(
                                           (lenW + 1) * sizeof(WCHAR) + sizeof(unix_prefixW) );
             if (nt->Buffer == NULL)
             {
@@ -1101,7 +1111,7 @@ NTSTATUS CDECL wine_unix_to_nt_file_name( const ANSI_STRING *name, UNICODE_STRIN
     while (lenA && path[0] == '/') { lenA--; path++; }
 
     lenW = ntdll_umbstowcs( 0, path, lenA, NULL, 0 );
-    if (!(nt->Buffer = RtlAllocateHeap( GetProcessHeap(), 0,
+    if (!(nt->Buffer = malloc(
                                         (lenW + 1) * sizeof(WCHAR) + sizeof(prefixW) )))
     {
         status = STATUS_NO_MEMORY;
@@ -1118,6 +1128,6 @@ NTSTATUS CDECL wine_unix_to_nt_file_name( const ANSI_STRING *name, UNICODE_STRIN
     for (p = nt->Buffer + sizeof(prefixW)/sizeof(WCHAR); *p; p++) if (*p == '/') *p = '\\';
 
 done:
-    RtlFreeHeap( GetProcessHeap(), 0, cwd );
+    free( cwd );
     return status;
 }

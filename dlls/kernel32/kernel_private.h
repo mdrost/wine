@@ -30,12 +30,14 @@ BOOL    WINAPI CloseConsoleHandle(HANDLE handle);
 HANDLE  WINAPI GetConsoleInputWaitHandle(void);
 BOOL           CONSOLE_Init(RTL_USER_PROCESS_PARAMETERS *params) DECLSPEC_HIDDEN;
 BOOL           CONSOLE_Exit(void) DECLSPEC_HIDDEN;
+BOOL    WINAPI THREAD_duplicate_handle(HANDLE source_process, HANDLE source, HANDLE dest_process, HANDLE *dest, DWORD access, BOOL inherit, DWORD options) DECLSPEC_HIDDEN;
 
 static inline BOOL is_console_handle(HANDLE h)
 {
     return h != INVALID_HANDLE_VALUE && ((UINT_PTR)h & 3) == 3;
 }
 
+#if 0
 /* map a real wineserver handle onto a kernel32 console handle */
 static inline HANDLE console_handle_map(HANDLE h)
 {
@@ -47,13 +49,16 @@ static inline obj_handle_t console_handle_unmap(HANDLE h)
 {
     return wine_server_obj_handle( h != INVALID_HANDLE_VALUE ? (HANDLE)((UINT_PTR)h ^ 3) : INVALID_HANDLE_VALUE );
 }
+#endif
 
 /* Some Wine specific values for Console inheritance (params->ConsoleHandle) */
 #define KERNEL32_CONSOLE_ALLOC          ((HANDLE)1)
 #define KERNEL32_CONSOLE_SHELL          ((HANDLE)2)
 
 extern HMODULE kernel32_handle DECLSPEC_HIDDEN;
+#if 0
 extern SYSTEM_BASIC_INFORMATION system_info DECLSPEC_HIDDEN;
+#endif
 
 extern const WCHAR DIR_Windows[] DECLSPEC_HIDDEN;
 extern const WCHAR DIR_System[] DECLSPEC_HIDDEN;
@@ -94,8 +99,10 @@ extern void MODULE_get_binary_info( HANDLE hfile, struct binary_info *info ) DEC
 
 extern BOOL NLS_IsUnicodeOnlyLcid(LCID) DECLSPEC_HIDDEN;
 
+#if 0
 /* environ.c */
 extern void ENV_CopyStartupInformation(void) DECLSPEC_HIDDEN;
+#endif
 
 /* computername.c */
 extern void COMPUTERNAME_Init(void) DECLSPEC_HIDDEN;

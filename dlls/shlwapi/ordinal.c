@@ -47,6 +47,7 @@
 #include "commdlg.h"
 #include "mlang.h"
 #include "mshtmhst.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -339,7 +340,7 @@ HRESULT WINAPI RegisterDefaultAcceptHeaders(LPBC lpBC, IUnknown *lpUnknown)
     dwNumValues = dwCount;
 
     /* Note: dwCount = number of items + 1; The extra item is the end node */
-    format = formatList = HeapAlloc(GetProcessHeap(), 0, dwCount * sizeof(FORMATETC));
+    format = formatList = heap_alloc(dwCount * sizeof(FORMATETC));
     if (!formatList)
     {
       RegCloseKey(hDocs);
@@ -363,7 +364,7 @@ HRESULT WINAPI RegisterDefaultAcceptHeaders(LPBC lpBC, IUnknown *lpUnknown)
                               (PBYTE)szValueBuff, &dwValueSize);
         if (!dwRet)
         {
-          HeapFree(GetProcessHeap(), 0, formatList);
+          heap_free(formatList);
           RegCloseKey(hDocs);
           hr = E_FAIL;
           goto exit;
@@ -391,7 +392,7 @@ HRESULT WINAPI RegisterDefaultAcceptHeaders(LPBC lpBC, IUnknown *lpUnknown)
 
     /* Create a clipboard enumerator */
     hr = CreateFormatEnumerator(dwNumValues, formatList, &pIEnumFormatEtc);
-    HeapFree(GetProcessHeap(), 0, formatList);
+    heap_free(formatList);
     if (FAILED(hr)) goto exit;
 
     /* Set our enumerator as the browsers property */
@@ -479,7 +480,7 @@ HRESULT WINAPI GetAcceptLanguagesW( LPWSTR langbuf, LPDWORD buflen)
 
     mystrlen = (*buflen > 20) ? *buflen : 20 ;
     len = mystrlen * sizeof(WCHAR);
-    mystr = HeapAlloc(GetProcessHeap(), 0, len);
+    mystr = heap_alloc(len);
     mystr[0] = 0;
     RegOpenKeyW(HKEY_CURRENT_USER, szkeyW, &mykey);
     lres = RegQueryValueExW(mykey, valueW, 0, &mytype, (PBYTE)mystr, &len);
@@ -489,7 +490,7 @@ HRESULT WINAPI GetAcceptLanguagesW( LPWSTR langbuf, LPDWORD buflen)
     if (!lres && (*buflen > len)) {
         lstrcpyW(langbuf, mystr);
         *buflen = len;
-        HeapFree(GetProcessHeap(), 0, mystr);
+        heap_free(mystr);
         return S_OK;
     }
 
@@ -499,7 +500,7 @@ HRESULT WINAPI GetAcceptLanguagesW( LPWSTR langbuf, LPDWORD buflen)
     len = lstrlenW(mystr);
 
     memcpy( langbuf, mystr, min(*buflen, len+1)*sizeof(WCHAR) );
-    HeapFree(GetProcessHeap(), 0, mystr);
+    heap_free(mystr);
 
     if (*buflen > len) {
         *buflen = len;
@@ -526,7 +527,7 @@ HRESULT WINAPI GetAcceptLanguagesA( LPSTR langbuf, LPDWORD buflen)
     if(!langbuf || !buflen || !*buflen) return E_FAIL;
 
     buflenW = *buflen;
-    langbufW = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * buflenW);
+    langbufW = heap_alloc(sizeof(WCHAR) * buflenW);
     retval = GetAcceptLanguagesW(langbufW, &buflenW);
 
     if (retval == S_OK)
@@ -549,7 +550,7 @@ HRESULT WINAPI GetAcceptLanguagesA( LPSTR langbuf, LPDWORD buflen)
     }
     *buflen = buflenW ? convlen : 0;
 
-    HeapFree(GetProcessHeap(), 0, langbufW);
+    heap_free(langbufW);
     return retval;
 }
 
@@ -2256,13 +2257,14 @@ BOOL WINAPI FDSA_Destroy(FDSA_info *info)
 
     if(info->flags & FDSA_FLAG_INTERNAL_ALLOC)
     {
-        HeapFree(GetProcessHeap(), 0, info->mem);
+        heap_free(info->mem);
         return FALSE;
     }
 
     return TRUE;
 }
 
+#if 0
 /*************************************************************************
  *      @	[SHLWAPI.210]
  *
@@ -2282,7 +2284,7 @@ DWORD WINAPI FDSA_InsertItem(FDSA_info *info, DWORD where, const void *block)
         else
         {
             void *old_mem = info->mem;
-            info->mem = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+            info->mem = heap_alloc_zero(size);
             memcpy(info->mem, old_mem, info->blocks_alloced * info->block_size);
         }
         info->blocks_alloced += info->inc;
@@ -2300,6 +2302,7 @@ DWORD WINAPI FDSA_InsertItem(FDSA_info *info, DWORD where, const void *block)
     info->num_items++;
     return where;
 }
+#endif
 
 /*************************************************************************
  *      @	[SHLWAPI.211]
@@ -3245,7 +3248,7 @@ DWORD WINAPI SHGetIniStringW(LPCWSTR appName, LPCWSTR keyName, LPWSTR out,
     if(outLen == 0)
         return 0;
 
-    buf = HeapAlloc(GetProcessHeap(), 0, outLen * sizeof(WCHAR));
+    buf = heap_alloc(outLen * sizeof(WCHAR));
     if(!buf){
         *out = 0;
         return 0;
@@ -3257,7 +3260,7 @@ DWORD WINAPI SHGetIniStringW(LPCWSTR appName, LPCWSTR keyName, LPWSTR out,
     else
         *out = 0;
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     return strlenW(out);
 }
@@ -4512,7 +4515,7 @@ HKEY WINAPI SHGetShellKey(DWORD flags, LPCWSTR sub_key, BOOL create)
     else
         size_user = 0;
 
-    path = HeapAlloc(GetProcessHeap(), 0, size_key+size_subkey+size_user+sizeof(WCHAR));
+    path = heap_alloc(size_key+size_subkey+size_user+sizeof(WCHAR));
     if(!path) {
         ERR("Out of memory\n");
         return NULL;
@@ -4532,7 +4535,7 @@ HKEY WINAPI SHGetShellKey(DWORD flags, LPCWSTR sub_key, BOOL create)
         RegOpenKeyExW((flags&0xf)==SHKEY_Root_HKLM?HKEY_LOCAL_MACHINE:HKEY_CURRENT_USER,
                 path, 0, MAXIMUM_ALLOWED, &hkey);
 
-    HeapFree(GetProcessHeap(), 0, path);
+    heap_free(path);
     return hkey;
 }
 
@@ -4624,7 +4627,7 @@ HRESULT WINAPI SKAllocValueW(DWORD flags, LPCWSTR subkey, LPCWSTR value, DWORD *
     }
 
     size += 2;
-    *data = LocalAlloc(0, size);
+    *data = heap_alloc(size);
     if (!*data) {
         RegCloseKey(hkey);
         return E_OUTOFMEMORY;
@@ -4744,6 +4747,7 @@ DWORD WINAPI GetUIVersion(void)
 INT WINAPIV ShellMessageBoxWrapW(HINSTANCE hInstance, HWND hWnd, LPCWSTR lpText,
                                  LPCWSTR lpCaption, UINT uType, ...)
 {
+#if 0
     WCHAR *szText = NULL, szTitle[100];
     LPCWSTR pszText, pszTitle = szTitle;
     LPWSTR pszTemp;
@@ -4766,7 +4770,7 @@ INT WINAPIV ShellMessageBoxWrapW(HINSTANCE hInstance, HWND hWnd, LPCWSTR lpText,
 
         if (len)
         {
-            szText = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+            szText = heap_alloc((len + 1) * sizeof(WCHAR));
             if (szText) LoadStringW(hInstance, LOWORD(lpText), szText, len + 1);
         }
         pszText = szText;
@@ -4786,9 +4790,13 @@ INT WINAPIV ShellMessageBoxWrapW(HINSTANCE hInstance, HWND hWnd, LPCWSTR lpText,
 
     ret = MessageBoxW(hWnd, pszTemp, pszTitle, uType);
 
-    HeapFree(GetProcessHeap(), 0, szText);
+    heap_free(szText);
     LocalFree(pszTemp);
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return 0;
+#endif
 }
 
 /***********************************************************************
@@ -4854,7 +4862,7 @@ PSECURITY_DESCRIPTOR WINAPI GetShellSecurityDescriptor(const PSHELL_USER_PERMISS
     if (apUserPerm == NULL || cUserPerm <= 0)
         return NULL;
 
-    sidlist = HeapAlloc(GetProcessHeap(), 0, cUserPerm * sizeof(PSID));
+    sidlist = heap_alloc(cUserPerm * sizeof(PSID));
     if (!sidlist)
         return NULL;
 
@@ -4899,7 +4907,7 @@ PSECURITY_DESCRIPTOR WINAPI GetShellSecurityDescriptor(const PSHELL_USER_PERMISS
         acl_size += (sizeof(ACCESS_ALLOWED_ACE)-sizeof(DWORD) + GetLengthSid(pSid)) * (perm->fInherit ? 2 : 1);
     }
 
-    psd = LocalAlloc(0, sizeof(SECURITY_DESCRIPTOR) + acl_size);
+    psd = heap_alloc(sizeof(SECURITY_DESCRIPTOR) + acl_size);
 
     if (psd != NULL)
     {
@@ -4943,7 +4951,7 @@ PSECURITY_DESCRIPTOR WINAPI GetShellSecurityDescriptor(const PSHELL_USER_PERMISS
     goto free_sids;
 
 error:
-    LocalFree(psd);
+    heap_free(psd);
     psd = NULL;
 free_sids:
     for(i = 0; i < sid_count; i++)
@@ -4951,7 +4959,7 @@ free_sids:
         if (!cur_user || sidlist[i] != cur_user)
             FreeSid(sidlist[i]);
     }
-    HeapFree(GetProcessHeap(), 0, sidlist);
+    heap_free(sidlist);
 
     return psd;
 }
@@ -5099,13 +5107,13 @@ INT WINAPI SHFormatDateTimeA(const FILETIME UNALIGNED *fileTime, DWORD *flags,
     if (!buf || !size)
         return 0;
 
-    bufW = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * size);
+    bufW = heap_alloc(sizeof(WCHAR) * size);
     retval = SHFormatDateTimeW(fileTime, flags, bufW, size);
 
     if (retval != 0)
         WideCharToMultiByte(CP_ACP, 0, bufW, -1, buf, size, NULL, NULL);
 
-    HeapFree(GetProcessHeap(), 0, bufW);
+    heap_free(bufW);
     return retval;
 }
 

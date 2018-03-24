@@ -299,8 +299,8 @@ static ULONG WINAPI OLEClipbrd_IEnumFORMATETC_Release(LPENUMFORMATETC iface)
   if (!ref)
   {
     TRACE("() - destroying IEnumFORMATETC(%p)\n",This);
-    HeapFree(GetProcessHeap(), 0, This->data);
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This->data);
+    heap_free(This);
   }
   return ref;
 }
@@ -399,7 +399,7 @@ static HRESULT WINAPI OLEClipbrd_IEnumFORMATETC_Clone
   if ( !obj ) return E_INVALIDARG;
   *obj = NULL;
 
-  new_data = HeapAlloc(GetProcessHeap(), 0, This->data->size);
+  new_data = heap_alloc(This->data->size);
   if(!new_data) return E_OUTOFMEMORY;
   memcpy(new_data, This->data, This->data->size);
 
@@ -432,7 +432,7 @@ static HRESULT enum_fmtetc_construct(ole_priv_data *data, UINT pos, IEnumFORMATE
   enum_fmtetc* ef;
 
   *obj = NULL;
-  ef = HeapAlloc(GetProcessHeap(), 0, sizeof(*ef));
+  ef = heap_alloc(sizeof(*ef));
   if (!ef) return E_OUTOFMEMORY;
 
   ef->ref = 1;
@@ -452,6 +452,7 @@ static HRESULT enum_fmtetc_construct(ole_priv_data *data, UINT pos, IEnumFORMATE
  */
 static HRESULT dup_global_mem( HGLOBAL src, DWORD flags, HGLOBAL *dst )
 {
+#if 0
     void *src_ptr, *dst_ptr;
     DWORD size;
 
@@ -472,6 +473,9 @@ static HRESULT dup_global_mem( HGLOBAL src, DWORD flags, HGLOBAL *dst )
     GlobalUnlock(src);
 
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /***********************************************************************
@@ -482,6 +486,7 @@ static HRESULT dup_global_mem( HGLOBAL src, DWORD flags, HGLOBAL *dst )
  */
 static HRESULT dup_metafilepict(HGLOBAL src, HGLOBAL *pdest)
 {
+#if 0
     HRESULT hr;
     HGLOBAL dest;
     METAFILEPICT *dest_ptr;
@@ -509,8 +514,12 @@ static HRESULT dup_metafilepict(HGLOBAL src, HGLOBAL *pdest)
        GlobalFree(dest);
        return E_FAIL;
     }
+#else
+    return E_NOTIMPL;
+#endif
 }
 
+#if 0
 /***********************************************************************
  *                    free_metafilepict
  *
@@ -529,6 +538,7 @@ static void free_metafilepict(HGLOBAL src)
     }
     GlobalFree(src);
 }
+#endif
 
 /***********************************************************************
  *                    dup_bitmap
@@ -568,6 +578,7 @@ static HRESULT dup_bitmap(HBITMAP src, HBITMAP *pdest)
  */
 static HRESULT render_embed_source_hack(IDataObject *data, LPFORMATETC fmt)
 {
+#if 0
     STGMEDIUM std;
     HGLOBAL hStorage = 0;
     HRESULT hr = S_OK;
@@ -648,14 +659,14 @@ static HRESULT render_embed_source_hack(IDataObject *data, LPFORMATETC fmt)
 
             hr = IStream_Write(pStream, &pdh, sizeof(PresentationDataHeader), NULL);
 
-            mfBits = HeapAlloc(GetProcessHeap(), 0, nSize);
+            mfBits = heap_alloc(nSize);
             nSize = GetMetaFileBitsEx(mfp->hMF, nSize, mfBits);
 
             hr = IStream_Write(pStream, mfBits, nSize, NULL);
 
             IStream_Release(pStream);
 
-            HeapFree(GetProcessHeap(), 0, mfBits);
+            heap_free(mfBits);
 
             GlobalUnlock(std2.u.hGlobal);
             ReleaseStgMedium(&std2);
@@ -679,6 +690,9 @@ static HRESULT render_embed_source_hack(IDataObject *data, LPFORMATETC fmt)
 
     ReleaseStgMedium(&std);
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /************************************************************************
@@ -712,6 +726,7 @@ static HRESULT get_data_from_storage(IDataObject *data, FORMATETC *fmt, HGLOBAL 
 
     *mem = NULL;
 
+#if 0
     h = GlobalAlloc( GMEM_DDESHARE|GMEM_MOVEABLE, 0 );
     if(!h) return E_OUTOFMEMORY;
 
@@ -749,6 +764,9 @@ end:
     IStorage_Release(stg);
     if(FAILED(hr)) GlobalFree(h);
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /***************************************************************************
@@ -766,6 +784,7 @@ static HRESULT get_data_from_stream(IDataObject *data, FORMATETC *fmt, HGLOBAL *
 
     *mem = NULL;
 
+#if 0
     h = GlobalAlloc( GMEM_DDESHARE|GMEM_MOVEABLE, 0 );
     if(!h) return E_OUTOFMEMORY;
 
@@ -802,6 +821,9 @@ error:
     if(stm) IStream_Release(stm);
     GlobalFree(h);
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /***************************************************************************
@@ -811,6 +833,7 @@ error:
  */
 static HRESULT get_data_from_global(IDataObject *data, FORMATETC *fmt, HGLOBAL *mem)
 {
+#if 0
     HGLOBAL h;
     HRESULT hr;
     FORMATETC mem_fmt;
@@ -832,6 +855,9 @@ static HRESULT get_data_from_global(IDataObject *data, FORMATETC *fmt, HGLOBAL *
     ReleaseStgMedium(&med);
 
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /***************************************************************************
@@ -839,6 +865,7 @@ static HRESULT get_data_from_global(IDataObject *data, FORMATETC *fmt, HGLOBAL *
  */
 static HRESULT get_data_from_enhmetafile(IDataObject *data, FORMATETC *fmt, HGLOBAL *mem)
 {
+#if 0
     HENHMETAFILE copy;
     HRESULT hr;
     FORMATETC mem_fmt;
@@ -860,6 +887,9 @@ static HRESULT get_data_from_enhmetafile(IDataObject *data, FORMATETC *fmt, HGLO
     ReleaseStgMedium(&med);
 
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /***************************************************************************
@@ -867,6 +897,7 @@ static HRESULT get_data_from_enhmetafile(IDataObject *data, FORMATETC *fmt, HGLO
  */
 static HRESULT get_data_from_metafilepict(IDataObject *data, FORMATETC *fmt, HGLOBAL *mem)
 {
+#if 0
     HGLOBAL copy;
     HRESULT hr;
     FORMATETC mem_fmt;
@@ -888,6 +919,9 @@ static HRESULT get_data_from_metafilepict(IDataObject *data, FORMATETC *fmt, HGL
     ReleaseStgMedium(&med);
 
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /***************************************************************************
@@ -897,6 +931,7 @@ static HRESULT get_data_from_metafilepict(IDataObject *data, FORMATETC *fmt, HGL
  */
 static HRESULT get_data_from_bitmap(IDataObject *data, FORMATETC *fmt, HBITMAP *hbm)
 {
+#if 0
     HBITMAP copy;
     HRESULT hr;
     FORMATETC mem_fmt;
@@ -918,6 +953,9 @@ static HRESULT get_data_from_bitmap(IDataObject *data, FORMATETC *fmt, HBITMAP *
     ReleaseStgMedium(&med);
 
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /***********************************************************************
@@ -928,6 +966,7 @@ static HRESULT get_data_from_bitmap(IDataObject *data, FORMATETC *fmt, HBITMAP *
  */
 static HRESULT render_format(IDataObject *data, LPFORMATETC fmt)
 {
+#if 0
     HANDLE clip_data = NULL;  /* HGLOBAL unless otherwise specified */
     HRESULT hr;
 
@@ -985,6 +1024,9 @@ static HRESULT render_format(IDataObject *data, LPFORMATETC fmt)
     }
 
     return hr;
+#else
+    return ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 }
 
 /*---------------------------------------------------------------------*
@@ -1060,7 +1102,7 @@ static ULONG WINAPI snapshot_Release(IDataObject *iface)
         LeaveCriticalSection(&latest_snapshot_cs);
 
         if(This->data) IDataObject_Release(This->data);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1076,6 +1118,7 @@ static ULONG WINAPI snapshot_Release(IDataObject *iface)
  */
 static HWND get_current_ole_clip_window(void)
 {
+#if 0
     HGLOBAL h;
     HWND *ptr, wnd;
 
@@ -1086,6 +1129,9 @@ static HWND get_current_ole_clip_window(void)
     wnd = *ptr;
     GlobalUnlock(h);
     return wnd;
+#else
+    return NULL;
+#endif
 }
 
 /************************************************************
@@ -1108,6 +1154,7 @@ static HRESULT get_current_dataobject(IDataObject **data)
 
     h = GetClipboardData(wine_marshal_clipboard_format);
     if(!h) return S_FALSE;
+#if 0
     if(GlobalSize(h) <= 1) return S_FALSE;
     ptr = GlobalLock(h);
     if(!ptr) return S_FALSE;
@@ -1127,6 +1174,9 @@ static HRESULT get_current_dataobject(IDataObject **data)
 end:
     GlobalUnlock(h);
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static DWORD get_tymed_from_nonole_cf(UINT cf)
@@ -1158,6 +1208,7 @@ static DWORD get_tymed_from_nonole_cf(UINT cf)
  */
 static HRESULT get_priv_data(ole_priv_data **data)
 {
+#if 0
     HGLOBAL handle;
     HRESULT hr = S_OK;
     ole_priv_data *ret = NULL;
@@ -1173,7 +1224,7 @@ static HRESULT get_priv_data(ole_priv_data **data)
             DWORD i;
 
             /* FIXME: sanity check on size */
-            ret = HeapAlloc(GetProcessHeap(), 0, src->size);
+            ret = heap_alloc(src->size);
             if(!ret)
             {
                 GlobalUnlock(handle);
@@ -1206,7 +1257,7 @@ static HRESULT get_priv_data(ole_priv_data **data)
         size += count * sizeof(ret->entries[0]);
 
         /* There are holes in fmtetc so zero init */
-        ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+        ret = heap_alloc_zero(size);
         if(!ret) return E_OUTOFMEMORY;
         ret->size = size;
         ret->count = count;
@@ -1224,6 +1275,9 @@ static HRESULT get_priv_data(ole_priv_data **data)
 
     *data = ret;
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /************************************************************************
@@ -1252,6 +1306,7 @@ static HRESULT get_stgmed_for_global(HGLOBAL h, STGMEDIUM *med)
  */
 static HRESULT get_stgmed_for_stream(HGLOBAL h, STGMEDIUM *med)
 {
+#if 0
     HRESULT hr;
     HGLOBAL dst;
 
@@ -1270,6 +1325,9 @@ static HRESULT get_stgmed_for_stream(HGLOBAL h, STGMEDIUM *med)
 
     med->tymed = TYMED_ISTREAM;
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /************************************************************************
@@ -1279,6 +1337,7 @@ static HRESULT get_stgmed_for_stream(HGLOBAL h, STGMEDIUM *med)
  */
 static HRESULT get_stgmed_for_storage(HGLOBAL h, STGMEDIUM *med)
 {
+#if 0
     HRESULT hr;
     HGLOBAL dst;
     ILockBytes *lbs;
@@ -1306,6 +1365,9 @@ static HRESULT get_stgmed_for_storage(HGLOBAL h, STGMEDIUM *med)
 
     med->tymed = TYMED_ISTORAGE;
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /************************************************************************
@@ -1448,7 +1510,7 @@ static HRESULT WINAPI snapshot_GetData(IDataObject *iface, FORMATETC *fmt,
     }
 
 end:
-    HeapFree(GetProcessHeap(), 0, enum_data);
+    heap_free(enum_data);
     if ( !CloseClipboard() ) hr = CLIPBRD_E_CANT_CLOSE;
     return hr;
 }
@@ -1470,6 +1532,7 @@ static HRESULT WINAPI snapshot_GetDataHere(IDataObject *iface, FORMATETC *fmt,
 
     TRACE("(%p, %p {%s}, %p (tymed %x)\n", iface, fmt, dump_fmtetc(fmt), med, med->tymed);
 
+#if 0
     if ( !OpenClipboard(NULL)) return CLIPBRD_E_CANT_OPEN;
 
     if(!This->data)
@@ -1558,9 +1621,12 @@ static HRESULT WINAPI snapshot_GetDataHere(IDataObject *iface, FORMATETC *fmt,
     }
 
 end:
-    HeapFree(GetProcessHeap(), 0, enum_data);
+    heap_free(enum_data);
     if ( !CloseClipboard() ) hr = CLIPBRD_E_CANT_CLOSE;
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /************************************************************************
@@ -1698,7 +1764,7 @@ static snapshot *snapshot_construct(DWORD seq_no)
 {
     snapshot *This;
 
-    This = HeapAlloc( GetProcessHeap(), 0, sizeof(*This) );
+    This = heap_alloc( sizeof(*This) );
     if (!This) return NULL;
 
     This->IDataObject_iface.lpVtbl = &snapshot_vtable;
@@ -1745,6 +1811,7 @@ static void register_clipboard_formats(void)
     wine_marshal_clipboard_format = RegisterClipboardFormatW(WineMarshalledDataObject);
 }
 
+#if 0
 /***********************************************************************
  * OLEClipbrd_Initialize()
  * Initializes the OLE clipboard.
@@ -1760,7 +1827,7 @@ void OLEClipbrd_Initialize(void)
 
         TRACE("()\n");
 
-        clipbrd = HeapAlloc( GetProcessHeap(), 0, sizeof(*clipbrd) );
+        clipbrd = heap_alloc( sizeof(*clipbrd) );
         if (!clipbrd) return;
 
         clipbrd->latest_snapshot = NULL;
@@ -1771,20 +1838,21 @@ void OLEClipbrd_Initialize(void)
         h = GlobalAlloc(GMEM_DDESHARE | GMEM_MOVEABLE, 0);
         if(!h)
         {
-            HeapFree(GetProcessHeap(), 0, clipbrd);
+            heap_free(clipbrd);
             return;
         }
 
         if(FAILED(CreateStreamOnHGlobal(h, TRUE, &clipbrd->marshal_data)))
         {
             GlobalFree(h);
-            HeapFree(GetProcessHeap(), 0, clipbrd);
+            heap_free(clipbrd);
             return;
         }
 
         theOleClipboard = clipbrd;
     }
 }
+#endif
 
 /*********************************************************************
  *          set_clipboard_formats
@@ -1797,6 +1865,7 @@ void OLEClipbrd_Initialize(void)
  */
 static HRESULT set_clipboard_formats(ole_clipbrd *clipbrd, IDataObject *data)
 {
+#if 0
     HRESULT hr;
     FORMATETC fmt;
     IEnumFORMATETC *enum_fmt;
@@ -1865,7 +1934,7 @@ static HRESULT set_clipboard_formats(ole_clipbrd *clipbrd, IDataObject *data)
     IEnumFORMATETC_Release(enum_fmt);
 
     /* Cache the list and fixup any target device offsets to ptrs */
-    clipbrd->cached_enum = HeapAlloc(GetProcessHeap(), 0, needed);
+    clipbrd->cached_enum = heap_alloc(needed);
     memcpy(clipbrd->cached_enum, priv_data, needed);
     for(idx = 0; idx < clipbrd->cached_enum->count; idx++)
         clipbrd->cached_enum->entries[idx].fmtetc.ptd =
@@ -1879,6 +1948,9 @@ static HRESULT set_clipboard_formats(ole_clipbrd *clipbrd, IDataObject *data)
     }
 
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HWND create_clipbrd_window(void);
@@ -1921,6 +1993,7 @@ static inline void release_marshal_data(IStream *stm)
  */
 static HRESULT expose_marshalled_dataobject(ole_clipbrd *clipbrd, IDataObject *data)
 {
+#if 0
     HGLOBAL h;
 
     if(data)
@@ -1940,6 +2013,9 @@ static HRESULT expose_marshalled_dataobject(ole_clipbrd *clipbrd, IDataObject *d
         return CLIPBRD_E_CANT_SET;
     }
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /***********************************************************************
@@ -1964,7 +2040,7 @@ static HRESULT set_src_dataobject(ole_clipbrd *clipbrd, IDataObject *data)
 
         IDataObject_Release(clipbrd->src_data);
         clipbrd->src_data = NULL;
-        HeapFree(GetProcessHeap(), 0, clipbrd->cached_enum);
+        heap_free(clipbrd->cached_enum);
         clipbrd->cached_enum = NULL;
     }
 
@@ -2015,7 +2091,7 @@ void OLEClipbrd_UnInitialize(void)
         }
 
         IStream_Release(clipbrd->marshal_data);
-        HeapFree(GetProcessHeap(), 0, clipbrd);
+        heap_free(clipbrd);
         theOleClipboard = NULL;
     }
 }
@@ -2115,6 +2191,7 @@ static HWND create_clipbrd_window(void)
  */
 static HRESULT set_dataobject_format(HWND hwnd)
 {
+#if 0
     HGLOBAL h = GlobalAlloc(GMEM_DDESHARE | GMEM_MOVEABLE, sizeof(hwnd));
     HWND *data;
 
@@ -2131,6 +2208,9 @@ static HRESULT set_dataobject_format(HWND hwnd)
     }
 
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 /*---------------------------------------------------------------------*

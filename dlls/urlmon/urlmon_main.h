@@ -32,7 +32,6 @@
 #include "wininet.h"
 
 #include "wine/unicode.h"
-#include "wine/heap.h"
 #include "wine/list.h"
 
 extern HINSTANCE hProxyDll DECLSPEC_HIDDEN;
@@ -235,9 +234,29 @@ void release_notif_hwnd(HWND) DECLSPEC_HIDDEN;
 
 const char *debugstr_bindstatus(ULONG) DECLSPEC_HIDDEN;
 
+static inline void* __WINE_ALLOC_SIZE(1) heap_alloc(size_t size)
+{
+    return heap_alloc(size);
+}
+
+static inline void* __WINE_ALLOC_SIZE(1) heap_alloc_zero(size_t size)
+{
+    return heap_alloc_zero(size);
+}
+
+static inline void* __WINE_ALLOC_SIZE(2) heap_realloc(void *mem, size_t size)
+{
+    return heap_realloc(mem, size);
+}
+
 static inline void* __WINE_ALLOC_SIZE(2) heap_realloc_zero(void *mem, size_t size)
 {
     return HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, mem, size);
+}
+
+static inline BOOL heap_free(void *mem)
+{
+    return heap_free(mem);
 }
 
 static inline LPWSTR heap_strdupW(LPCWSTR str)

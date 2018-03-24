@@ -52,11 +52,13 @@ WINE_DEFAULT_DEBUG_CHANNEL(thread);
 #define PTHREAD_STACK_MIN 16384
 #endif
 
+#if 0
 struct _KUSER_SHARED_DATA *user_shared_data = NULL;
 static const WCHAR default_windirW[] = {'C',':','\\','w','i','n','d','o','w','s',0};
 
 PUNHANDLED_EXCEPTION_FILTER unhandled_exception_filter = NULL;
 void (WINAPI *kernel32_start_process)(LPTHREAD_START_ROUTINE,void*) = NULL;
+#endif
 
 /* info passed to a starting thread */
 struct startup_info
@@ -100,6 +102,7 @@ static inline void get_unicode_string( UNICODE_STRING *str, WCHAR **src, WCHAR *
     *dst += len / sizeof(WCHAR) + 1;
 }
 
+#if 0
 /***********************************************************************
  *           init_user_process_params
  *
@@ -114,7 +117,7 @@ static NTSTATUS init_user_process_params( SIZE_T data_size, HANDLE *exe_file )
     startup_info_t *info;
     RTL_USER_PROCESS_PARAMETERS *params = NULL;
 
-    if (!(info = RtlAllocateHeap( GetProcessHeap(), 0, data_size )))
+    if (!(info = malloc( data_size )))
         return STATUS_NO_MEMORY;
 
     SERVER_START_REQ( get_startup_info )
@@ -196,9 +199,10 @@ static NTSTATUS init_user_process_params( SIZE_T data_size, HANDLE *exe_file )
     params->Environment = ptr;
 
 done:
-    RtlFreeHeap( GetProcessHeap(), 0, info );
+    free( info );
     return status;
 }
+#endif
 
 #ifdef __linux__
 
@@ -266,6 +270,7 @@ static ULONG_PTR get_image_addr(void)
 }
 #endif
 
+#if 0
 /***********************************************************************
  *           thread_init
  *
@@ -453,6 +458,7 @@ void exit_thread( int status )
     close( ntdll_get_thread_data()->request_fd );
     pthread_exit( UIntToPtr(status) );
 }
+#endif
 
 
 /***********************************************************************
@@ -460,6 +466,7 @@ void exit_thread( int status )
  */
 void WINAPI RtlExitUserThread( ULONG status )
 {
+#if 0
     static void *prev_teb;
     TEB *teb;
 
@@ -498,9 +505,11 @@ void WINAPI RtlExitUserThread( ULONG status )
     }
 
     signal_exit_thread( status );
+#endif
 }
 
 
+#if 0
 /***********************************************************************
  *           start_thread
  *
@@ -522,6 +531,7 @@ static void start_thread( struct startup_info *info )
     server_init_thread( info->entry_point, &suspend );
     signal_start_thread( (LPTHREAD_START_ROUTINE)info->entry_point, info->entry_arg, suspend );
 }
+#endif
 
 
 /***********************************************************************
@@ -550,6 +560,7 @@ NTSTATUS WINAPI RtlCreateUserThread( HANDLE process, const SECURITY_DESCRIPTOR *
                                      PRTL_THREAD_START_ROUTINE start, void *param,
                                      HANDLE *handle_ptr, CLIENT_ID *id )
 {
+#if 0
     sigset_t sigset;
     pthread_t pthread_id;
     pthread_attr_t attr;
@@ -627,7 +638,7 @@ NTSTATUS WINAPI RtlCreateUserThread( HANDLE process, const SECURITY_DESCRIPTOR *
     {
         RTL_ACTIVATION_CONTEXT_STACK_FRAME *frame;
 
-        frame = RtlAllocateHeap(GetProcessHeap(), 0, sizeof(*frame));
+        frame = malloc(sizeof(*frame));
         frame->Previous = NULL;
         frame->ActivationContext = actctx;
         frame->Flags = 0;
@@ -676,6 +687,9 @@ error:
     pthread_sigmask( SIG_SETMASK, &sigset, NULL );
     close( request_pipe[1] );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -696,6 +710,7 @@ ULONG WINAPI RtlGetNtGlobalFlags(void)
 NTSTATUS WINAPI NtOpenThread( HANDLE *handle, ACCESS_MASK access,
                               const OBJECT_ATTRIBUTES *attr, const CLIENT_ID *id )
 {
+#if 0
     NTSTATUS ret;
 
     SERVER_START_REQ( open_thread )
@@ -708,6 +723,9 @@ NTSTATUS WINAPI NtOpenThread( HANDLE *handle, ACCESS_MASK access,
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -717,6 +735,7 @@ NTSTATUS WINAPI NtOpenThread( HANDLE *handle, ACCESS_MASK access,
  */
 NTSTATUS WINAPI NtSuspendThread( HANDLE handle, PULONG count )
 {
+#if 0
     NTSTATUS ret;
 
     SERVER_START_REQ( suspend_thread )
@@ -729,6 +748,9 @@ NTSTATUS WINAPI NtSuspendThread( HANDLE handle, PULONG count )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -738,6 +760,7 @@ NTSTATUS WINAPI NtSuspendThread( HANDLE handle, PULONG count )
  */
 NTSTATUS WINAPI NtResumeThread( HANDLE handle, PULONG count )
 {
+#if 0
     NTSTATUS ret;
 
     SERVER_START_REQ( resume_thread )
@@ -750,6 +773,9 @@ NTSTATUS WINAPI NtResumeThread( HANDLE handle, PULONG count )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -781,6 +807,7 @@ NTSTATUS WINAPI NtAlertThread( HANDLE handle )
  */
 NTSTATUS WINAPI NtTerminateThread( HANDLE handle, LONG exit_code )
 {
+#if 0
     NTSTATUS ret;
     BOOL self;
 
@@ -795,6 +822,9 @@ NTSTATUS WINAPI NtTerminateThread( HANDLE handle, LONG exit_code )
 
     if (self) abort_thread( exit_code );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -804,6 +834,7 @@ NTSTATUS WINAPI NtTerminateThread( HANDLE handle, LONG exit_code )
 NTSTATUS WINAPI NtQueueApcThread( HANDLE handle, PNTAPCFUNC func, ULONG_PTR arg1,
                                   ULONG_PTR arg2, ULONG_PTR arg3 )
 {
+#if 0
     NTSTATUS ret;
     SERVER_START_REQ( queue_apc )
     {
@@ -821,9 +852,13 @@ NTSTATUS WINAPI NtQueueApcThread( HANDLE handle, PNTAPCFUNC func, ULONG_PTR arg1
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
+#if 0
 /******************************************************************************
  *              RtlPushFrame  (NTDLL.@)
  */
@@ -972,6 +1007,7 @@ NTSTATUS get_thread_context( HANDLE handle, CONTEXT *context, BOOL *self )
     if (!ret) ret = context_from_server( context, &server_context );
     return ret;
 }
+#endif
 
 
 /******************************************************************************
@@ -981,6 +1017,7 @@ NTSTATUS get_thread_context( HANDLE handle, CONTEXT *context, BOOL *self )
 NTSTATUS WINAPI NtQueryInformationThread( HANDLE handle, THREADINFOCLASS class,
                                           void *data, ULONG length, ULONG *ret_len )
 {
+#if 0
     NTSTATUS status;
 
     switch(class)
@@ -1233,9 +1270,13 @@ NTSTATUS WINAPI NtQueryInformationThread( HANDLE handle, THREADINFOCLASS class,
         FIXME( "info class %d not supported yet\n", class );
         return STATUS_NOT_IMPLEMENTED;
     }
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
+#if 0
 /******************************************************************************
  *              NtSetInformationThread  (NTDLL.@)
  *              ZwSetInformationThread  (NTDLL.@)
@@ -1392,6 +1433,7 @@ NTSTATUS WINAPI NtSetInformationThread( HANDLE handle, THREADINFOCLASS class,
         return STATUS_NOT_IMPLEMENTED;
     }
 }
+#endif
 
 /******************************************************************************
  * NtGetCurrentProcessorNumber (NTDLL.@)
@@ -1401,6 +1443,7 @@ NTSTATUS WINAPI NtSetInformationThread( HANDLE handle, THREADINFOCLASS class,
  */
 ULONG WINAPI NtGetCurrentProcessorNumber(void)
 {
+#if 0
     ULONG processor;
 
 #if defined(__linux__) && defined(__NR_getcpu)
@@ -1430,6 +1473,7 @@ ULONG WINAPI NtGetCurrentProcessorNumber(void)
             }
         }
     }
+#endif
 
     /* fallback to the first processor */
     return 0;

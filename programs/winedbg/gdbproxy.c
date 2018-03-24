@@ -996,8 +996,8 @@ enum packet_return {packet_error = 0x00, packet_ok = 0x01, packet_done = 0x02,
 static char* packet_realloc(char* buf, int size)
 {
     if (!buf)
-        return HeapAlloc(GetProcessHeap(), 0, size);
-    return HeapReAlloc(GetProcessHeap(), 0, buf, size);
+        return heap_alloc(size);
+    return heap_realloc(buf, size);
 
 }
 

@@ -22,28 +22,39 @@
 #ifndef __WINE_WINE_HEAP_H
 #define __WINE_WINE_HEAP_H
 
+#include <stdlib.h>
+
+#include <windef.h>
 #include <winbase.h>
 
 static inline void * __WINE_ALLOC_SIZE(1) heap_alloc(SIZE_T len)
 {
-    return HeapAlloc(GetProcessHeap(), 0, len);
+    return malloc(len);
 }
 
 static inline void * __WINE_ALLOC_SIZE(1) heap_alloc_zero(SIZE_T len)
 {
-    return HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+    return calloc(1, len);
 }
 
 static inline void * __WINE_ALLOC_SIZE(2) heap_realloc(void *mem, SIZE_T len)
 {
     if (!mem)
-        return HeapAlloc(GetProcessHeap(), 0, len);
-    return HeapReAlloc(GetProcessHeap(), 0, mem, len);
+        return malloc(len);
+    return realloc(mem, len);
 }
 
-static inline void heap_free(void *mem)
+#if 0
+static inline void * __WINE_ALLOC_SIZE(2) heap_realloc_zero(void *mem, size_t len)
 {
-    HeapFree(GetProcessHeap(), 0, mem);
+    return HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, mem, len);
+}
+#endif
+
+static inline BOOL heap_free(void *mem)
+{
+    free(mem);
+    return TRUE;
 }
 
 static inline void *heap_calloc(SIZE_T count, SIZE_T size)
@@ -52,7 +63,7 @@ static inline void *heap_calloc(SIZE_T count, SIZE_T size)
 
     if (size && len / size != count)
         return NULL;
-    return HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+    return calloc(1, len);
 }
 
 #endif  /* __WINE_WINE_HEAP_H */

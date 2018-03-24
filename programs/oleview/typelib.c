@@ -140,13 +140,13 @@ static void SaveIdl(WCHAR *wszFileName)
     }
 
     len = WideCharToMultiByte( CP_UTF8, 0, data->idl, data->idlLen, NULL, 0, NULL, NULL );
-    wszIdl = HeapAlloc(GetProcessHeap(), 0, len);
+    wszIdl = heap_alloc(len);
     WideCharToMultiByte( CP_UTF8, 0, data->idl, data->idlLen, wszIdl, len, NULL, NULL );
 
     if(!WriteFile(hFile, wszIdl, len, &dwNumWrite, NULL))
         ShowLastError();
 
-    HeapFree(GetProcessHeap(), 0, wszIdl);
+    heap_free(wszIdl);
     CloseHandle(hFile);
 }
 
@@ -199,7 +199,7 @@ static void AddToTLDataStrW(TYPELIB_DATA *pTLData, const WCHAR *wszSource)
 {
     int SourceLen = lstrlenW(wszSource);
 
-    pTLData->idl = HeapReAlloc(GetProcessHeap(), 0, pTLData->idl,
+    pTLData->idl = heap_realloc(pTLData->idl,
             sizeof(WCHAR)*(pTLData->idlLen+SourceLen+1));
 
     memcpy(&pTLData->idl[pTLData->idlLen], wszSource, sizeof(WCHAR)*(SourceLen+1));
@@ -221,7 +221,7 @@ static void AddToTLDataStrWithTabsW(TYPELIB_DATA *pTLData, WCHAR *wszSource)
     }
     if(*(pSourcePos - 1) != *wszNewLine) newLinesNo++;
 
-    pTLData->idl = HeapReAlloc(GetProcessHeap(), 0, pTLData->idl,
+    pTLData->idl = heap_realloc(pTLData->idl,
             sizeof(WCHAR)*(pTLData->idlLen+lineLen+4*newLinesNo+1));
 
     pSourcePos = wszSource;
@@ -260,9 +260,9 @@ static TYPELIB_DATA *InitializeTLData(void)
 {
     TYPELIB_DATA *pTLData;
 
-    pTLData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(TYPELIB_DATA));
+    pTLData = heap_alloc_zero(sizeof(TYPELIB_DATA));
 
-    pTLData->idl = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR));
+    pTLData->idl = heap_alloc(sizeof(WCHAR));
     pTLData->idl[0] = '\0';
 
     return pTLData;
@@ -620,7 +620,7 @@ static int EnumFuncs(ITypeInfo *pTypeInfo, TYPEATTR *pTypeAttr, HTREEITEM hParen
         if(FAILED(ITypeInfo_GetNames(pTypeInfo, pFuncDesc->memid, bstrParamNames,
                 pFuncDesc->cParams+1, &namesNo)))
         {
-            HeapFree(GetProcessHeap(), 0, bstrParamNames);
+            heap_free(bstrParamNames);
             continue;
         }
         SysFreeString(bstrParamNames[0]);
@@ -715,7 +715,7 @@ static int EnumFuncs(ITypeInfo *pTypeInfo, TYPEATTR *pTypeAttr, HTREEITEM hParen
         AddToTLDataStrW(tld, wszNewLine);
 
         SendMessageW(typelib.hTree, TVM_INSERTITEMW, 0, (LPARAM)&tvis);
-        HeapFree(GetProcessHeap(), 0, bstrParamNames);
+        heap_free(bstrParamNames);
         SysFreeString(bstrName);
         SysFreeString(bstrHelpString);
         ITypeInfo_ReleaseFuncDesc(pTypeInfo, pFuncDesc);
@@ -1565,8 +1565,8 @@ static void EmptyTLTree(void)
         SendMessageW(typelib.hTree, TVM_GETITEMW, 0, (LPARAM)&tvi);
         if(tvi.lParam)
         {
-            HeapFree(GetProcessHeap(), 0, ((TYPELIB_DATA *)tvi.lParam)->idl);
-            HeapFree(GetProcessHeap(), 0, (TYPELIB_DATA *)tvi.lParam);
+            heap_free(((TYPELIB_DATA *)tvi.lParam)->idl);
+            heap_free((TYPELIB_DATA *)tvi.lParam);
         }
 
         SendMessageW(typelib.hTree, TVM_DELETEITEM, 0, (LPARAM)del);

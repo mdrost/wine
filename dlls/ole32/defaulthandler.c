@@ -440,21 +440,21 @@ static HRESULT WINAPI DefaultHandler_SetHostNames(
   }
 
   /* Be sure to cleanup before re-assigning the strings. */
-  HeapFree( GetProcessHeap(), 0, This->containerApp );
+  heap_free( This->containerApp );
   This->containerApp = NULL;
-  HeapFree( GetProcessHeap(), 0, This->containerObj );
+  heap_free( This->containerObj );
   This->containerObj = NULL;
 
   if (szContainerApp)
   {
-      if ((This->containerApp = HeapAlloc( GetProcessHeap(), 0,
+      if ((This->containerApp = heap_alloc(
                                            (lstrlenW(szContainerApp) + 1) * sizeof(WCHAR) )))
           strcpyW( This->containerApp, szContainerApp );
   }
 
   if (szContainerObj)
   {
-      if ((This->containerObj = HeapAlloc( GetProcessHeap(), 0,
+      if ((This->containerObj = heap_alloc(
                                            (lstrlenW(szContainerObj) + 1) * sizeof(WCHAR) )))
           strcpyW( This->containerObj, szContainerObj );
   }
@@ -2067,7 +2067,7 @@ static DefaultHandler* DefaultHandler_Construct(
   DefaultHandler* This = NULL;
   HRESULT hr;
 
-  This = HeapAlloc(GetProcessHeap(), 0, sizeof(DefaultHandler));
+  This = heap_alloc(sizeof(DefaultHandler));
 
   if (!This)
     return This;
@@ -2120,7 +2120,7 @@ static DefaultHandler* DefaultHandler_Construct(
   if(FAILED(hr))
   {
     ERR("Unexpected error creating data cache\n");
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
     return NULL;
   }
 
@@ -2180,9 +2180,9 @@ static void DefaultHandler_Destroy(
   /* release delegates */
   DefaultHandler_Stop(This);
 
-  HeapFree( GetProcessHeap(), 0, This->containerApp );
+  heap_free( This->containerApp );
   This->containerApp = NULL;
-  HeapFree( GetProcessHeap(), 0, This->containerObj );
+  heap_free( This->containerObj );
   This->containerObj = NULL;
 
   if (This->dataCache)
@@ -2226,7 +2226,7 @@ static void DefaultHandler_Destroy(
     This->pCFObject = NULL;
   }
 
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This);
 }
 
 /******************************************************************************
@@ -2330,7 +2330,7 @@ static ULONG WINAPI HandlerCF_Release(LPCLASSFACTORY iface)
     HandlerCF *This = impl_from_IClassFactory(iface);
     ULONG refs = InterlockedDecrement(&This->refs);
     if (!refs)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return refs;
 }
 
@@ -2359,7 +2359,7 @@ static const IClassFactoryVtbl HandlerClassFactoryVtbl = {
 HRESULT HandlerCF_Create(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
     HRESULT hr;
-    HandlerCF *This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    HandlerCF *This = heap_alloc(sizeof(*This));
     if (!This) return E_OUTOFMEMORY;
     This->IClassFactory_iface.lpVtbl = &HandlerClassFactoryVtbl;
     This->refs = 0;
@@ -2367,7 +2367,7 @@ HRESULT HandlerCF_Create(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 
     hr = IClassFactory_QueryInterface(&This->IClassFactory_iface, riid, ppv);
     if (FAILED(hr))
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
 
     return hr;
 }

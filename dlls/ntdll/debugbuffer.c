@@ -96,7 +96,7 @@ PDEBUG_BUFFER WINAPI RtlCreateQueryDebugBuffer(IN ULONG iSize, IN BOOLEAN iEvent
    if (iSize < sizeof(DEBUG_BUFFER)) {
      iSize = sizeof(DEBUG_BUFFER);
    }
-   oBuf = RtlAllocateHeap(GetProcessHeap(), 0, iSize);
+   oBuf = malloc(iSize);
    memset(oBuf, 0, iSize);
    FIXME("(%d, %d): returning %p\n", iSize, iEventPair, oBuf);
    return oBuf;
@@ -107,10 +107,10 @@ NTSTATUS WINAPI RtlDestroyQueryDebugBuffer(IN PDEBUG_BUFFER iBuf)
    NTSTATUS nts = STATUS_SUCCESS;
    FIXME("(%p): stub\n", iBuf);
    if (NULL != iBuf) {
-     RtlFreeHeap(GetProcessHeap(), 0, iBuf->ModuleInformation);
-     RtlFreeHeap(GetProcessHeap(), 0, iBuf->HeapInformation);
-     RtlFreeHeap(GetProcessHeap(), 0, iBuf->LockInformation);
-     RtlFreeHeap(GetProcessHeap(), 0, iBuf);
+     free(iBuf->ModuleInformation);
+     free(iBuf->HeapInformation);
+     free(iBuf->LockInformation);
+     free(iBuf);
    }
    return nts;
 }
@@ -122,12 +122,12 @@ NTSTATUS WINAPI RtlQueryProcessDebugInformation(IN ULONG iProcessId, IN ULONG iD
    iBuf->InfoClassMask = iDebugInfoMask;
    
    if (iDebugInfoMask & PDI_MODULES) {
-     PDEBUG_MODULE_INFORMATION info = RtlAllocateHeap(GetProcessHeap(), 0, sizeof(DEBUG_MODULE_INFORMATION));
+     PDEBUG_MODULE_INFORMATION info = malloc(sizeof(DEBUG_MODULE_INFORMATION));
      memset(info, 0, sizeof(DEBUG_MODULE_INFORMATION));
      iBuf->ModuleInformation = info;
    }
    if (iDebugInfoMask & PDI_HEAPS) {
-     PDEBUG_HEAP_INFORMATION info = RtlAllocateHeap(GetProcessHeap(), 0, sizeof(DEBUG_HEAP_INFORMATION));
+     PDEBUG_HEAP_INFORMATION info = malloc(sizeof(DEBUG_HEAP_INFORMATION));
      memset(info, 0, sizeof(DEBUG_HEAP_INFORMATION));
      if (iDebugInfoMask & PDI_HEAP_TAGS) {
      }
@@ -136,7 +136,7 @@ NTSTATUS WINAPI RtlQueryProcessDebugInformation(IN ULONG iProcessId, IN ULONG iD
      iBuf->HeapInformation = info;
    }
    if (iDebugInfoMask & PDI_LOCKS) {
-     PDEBUG_LOCK_INFORMATION info = RtlAllocateHeap(GetProcessHeap(), 0, sizeof(DEBUG_LOCK_INFORMATION));
+     PDEBUG_LOCK_INFORMATION info = malloc(sizeof(DEBUG_LOCK_INFORMATION));
      memset(info, 0, sizeof(DEBUG_LOCK_INFORMATION));
      iBuf->LockInformation = info;
    }

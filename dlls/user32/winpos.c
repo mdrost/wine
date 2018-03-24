@@ -30,7 +30,10 @@
 #include "winbase.h"
 #include "wingdi.h"
 #include "winerror.h"
+#include "wine/heap.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "controls.h"
 #include "user_private.h"
 #include "wine/gdi_driver.h"
@@ -108,6 +111,7 @@ BOOL WINAPI GetWindowRect( HWND hwnd, LPRECT rect )
 int WINAPI GetWindowRgn ( HWND hwnd, HRGN hrgn )
 {
     int nRet = ERROR;
+#if 0
     NTSTATUS status;
     HRGN win_rgn = 0;
     RGNDATA *data;
@@ -115,7 +119,7 @@ int WINAPI GetWindowRgn ( HWND hwnd, HRGN hrgn )
 
     do
     {
-        if (!(data = HeapAlloc( GetProcessHeap(), 0, sizeof(*data) + size - 1 )))
+        if (!(data = heap_alloc( sizeof(*data) + size - 1 )))
         {
             SetLastError( ERROR_OUTOFMEMORY );
             return ERROR;
@@ -139,7 +143,7 @@ int WINAPI GetWindowRgn ( HWND hwnd, HRGN hrgn )
             else size = reply->total_size;
         }
         SERVER_END_REQ;
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     } while (status == STATUS_BUFFER_OVERFLOW);
 
     if (status) SetLastError( RtlNtStatusToDosError(status) );
@@ -148,6 +152,9 @@ int WINAPI GetWindowRgn ( HWND hwnd, HRGN hrgn )
         nRet = CombineRgn( hrgn, win_rgn, 0, RGN_COPY );
         DeleteObject( win_rgn );
     }
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return nRet;
 }
 
@@ -177,6 +184,7 @@ int WINAPI GetWindowRgnBox( HWND hwnd, LPRECT prect )
  */
 int WINAPI SetWindowRgn( HWND hwnd, HRGN hrgn, BOOL bRedraw )
 {
+#if 0
     static const RECT empty_rect;
     BOOL ret;
 
@@ -186,10 +194,10 @@ int WINAPI SetWindowRgn( HWND hwnd, HRGN hrgn, BOOL bRedraw )
         DWORD size;
 
         if (!(size = GetRegionData( hrgn, 0, NULL ))) return FALSE;
-        if (!(data = HeapAlloc( GetProcessHeap(), 0, size ))) return FALSE;
+        if (!(data = heap_alloc( size ))) return FALSE;
         if (!GetRegionData( hrgn, size, data ))
         {
-            HeapFree( GetProcessHeap(), 0, data );
+            heap_free( data );
             return FALSE;
         }
         SERVER_START_REQ( set_window_region )
@@ -203,7 +211,7 @@ int WINAPI SetWindowRgn( HWND hwnd, HRGN hrgn, BOOL bRedraw )
             ret = !wine_server_call_err( req );
         }
         SERVER_END_REQ;
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
     else  /* clear existing region */
     {
@@ -225,6 +233,10 @@ int WINAPI SetWindowRgn( HWND hwnd, HRGN hrgn, BOOL bRedraw )
         if (hrgn) DeleteObject( hrgn );
     }
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -246,6 +258,7 @@ BOOL WINAPI GetClientRect( HWND hwnd, LPRECT rect )
  */
 static HWND *list_children_from_point( HWND hwnd, POINT pt )
 {
+#if 0
     HWND *list;
     int i, size = 128;
 
@@ -253,7 +266,7 @@ static HWND *list_children_from_point( HWND hwnd, POINT pt )
     {
         int count = 0;
 
-        if (!(list = HeapAlloc( GetProcessHeap(), 0, size * sizeof(HWND) ))) break;
+        if (!(list = heap_alloc( size * sizeof(HWND) ))) break;
 
         SERVER_START_REQ( get_window_children_from_point )
         {
@@ -272,10 +285,11 @@ static HWND *list_children_from_point( HWND hwnd, POINT pt )
             list[count] = 0;
             return list;
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
         if (!count) break;
         size = count + 1;  /* restart with a large enough buffer */
     }
+#endif
     return NULL;
 }
 
@@ -328,7 +342,7 @@ HWND WINPOS_WindowFromPoint( HWND hwndScope, POINT pt, INT *hittest )
         /* continue search with next window in z-order */
     }
     ret = list[i];
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     TRACE( "scope %p (%d,%d) returning %p\n", hwndScope, pt.x, pt.y, ret );
     return ret;
 }
@@ -392,7 +406,7 @@ HWND WINAPI ChildWindowFromPointEx( HWND hwndParent, POINT pt, UINT uFlags)
         break;
     }
     retvalue = list[i];
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     if (!retvalue) retvalue = hwndParent;
     return retvalue;
 }
@@ -406,6 +420,7 @@ HWND WINAPI ChildWindowFromPointEx( HWND hwndParent, POINT pt, UINT uFlags)
  */
 static BOOL WINPOS_GetWinOffset( HWND hwndFrom, HWND hwndTo, BOOL *mirrored, POINT *ret_offset )
 {
+#if 0
     WND * wndPtr;
     POINT offset;
     BOOL mirror_from, mirror_to, ret;
@@ -503,6 +518,10 @@ static BOOL WINPOS_GetWinOffset( HWND hwndFrom, HWND hwndTo, BOOL *mirrored, POI
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /* map coordinates of a window region */
@@ -523,7 +542,7 @@ void map_window_region( HWND from, HWND to, HRGN hrgn )
         return;
     }
     if (!(size = GetRegionData( hrgn, 0, NULL ))) return;
-    if (!(data = HeapAlloc( GetProcessHeap(), 0, size ))) return;
+    if (!(data = heap_alloc( size ))) return;
     GetRegionData( hrgn, size, data );
     rect = (RECT *)data->Buffer;
     for (i = 0; i < data->rdh.nCount; i++)
@@ -539,7 +558,7 @@ void map_window_region( HWND from, HWND to, HRGN hrgn )
         CombineRgn( hrgn, new_rgn, 0, RGN_COPY );
         DeleteObject( new_rgn );
     }
-    HeapFree( GetProcessHeap(), 0, data );
+    heap_free( data );
 }
 
 
@@ -698,6 +717,7 @@ BOOL WINPOS_RedrawIconTitle( HWND hWnd )
  */
 static void WINPOS_ShowIconTitle( HWND hwnd, BOOL bShow )
 {
+#if 0
     WND *win = WIN_GetPtr( hwnd );
     HWND title = 0;
 
@@ -733,6 +753,7 @@ static void WINPOS_ShowIconTitle( HWND hwnd, BOOL bShow )
         }
     }
     else if (title) ShowWindow( title, SW_HIDE );
+#endif
 }
 
 /*******************************************************************
@@ -943,6 +964,7 @@ static POINT WINPOS_FindIconPos( HWND hwnd, POINT pt )
 UINT WINPOS_MinMaximize( HWND hwnd, UINT cmd, LPRECT rect )
 {
     UINT swpFlags = 0;
+#if 0
     POINT size;
     LONG old_style;
     WINDOWPLACEMENT wpl;
@@ -1050,6 +1072,7 @@ UINT WINPOS_MinMaximize( HWND hwnd, UINT cmd, LPRECT rect )
         *rect = wpl.rcNormalPosition;
         break;
     }
+#endif
 
     return swpFlags;
 }
@@ -1847,7 +1870,7 @@ static HWND SWP_DoOwnedPopups(HWND hwnd, HWND hwndInsertAfter)
     }
 
 done:
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return hwndInsertAfter;
 }
 
@@ -2018,6 +2041,7 @@ static BOOL fixup_flags( WINDOWPOS *winpos )
  */
 static void update_surface_region( HWND hwnd )
 {
+#if 0
     NTSTATUS status;
     HRGN region = 0;
     RGNDATA *data;
@@ -2029,7 +2053,7 @@ static void update_surface_region( HWND hwnd )
 
     do
     {
-        if (!(data = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( RGNDATA, Buffer[size] )))) goto done;
+        if (!(data = heap_alloc( FIELD_OFFSET( RGNDATA, Buffer[size] )))) goto done;
 
         SERVER_START_REQ( get_surface_region )
         {
@@ -2051,7 +2075,7 @@ static void update_surface_region( HWND hwnd )
             else size = reply->total_size;
         }
         SERVER_END_REQ;
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     } while (status == STATUS_BUFFER_OVERFLOW);
 
     if (status) goto done;
@@ -2061,6 +2085,7 @@ static void update_surface_region( HWND hwnd )
 
 done:
     WIN_ReleasePtr( win );
+#endif
 }
 
 
@@ -2072,6 +2097,7 @@ done:
 BOOL set_window_pos( HWND hwnd, HWND insert_after, UINT swp_flags,
                      const RECT *window_rect, const RECT *client_rect, const RECT *valid_rects )
 {
+#if 0
     WND *win;
     HWND surface_win = 0, parent = GetAncestor( hwnd, GA_PARENT );
     BOOL ret, needs_update = FALSE;
@@ -2204,6 +2230,9 @@ BOOL set_window_pos( HWND hwnd, HWND insert_after, UINT swp_flags,
     else if (new_surface) window_surface_release( new_surface );
 
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -2381,17 +2410,17 @@ HDWP WINAPI BeginDeferWindowPos( INT count )
     /* Windows allows zero count, in which case it allocates context for 8 moves */
     if (count == 0) count = 8;
 
-    if (!(pDWP = HeapAlloc( GetProcessHeap(), 0, sizeof(DWP)))) return 0;
+    if (!(pDWP = heap_alloc( sizeof(DWP)))) return 0;
 
     pDWP->actualCount    = 0;
     pDWP->suggestedCount = count;
     pDWP->hwndParent     = 0;
 
-    if (!(pDWP->winPos = HeapAlloc( GetProcessHeap(), 0, count * sizeof(WINDOWPOS) )) ||
+    if (!(pDWP->winPos = heap_alloc( count * sizeof(WINDOWPOS) )) ||
         !(handle = alloc_user_handle( &pDWP->obj, USER_DWP )))
     {
-        HeapFree( GetProcessHeap(), 0, pDWP->winPos );
-        HeapFree( GetProcessHeap(), 0, pDWP );
+        heap_free( pDWP->winPos );
+        heap_free( pDWP );
     }
 
     TRACE("returning hdwp %p\n", handle);
@@ -2457,7 +2486,7 @@ HDWP WINAPI DeferWindowPos( HDWP hdwp, HWND hwnd, HWND hwndAfter,
     }
     if (pDWP->actualCount >= pDWP->suggestedCount)
     {
-        WINDOWPOS *newpos = HeapReAlloc( GetProcessHeap(), 0, pDWP->winPos,
+        WINDOWPOS *newpos = heap_realloc( pDWP->winPos,
                                          pDWP->suggestedCount * 2 * sizeof(WINDOWPOS) );
         if (!newpos)
         {
@@ -2492,6 +2521,7 @@ BOOL WINAPI EndDeferWindowPos( HDWP hdwp )
 
     TRACE("%p\n", hdwp);
 
+#if 0
     if (!(pDWP = free_user_handle( hdwp, USER_DWP ))) return FALSE;
     if (pDWP == OBJ_OTHER_PROCESS)
     {
@@ -2510,9 +2540,12 @@ BOOL WINAPI EndDeferWindowPos( HDWP hdwp )
         else
             SendMessageW( winpos->hwnd, WM_WINE_SETWINDOWPOS, 0, (LPARAM)winpos );
     }
-    HeapFree( GetProcessHeap(), 0, pDWP->winPos );
-    HeapFree( GetProcessHeap(), 0, pDWP );
+    heap_free( pDWP->winPos );
+    heap_free( pDWP );
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 

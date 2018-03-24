@@ -1177,11 +1177,11 @@ static void test_request_parameter_defaults(void)
     ok(!ret, "succeeded unexpectedly\n");
     ok(error == ERROR_INSUFFICIENT_BUFFER, "expected ERROR_INSUFFICIENT_BUFFER, got %u\n", error);
 
-    version = HeapAlloc(GetProcessHeap(), 0, size);
+    version = heap_alloc(size);
     ret = WinHttpQueryHeaders(req, WINHTTP_QUERY_VERSION, NULL, version, &size, NULL);
     ok(ret, "failed unexpectedly %u\n", GetLastError());
     ok(lstrlenW(version) == size / sizeof(WCHAR), "unexpected size %u\n", size);
-    HeapFree(GetProcessHeap(), 0, version);
+    heap_free(version);
 
     status = 0xdeadbeef;
     size = sizeof(status);
@@ -1283,7 +1283,7 @@ static void test_set_default_proxy_config(void)
     len = get_default_proxy_reg_value( NULL, 0, &type );
     if (len)
     {
-        saved_proxy_settings = HeapAlloc( GetProcessHeap(), 0, len );
+        saved_proxy_settings = heap_alloc( len );
         len = get_default_proxy_reg_value( saved_proxy_settings, len, &type );
     }
 
@@ -2990,12 +2990,12 @@ static void test_multiple_reads(int port)
         if (len)
         {
             DWORD bytes_read;
-            char *buf = HeapAlloc( GetProcessHeap(), 0, len + 1 );
+            char *buf = heap_alloc( len + 1 );
 
             ret = WinHttpReadData( req, buf, len, &bytes_read );
             ok( len == bytes_read, "only got %u of %u available\n", bytes_read, len );
 
-            HeapFree( GetProcessHeap(), 0, buf );
+            heap_free( buf );
             if (!bytes_read) break;
             total_len += bytes_read;
         }
@@ -4417,7 +4417,7 @@ static void test_chunked_read(void)
         if (len)
         {
             DWORD bytes_read;
-            char *buf = HeapAlloc( GetProcessHeap(), 0, len + 1 );
+            char *buf = heap_alloc( len + 1 );
 
             ret = WinHttpReadData( req, buf, len, &bytes_read );
 
@@ -4426,7 +4426,7 @@ static void test_chunked_read(void)
             ok( len == bytes_read, "only got %u of %u available\n", bytes_read, len );
             ok( buf[bytes_read - 1] == '\n', "received partial line '%s'\n", buf );
 
-            HeapFree( GetProcessHeap(), 0, buf );
+            heap_free( buf );
             if (!bytes_read) break;
         }
         if (!len) break;

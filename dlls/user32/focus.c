@@ -31,12 +31,16 @@
 #include "winuser.h"
 #include "win.h"
 #include "user_private.h"
+#include "wine/heap.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(win);
 
 
+#if 0
 /*****************************************************************
  *		set_focus_window
  *
@@ -69,6 +73,7 @@ static HWND set_focus_window( HWND hwnd )
     }
     return previous;
 }
+#endif
 
 
 /*******************************************************************
@@ -76,6 +81,7 @@ static HWND set_focus_window( HWND hwnd )
  */
 static BOOL set_active_window( HWND hwnd, HWND *prev, BOOL mouse, BOOL focus )
 {
+#if 0
     HWND previous = GetActiveWindow();
     BOOL ret;
     DWORD old_thread, new_thread;
@@ -144,7 +150,7 @@ static BOOL set_active_window( HWND hwnd, HWND *prev, BOOL mouse, BOOL focus )
                         SendMessageW( *phwnd, WM_ACTIVATEAPP, 1, old_thread );
                 }
             }
-            HeapFree( GetProcessHeap(), 0, list );
+            heap_free( list );
         }
     }
 
@@ -174,6 +180,9 @@ static BOOL set_active_window( HWND hwnd, HWND *prev, BOOL mouse, BOOL focus )
     }
 
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -182,6 +191,7 @@ static BOOL set_active_window( HWND hwnd, HWND *prev, BOOL mouse, BOOL focus )
  */
 static BOOL set_foreground_window( HWND hwnd, BOOL mouse )
 {
+#if 0
     BOOL ret, send_msg_old = FALSE, send_msg_new = FALSE;
     HWND previous = 0;
 
@@ -210,6 +220,9 @@ static BOOL set_foreground_window( HWND hwnd, BOOL mouse )
             ret = set_active_window( hwnd, NULL, mouse, TRUE );
     }
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -259,6 +272,7 @@ HWND WINAPI SetActiveWindow( HWND hwnd )
  */
 HWND WINAPI SetFocus( HWND hwnd )
 {
+#if 0
     HWND hwndTop = hwnd;
     HWND previous = GetFocus();
 
@@ -311,6 +325,9 @@ HWND WINAPI SetFocus( HWND hwnd )
 
     /* change focus and send messages */
     return set_focus_window( hwnd );
+#else
+    return 0;
+#endif
 }
 
 
@@ -333,12 +350,14 @@ HWND WINAPI GetActiveWindow(void)
 {
     HWND ret = 0;
 
+#if 0
     SERVER_START_REQ( get_thread_input )
     {
         req->tid = GetCurrentThreadId();
         if (!wine_server_call_err( req )) ret = wine_server_ptr_handle( reply->active );
     }
     SERVER_END_REQ;
+#endif
     return ret;
 }
 
@@ -349,6 +368,7 @@ HWND WINAPI GetActiveWindow(void)
 HWND WINAPI GetFocus(void)
 {
     HWND ret = 0;
+#if 0
 
     SERVER_START_REQ( get_thread_input )
     {
@@ -356,6 +376,7 @@ HWND WINAPI GetFocus(void)
         if (!wine_server_call_err( req )) ret = wine_server_ptr_handle( reply->focus );
     }
     SERVER_END_REQ;
+#endif
     return ret;
 }
 
@@ -367,16 +388,19 @@ HWND WINAPI GetForegroundWindow(void)
 {
     HWND ret = 0;
 
+#if 0
     SERVER_START_REQ( get_thread_input )
     {
         req->tid = 0;
         if (!wine_server_call_err( req )) ret = wine_server_ptr_handle( reply->foreground );
     }
     SERVER_END_REQ;
+#endif
     return ret;
 }
 
 
+#if 0
 /***********************************************************************
 *		SetShellWindowEx (USER32.@)
 * hwndShell =    Progman[Program Manager]
@@ -516,3 +540,4 @@ HWND WINAPI GetTaskmanWindow(void)
     SERVER_END_REQ;
     return ret;
 }
+#endif

@@ -40,6 +40,7 @@
 #define WINE_MOUNTMGR_EXTENSIONS
 #include "ddk/mountmgr.h"
 #include "kernel_private.h"
+#include "wine/heap.h"
 #include "wine/library.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
@@ -75,8 +76,7 @@ static char *get_dos_device_path( LPCWSTR name )
     char *buffer, *dev;
     int i;
 
-    if (!(buffer = HeapAlloc( GetProcessHeap(), 0,
-                              strlen(config_dir) + sizeof("/dosdevices/") + 5 )))
+    if (!(buffer = heap_alloc( strlen(config_dir) + sizeof("/dosdevices/") + 5 )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return NULL;
@@ -119,6 +119,7 @@ static NTSTATUS read_nt_symlink( const WCHAR *name, WCHAR *target, DWORD size )
     return status;
 }
 
+#if 0
 /* open a handle to a device root */
 static BOOL open_device_root( LPCWSTR root, HANDLE *handle )
 {
@@ -151,6 +152,7 @@ static BOOL open_device_root( LPCWSTR root, HANDLE *handle )
     }
     return TRUE;
 }
+#endif
 
 /* query the type of a drive from the mount manager */
 static DWORD get_mountmgr_drive_type( LPCWSTR root )
@@ -201,7 +203,7 @@ static void get_filesystem_label( const UNICODE_STRING *device, WCHAR *label, DW
 
     name.MaximumLength = device->Length + sizeof(labelW);
     name.Length = name.MaximumLength - sizeof(WCHAR);
-    if (!(name.Buffer = HeapAlloc( GetProcessHeap(), 0, name.MaximumLength ))) return;
+    if (!(name.Buffer = heap_alloc( name.MaximumLength ))) return;
 
     memcpy( name.Buffer, device->Buffer, device->Length );
     memcpy( name.Buffer + device->Length / sizeof(WCHAR), labelW, sizeof(labelW) );
@@ -241,7 +243,7 @@ static DWORD get_filesystem_serial( const UNICODE_STRING *device )
 
     name.MaximumLength = device->Length + sizeof(serialW);
     name.Length = name.MaximumLength - sizeof(WCHAR);
-    if (!(name.Buffer = HeapAlloc( GetProcessHeap(), 0, name.MaximumLength ))) return 0;
+    if (!(name.Buffer = heap_alloc( name.MaximumLength ))) return 0;
 
     memcpy( name.Buffer, device->Buffer, device->Length );
     memcpy( name.Buffer + device->Length / sizeof(WCHAR), serialW, sizeof(serialW) );
@@ -687,6 +689,7 @@ BOOL WINAPI GetVolumeInformationW( LPCWSTR root, LPWSTR label, DWORD label_len,
                                    DWORD *serial, DWORD *filename_len, DWORD *flags,
                                    LPWSTR fsname, DWORD fsname_len )
 {
+#if 0
     static const WCHAR audiocdW[] = {'A','u','d','i','o',' ','C','D',0};
     static const WCHAR fatW[] = {'F','A','T',0};
     static const WCHAR fat32W[] = {'F','A','T','3','2',0};
@@ -832,6 +835,10 @@ fill_fs_info:  /* now fill in the information that depends on the file system ty
 done:
     RtlFreeUnicodeString( &nt_name );
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -849,8 +856,8 @@ BOOL WINAPI GetVolumeInformationA( LPCSTR root, LPSTR label,
 
     if (root && !(rootW = FILE_name_AtoW( root, FALSE ))) return FALSE;
 
-    labelW = label ? HeapAlloc(GetProcessHeap(), 0, label_len * sizeof(WCHAR)) : NULL;
-    fsnameW = fsname ? HeapAlloc(GetProcessHeap(), 0, fsname_len * sizeof(WCHAR)) : NULL;
+    labelW = label ? heap_alloc(label_len * sizeof(WCHAR)) : NULL;
+    fsnameW = fsname ? heap_alloc(fsname_len * sizeof(WCHAR)) : NULL;
 
     if ((ret = GetVolumeInformationW(rootW, labelW, label_len, serial,
                                     filename_len, flags, fsnameW, fsname_len)))
@@ -859,8 +866,8 @@ BOOL WINAPI GetVolumeInformationA( LPCSTR root, LPSTR label,
         if (fsname) FILE_name_WtoA( fsnameW, -1, fsname, fsname_len );
     }
 
-    HeapFree( GetProcessHeap(), 0, labelW );
-    HeapFree( GetProcessHeap(), 0, fsnameW );
+    heap_free( labelW );
+    heap_free( fsnameW );
     return ret;
 }
 
@@ -970,7 +977,7 @@ BOOL WINAPI SetVolumeLabelA(LPCSTR root, LPCSTR volname)
     if (root && !(rootW = FILE_name_AtoW( root, FALSE ))) return FALSE;
     if (volname && !(volnameW = FILE_name_AtoW( volname, TRUE ))) return FALSE;
     ret = SetVolumeLabelW( rootW, volnameW );
-    HeapFree( GetProcessHeap(), 0, volnameW );
+    heap_free( volnameW );
     return ret;
 }
 
@@ -992,7 +999,7 @@ BOOL WINAPI GetVolumeNameForVolumeMountPointA( LPCSTR path, LPSTR volume, DWORD 
     if ((ret = GetVolumeNameForVolumeMountPointW( pathW, volumeW, len )))
         FILE_name_WtoA( volumeW, -1, volume, len );
 
-    HeapFree( GetProcessHeap(), 0, pathW );
+    heap_free( pathW );
     return ret;
 }
 
@@ -1041,13 +1048,13 @@ BOOL WINAPI GetVolumeNameForVolumeMountPointW( LPCWSTR path, LPWSTR volume, DWOR
                         NULL, OPEN_EXISTING, 0, 0 );
     if (mgr == INVALID_HANDLE_VALUE) return FALSE;
 
-    if (!(input = HeapAlloc( GetProcessHeap(), 0, i_size )))
+    if (!(input = heap_alloc( i_size )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         goto err_ret;
     }
 
-    if (!(output = HeapAlloc( GetProcessHeap(), 0, o_size )))
+    if (!(output = heap_alloc( o_size )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         goto err_ret;
@@ -1125,8 +1132,8 @@ BOOL WINAPI GetVolumeNameForVolumeMountPointW( LPCWSTR path, LPWSTR volume, DWOR
     }
 
 err_ret:
-    HeapFree( GetProcessHeap(), 0, input );
-    HeapFree( GetProcessHeap(), 0, output );
+    heap_free( input );
+    heap_free( output );
     CloseHandle( mgr );
     return ret;
 }
@@ -1142,6 +1149,7 @@ BOOL WINAPI DefineDosDeviceW( DWORD flags, LPCWSTR devname, LPCWSTR targetpath )
 
     TRACE("%x, %s, %s\n", flags, debugstr_w(devname), debugstr_w(targetpath));
 
+#if 0
     if (!(flags & DDD_REMOVE_DEFINITION))
     {
         if (!(flags & DDD_RAW_TARGET_PATH))
@@ -1153,7 +1161,7 @@ BOOL WINAPI DefineDosDeviceW( DWORD flags, LPCWSTR devname, LPCWSTR targetpath )
         }
 
         len = WideCharToMultiByte( CP_UNIXCP, 0, targetpath, -1, NULL, 0, NULL, NULL );
-        if ((target = HeapAlloc( GetProcessHeap(), 0, len )))
+        if ((target = heap_alloc( len )))
         {
             WideCharToMultiByte( CP_UNIXCP, 0, targetpath, -1, target, len, NULL, NULL );
             for (p = target; *p; p++) if (*p == '\\') *p = '/';
@@ -1197,10 +1205,14 @@ BOOL WINAPI DefineDosDeviceW( DWORD flags, LPCWSTR devname, LPCWSTR targetpath )
             if (!unlink( path )) ret = TRUE;
             else FILE_SetDosError();
         }
-        HeapFree( GetProcessHeap(), 0, path );
+        heap_free( path );
     }
-    HeapFree( GetProcessHeap(), 0, target );
+    heap_free( target );
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -1215,7 +1227,7 @@ BOOL WINAPI DefineDosDeviceA(DWORD flags, LPCSTR devname, LPCSTR targetpath)
     if (!(devW = FILE_name_AtoW( devname, FALSE ))) return FALSE;
     if (targetpath && !(targetW = FILE_name_AtoW( targetpath, TRUE ))) return FALSE;
     ret = DefineDosDeviceW(flags, devW, targetW);
-    HeapFree( GetProcessHeap(), 0, targetW );
+    heap_free( targetW );
     return ret;
 }
 
@@ -1227,6 +1239,7 @@ BOOL WINAPI DefineDosDeviceA(DWORD flags, LPCSTR devname, LPCSTR targetpath)
  */
 DWORD WINAPI QueryDosDeviceW( LPCWSTR devname, LPWSTR target, DWORD bufsize )
 {
+#if 0
     static const WCHAR dosdevW[] = {'\\','D','o','s','D','e','v','i','c','e','s','\\',0};
 
     UNICODE_STRING nt_name;
@@ -1251,7 +1264,7 @@ DWORD WINAPI QueryDosDeviceW( LPCWSTR devname, LPWSTR target, DWORD bufsize )
             devname = name;
         }
 
-        if (!(buffer = HeapAlloc( GetProcessHeap(), 0, sizeof(dosdevW) + strlenW(devname)*sizeof(WCHAR) )))
+        if (!(buffer = heap_alloc( sizeof(dosdevW) + strlenW(devname)*sizeof(WCHAR) )))
         {
             SetLastError( ERROR_OUTOFMEMORY );
             return 0;
@@ -1259,7 +1272,7 @@ DWORD WINAPI QueryDosDeviceW( LPCWSTR devname, LPWSTR target, DWORD bufsize )
         memcpy( buffer, dosdevW, sizeof(dosdevW) );
         strcatW( buffer, devname );
         status = read_nt_symlink( buffer, target, bufsize );
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
         if (status)
         {
             SetLastError( RtlNtStatusToDosError(status) );
@@ -1308,6 +1321,10 @@ DWORD WINAPI QueryDosDeviceW( LPCWSTR devname, LPWSTR target, DWORD bufsize )
         *p++ = 0;  /* terminating null */
         return p - target;
     }
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
@@ -1324,7 +1341,7 @@ DWORD WINAPI QueryDosDeviceA( LPCSTR devname, LPSTR target, DWORD bufsize )
 
     if (devname && !(devnameW = FILE_name_AtoW( devname, FALSE ))) return 0;
 
-    targetW = HeapAlloc( GetProcessHeap(),0, bufsize * sizeof(WCHAR) );
+    targetW = heap_alloc( bufsize * sizeof(WCHAR) );
     if (!targetW)
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
@@ -1335,7 +1352,7 @@ DWORD WINAPI QueryDosDeviceA( LPCSTR devname, LPSTR target, DWORD bufsize )
 
     ret = FILE_name_WtoA( targetW, retW, target, bufsize );
 
-    HeapFree(GetProcessHeap(), 0, targetW);
+    heap_free( targetW );
     return ret;
 }
 
@@ -1456,6 +1473,7 @@ UINT WINAPI GetDriveTypeW(LPCWSTR root) /* [in] String describing drive */
     HANDLE handle;
     UINT ret;
 
+#if 0
     if (!open_device_root( root, &handle ))
     {
         /* CD ROM devices do not necessarily have a volume, but a drive type */
@@ -1490,6 +1508,10 @@ UINT WINAPI GetDriveTypeW(LPCWSTR root) /* [in] String describing drive */
             break;
         }
     }
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    ret = DRIVE_UNKNOWN;
+#endif
     TRACE( "%s -> %d\n", debugstr_w(root), ret );
     return ret;
 }
@@ -1532,6 +1554,7 @@ BOOL WINAPI GetDiskFreeSpaceExW( LPCWSTR root, PULARGE_INTEGER avail,
 
     TRACE( "%s,%p,%p,%p\n", debugstr_w(root), avail, total, totalfree );
 
+#if 0
     if (!open_device_root( root, &handle )) return FALSE;
 
     status = NtQueryVolumeInformationFile( handle, &io, &info, sizeof(info), FileFsSizeInformation );
@@ -1548,6 +1571,10 @@ BOOL WINAPI GetDiskFreeSpaceExW( LPCWSTR root, PULARGE_INTEGER avail,
     /* FIXME: this one should take quotas into account */
     if (avail) avail->QuadPart = info.AvailableAllocationUnits.QuadPart * units;
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -1582,6 +1609,7 @@ BOOL WINAPI GetDiskFreeSpaceW( LPCWSTR root, LPDWORD cluster_sectors,
     TRACE( "%s,%p,%p,%p,%p\n", debugstr_w(root),
            cluster_sectors, sector_bytes, free_clusters, total_clusters );
 
+#if 0
     if (!open_device_root( root, &handle )) return FALSE;
 
     status = NtQueryVolumeInformationFile( handle, &io, &info, sizeof(info), FileFsSizeInformation );
@@ -1616,6 +1644,10 @@ BOOL WINAPI GetDiskFreeSpaceW( LPCWSTR root, LPDWORD cluster_sectors,
     TRACE("%#08x, %#08x, %#08x, %#08x\n", info.SectorsPerAllocationUnit, info.BytesPerSector,
           info.AvailableAllocationUnits.u.LowPart, info.TotalAllocationUnits.u.LowPart);
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -1644,13 +1676,13 @@ BOOL WINAPI GetVolumePathNameA(LPCSTR filename, LPSTR volumepathname, DWORD bufl
 
     if (filename && !(filenameW = FILE_name_AtoW( filename, FALSE )))
         return FALSE;
-    if (volumepathname && !(volumeW = HeapAlloc( GetProcessHeap(), 0, buflen * sizeof(WCHAR) )))
+    if (volumepathname && !(volumeW = heap_alloc( buflen * sizeof(WCHAR) )))
         return FALSE;
 
     if ((ret = GetVolumePathNameW( filenameW, volumeW, buflen )))
         FILE_name_WtoA( volumeW, -1, volumepathname, buflen );
 
-    HeapFree( GetProcessHeap(), 0, volumeW );
+    heap_free( volumeW );
     return ret;
 }
 
@@ -1665,6 +1697,7 @@ BOOL WINAPI GetVolumePathNameA(LPCSTR filename, LPSTR volumepathname, DWORD bufl
  */
 BOOL WINAPI GetVolumePathNameW(LPCWSTR filename, LPWSTR volumepathname, DWORD buflen)
 {
+#if 0
     static const WCHAR deviceprefixW[] = { '\\','?','?','\\',0 };
     static const WCHAR ntprefixW[] = { '\\','\\','?','\\',0 };
     WCHAR fallbackpathW[] = { 'C',':','\\',0 };
@@ -1687,7 +1720,7 @@ BOOL WINAPI GetVolumePathNameW(LPCWSTR filename, LPWSTR volumepathname, DWORD bu
 
     last_pos = pos = strlenW( filename );
     /* allocate enough memory for searching the path (need room for a slash and a NULL terminator) */
-    if (!(volumenameW = HeapAlloc( GetProcessHeap(), 0, (pos + 2) * sizeof(WCHAR) )))
+    if (!(volumenameW = heap_alloc( (pos + 2) * sizeof(WCHAR) )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return FALSE;
@@ -1795,11 +1828,15 @@ BOOL WINAPI GetVolumePathNameW(LPCWSTR filename, LPWSTR volumepathname, DWORD bu
         status = STATUS_NAME_TOO_LONG;
 
 cleanup:
-    HeapFree( GetProcessHeap(), 0, volumenameW );
+    heap_free( volumenameW );
 
     if (status != STATUS_SUCCESS)
         SetLastError( RtlNtStatusToDosError(status) );
     return (status == STATUS_SUCCESS);
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -1812,9 +1849,9 @@ BOOL WINAPI GetVolumePathNamesForVolumeNameA(LPCSTR volumename, LPSTR volumepath
     WCHAR *volumenameW = NULL, *volumepathnameW;
 
     if (volumename && !(volumenameW = FILE_name_AtoW( volumename, TRUE ))) return FALSE;
-    if (!(volumepathnameW = HeapAlloc( GetProcessHeap(), 0, buflen * sizeof(WCHAR) )))
+    if (!(volumepathnameW = heap_alloc( buflen * sizeof(WCHAR) )))
     {
-        HeapFree( GetProcessHeap(), 0, volumenameW );
+        heap_free( volumenameW );
         return FALSE;
     }
     if ((ret = GetVolumePathNamesForVolumeNameW( volumenameW, volumepathnameW, buflen, returnlen )))
@@ -1832,8 +1869,8 @@ BOOL WINAPI GetVolumePathNamesForVolumeNameA(LPCSTR volumename, LPSTR volumepath
         }
         path[0] = 0;
     }
-    HeapFree( GetProcessHeap(), 0, volumenameW );
-    HeapFree( GetProcessHeap(), 0, volumepathnameW );
+    heap_free( volumenameW );
+    heap_free( volumepathnameW );
     return ret;
 }
 
@@ -1845,14 +1882,14 @@ static MOUNTMGR_MOUNT_POINTS *query_mount_points( HANDLE mgr, MOUNTMGR_MOUNT_POI
 
     for (;;)
     {
-        if (!(output = HeapAlloc( GetProcessHeap(), 0, outsize )))
+        if (!(output = heap_alloc( outsize )))
         {
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
             return NULL;
         }
         if (DeviceIoControl( mgr, IOCTL_MOUNTMGR_QUERY_POINTS, input, insize, output, outsize, &br, NULL )) break;
         outsize = output->Size;
-        HeapFree( GetProcessHeap(), 0, output );
+        heap_free( output );
         if (GetLastError() != ERROR_MORE_DATA) return NULL;
     }
     return output;
@@ -1882,7 +1919,7 @@ BOOL WINAPI GetVolumePathNamesForVolumeNameW(LPCWSTR volumename, LPWSTR volumepa
     if (mgr == INVALID_HANDLE_VALUE) return FALSE;
 
     size = sizeof(*spec) + sizeof(WCHAR) * (len - 1); /* remove trailing backslash */
-    if (!(spec = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size ))) goto done;
+    if (!(spec = heap_alloc_zero( size ))) goto done;
     spec->SymbolicLinkNameOffset = sizeof(*spec);
     spec->SymbolicLinkNameLength = size - sizeof(*spec);
     name = (WCHAR *)((char *)spec + spec->SymbolicLinkNameOffset);
@@ -1890,7 +1927,7 @@ BOOL WINAPI GetVolumePathNamesForVolumeNameW(LPCWSTR volumename, LPWSTR volumepa
     name[1] = '?'; /* map \\?\ to \??\ */
 
     target = query_mount_points( mgr, spec, size );
-    HeapFree( GetProcessHeap(), 0, spec );
+    heap_free( spec );
     if (!target)
     {
         goto done;
@@ -1911,13 +1948,13 @@ BOOL WINAPI GetVolumePathNamesForVolumeNameW(LPCWSTR volumename, LPWSTR volumepa
             USHORT device_len = target->MountPoints[i].DeviceNameLength;
 
             size = sizeof(*spec) + device_len;
-            if (!(spec = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size ))) goto done;
+            if (!(spec = heap_alloc_zero( size ))) goto done;
             spec->DeviceNameOffset = sizeof(*spec);
             spec->DeviceNameLength = device_len;
             memcpy( (char *)spec + spec->DeviceNameOffset, device, device_len );
 
             link = query_mount_points( mgr, spec, size );
-            HeapFree( GetProcessHeap(), 0, spec );
+            heap_free( spec );
         }
         else if (target->MountPoints[i].UniqueIdOffset)
         {
@@ -1925,13 +1962,13 @@ BOOL WINAPI GetVolumePathNamesForVolumeNameW(LPCWSTR volumename, LPWSTR volumepa
             USHORT id_len = target->MountPoints[i].UniqueIdLength;
 
             size = sizeof(*spec) + id_len;
-            if (!(spec = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size ))) goto done;
+            if (!(spec = heap_alloc_zero( size ))) goto done;
             spec->UniqueIdOffset = sizeof(*spec);
             spec->UniqueIdLength = id_len;
             memcpy( (char *)spec + spec->UniqueIdOffset, id, id_len );
 
             link = query_mount_points( mgr, spec, size );
-            HeapFree( GetProcessHeap(), 0, spec );
+            heap_free( spec );
         }
         if (!link) continue;
         for (j = 0; j < link->NumberOfMountPoints; j++)
@@ -1955,7 +1992,7 @@ BOOL WINAPI GetVolumePathNamesForVolumeNameW(LPCWSTR volumename, LPWSTR volumepa
                 }
             }
         }
-        HeapFree( GetProcessHeap(), 0, link );
+        heap_free( link );
     }
     if (buflen <= len) SetLastError( ERROR_MORE_DATA );
     else if (volumepathname)
@@ -1966,7 +2003,7 @@ BOOL WINAPI GetVolumePathNamesForVolumeNameW(LPCWSTR volumename, LPWSTR volumepa
     if (returnlen) *returnlen = len + 1;
 
 done:
-    HeapFree( GetProcessHeap(), 0, target );
+    heap_free( target );
     CloseHandle( mgr );
     return ret;
 }
@@ -1976,7 +2013,7 @@ done:
  */
 HANDLE WINAPI FindFirstVolumeA(LPSTR volume, DWORD len)
 {
-    WCHAR *buffer = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+    WCHAR *buffer = heap_alloc( len * sizeof(WCHAR) );
     HANDLE handle = FindFirstVolumeW( buffer, len );
 
     if (handle != INVALID_HANDLE_VALUE)
@@ -1987,7 +2024,7 @@ HANDLE WINAPI FindFirstVolumeA(LPSTR volume, DWORD len)
             handle = INVALID_HANDLE_VALUE;
         }
     }
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     return handle;
 }
 
@@ -2007,7 +2044,7 @@ HANDLE WINAPI FindFirstVolumeW( LPWSTR volume, DWORD len )
         MOUNTMGR_MOUNT_POINT input;
         MOUNTMGR_MOUNT_POINTS *output;
 
-        if (!(output = HeapAlloc( GetProcessHeap(), 0, size )))
+        if (!(output = heap_alloc( size )))
         {
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
             break;
@@ -2019,7 +2056,7 @@ HANDLE WINAPI FindFirstVolumeW( LPWSTR volume, DWORD len )
         {
             if (GetLastError() != ERROR_MORE_DATA) break;
             size = output->Size;
-            HeapFree( GetProcessHeap(), 0, output );
+            heap_free( output );
             continue;
         }
         CloseHandle( mgr );
@@ -2027,7 +2064,7 @@ HANDLE WINAPI FindFirstVolumeW( LPWSTR volume, DWORD len )
         output->Size = 0;
         if (!FindNextVolumeW( output, volume, len ))
         {
-            HeapFree( GetProcessHeap(), 0, output );
+            heap_free( output );
             return INVALID_HANDLE_VALUE;
         }
         return output;
@@ -2041,14 +2078,14 @@ HANDLE WINAPI FindFirstVolumeW( LPWSTR volume, DWORD len )
  */
 BOOL WINAPI FindNextVolumeA( HANDLE handle, LPSTR volume, DWORD len )
 {
-    WCHAR *buffer = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+    WCHAR *buffer = heap_alloc( len * sizeof(WCHAR) );
     BOOL ret;
 
     if ((ret = FindNextVolumeW( handle, buffer, len )))
     {
         if (!WideCharToMultiByte( CP_ACP, 0, buffer, -1, volume, len, NULL, NULL )) ret = FALSE;
     }
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     return ret;
 }
 
@@ -2088,7 +2125,7 @@ BOOL WINAPI FindNextVolumeW( HANDLE handle, LPWSTR volume, DWORD len )
  */
 BOOL WINAPI FindVolumeClose(HANDLE handle)
 {
-    return HeapFree( GetProcessHeap(), 0, handle );
+    return heap_free( handle );
 }
 
 /***********************************************************************

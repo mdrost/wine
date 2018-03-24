@@ -45,6 +45,7 @@
 #include "win.h"
 #include "imm.h"
 #include "usp10.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "controls.h"
 #include "user_private.h"
@@ -167,6 +168,7 @@ typedef struct
 		     (LPARAM)(es->hwndSelf)); \
 	} while(0)
 
+#if 0
 static LRESULT EDIT_EM_PosFromChar(EDITSTATE *es, INT index, BOOL after_wrap);
 
 /*********************************************************************
@@ -280,7 +282,7 @@ static INT EDIT_WordBreakProc(EDITSTATE *es, LPWSTR s, INT index, INT count, INT
         memset(&psa,0,sizeof(SCRIPT_ANALYSIS));
         psa.eScript = SCRIPT_UNDEFINED;
 
-        es->logAttr = HeapAlloc(GetProcessHeap(), 0, sizeof(SCRIPT_LOGATTR) * get_text_length(es));
+        es->logAttr = heap_alloc(sizeof(SCRIPT_LOGATTR) * get_text_length(es));
         ScriptBreak(es->text, get_text_length(es), &psa, es->logAttr);
     }
 
@@ -345,12 +347,12 @@ static INT EDIT_CallWordBreakProc(EDITSTATE *es, INT start, INT index, INT count
 		CHAR *textA;
 
 		countA = WideCharToMultiByte(CP_ACP, 0, es->text + start, count, NULL, 0, NULL, NULL);
-		textA = HeapAlloc(GetProcessHeap(), 0, countA);
+		textA = heap_alloc(countA);
 		WideCharToMultiByte(CP_ACP, 0, es->text + start, count, textA, countA, NULL, NULL);
 		TRACE_(relay)("\1Call wordbreakA %p(str=%s,idx=%d,cnt=%d,act=%d)\n",
 			es->word_break_proc, debugstr_an(textA, countA), index, countA, action);
 		ret = wbpA(textA, index, countA, action);
-		HeapFree(GetProcessHeap(), 0, textA);
+		heap_free(textA);
 		TRACE_(relay)("\1Ret wordbreakA %p retval=%d\n", es->word_break_proc, ret );
 	    }
         }
@@ -543,7 +545,7 @@ static void EDIT_BuildLineDefs_ML(EDITSTATE *es, INT istart, INT iend, INT delta
 			{
 				/* The buffer has been expanded, create a new line and
 				   insert it into the link list */
-				LINEDEF *new_line = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(LINEDEF));
+				LINEDEF *new_line = heap_alloc_zero(sizeof(LINEDEF));
 				new_line->next = previous_line->next;
 				previous_line->next = new_line;
 				current_line = new_line;
@@ -553,7 +555,7 @@ static void EDIT_BuildLineDefs_ML(EDITSTATE *es, INT istart, INT iend, INT delta
 			{
 				/* The previous line merged with this line so we delete this extra entry */
 				previous_line->next = current_line->next;
-				HeapFree(GetProcessHeap(), 0, current_line);
+				heap_free(current_line);
 				current_line = previous_line->next;
 				es->line_count--;
 				continue;
@@ -653,7 +655,7 @@ static void EDIT_BuildLineDefs_ML(EDITSTATE *es, INT istart, INT iend, INT delta
 				if (current_line->ssa)
 				{
 					count = ScriptString_pcOutChars(current_line->ssa);
-					piDx = HeapAlloc(GetProcessHeap(),0,sizeof(INT) * (*count));
+					piDx = heap_alloc(sizeof(INT) * (*count));
 					ScriptStringGetLogicalWidths(current_line->ssa,piDx);
 
 					prev = current_line->net_length-1;
@@ -663,7 +665,7 @@ static void EDIT_BuildLineDefs_ML(EDITSTATE *es, INT istart, INT iend, INT delta
 					} while ( prev > 0 && current_line->width > fw);
 					if (prev<=0)
 						prev = 1;
-					HeapFree(GetProcessHeap(),0,piDx);
+					heap_free(piDx);
 				}
 				else
 					prev = (fw / es->char_width);
@@ -752,7 +754,7 @@ static void EDIT_BuildLineDefs_ML(EDITSTATE *es, INT istart, INT iend, INT delta
 		{
 			pnext = current_line->next;
 			EDIT_InvalidateUniscribeData_linedef(current_line);
-			HeapFree(GetProcessHeap(), 0, current_line);
+			heap_free(current_line);
 			current_line = pnext;
 			es->line_count--;
 		}
@@ -1244,11 +1246,12 @@ static inline void text_buffer_changed(EDITSTATE *es)
 {
     es->text_length = (UINT)-1;
 
-    HeapFree( GetProcessHeap(), 0, es->logAttr );
+    heap_free( es->logAttr );
     es->logAttr = NULL;
     EDIT_InvalidateUniscribeData(es);
 }
 
+#if 0
 /*********************************************************************
  * EDIT_LockBuffer
  *
@@ -1391,6 +1394,7 @@ static BOOL EDIT_MakeFit(EDITSTATE *es, UINT size)
 		return TRUE;
 	}
 }
+#endif
 
 
 /*********************************************************************
@@ -1410,7 +1414,7 @@ static BOOL EDIT_MakeUndoFit(EDITSTATE *es, UINT size)
 	TRACE("trying to ReAlloc to %d+1\n", size);
 
 	alloc_size = ROUND_TO_GROW((size + 1) * sizeof(WCHAR));
-	if ((es->undo_text = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, es->undo_text, alloc_size))) {
+	if ((es->undo_text = heap_realloc(es->undo_text, alloc_size))) {
 		es->undo_buffer_size = alloc_size/sizeof(WCHAR) - 1;
 		return TRUE;
 	}
@@ -2424,6 +2428,7 @@ static BOOL EDIT_EM_FmtLines(EDITSTATE *es, BOOL add_eol)
 }
 
 
+#if 0
 /*********************************************************************
  *
  *	EM_GETHANDLE
@@ -2473,6 +2478,7 @@ static HLOCAL EDIT_EM_GetHandle(EDITSTATE *es)
 	TRACE("Returning %p, LocalSize() = %ld\n", hLocal, LocalSize(hLocal));
 	return hLocal;
 }
+#endif
 
 
 /*********************************************************************
@@ -2540,6 +2546,7 @@ static LRESULT EDIT_EM_GetSel(const EDITSTATE *es, PUINT start, PUINT end)
 }
 
 
+#if 0
 /*********************************************************************
  *
  *	EM_REPLACESEL
@@ -2595,7 +2602,7 @@ static void EDIT_EM_ReplaceSel(EDITSTATE *es, BOOL can_undo, const WCHAR *lpsz_r
 		/* there is something to be deleted */
 		TRACE("deleting stuff.\n");
 		bufl = e - s;
-		buf = HeapAlloc(GetProcessHeap(), 0, (bufl + 1) * sizeof(WCHAR));
+		buf = heap_alloc((bufl + 1) * sizeof(WCHAR));
 		if (!buf) return;
 		memcpy(buf, es->text + s, bufl * sizeof(WCHAR));
 		buf[bufl] = 0; /* ensure 0 termination */
@@ -2708,7 +2715,7 @@ static void EDIT_EM_ReplaceSel(EDITSTATE *es, BOOL can_undo, const WCHAR *lpsz_r
 			EDIT_EM_EmptyUndoBuffer(es);
 	}
 
-	HeapFree(GetProcessHeap(), 0, buf);
+	heap_free(buf);
  
 	s += strl;
 
@@ -2826,6 +2833,7 @@ static void EDIT_EM_SetHandle(EDITSTATE *es, HLOCAL hloc)
 	/* force scroll info update */
 	EDIT_UpdateScrollInfo(es);
 }
+#endif
 
 
 /*********************************************************************
@@ -2972,12 +2980,12 @@ static BOOL EDIT_EM_SetTabStops(EDITSTATE *es, INT count, const INT *tabs)
 {
 	if (!(es->style & ES_MULTILINE))
 		return FALSE;
-        HeapFree(GetProcessHeap(), 0, es->tabs);
+        heap_free(es->tabs);
 	es->tabs_count = count;
 	if (!count)
 		es->tabs = NULL;
 	else {
-		es->tabs = HeapAlloc(GetProcessHeap(), 0, count * sizeof(INT));
+		es->tabs = heap_alloc(count * sizeof(INT));
 		memcpy(es->tabs, tabs, count * sizeof(INT));
 	}
 	EDIT_InvalidateUniscribeData(es);
@@ -3004,6 +3012,7 @@ static void EDIT_EM_SetWordBreakProc(EDITSTATE *es, void *wbp)
 }
 
 
+#if 0
 /*********************************************************************
  *
  *	EM_UNDO / WM_UNDO
@@ -3021,7 +3030,7 @@ static BOOL EDIT_EM_Undo(EDITSTATE *es)
 
 	ulength = strlenW(es->undo_text);
 
-	utext = HeapAlloc(GetProcessHeap(), 0, (ulength + 1) * sizeof(WCHAR));
+	utext = heap_alloc((ulength + 1) * sizeof(WCHAR));
 
 	strcpyW(utext, es->undo_text);
 
@@ -3035,12 +3044,13 @@ static BOOL EDIT_EM_Undo(EDITSTATE *es)
         /* send the notification after the selection start and end are set */
         EDIT_NOTIFY_PARENT(es, EN_CHANGE);
 	EDIT_EM_ScrollCaret(es);
-	HeapFree(GetProcessHeap(), 0, utext);
+	heap_free(utext);
 
 	TRACE("after UNDO:insertion length = %d, deletion buffer = %s\n",
 			es->undo_insert_count, debugstr_w(es->undo_text));
 	return TRUE;
 }
+#endif
 
 
 /* Helper function for WM_CHAR
@@ -3056,6 +3066,7 @@ static inline BOOL EDIT_IsInsideDialog(EDITSTATE *es)
 }
 
 
+#if 0
 /*********************************************************************
  *
  *	WM_PASTE
@@ -3228,6 +3239,7 @@ static LRESULT EDIT_WM_Char(EDITSTATE *es, WCHAR c)
 	}
     return 1;
 }
+#endif
 
 
 /*********************************************************************
@@ -3406,6 +3418,7 @@ static BOOL EDIT_CheckCombo(EDITSTATE *es, UINT msg, INT key)
 }
 
 
+#if 0
 /*********************************************************************
  *
  *	WM_KEYDOWN
@@ -3536,6 +3549,7 @@ static LRESULT EDIT_WM_KeyDown(EDITSTATE *es, INT key)
 	}
         return TRUE;
 }
+#endif
 
 
 /*********************************************************************
@@ -3847,6 +3861,7 @@ static void EDIT_WM_SetFont(EDITSTATE *es, HFONT font, BOOL redraw)
 }
 
 
+#if 0
 /*********************************************************************
  *
  *	WM_SETTEXT
@@ -3866,7 +3881,7 @@ static void EDIT_WM_SetText(EDITSTATE *es, LPCWSTR text, BOOL unicode)
     {
 	LPCSTR textA = (LPCSTR)text;
 	INT countW = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-        textW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR));
+        textW = heap_alloc(countW * sizeof(WCHAR));
 	if (textW)
 	    MultiByteToWideChar(CP_ACP, 0, textA, -1, textW, countW);
 	text = textW;
@@ -3883,7 +3898,7 @@ static void EDIT_WM_SetText(EDITSTATE *es, LPCWSTR text, BOOL unicode)
 	TRACE("%s\n", debugstr_w(text));
 	EDIT_EM_ReplaceSel(es, FALSE, text, strlenW(text), FALSE, FALSE);
 	if(!unicode)
-	    HeapFree(GetProcessHeap(), 0, textW);
+	    heap_free(textW);
     } 
     else 
     {
@@ -3907,6 +3922,7 @@ static void EDIT_WM_SetText(EDITSTATE *es, LPCWSTR text, BOOL unicode)
     EDIT_UpdateScrollInfo(es);    
     EDIT_InvalidateUniscribeData(es);
 }
+#endif
 
 
 /*********************************************************************
@@ -3982,6 +3998,7 @@ static LRESULT  EDIT_WM_StyleChanged ( EDITSTATE *es, WPARAM which, const STYLES
         return 0;
 }
 
+#if 0
 /*********************************************************************
  *
  *	WM_SYSKEYDOWN
@@ -3999,6 +4016,7 @@ static LRESULT EDIT_WM_SysKeyDown(EDITSTATE *es, INT key, DWORD key_data)
 	}
 	return DefWindowProcW(es->hwndSelf, WM_SYSKEYDOWN, key, key_data);
 }
+#endif
 
 
 /*********************************************************************
@@ -4302,7 +4320,7 @@ static void EDIT_GetCompositionStr(HIMC hIMC, LPARAM CompFlag, EDITSTATE *es)
         return;
     }
 
-    lpCompStr = HeapAlloc(GetProcessHeap(),0,buflen);
+    lpCompStr = heap_alloc(buflen);
     if (!lpCompStr)
     {
         ERR("Unable to allocate IME CompositionString\n");
@@ -4322,11 +4340,11 @@ static void EDIT_GetCompositionStr(HIMC hIMC, LPARAM CompFlag, EDITSTATE *es)
         if (dwBufLenAttr)
         {
             dwBufLenAttr ++;
-            lpCompStrAttr = HeapAlloc(GetProcessHeap(),0,dwBufLenAttr+1);
+            lpCompStrAttr = heap_alloc(dwBufLenAttr+1);
             if (!lpCompStrAttr)
             {
                 ERR("Unable to allocate IME Attribute String\n");
-                HeapFree(GetProcessHeap(),0,lpCompStr);
+                heap_free(lpCompStr);
                 return;
             }
             ImmGetCompositionStringW(hIMC,GCS_COMPATTR, lpCompStrAttr, 
@@ -4353,8 +4371,8 @@ static void EDIT_GetCompositionStr(HIMC hIMC, LPARAM CompFlag, EDITSTATE *es)
     es->selection_start = es->composition_start;
     es->selection_end = es->selection_start + es->composition_len;
 
-    HeapFree(GetProcessHeap(),0,lpCompStrAttr);
-    HeapFree(GetProcessHeap(),0,lpCompStr);
+    heap_free(lpCompStrAttr);
+    heap_free(lpCompStr);
 }
 
 static void EDIT_GetResultStr(HIMC hIMC, EDITSTATE *es)
@@ -4368,7 +4386,7 @@ static void EDIT_GetResultStr(HIMC hIMC, EDITSTATE *es)
         return;
     }
 
-    lpResultStr = HeapAlloc(GetProcessHeap(),0, buflen);
+    lpResultStr = heap_alloc( buflen);
     if (!lpResultStr)
     {
         ERR("Unable to alloc buffer for IME string\n");
@@ -4387,7 +4405,7 @@ static void EDIT_GetResultStr(HIMC hIMC, EDITSTATE *es)
     es->composition_start = es->selection_end;
     es->composition_len = 0;
 
-    HeapFree(GetProcessHeap(),0,lpResultStr);
+    heap_free(lpResultStr);
 }
 
 static void EDIT_ImeComposition(HWND hwnd, LPARAM CompFlag, EDITSTATE *es)
@@ -4435,7 +4453,7 @@ static LRESULT EDIT_WM_NCCreate(HWND hwnd, LPCREATESTRUCTW lpcs, BOOL unicode)
 	TRACE("Creating %s edit control, style = %08x\n",
 		unicode ? "Unicode" : "ANSI", lpcs->style);
 
-	if (!(es = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*es))))
+	if (!(es = heap_alloc_zero(sizeof(*es))))
 		return FALSE;
         SetWindowLongPtrW( hwnd, 0, (LONG_PTR)es );
 
@@ -4498,12 +4516,12 @@ static LRESULT EDIT_WM_NCCreate(HWND hwnd, LPCREATESTRUCTW lpcs, BOOL unicode)
 	    goto cleanup;
 	es->buffer_size = LocalSize(es->hloc32W)/sizeof(WCHAR) - 1;
 
-	if (!(es->undo_text = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (es->buffer_size + 1) * sizeof(WCHAR))))
+	if (!(es->undo_text = heap_alloc_zero((es->buffer_size + 1) * sizeof(WCHAR))))
 		goto cleanup;
 	es->undo_buffer_size = es->buffer_size;
 
 	if (es->style & ES_MULTILINE)
-		if (!(es->first_line_def = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(LINEDEF))))
+		if (!(es->first_line_def = heap_alloc_zero(sizeof(LINEDEF))))
 			goto cleanup;
 	es->line_count = 1;
 
@@ -4528,11 +4546,11 @@ static LRESULT EDIT_WM_NCCreate(HWND hwnd, LPCREATESTRUCTW lpcs, BOOL unicode)
 cleanup:
 	SetWindowLongPtrW(es->hwndSelf, 0, 0);
 	EDIT_InvalidateUniscribeData(es);
-	HeapFree(GetProcessHeap(), 0, es->first_line_def);
-	HeapFree(GetProcessHeap(), 0, es->undo_text);
+	heap_free(es->first_line_def);
+	heap_free(es->undo_text);
 	if (es->hloc32W) LocalFree(es->hloc32W);
-	HeapFree(GetProcessHeap(), 0, es->logAttr);
-	HeapFree(GetProcessHeap(), 0, es);
+	heap_free(es->logAttr);
+	heap_free(es);
 	return FALSE;
 }
 
@@ -4608,16 +4626,17 @@ static LRESULT EDIT_WM_NCDestroy(EDITSTATE *es)
 	while (pc)
 	{
 		pp = pc->next;
-		HeapFree(GetProcessHeap(), 0, pc);
+		heap_free(pc);
 		pc = pp;
 	}
 
 	SetWindowLongPtrW( es->hwndSelf, 0, 0 );
-	HeapFree(GetProcessHeap(), 0, es->undo_text);
-	HeapFree(GetProcessHeap(), 0, es);
+	heap_free(es->undo_text);
+	heap_free(es);
 
 	return 0;
 }
+#endif
 
 
 static inline LRESULT DefWindowProcT(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode)
@@ -4645,6 +4664,7 @@ LRESULT EditWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, B
 	if (!es && msg != WM_NCCREATE)
 		return DefWindowProcT(hwnd, msg, wParam, lParam, unicode);
 
+#if 0
 	if (es && (msg != WM_NCDESTROY)) EDIT_LockBuffer(es);
 
 	switch (msg) {
@@ -4742,7 +4762,7 @@ LRESULT EditWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, B
 		{
 		    LPSTR textA = (LPSTR)lParam;
 		    INT countW = MultiByteToWideChar(CP_ACP, 0, textA, -1, NULL, 0);
-		    if (!(textW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR)))) break;
+		    if (!(textW = heap_alloc(countW * sizeof(WCHAR)))) break;
                     MultiByteToWideChar(CP_ACP, 0, textA, -1, textW, countW);
 		}
 
@@ -4750,7 +4770,7 @@ LRESULT EditWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, B
 		result = 1;
 
 		if(!unicode)
-		    HeapFree(GetProcessHeap(), 0, textW);
+		    heap_free(textW);
 		break;
 	}
 
@@ -4988,11 +5008,11 @@ LRESULT EditWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, B
 		    if(nameA)
 		    {
 			INT countW = MultiByteToWideChar(CP_ACP, 0, nameA, -1, NULL, 0);
-			if((nameW = HeapAlloc(GetProcessHeap(), 0, countW * sizeof(WCHAR))))
+			if((nameW = heap_alloc(countW * sizeof(WCHAR))))
 			    MultiByteToWideChar(CP_ACP, 0, nameA, -1, nameW, countW);
 		    }
 		    result = EDIT_WM_Create(es, nameW);
-                    HeapFree(GetProcessHeap(), 0, nameW);
+                    heap_free(nameW);
 		}
 		break;
 
@@ -5196,6 +5216,7 @@ LRESULT EditWndProc_common( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, B
             EDIT_UnlockBuffer(es, FALSE);
 
         TRACE("hwnd=%p msg=%x (%s) -- 0x%08lx\n", hwnd, msg, SPY_GetMsgName(msg, hwnd), result);
+#endif
 
 	return result;
 }

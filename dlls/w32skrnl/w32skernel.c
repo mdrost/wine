@@ -34,7 +34,7 @@ LPSTR WINAPI GetWin32sDirectory(void)
     static const char win32s[] = "\\win32s";
 
     int len = GetSystemDirectoryA( NULL, 0 );
-    LPSTR text = HeapAlloc( GetProcessHeap(), 0, len + sizeof(win32s) - 1 );
+    LPSTR text = heap_alloc( len + sizeof(win32s) - 1 );
     GetSystemDirectoryA( text, len );
     strcat( text, win32s );
     return text;

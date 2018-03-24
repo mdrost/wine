@@ -144,7 +144,7 @@ INT16 WINAPI ExtractPQ16(HPQ16 hPQ)
             prev->next = queue->next;
         else
             hpqueue = queue->next;
-        HeapFree(GetProcessHeap(), 0, queue);
+        heap_free(queue);
     }
 
     TRACE("%x got tag %d key %d\n", hPQ, tag, key);
@@ -158,7 +158,7 @@ INT16 WINAPI ExtractPQ16(HPQ16 hPQ)
  */
 INT16 WINAPI InsertPQ16(HPQ16 hPQ, INT16 tag, INT16 key)
 {
-    struct hpq *queueItem = HeapAlloc(GetProcessHeap(), 0, sizeof(struct hpq));
+    struct hpq *queueItem = heap_alloc(sizeof(struct hpq));
     if(queueItem == NULL) {
         ERR("Memory exhausted!\n");
         return FALSE;
@@ -309,7 +309,7 @@ static int CreateSpoolFile(LPCSTR pszOutput, pid_t *out_pid)
                 ERR("Failed to create spool file '%s' ('%s'). (error %s)\n",
                     buffer, psCmdP, strerror(errno));
             }
-            HeapFree(GetProcessHeap(), 0, buffer);
+            heap_free(buffer);
         }
     }
     return fd;
@@ -325,8 +325,8 @@ static int FreePrintJob(HANDLE16 hJob)
     {
 	nRet = SP_OK;
 	gPrintJobsTable[pPrintJob->nIndex] = NULL;
-	HeapFree(GetProcessHeap(), 0, pPrintJob->pszOutput);
-	HeapFree(GetProcessHeap(), 0, pPrintJob->pszTitle);
+	heap_free(pPrintJob->pszOutput);
+	heap_free(pPrintJob->pszTitle);
 	if (pPrintJob->fd >= 0) close(pPrintJob->fd);
 	if (pPrintJob->pid > 0)
 	{
@@ -338,7 +338,7 @@ static int FreePrintJob(HANDLE16 hJob)
             if (wret < 0 || !WIFEXITED(status) || WEXITSTATUS(status))
                 nRet = SP_ERROR;
 	}
-	HeapFree(GetProcessHeap(), 0, pPrintJob);
+	heap_free(pPrintJob);
     }
     return nRet;
 }
@@ -364,7 +364,7 @@ HPJOB16 WINAPI OpenJob16(LPCSTR lpOutput, LPCSTR lpTitle, HDC16 hDC)
 	fd = CreateSpoolFile(lpOutput, &pid);
 	if (fd >= 0)
 	{
-	    pPrintJob = HeapAlloc(GetProcessHeap(), 0, sizeof(PRINTJOB));
+	    pPrintJob = heap_alloc(sizeof(PRINTJOB));
             if(pPrintJob == NULL) {
                 WARN("Memory exhausted!\n");
                 return hHandle;
@@ -372,11 +372,11 @@ HPJOB16 WINAPI OpenJob16(LPCSTR lpOutput, LPCSTR lpTitle, HDC16 hDC)
 
             hHandle = 1;
 
-	    pPrintJob->pszOutput = HeapAlloc(GetProcessHeap(), 0, strlen(lpOutput)+1);
+	    pPrintJob->pszOutput = heap_alloc(strlen(lpOutput)+1);
 	    strcpy( pPrintJob->pszOutput, lpOutput );
 	    if(lpTitle)
             {
-	        pPrintJob->pszTitle = HeapAlloc(GetProcessHeap(), 0, strlen(lpTitle)+1);
+	        pPrintJob->pszTitle = heap_alloc(strlen(lpTitle)+1);
 	        strcpy( pPrintJob->pszTitle, lpTitle );
             }
 	    pPrintJob->hDC = hDC;
@@ -648,7 +648,7 @@ DWORD WINAPI DrvGetPrinterData16(LPSTR lpPrinter, LPSTR lpProfile,
 failed:
     if (hkey2) RegCloseKey(hkey2);
     if (hkey) RegCloseKey(hkey);
-    HeapFree(GetProcessHeap(), 0, RegStr_Printer);
+    heap_free(RegStr_Printer);
     return res;
 }
 
@@ -709,6 +709,6 @@ DWORD WINAPI DrvSetPrinterData16(LPSTR lpPrinter, LPSTR lpProfile,
     }
 
     if (hkey) RegCloseKey(hkey);
-    HeapFree(GetProcessHeap(), 0, RegStr_Printer);
+    heap_free(RegStr_Printer);
     return res;
 }

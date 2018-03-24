@@ -510,7 +510,7 @@ static const struct {
 
 static LPWSTR GetWideString(const char* szString)
 {
-  LPWSTR wszString = HeapAlloc(GetProcessHeap(), 0, (2*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
+  LPWSTR wszString = heap_alloc((2*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
 
   MultiByteToWideChar(CP_ACP, 0, szString, -1, wszString, INTERNET_MAX_URL_LENGTH);
 
@@ -520,7 +520,7 @@ static LPWSTR GetWideString(const char* szString)
 
 static void FreeWideString(LPWSTR wszString)
 {
-   HeapFree(GetProcessHeap(), 0, wszString);
+   heap_free(wszString);
 }
 
 /* ########################### */

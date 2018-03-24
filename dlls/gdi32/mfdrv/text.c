@@ -48,7 +48,7 @@ static BOOL MFDRV_MetaExtTextOut( PHYSDEV dev, short x, short y, UINT16 flags,
         len += sizeof(RECT16);
     if (lpDx)
      len+=count*sizeof(INT16);
-    if (!(mr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, len)))
+    if (!(mr = heap_alloc_zero( len)))
 	return FALSE;
 
     mr->rdSize = len / 2;
@@ -63,7 +63,7 @@ static BOOL MFDRV_MetaExtTextOut( PHYSDEV dev, short x, short y, UINT16 flags,
      memcpy(mr->rdParm + (isrect ? 8 : 4) + ((count + 1) >> 1),lpDx,
       count*sizeof(INT16));
     ret = MFDRV_WriteRecord( dev, mr, mr->rdSize * 2);
-    HeapFree( GetProcessHeap(), 0, mr);
+    heap_free( mr);
     return ret;
 }
 
@@ -123,7 +123,7 @@ BOOL MFDRV_ExtTextOut( PHYSDEV dev, INT x, INT y, UINT flags,
 
     TRACE("cp == %d\n", cp);
     len = WideCharToMultiByte(cp, 0, str, count, NULL, 0, NULL, NULL);
-    ascii = HeapAlloc(GetProcessHeap(), 0, len);
+    ascii = heap_alloc(len);
     WideCharToMultiByte(cp, 0, str, count, ascii, len, NULL, NULL);
     TRACE("mapped %s -> %s\n", debugstr_wn(str, count), debugstr_an(ascii, len));
 
@@ -137,7 +137,7 @@ BOOL MFDRV_ExtTextOut( PHYSDEV dev, INT x, INT y, UINT flags,
     }
 
     if(lpDx) {
-        lpdx16 = HeapAlloc( GetProcessHeap(), 0, sizeof(INT16)*len );
+        lpdx16 = heap_alloc( sizeof(INT16)*len );
 	for(i = j = 0; i < len; )
 	    if(IsDBCSLeadByteEx(cp, ascii[i])) {
 	        lpdx16[i++] = lpDx[j++];
@@ -147,7 +147,7 @@ BOOL MFDRV_ExtTextOut( PHYSDEV dev, INT x, INT y, UINT flags,
     }
 
     ret = MFDRV_MetaExtTextOut(dev,x,y,flags,lprect?&rect16:NULL,ascii,len,lpdx16);
-    HeapFree( GetProcessHeap(), 0, ascii );
-    HeapFree( GetProcessHeap(), 0, lpdx16 );
+    heap_free( ascii );
+    heap_free( lpdx16 );
     return ret;
 }

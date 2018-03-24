@@ -37,6 +37,7 @@
 #include "wine/gdi_driver.h"
 #include "wine/glu.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(wgl);
 WINE_DECLARE_DEBUG_CHANNEL(fps);
@@ -197,9 +198,9 @@ BOOL WINAPI wglDeleteContext(HGLRC hglrc)
     }
     if (hglrc == NtCurrentTeb()->glCurrentRC) wglMakeCurrent( 0, 0 );
     ptr->funcs->wgl.p_wglDeleteContext( ptr->u.context->drv_ctx );
-    HeapFree( GetProcessHeap(), 0, ptr->u.context->disabled_exts );
-    HeapFree( GetProcessHeap(), 0, ptr->u.context->extensions );
-    HeapFree( GetProcessHeap(), 0, ptr->u.context );
+    heap_free( ptr->u.context->disabled_exts );
+    heap_free( ptr->u.context->extensions );
+    heap_free( ptr->u.context );
     free_handle_ptr( ptr );
     return TRUE;
 }
@@ -277,7 +278,7 @@ HGLRC WINAPI wglCreateContextAttribsARB( HDC hdc, HGLRC share, const int *attrib
     if ((drv_ctx = funcs->ext.p_wglCreateContextAttribsARB( hdc,
                                               share_ptr ? share_ptr->u.context->drv_ctx : NULL, attribs )))
     {
-        if ((context = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*context) )))
+        if ((context = heap_alloc_zero( sizeof(*context) )))
         {
             enum wgl_handle_type type = HANDLE_CONTEXT;
 
@@ -297,7 +298,7 @@ HGLRC WINAPI wglCreateContextAttribsARB( HDC hdc, HGLRC share, const int *attrib
 
             context->drv_ctx = drv_ctx;
             if (!(ret = alloc_handle( type, funcs, context )))
-                HeapFree( GetProcessHeap(), 0, context );
+                heap_free( context );
         }
         if (!ret) funcs->wgl.p_wglDeleteContext( drv_ctx );
     }
@@ -406,11 +407,11 @@ HGLRC WINAPI wglCreateContext(HDC hdc)
 
     if (!funcs) return 0;
     if (!(drv_ctx = funcs->wgl.p_wglCreateContext( hdc ))) return 0;
-    if ((context = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*context) )))
+    if ((context = heap_alloc_zero( sizeof(*context) )))
     {
         context->drv_ctx = drv_ctx;
         if (!(ret = alloc_handle( HANDLE_CONTEXT, funcs, context )))
-            HeapFree( GetProcessHeap(), 0, context );
+            heap_free( context );
     }
     if (!ret) funcs->wgl.p_wglDeleteContext( drv_ctx );
     return ret;
@@ -1117,10 +1118,10 @@ static BOOL wglUseFontBitmaps_common( HDC hdc, DWORD first, DWORD count, DWORD l
 
          if (needed_size > size) {
              size = needed_size;
-             HeapFree(GetProcessHeap(), 0, bitmap);
-             HeapFree(GetProcessHeap(), 0, gl_bitmap);
-             bitmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
-             gl_bitmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+             heap_free(bitmap);
+             heap_free(gl_bitmap);
+             bitmap = heap_alloc_zero(size);
+             gl_bitmap = heap_alloc_zero(size);
          }
          if (needed_size != 0) {
              if (unicode)
@@ -1186,8 +1187,8 @@ static BOOL wglUseFontBitmaps_common( HDC hdc, DWORD first, DWORD count, DWORD l
      }
 
      funcs->gl.p_glPixelStorei(GL_UNPACK_ALIGNMENT, org_alignment);
-     HeapFree(GetProcessHeap(), 0, bitmap);
-     HeapFree(GetProcessHeap(), 0, gl_bitmap);
+     heap_free(bitmap);
+     heap_free(gl_bitmap);
      return ret;
 }
 
@@ -1371,7 +1372,7 @@ static BOOL wglUseFontOutlines_common(HDC hdc,
         if(needed == GDI_ERROR)
             goto error;
 
-        buf = HeapAlloc(GetProcessHeap(), 0, needed);
+        buf = heap_alloc(needed);
 
         if(unicode)
             GetGlyphOutlineW(hdc, glyph, GGO_NATIVE, &gm, needed, buf, &identity);
@@ -1406,7 +1407,7 @@ static BOOL wglUseFontOutlines_common(HDC hdc,
         while(!vertices)
         {
             if(vertex_total != -1)
-                vertices = HeapAlloc(GetProcessHeap(), 0, vertex_total * 3 * sizeof(GLdouble));
+                vertices = heap_alloc(vertex_total * 3 * sizeof(GLdouble));
             vertex_total = 0;
 
             pph = (TTPOLYGONHEADER*)buf;
@@ -1486,7 +1487,7 @@ static BOOL wglUseFontOutlines_common(HDC hdc,
                                 curve[2].y = (curve[1].y + curve[2].y)/2;
                             }
                             num = bezier_approximate(curve, NULL, deviation);
-                            points = HeapAlloc(GetProcessHeap(), 0, num*sizeof(bezier_vector));
+                            points = heap_alloc(num*sizeof(bezier_vector));
                             num = bezier_approximate(curve, points, deviation);
                             vertex_total += num;
                             if(vertices)
@@ -1504,7 +1505,7 @@ static BOOL wglUseFontOutlines_common(HDC hdc,
                                     vertices += 3;
                                 }
                             }
-                            HeapFree(GetProcessHeap(), 0, points);
+                            heap_free(points);
                             previous[0] = curve[2].x;
                             previous[1] = curve[2].y;
                         }
@@ -1534,8 +1535,8 @@ error_in_list:
             gluTessEndPolygon(tess);
         funcs->gl.p_glTranslated((GLdouble)gm.gmCellIncX / em_size, (GLdouble)gm.gmCellIncY / em_size, 0.0);
         funcs->gl.p_glEndList();
-        HeapFree(GetProcessHeap(), 0, buf);
-        HeapFree(GetProcessHeap(), 0, vertices);
+        heap_free(buf);
+        heap_free(vertices);
     }
 
  error:
@@ -1589,7 +1590,7 @@ static GLubyte *filter_extensions_list(const char *extensions, const char *disab
     char *p, *str;
     const char *end;
 
-    p = str = HeapAlloc(GetProcessHeap(), 0, strlen(extensions) + 2);
+    p = str = heap_alloc(strlen(extensions) + 2);
     if (!str)
         return NULL;
 
@@ -1640,7 +1641,7 @@ static GLuint *filter_extensions_index(const char *disabled)
 
     funcs->gl.p_glGetIntegerv(GL_NUM_EXTENSIONS, &extensions_count);
     disabled_size = 2;
-    disabled_exts = HeapAlloc(GetProcessHeap(), 0, disabled_size * sizeof(*disabled_exts));
+    disabled_exts = heap_alloc(disabled_size * sizeof(*disabled_exts));
     if (!disabled_exts)
         return NULL;
 
@@ -1667,7 +1668,7 @@ static GLuint *filter_extensions_index(const char *disabled)
                 if (i + 1 == disabled_size)
                 {
                     disabled_size *= 2;
-                    new_disabled_exts = HeapReAlloc(GetProcessHeap(), 0, disabled_exts,
+                    new_disabled_exts = heap_realloc(disabled_exts,
                                                     disabled_size * sizeof(*disabled_exts));
                     if (!new_disabled_exts)
                     {
@@ -1703,7 +1704,7 @@ static BOOL filter_extensions(const char *extensions, GLubyte **exts_list, GLuin
         {
             if (!RegQueryValueExA( hkey, "DisabledExtensions", 0, NULL, NULL, &size ))
             {
-                str = HeapAlloc( GetProcessHeap(), 0, size );
+                str = heap_alloc( size );
                 if (RegQueryValueExA( hkey, "DisabledExtensions", 0, NULL, (BYTE *)str, &size )) *str = 0;
             }
             RegCloseKey( hkey );
@@ -1711,7 +1712,7 @@ static BOOL filter_extensions(const char *extensions, GLubyte **exts_list, GLuin
         if (str)
         {
             if (InterlockedCompareExchangePointer( (void **)&disabled, str, NULL ))
-                HeapFree( GetProcessHeap(), 0, str );
+                heap_free( str );
         }
         else disabled = "";
     }

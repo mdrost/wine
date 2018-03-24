@@ -39,6 +39,7 @@
 #include "shlobj.h"
 #include "mlang.h"
 #include "ddeml.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -1069,7 +1070,11 @@ LPSTR WINAPI StrDupA(LPCSTR lpszStr)
   TRACE("(%s)\n",debugstr_a(lpszStr));
 
   iLen = lpszStr ? strlen(lpszStr) + 1 : 1;
+#if 0
   lpszRet = LocalAlloc(LMEM_FIXED, iLen);
+#else
+  lpszRet = NULL;
+#endif
 
   if (lpszRet)
   {
@@ -1094,7 +1099,11 @@ LPWSTR WINAPI StrDupW(LPCWSTR lpszStr)
   TRACE("(%s)\n",debugstr_w(lpszStr));
 
   iLen = (lpszStr ? strlenW(lpszStr) + 1 : 1) * sizeof(WCHAR);
+#if 0
   lpszRet = LocalAlloc(LMEM_FIXED, iLen);
+#else
+  lpszRet = NULL;
+#endif
 
   if (lpszRet)
   {
@@ -1654,13 +1663,13 @@ static HRESULT _SHStrDupAToBSTR(LPCSTR src, BSTR *pBstrOut)
     if (src)
     {
         INT len = MultiByteToWideChar(CP_ACP, 0, src, -1, NULL, 0);
-        WCHAR* szTemp = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        WCHAR* szTemp = heap_alloc(len * sizeof(WCHAR));
 
         if (szTemp)
         {
             MultiByteToWideChar(CP_ACP, 0, src, -1, szTemp, len);
             *pBstrOut = SysAllocString(szTemp);
-            HeapFree(GetProcessHeap(), 0, szTemp);
+            heap_free(szTemp);
 
             if (*pBstrOut)
                 return S_OK;
@@ -2688,7 +2697,7 @@ DWORD WINAPI SHUnicodeToAnsiCP(UINT CodePage, LPCWSTR lpSrcStr, LPSTR lpDstStr, 
       lenW = len;
       hr = ConvertINetUnicodeToMultiByte(&dwMode, CodePage, lpSrcStr, &lenW, NULL, &needed);
       needed++;
-      mem = HeapAlloc(GetProcessHeap(), 0, needed);
+      mem = heap_alloc(needed);
       if (!mem)
         return 0;
 
@@ -2698,7 +2707,7 @@ DWORD WINAPI SHUnicodeToAnsiCP(UINT CodePage, LPCWSTR lpSrcStr, LPSTR lpDstStr, 
           reqLen = SHTruncateString(mem, dstlen);
           if (reqLen > 0) memcpy(lpDstStr, mem, reqLen-1);
       }
-      HeapFree(GetProcessHeap(), 0, mem);
+      heap_free(mem);
       return 0;
     }
   default:
@@ -2713,7 +2722,7 @@ DWORD WINAPI SHUnicodeToAnsiCP(UINT CodePage, LPCWSTR lpSrcStr, LPSTR lpDstStr, 
     reqLen = WideCharToMultiByte(CodePage, 0, lpSrcStr, len, NULL, 0, NULL, NULL);
     if (reqLen)
     {
-      mem = HeapAlloc(GetProcessHeap(), 0, reqLen);
+      mem = heap_alloc(reqLen);
       if (mem)
       {
         WideCharToMultiByte(CodePage, 0, lpSrcStr, len, mem, reqLen, NULL, NULL);
@@ -2722,7 +2731,7 @@ DWORD WINAPI SHUnicodeToAnsiCP(UINT CodePage, LPCWSTR lpSrcStr, LPSTR lpDstStr, 
         reqLen++;
 
         lstrcpynA(lpDstStr, mem, reqLen);
-        HeapFree(GetProcessHeap(), 0, mem);
+        heap_free(mem);
         lpDstStr[reqLen-1] = '\0';
       }
     }
@@ -2841,6 +2850,7 @@ BOOL WINAPI DoesStringRoundTripW(LPCWSTR lpSrcStr, LPSTR lpDst, INT iLen)
  */
 HRESULT WINAPI SHLoadIndirectString(LPCWSTR src, LPWSTR dst, UINT dst_len, void **reserved)
 {
+#if 0
     WCHAR *dllname = NULL;
     HMODULE hmod = NULL;
     HRESULT hr = E_FAIL;
@@ -2885,6 +2895,9 @@ end:
     if(hmod) FreeLibrary(hmod);
     LocalFree(dllname);
     return hr;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 BOOL WINAPI IsCharSpaceA(CHAR c)

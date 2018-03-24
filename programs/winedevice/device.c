@@ -185,14 +185,14 @@ static HMODULE load_driver( const WCHAR *driver_name, const UNICODE_STRING *keyn
     size = 0;
     if (!RegQueryValueExW( driver_hkey, ImagePathW, NULL, &type, NULL, &size ))
     {
-        str = HeapAlloc( GetProcessHeap(), 0, size );
+        str = heap_alloc( size );
         if (!RegQueryValueExW( driver_hkey, ImagePathW, NULL, &type, (LPBYTE)str, &size ))
         {
             size = ExpandEnvironmentStringsW(str,NULL,0);
-            path = HeapAlloc(GetProcessHeap(),0,size*sizeof(WCHAR));
+            path = heap_alloc(size*sizeof(WCHAR));
             ExpandEnvironmentStringsW(str,path,size);
         }
-        HeapFree( GetProcessHeap(), 0, str );
+        heap_free( str );
         if (!path)
         {
             RegCloseKey( driver_hkey );
@@ -205,11 +205,11 @@ static HMODULE load_driver( const WCHAR *driver_name, const UNICODE_STRING *keyn
 
             GetWindowsDirectoryW(buffer, MAX_PATH);
 
-            str = HeapAlloc(GetProcessHeap(), 0, (size -11 + strlenW(buffer))
+            str = heap_alloc((size -11 + strlenW(buffer))
                                                         * sizeof(WCHAR));
             lstrcpyW(str, buffer);
             lstrcatW(str, path + 11);
-            HeapFree( GetProcessHeap(), 0, path );
+            heap_free( path );
             path = str;
         }
         else if (!strncmpW( path, ntprefixW, 4 ))
@@ -222,7 +222,7 @@ static HMODULE load_driver( const WCHAR *driver_name, const UNICODE_STRING *keyn
         /* default is to use the driver name + ".sys" */
         WCHAR buffer[MAX_PATH];
         GetSystemDirectoryW(buffer, MAX_PATH);
-        path = HeapAlloc(GetProcessHeap(),0,
+        path = heap_alloc(
           (strlenW(buffer) + strlenW(driversW) + strlenW(driver_name) + strlenW(postfixW) + 1)
           *sizeof(WCHAR));
         lstrcpyW(path, buffer);
@@ -236,7 +236,7 @@ static HMODULE load_driver( const WCHAR *driver_name, const UNICODE_STRING *keyn
     WINE_TRACE( "loading driver %s\n", wine_dbgstr_w(str) );
 
     module = load_driver_module( str );
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( path );
     return module;
 }
 
@@ -314,7 +314,7 @@ static void WINAPI async_unload_driver( PTP_CALLBACK_INSTANCE instance, void *co
 
     set_service_status( driver->handle, SERVICE_STOPPED, 0 );
     CloseServiceHandle( (void *)driver->handle );
-    HeapFree( GetProcessHeap(), 0, driver );
+    heap_free( driver );
 }
 
 /* call the driver unload function */
@@ -366,7 +366,7 @@ static void WINAPI async_create_driver( PTP_CALLBACK_INSTANCE instance, void *co
     NTSTATUS status;
     WCHAR *str;
 
-    if (!(str = HeapAlloc( GetProcessHeap(), 0, sizeof(driverW) + strlenW(driver->name)*sizeof(WCHAR) )))
+    if (!(str = heap_alloc( sizeof(driverW) + strlenW(driver->name)*sizeof(WCHAR) )))
         goto error;
 
     lstrcpyW( str, driverW);
@@ -404,7 +404,7 @@ error:
 
     set_service_status( driver->handle, SERVICE_STOPPED, 0 );
     CloseServiceHandle( (void *)driver->handle );
-    HeapFree( GetProcessHeap(), 0, driver );
+    heap_free( driver );
 }
 
 /* load a driver and notify services.exe about the status change */
@@ -415,7 +415,7 @@ static NTSTATUS create_driver( const WCHAR *driver_name )
     DWORD length;
 
     length = FIELD_OFFSET( struct wine_driver, name[strlenW(driver_name) + 1] );
-    if (!(driver = HeapAlloc( GetProcessHeap(), 0, length )))
+    if (!(driver = heap_alloc( length )))
         return STATUS_NO_MEMORY;
 
     strcpyW( driver->name, driver_name );
@@ -423,14 +423,14 @@ static NTSTATUS create_driver( const WCHAR *driver_name )
 
     if (!(driver->handle = (void *)OpenServiceW( manager_handle, driver_name, SERVICE_SET_STATUS )))
     {
-        HeapFree( GetProcessHeap(), 0, driver );
+        heap_free( driver );
         return STATUS_UNSUCCESSFUL;
     }
 
     if (wine_rb_put( &wine_drivers, driver_name, &driver->entry ))
     {
         CloseServiceHandle( (void *)driver->handle );
-        HeapFree( GetProcessHeap(), 0, driver );
+        heap_free( driver );
         return STATUS_UNSUCCESSFUL;
     }
 
@@ -455,7 +455,7 @@ static void wine_drivers_rb_destroy( struct wine_rb_entry *entry, void *context 
         struct wine_driver *driver = WINE_RB_ENTRY_VALUE( entry, struct wine_driver, entry );
         ObDereferenceObject( driver->driver_obj );
         CloseServiceHandle( (void *)driver->handle );
-        HeapFree( GetProcessHeap(), 0, driver );
+        heap_free( driver );
     }
 }
 

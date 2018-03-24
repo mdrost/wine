@@ -67,10 +67,10 @@ static DWORD rgn_rect_count(HRGN hrgn)
 
     if (!hrgn) return 0;
     if (!(size = GetRegionData(hrgn, 0, NULL))) return 0;
-    if (!(data = HeapAlloc(GetProcessHeap(), 0, size))) return 0;
+    if (!(data = heap_alloc(size))) return 0;
     GetRegionData(hrgn, size, data);
     size = data->rdh.nCount;
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
     return size;
 }
 
@@ -1737,9 +1737,9 @@ static BOOL match_emf_record(const ENHMETARECORD *emr1, const ENHMETARECORD *emr
     {
         EMREXTTEXTOUTW *eto1, *eto2;
 
-        eto1 = HeapAlloc(GetProcessHeap(), 0, emr1->nSize);
+        eto1 = heap_alloc(emr1->nSize);
         memcpy(eto1, emr1, emr1->nSize);
-        eto2 = HeapAlloc(GetProcessHeap(), 0, emr2->nSize);
+        eto2 = heap_alloc(emr2->nSize);
         memcpy(eto2, emr2, emr2->nSize);
 
         /* different Windows versions setup DC scaling differently */
@@ -1752,8 +1752,8 @@ static BOOL match_emf_record(const ENHMETARECORD *emr1, const ENHMETARECORD *emr
             dump_EMREXTTEXTOUT(eto1);
             dump_EMREXTTEXTOUT(eto2);
         }
-        HeapFree(GetProcessHeap(), 0, eto1);
-        HeapFree(GetProcessHeap(), 0, eto2);
+        heap_free(eto1);
+        heap_free(eto2);
     }
     else if (emr1->iType == EMR_EXTSELECTCLIPRGN && !lstrcmpA(desc, "emf_clipping"))
     {
@@ -1763,7 +1763,7 @@ static BOOL match_emf_record(const ENHMETARECORD *emr1, const ENHMETARECORD *emr
         {
             ENHMETARECORD *emr_nt4;
 
-            emr_nt4 = HeapAlloc(GetProcessHeap(), 0, emr2->nSize);
+            emr_nt4 = heap_alloc(emr2->nSize);
             memcpy(emr_nt4, emr2, emr2->nSize);
             /* Correct the nRgnSize field */
             emr_nt4->dParm[5] = sizeof(RECT);
@@ -1772,7 +1772,7 @@ static BOOL match_emf_record(const ENHMETARECORD *emr1, const ENHMETARECORD *emr
             if (!diff)
                 win_skip("Catered for NT4 differences\n");
 
-            HeapFree(GetProcessHeap(), 0, emr_nt4);
+            heap_free(emr_nt4);
         }
     }
     else if (emr1->iType == EMR_POLYBEZIERTO16 || emr1->iType == EMR_POLYBEZIER16)
@@ -2259,7 +2259,7 @@ static void test_mf_PatternBrush(void)
     HBRUSH hBrush;
     BOOL ret;
 
-    orig_lb = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(LOGBRUSH));
+    orig_lb = heap_alloc_zero(sizeof(LOGBRUSH));
 
     orig_lb->lbStyle = BS_PATTERN;
     orig_lb->lbColor = RGB(0, 0, 0);
@@ -2294,7 +2294,7 @@ static void test_mf_PatternBrush(void)
     ret = DeleteObject((HBITMAP)orig_lb->lbHatch);
     ok( ret, "DeleteObject(HBITMAP) error %d\n",
         GetLastError());
-    HeapFree (GetProcessHeap(), 0, orig_lb);
+    heap_free(orig_lb);
 }
 
 static void test_mf_DCBrush(void)
@@ -2940,11 +2940,11 @@ static HENHMETAFILE create_converted_emf(const METAFILEPICT *mfp)
 
     size = GetMetaFileBitsEx(hmf, 0, NULL);
     ok(size, "GetMetaFileBitsEx failed with error %d\n", GetLastError());
-    pBits = HeapAlloc(GetProcessHeap(), 0, size);
+    pBits = heap_alloc(size);
     GetMetaFileBitsEx(hmf, size, pBits);
     DeleteMetaFile(hmf);
     hemf = SetWinMetaFileBits(size, pBits, NULL, mfp);
-    HeapFree(GetProcessHeap(), 0, pBits);
+    heap_free(pBits);
     return hemf;
 }
 
@@ -3124,7 +3124,7 @@ static void test_SetWinMetaFileBits(void)
     return;
   }
 
-  buffer = HeapAlloc(GetProcessHeap(), 0, buffer_size);
+  buffer = heap_alloc(buffer_size);
   ok(buffer != NULL, "HeapAlloc failed\n");
   if (!buffer)
   {
@@ -3137,7 +3137,7 @@ static void test_SetWinMetaFileBits(void)
   DeleteMetaFile(wmf);
   if (res != buffer_size)
   {
-     HeapFree(GetProcessHeap(), 0, buffer);
+     heap_free(buffer);
      return;
   }
 
@@ -3233,7 +3233,7 @@ static void test_SetWinMetaFileBits(void)
        "SetWinMetaFileBits: xExt and yExt must be ignored for mapping modes other than MM_ANISOTROPIC and MM_ISOTROPIC\n");
   }
 
-  HeapFree(GetProcessHeap(), 0, buffer);
+  heap_free(buffer);
 }
 
 static BOOL near_match(int x, int y)
@@ -3286,7 +3286,7 @@ static void getwinmetafilebits(UINT mode, int scale, RECT *rc)
     ok(emf != NULL, "emf is NULL\n");
 
     emf_size = GetEnhMetaFileBits(emf, 0, NULL);
-    enh_header = HeapAlloc(GetProcessHeap(), 0, emf_size);
+    enh_header = heap_alloc(emf_size);
     emf_size = GetEnhMetaFileBits(emf, emf_size, (BYTE*)enh_header);
     DeleteEnhMetaFile(emf);
     /* multiply szlDevice.cx by scale, when scale != 1 the recording and playback dcs
@@ -3301,7 +3301,7 @@ static void getwinmetafilebits(UINT mode, int scale, RECT *rc)
        broken(size == 0), /* some versions of winxp fail for some reason */
        "GetWinMetaFileBits returns 0\n");
     if(!size) goto end;
-    mh = HeapAlloc(GetProcessHeap(), 0, size);
+    mh = heap_alloc(size);
     GetWinMetaFileBits(emf, size, (BYTE*)mh, mode, display_dc);
 
     for(i = 0; i < size / 2; i++) check += ((WORD*)mh)[i];
@@ -3409,16 +3409,16 @@ static void getwinmetafilebits(UINT mode, int scale, RECT *rc)
     emf2 = SetWinMetaFileBits( size, (BYTE*)mh, NULL, &mfp );
     ok( !!emf2, "got NULL\n" );
     emf2_size = GetEnhMetaFileBits( emf2, 0, NULL );
-    enh2_header = HeapAlloc( GetProcessHeap(), 0, emf2_size );
+    enh2_header = heap_alloc( emf2_size );
     emf2_size = GetEnhMetaFileBits( emf2, emf2_size, (BYTE*)enh2_header );
     ok( emf_size == emf2_size, "%d %d\n", emf_size, emf2_size );
     ok( !memcmp( enh_header, enh2_header, emf_size ), "mismatch\n" );
-    HeapFree( GetProcessHeap(), 0, enh2_header );
+    heap_free( enh2_header );
     DeleteEnhMetaFile( emf2 );
 
 end:
-    HeapFree(GetProcessHeap(), 0, mh);
-    HeapFree(GetProcessHeap(), 0, enh_header);
+    heap_free(mh);
+    heap_free(enh_header);
     DeleteEnhMetaFile(emf);
 
     ReleaseDC(NULL, display_dc);

@@ -1750,7 +1750,7 @@ static BOOL SHELL_execute( LPSHELLEXECUTEINFOW sei, SHELL_ExecuteW32 execfunc )
         {
             LPWSTR buf;
             len++;
-            buf = heap_alloc(len * sizeof(WCHAR));
+            buf = heap_alloc(len*sizeof(WCHAR));
             ExpandEnvironmentStringsW(sei_tmp.lpDirectory, buf, len);
             if (wszDir != dirBuffer)
                 heap_free(wszDir);

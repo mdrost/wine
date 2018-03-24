@@ -42,6 +42,7 @@
 #include "winnls.h"
 #include "winternl.h"
 #include "lzexpand.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "winerror.h"
 #include "wine/debug.h"
@@ -218,13 +219,13 @@ static BOOL find_ne_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff )
     }
 
     /* Read in resource table */
-    resTab = HeapAlloc( GetProcessHeap(), 0, resTabSize );
+    resTab = heap_alloc( resTabSize );
     if ( !resTab ) return FALSE;
 
     LZSeek( lzfd, nehd.ne_rsrctab + nehdoffset, SEEK_SET );
     if ( resTabSize != LZRead( lzfd, (char*)resTab, resTabSize ) )
     {
-        HeapFree( GetProcessHeap(), 0, resTab );
+        heap_free( resTab );
         return FALSE;
     }
 
@@ -237,7 +238,7 @@ static BOOL find_ne_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff )
                                    typeInfo->count * sizeof(NE_NAMEINFO));
     }
     TRACE("No typeid entry found\n" );
-    HeapFree( GetProcessHeap(), 0, resTab );
+    heap_free( resTab );
     return FALSE;
 
  found_type:
@@ -247,7 +248,7 @@ static BOOL find_ne_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff )
         if (nameInfo->id == resid) goto found_name;
 
     TRACE("No resid entry found\n" );
-    HeapFree( GetProcessHeap(), 0, resTab );
+    heap_free( resTab );
     return FALSE;
 
  found_name:
@@ -255,7 +256,7 @@ static BOOL find_ne_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff )
     if ( resLen ) *resLen = nameInfo->length << *(WORD *)resTab;
     if ( resOff ) *resOff = nameInfo->offset << *(WORD *)resTab;
 
-    HeapFree( GetProcessHeap(), 0, resTab );
+    heap_free( resTab );
     return TRUE;
 }
 
@@ -306,7 +307,7 @@ static BOOL find_pe_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff, DWORD fl
 
     /* Read in section table */
     nSections = pehd.nt32.FileHeader.NumberOfSections;
-    sections = HeapAlloc( GetProcessHeap(), 0,
+    sections = heap_alloc(
                           nSections * sizeof(IMAGE_SECTION_HEADER) );
     if ( !sections ) return FALSE;
 
@@ -316,7 +317,7 @@ static BOOL find_pe_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff, DWORD fl
     if ( nSections * sizeof(IMAGE_SECTION_HEADER) !=
          LZRead( lzfd, (LPSTR)sections, nSections * sizeof(IMAGE_SECTION_HEADER) ) )
     {
-        HeapFree( GetProcessHeap(), 0, sections );
+        heap_free( sections );
         return FALSE;
     }
 
@@ -329,7 +330,7 @@ static BOOL find_pe_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff, DWORD fl
 
     if ( i == nSections )
     {
-        HeapFree( GetProcessHeap(), 0, sections );
+        heap_free( sections );
         TRACE("Couldn't find resource section\n" );
         return FALSE;
     }
@@ -337,10 +338,10 @@ static BOOL find_pe_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff, DWORD fl
     /* Read in resource section */
     data_size = sections[i].SizeOfRawData;
     section_size = max( data_size, sections[i].Misc.VirtualSize );
-    resSection = HeapAlloc( GetProcessHeap(), 0, section_size );
+    resSection = heap_alloc( section_size );
     if ( !resSection )
     {
-        HeapFree( GetProcessHeap(), 0, sections );
+        heap_free( sections );
         return FALSE;
     }
 
@@ -392,8 +393,8 @@ static BOOL find_pe_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff, DWORD fl
     ret = TRUE;
 
  done:
-    HeapFree( GetProcessHeap(), 0, resSection );
-    HeapFree( GetProcessHeap(), 0, sections );
+    heap_free( resSection );
+    heap_free( sections );
     return ret;
 }
 
@@ -1013,7 +1014,7 @@ BOOL WINAPI VerQueryValueA( LPCVOID pBlock, LPCSTR lpSubBlock,
         UINT value_len;
 
         len  = MultiByteToWideChar(CP_ACP, 0, lpSubBlock, -1, NULL, 0);
-        lpSubBlockW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        lpSubBlockW = heap_alloc(len * sizeof(WCHAR));
 
         if (!lpSubBlockW)
             return FALSE;
@@ -1023,7 +1024,7 @@ BOOL WINAPI VerQueryValueA( LPCVOID pBlock, LPCSTR lpSubBlock,
         ret = VersionInfo32_QueryValue(pBlock, lpSubBlockW, lplpBuffer, &value_len, &isText);
         if (puLen) *puLen = value_len;
 
-        HeapFree(GetProcessHeap(), 0, lpSubBlockW);
+        heap_free(lpSubBlockW);
 
         if (ret && isText)
         {
@@ -1072,7 +1073,7 @@ BOOL WINAPI VerQueryValueW( LPCVOID pBlock, LPCWSTR lpSubBlock,
         LPSTR lpSubBlockA;
 
         len = WideCharToMultiByte(CP_ACP, 0, lpSubBlock, -1, NULL, 0, NULL, NULL);
-        lpSubBlockA = HeapAlloc(GetProcessHeap(), 0, len * sizeof(char));
+        lpSubBlockA = heap_alloc(len * sizeof(char));
 
         if (!lpSubBlockA)
             return FALSE;
@@ -1081,7 +1082,7 @@ BOOL WINAPI VerQueryValueW( LPCVOID pBlock, LPCWSTR lpSubBlock,
 
         ret = VersionInfo16_QueryValue(pBlock, lpSubBlockA, lplpBuffer, puLen);
 
-        HeapFree(GetProcessHeap(), 0, lpSubBlockA);
+        heap_free(lpSubBlockA);
 
         if (ret && strcmpiW( lpSubBlock, rootW ) && strcmpiW( lpSubBlock, varfileinfoW ))
         {
@@ -1156,7 +1157,7 @@ static int testFileExistenceW( const WCHAR *path, const WCHAR *file, BOOL excl )
 
     pathlen = WideCharToMultiByte( CP_ACP, 0, path, -1, NULL, 0, NULL, NULL );
     filelen = WideCharToMultiByte( CP_ACP, 0, file, -1, NULL, 0, NULL, NULL );
-    filename = HeapAlloc( GetProcessHeap(), 0, pathlen+filelen+2 );
+    filename = heap_alloc( pathlen+filelen+2 );
 
     WideCharToMultiByte( CP_ACP, 0, path, -1, filename, pathlen, NULL, NULL );
     /* Add a trailing \ if necessary */
@@ -1171,7 +1172,7 @@ static int testFileExistenceW( const WCHAR *path, const WCHAR *file, BOOL excl )
 
     ret = (OpenFile(filename, &fileinfo,
                     OF_EXIST | (excl ? OF_SHARE_EXCLUSIVE : 0)) != HFILE_ERROR);
-    HeapFree( GetProcessHeap(), 0, filename );
+    heap_free( filename );
     return ret;
 }
 
@@ -1383,7 +1384,7 @@ _fetch_versioninfo(LPSTR fn,VS_FIXEDFILEINFO **vffi) {
     DWORD	ret;
 
     alloclen = 1000;
-    buf=HeapAlloc(GetProcessHeap(), 0, alloclen);
+    buf=heap_alloc(alloclen);
     if(buf == NULL) {
         WARN("Memory exhausted while fetching version info!\n");
         return NULL;
@@ -1391,13 +1392,13 @@ _fetch_versioninfo(LPSTR fn,VS_FIXEDFILEINFO **vffi) {
     while (1) {
 	ret = GetFileVersionInfoA(fn,0,alloclen,buf);
 	if (!ret) {
-	    HeapFree(GetProcessHeap(), 0, buf);
+	    heap_free(buf);
 	    return NULL;
 	}
 	if (alloclen<*(WORD*)buf) {
 	    alloclen = *(WORD*)buf;
-	    HeapFree(GetProcessHeap(), 0, buf);
-	    buf = HeapAlloc(GetProcessHeap(), 0, alloclen);
+	    heap_free(buf);
+	    buf = heap_alloc(alloclen);
             if(buf == NULL) {
                WARN("Memory exhausted while fetching version info!\n");
                return NULL;
@@ -1550,10 +1551,10 @@ DWORD WINAPI VerInstallFileA(
 		     * generates DIFFLANG|MISMATCH
 		     */
 		}
-		HeapFree(GetProcessHeap(), 0, buf2);
+		heap_free(buf2);
 	    } else
 		xret=VIF_MISMATCH|VIF_SRCOLD;
-	    HeapFree(GetProcessHeap(), 0, buf1);
+	    heap_free(buf1);
 	}
     }
     if (xret) {
@@ -1611,7 +1612,7 @@ DWORD WINAPI VerInstallFileW(
     if (srcfilename)
     {
         len = WideCharToMultiByte( CP_ACP, 0, srcfilename, -1, NULL, 0, NULL, NULL );
-        if ((wsrcf = HeapAlloc( GetProcessHeap(), 0, len )))
+        if ((wsrcf = heap_alloc( len )))
             WideCharToMultiByte( CP_ACP, 0, srcfilename, -1, wsrcf, len, NULL, NULL );
         else
             ret = VIF_OUTOFMEMORY;
@@ -1619,7 +1620,7 @@ DWORD WINAPI VerInstallFileW(
     if (srcdir && !ret)
     {
         len = WideCharToMultiByte( CP_ACP, 0, srcdir, -1, NULL, 0, NULL, NULL );
-        if ((wsrcd = HeapAlloc( GetProcessHeap(), 0, len )))
+        if ((wsrcd = heap_alloc( len )))
             WideCharToMultiByte( CP_ACP, 0, srcdir, -1, wsrcd, len, NULL, NULL );
         else
             ret = VIF_OUTOFMEMORY;
@@ -1627,7 +1628,7 @@ DWORD WINAPI VerInstallFileW(
     if (destfilename && !ret)
     {
         len = WideCharToMultiByte( CP_ACP, 0, destfilename, -1, NULL, 0, NULL, NULL );
-        if ((wdestf = HeapAlloc( GetProcessHeap(), 0, len )))
+        if ((wdestf = heap_alloc( len )))
             WideCharToMultiByte( CP_ACP, 0, destfilename, -1, wdestf, len, NULL, NULL );
         else
             ret = VIF_OUTOFMEMORY;
@@ -1635,7 +1636,7 @@ DWORD WINAPI VerInstallFileW(
     if (destdir && !ret)
     {
         len = WideCharToMultiByte( CP_ACP, 0, destdir, -1, NULL, 0, NULL, NULL );
-        if ((wdestd = HeapAlloc( GetProcessHeap(), 0, len )))
+        if ((wdestd = heap_alloc( len )))
             WideCharToMultiByte( CP_ACP, 0, destdir, -1, wdestd, len, NULL, NULL );
         else
             ret = VIF_OUTOFMEMORY;
@@ -1643,7 +1644,7 @@ DWORD WINAPI VerInstallFileW(
     if (curdir && !ret)
     {
         len = WideCharToMultiByte( CP_ACP, 0, curdir, -1, NULL, 0, NULL, NULL );
-        if ((wcurd = HeapAlloc( GetProcessHeap(), 0, len )))
+        if ((wcurd = heap_alloc( len )))
             WideCharToMultiByte( CP_ACP, 0, curdir, -1, wcurd, len, NULL, NULL );
         else
             ret = VIF_OUTOFMEMORY;
@@ -1651,7 +1652,7 @@ DWORD WINAPI VerInstallFileW(
     if (!ret)
     {
         len = *tmpfilelen * sizeof(WCHAR);
-        wtmpf = HeapAlloc( GetProcessHeap(), 0, len );
+        wtmpf = heap_alloc( len );
         if (!wtmpf)
             ret = VIF_OUTOFMEMORY;
     }
@@ -1662,11 +1663,11 @@ DWORD WINAPI VerInstallFileW(
     else if (ret & VIF_BUFFTOOSMALL)
         *tmpfilelen = len;  /* FIXME: not correct */
 
-    HeapFree( GetProcessHeap(), 0, wsrcf );
-    HeapFree( GetProcessHeap(), 0, wsrcd );
-    HeapFree( GetProcessHeap(), 0, wdestf );
-    HeapFree( GetProcessHeap(), 0, wdestd );
-    HeapFree( GetProcessHeap(), 0, wtmpf );
-    HeapFree( GetProcessHeap(), 0, wcurd );
+    heap_free( wsrcf );
+    heap_free( wsrcd );
+    heap_free( wdestf );
+    heap_free( wdestd );
+    heap_free( wtmpf );
+    heap_free( wcurd );
     return ret;
 }

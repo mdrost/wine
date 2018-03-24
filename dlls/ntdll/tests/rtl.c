@@ -901,12 +901,14 @@ static void test_RtlThreadErrorMode(void)
        mode, oldmode);
     ok(pRtlGetThreadErrorMode() == 0x70,
        "RtlGetThreadErrorMode returned 0x%x, expected 0x%x\n", mode, 0x70);
+#if 0
     if (!is_wow64)
     {
         ok(NtCurrentTeb()->HardErrorDisabled == 0x70,
            "The TEB contains 0x%x, expected 0x%x\n",
            NtCurrentTeb()->HardErrorDisabled, 0x70);
     }
+#endif
 
     status = pRtlSetThreadErrorMode(0, &mode);
     ok(status == STATUS_SUCCESS ||
@@ -917,12 +919,14 @@ static void test_RtlThreadErrorMode(void)
        mode, 0x70);
     ok(pRtlGetThreadErrorMode() == 0,
        "RtlGetThreadErrorMode returned 0x%x, expected 0x%x\n", mode, 0);
+#if 0
     if (!is_wow64)
     {
         ok(NtCurrentTeb()->HardErrorDisabled == 0,
            "The TEB contains 0x%x, expected 0x%x\n",
            NtCurrentTeb()->HardErrorDisabled, 0);
     }
+#endif
 
     for (mode = 1; mode; mode <<= 1)
     {
@@ -1435,7 +1439,7 @@ static void test_RtlCompressBuffer(void)
                                              &decompress_workspace);
     ok(status == STATUS_SUCCESS, "got wrong status 0x%08x\n", status);
     ok(compress_workspace != 0, "got wrong compress_workspace %u\n", compress_workspace);
-    workspace = HeapAlloc(GetProcessHeap(), 0, compress_workspace);
+    workspace = heap_alloc(compress_workspace);
     ok(workspace != NULL, "HeapAlloc failed %d\n", GetLastError());
 
     /* test compression format / engine */
@@ -1485,7 +1489,7 @@ static void test_RtlCompressBuffer(void)
                                 buf1, 4, 4096, &final_size, workspace);
     ok(status == STATUS_BUFFER_TOO_SMALL, "got wrong status 0x%08x\n", status);
 
-    HeapFree(GetProcessHeap(), 0, workspace);
+    heap_free(workspace);
 }
 
 static void test_RtlGetCompressionWorkSpaceSize(void)

@@ -79,7 +79,7 @@ static DWORD save_value(HKEY hkey, const char *value, reg_save_value *saved)
     ret=RegQueryValueExA(hkey, value, NULL, &saved->type, NULL, &saved->size);
     if (ret == ERROR_SUCCESS)
     {
-        saved->data=HeapAlloc(GetProcessHeap(), 0, saved->size);
+        saved->data=heap_alloc(saved->size);
         RegQueryValueExA(hkey, value, NULL, &saved->type, saved->data, &saved->size);
     }
     return ret;
@@ -90,7 +90,7 @@ static void restore_value(HKEY hkey, reg_save_value *saved)
     if (saved->data)
     {
         RegSetValueExA(hkey, saved->name, 0, saved->type, saved->data, saved->size);
-        HeapFree(GetProcessHeap(), 0, saved->data);
+        heap_free(saved->data);
     }
     else
         RegDeleteValueA(hkey, saved->name);
@@ -103,13 +103,13 @@ static void get_events(const char* name, HANDLE *start_event, HANDLE *done_event
 
     basename=strrchr(name, '\\');
     basename=(basename ? basename+1 : name);
-    event_name=HeapAlloc(GetProcessHeap(), 0, 6+strlen(basename)+1);
+    event_name=heap_alloc(6+strlen(basename)+1);
 
     sprintf(event_name, "start_%s", basename);
     *start_event=CreateEventA(NULL, 0,0, event_name);
     sprintf(event_name, "done_%s", basename);
     *done_event=CreateEventA(NULL, 0,0, event_name);
-    HeapFree(GetProcessHeap(), 0, event_name);
+    heap_free(event_name);
 }
 
 static void save_blackbox(const char* logfile, void* blackbox, int size)
@@ -291,14 +291,14 @@ static void crash_and_debug(HKEY hkey, const char* argv0, const char* dbgtasks)
 
     get_file_name(dbglog);
     get_events(dbglog, &start_event, &done_event);
-    cmd=HeapAlloc(GetProcessHeap(), 0, strlen(argv0)+10+strlen(dbgtasks)+1+strlen(dbglog)+2+34+1);
+    cmd=heap_alloc(strlen(argv0)+10+strlen(dbgtasks)+1+strlen(dbglog)+2+34+1);
     sprintf(cmd, "%s debugger %s \"%s\" %%ld %%ld", argv0, dbgtasks, dbglog);
     ret=RegSetValueExA(hkey, "debugger", 0, REG_SZ, (BYTE*)cmd, strlen(cmd)+1);
     ok(ret == ERROR_SUCCESS, "unable to set AeDebug/debugger: ret=%d\n", ret);
-    HeapFree(GetProcessHeap(), 0, cmd);
+    heap_free(cmd);
 
     get_file_name(childlog);
-    cmd=HeapAlloc(GetProcessHeap(), 0, strlen(argv0)+16+strlen(dbglog)+2+1);
+    cmd=heap_alloc(strlen(argv0)+16+strlen(dbglog)+2+1);
     sprintf(cmd, "%s debugger crash \"%s\"", argv0, childlog);
 
     memset(&startup, 0, sizeof(startup));
@@ -307,7 +307,7 @@ static void crash_and_debug(HKEY hkey, const char* argv0, const char* dbgtasks)
     startup.wShowWindow = SW_SHOWNORMAL;
     ret=CreateProcessA(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &startup, &info);
     ok(ret, "CreateProcess: err=%d\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, cmd);
+    heap_free(cmd);
     CloseHandle(info.hThread);
 
     /* The process exits... */
@@ -391,7 +391,7 @@ static void crash_and_winedbg(HKEY hkey, const char* argv0)
     ret=RegSetValueExA(hkey, "auto", 0, REG_SZ, (BYTE*)"1", 2);
     ok(ret == ERROR_SUCCESS, "unable to set AeDebug/auto: ret=%d\n", ret);
 
-    cmd=HeapAlloc(GetProcessHeap(), 0, strlen(argv0)+15+1);
+    cmd=heap_alloc(strlen(argv0)+15+1);
     sprintf(cmd, "%s debugger crash", argv0);
 
     memset(&startup, 0, sizeof(startup));
@@ -400,7 +400,7 @@ static void crash_and_winedbg(HKEY hkey, const char* argv0)
     startup.wShowWindow = SW_SHOWNORMAL;
     ret=CreateProcessA(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &startup, &info);
     ok(ret, "CreateProcess: err=%d\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, cmd);
+    heap_free(cmd);
     CloseHandle(info.hThread);
 
     trace("waiting for child exit...\n");
@@ -615,7 +615,7 @@ static void test_debug_loop(int argc, char **argv)
     ok(!ret, "DebugActiveProcess() succeeded on own process.\n");
 
     get_file_name(blackbox_file);
-    cmd = HeapAlloc(GetProcessHeap(), 0, strlen(argv[0]) + strlen(arguments) + strlen(blackbox_file) + 2 + 10);
+    cmd = heap_alloc(strlen(argv[0]) + strlen(arguments) + strlen(blackbox_file) + 2 + 10);
     sprintf(cmd, "%s%s%08x \"%s\"", argv[0], arguments, pid, blackbox_file);
 
     memset(&si, 0, sizeof(si));
@@ -623,7 +623,7 @@ static void test_debug_loop(int argc, char **argv)
     ret = CreateProcessA(NULL, cmd, NULL, NULL, FALSE, DEBUG_PROCESS, NULL, NULL, &si, &pi);
     ok(ret, "CreateProcess failed, last error %#x.\n", GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, cmd);
+    heap_free(cmd);
 
     ret = pCheckRemoteDebuggerPresent(pi.hProcess, &debug);
     ok(ret, "CheckRemoteDebuggerPresent failed, last error %#x.\n", GetLastError());
@@ -690,7 +690,7 @@ static void doChildren(int argc, char **argv)
     WaitForSingleObject(event, INFINITE);
     CloseHandle(event);
 
-    cmd = HeapAlloc(GetProcessHeap(), 0, strlen(argv[0]) + strlen(arguments) + 2);
+    cmd = heap_alloc(strlen(argv[0]) + strlen(arguments) + 2);
     sprintf(cmd, "%s %s", argv[0], arguments);
 
     memset(&si, 0, sizeof(si));
@@ -709,7 +709,7 @@ static void doChildren(int argc, char **argv)
     blackbox.failures = child_failures;
     save_blackbox(blackbox_file, &blackbox, sizeof(blackbox));
 
-    HeapFree(GetProcessHeap(), 0, cmd);
+    heap_free(cmd);
 }
 
 static void test_debug_children(char *name, DWORD flag, BOOL debug_child)
@@ -732,7 +732,7 @@ static void test_debug_children(char *name, DWORD flag, BOOL debug_child)
     }
 
     get_file_name(blackbox_file);
-    cmd = HeapAlloc(GetProcessHeap(), 0, strlen(name) + strlen(arguments) + strlen(blackbox_file) + 5);
+    cmd = heap_alloc(strlen(name) + strlen(arguments) + strlen(blackbox_file) + 5);
     sprintf(cmd, "%s %s \"%s\"", name, arguments, blackbox_file);
 
     p = strrchr(blackbox_file, '\\');
@@ -754,7 +754,7 @@ static void test_debug_children(char *name, DWORD flag, BOOL debug_child)
 
     ret = CreateProcessA(NULL, cmd, NULL, NULL, FALSE, flag, NULL, NULL, &si, &pi);
     ok(ret, "CreateProcess failed, last error %d.\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, cmd);
+    heap_free(cmd);
     if (!flag)
     {
         WaitForSingleObject(event_init, INFINITE);

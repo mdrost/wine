@@ -27,6 +27,7 @@
 #include "windef.h"
 #include "winbase.h"
 #include "wincon.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "winnls.h"
 #include "wine/debug.h"
@@ -248,9 +249,9 @@ static BOOL WCEL_Grow(WCEL_Context* ctx, size_t len)
         newsize = (ctx->len + len + 1 + 31) & ~31;
 
 	if (ctx->line)
-	    newline = HeapReAlloc(GetProcessHeap(), 0, ctx->line, sizeof(WCHAR) * newsize);
+	    newline = heap_realloc(ctx->line, sizeof(WCHAR) * newsize);
 	else
-	    newline = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * newsize);
+	    newline = heap_alloc(sizeof(WCHAR) * newsize);
 
 	if (!newline) return FALSE;
 	ctx->line = newline;
@@ -339,7 +340,7 @@ static void WCEL_InsertChar(WCEL_Context* ctx, WCHAR c)
 
 static void WCEL_FreeYank(WCEL_Context* ctx)
 {
-    HeapFree(GetProcessHeap(), 0, ctx->yanked);
+    heap_free(ctx->yanked);
     ctx->yanked = NULL;
 }
 
@@ -350,7 +351,7 @@ static void WCEL_SaveYank(WCEL_Context* ctx, int beg, int end)
 
     WCEL_FreeYank(ctx);
     /* After WCEL_FreeYank ctx->yanked is empty */
-    ctx->yanked = HeapAlloc(GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR));
+    ctx->yanked = heap_alloc((len + 1) * sizeof(WCHAR));
     if (!ctx->yanked) return;
     memcpy(ctx->yanked, &ctx->line[beg], len * sizeof(WCHAR));
     ctx->yanked[len] = 0;
@@ -387,14 +388,14 @@ static WCHAR* WCEL_GetHistory(WCEL_Context* ctx, int idx)
 
     if (idx == ctx->histSize - 1)
     {
-	ptr = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(ctx->histCurr) + 1) * sizeof(WCHAR));
+	ptr = heap_alloc((lstrlenW(ctx->histCurr) + 1) * sizeof(WCHAR));
 	lstrcpyW(ptr, ctx->histCurr);
     }
     else
     {
 	int	len = CONSOLE_GetHistory(idx, NULL, 0);
 
-	if ((ptr = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR))))
+	if ((ptr = heap_alloc(len * sizeof(WCHAR))))
 	{
 	    CONSOLE_GetHistory(idx, ptr, len);
 	}
@@ -406,7 +407,7 @@ static void	WCEL_HistoryInit(WCEL_Context* ctx)
 {
     ctx->histPos  = CONSOLE_GetNumHistoryEntries();
     ctx->histSize = ctx->histPos + 1;
-    ctx->histCurr = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR));
+    ctx->histCurr = heap_alloc_zero(sizeof(WCHAR));
 }
 
 static void    WCEL_MoveToHist(WCEL_Context* ctx, int idx)
@@ -417,8 +418,8 @@ static void    WCEL_MoveToHist(WCEL_Context* ctx, int idx)
     /* save current line edition for recall when needed (FIXME seems broken to me) */
     if (ctx->histPos == ctx->histSize - 1)
     {
-	HeapFree(GetProcessHeap(), 0, ctx->histCurr);
-	ctx->histCurr = HeapAlloc(GetProcessHeap(), 0, (ctx->len + 1) * sizeof(WCHAR));
+	heap_free(ctx->histCurr);
+	ctx->histCurr = heap_alloc((ctx->len + 1) * sizeof(WCHAR));
 	memcpy(ctx->histCurr, ctx->line, (ctx->len + 1) * sizeof(WCHAR));
     }
     /* need to clean also the screen if new string is shorter than old one */
@@ -430,7 +431,7 @@ static void    WCEL_MoveToHist(WCEL_Context* ctx, int idx)
 	WCEL_InsertString(ctx, data);
 	ctx->histPos = idx;
     }
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 }
 
 static void    WCEL_FindPrevInHist(WCEL_Context* ctx)
@@ -465,11 +466,11 @@ static void    WCEL_FindPrevInHist(WCEL_Context* ctx)
               ctx->ofs = oldofs;
               if (ctx->shall_echo)
                   SetConsoleCursorPosition(ctx->hConOut, WCEL_GetCoord(ctx, ctx->ofs));
-              HeapFree(GetProcessHeap(), 0, data);
+              heap_free(data);
               return;
            }
        }
-       HeapFree(GetProcessHeap(), 0, data);
+       heap_free(data);
     } while (ctx->histPos != startPos);
 
     return;
@@ -580,14 +581,14 @@ static void WCEL_TransposeWords(WCEL_Context* ctx)
         unsigned len_r = right_ofs - ctx->ofs;
         unsigned len_l = ctx->ofs - left_ofs;
 
-        char*   tmp = HeapAlloc(GetProcessHeap(), 0, len_r * sizeof(WCHAR));
+        char*   tmp = heap_alloc(len_r * sizeof(WCHAR));
         if (!tmp) return;
 
         memcpy(tmp, &ctx->line[ctx->ofs], len_r * sizeof(WCHAR));
         memmove(&ctx->line[left_ofs + len_r], &ctx->line[left_ofs], len_l * sizeof(WCHAR));
         memcpy(&ctx->line[left_ofs], tmp, len_r * sizeof(WCHAR));
 
-        HeapFree(GetProcessHeap(), 0, tmp);
+        heap_free(tmp);
         WCEL_Update(ctx, left_ofs, len_l + len_r);
         ctx->ofs = right_ofs;
     }
@@ -1038,7 +1039,7 @@ WCHAR* CONSOLE_Readline(HANDLE hConsoleIn, BOOL can_pos_cursor)
     }
     if (ctx.error)
     {
-	HeapFree(GetProcessHeap(), 0, ctx.line);
+	heap_free(ctx.line);
 	ctx.line = NULL;
     }
     WCEL_FreeYank(&ctx);
@@ -1046,6 +1047,6 @@ WCHAR* CONSOLE_Readline(HANDLE hConsoleIn, BOOL can_pos_cursor)
 	CONSOLE_AppendHistory(ctx.line);
 
     CloseHandle(ctx.hConOut);
-    HeapFree(GetProcessHeap(), 0, ctx.histCurr);
+    heap_free(ctx.histCurr);
     return ctx.line;
 }

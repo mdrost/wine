@@ -54,6 +54,7 @@ const struct builtin_class_descr DESKTOP_builtin_class =
 };
 
 
+#if 0
 /***********************************************************************
  *           DESKTOP_LoadBitmap
  */
@@ -92,6 +93,7 @@ static void init_wallpaper( const WCHAR *wallpaper )
         fTileWallPaper = GetProfileIntA( "desktop", "TileWallPaper", 0 );
     }
 }
+#endif
 
 /***********************************************************************
  *           DesktopWndProc
@@ -200,6 +202,7 @@ BOOL WINAPI SetDeskWallPaper( LPCSTR filename )
 }
 
 
+#if 0
 /***********************************************************************
  *           update_wallpaper
  */
@@ -232,3 +235,4 @@ BOOL update_wallpaper( const WCHAR *wallpaper, const WCHAR *pattern )
     RedrawWindow( GetDesktopWindow(), 0, 0, RDW_INVALIDATE | RDW_ERASE | RDW_NOCHILDREN );
     return TRUE;
 }
+#endif

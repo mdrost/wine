@@ -21,6 +21,7 @@
 
 #include <windef.h>
 #include <winuser.h>
+#include <wine/heap.h>
 
 #define COPYFILEDLGORD	1000
 #define SOURCESTRORD	500
@@ -51,7 +52,7 @@ static inline WCHAR *strdupW( const WCHAR *str )
     if (str)
     {
         int len = (lstrlenW(str) + 1) * sizeof(WCHAR);
-        if ((ret = HeapAlloc( GetProcessHeap(), 0, len ))) memcpy( ret, str, len );
+        if ((ret = heap_alloc( len ))) memcpy( ret, str, len );
     }
     return ret;
 }
@@ -62,7 +63,7 @@ static inline char *strdupWtoA( const WCHAR *str )
     if (str)
     {
         DWORD len = WideCharToMultiByte( CP_ACP, 0, str, -1, NULL, 0, NULL, NULL );
-        if ((ret = HeapAlloc( GetProcessHeap(), 0, len )))
+        if ((ret = heap_alloc( len )))
             WideCharToMultiByte( CP_ACP, 0, str, -1, ret, len, NULL, NULL );
     }
     return ret;
@@ -74,7 +75,7 @@ static inline WCHAR *strdupAtoW( const char *str )
     if (str)
     {
         DWORD len = MultiByteToWideChar( CP_ACP, 0, str, -1, NULL, 0 );
-        if ((ret = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+        if ((ret = heap_alloc( len * sizeof(WCHAR) )))
             MultiByteToWideChar( CP_ACP, 0, str, -1, ret, len );
     }
     return ret;

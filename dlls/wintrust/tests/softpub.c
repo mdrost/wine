@@ -790,7 +790,7 @@ static void test_sip_create_indirect_data(void)
     ok(count, "expected a positive count\n");
     if (ret)
     {
-        SIP_INDIRECT_DATA *indirect = HeapAlloc(GetProcessHeap(), 0, count);
+        SIP_INDIRECT_DATA *indirect = heap_alloc(count);
 
         count = 256;
         ret = CryptSIPCreateIndirectData_p(&subjinfo, &count, indirect);
@@ -815,7 +815,7 @@ static void test_sip_create_indirect_data(void)
                "unexpected value\n");
         }
 
-        HeapFree(GetProcessHeap(), 0, indirect);
+        heap_free(indirect);
     }
     CloseHandle(file);
     DeleteFileW(temp_file);

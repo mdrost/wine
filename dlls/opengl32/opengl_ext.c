@@ -8,7 +8,7 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(opengl);
 
-const int extension_registry_size = 2655;
+const int extension_registry_size = 2632;
 
 static void WINAPI glAccumxOES( GLenum op, GLfixed value )
 {
@@ -18413,125 +18413,23 @@ static void WINAPI glWriteMaskEXT( GLuint res, GLuint in, GLenum outX, GLenum ou
   funcs->ext.p_glWriteMaskEXT( res, in, outX, outY, outZ, outW );
 }
 
-static void * WINAPI wglAllocateMemoryNV( GLsizei size, GLfloat readfreq, GLfloat writefreq, GLfloat priority )
+static GLXContext WINAPI glXCreateContextAttribsARB( Display *dpy, GLXFBConfig config, GLXContext share_context, Bool direct, const int *attrib_list )
 {
   const struct opengl_funcs *funcs = NtCurrentTeb()->glTable;
-  TRACE( "(%d, %f, %f, %f)\n", size, readfreq, writefreq, priority );
-  return funcs->ext.p_wglAllocateMemoryNV( size, readfreq, writefreq, priority );
+  TRACE( "(%p, %p, %p, %d, %p)\n", dpy, config, share_context, direct, attrib_list );
+  return funcs->ext.p_glXCreateContextAttribsARB( dpy, config, share_context, direct, attrib_list );
 }
 
-static BOOL WINAPI wglChoosePixelFormatARB( HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats )
-{
-  const struct opengl_funcs *funcs = get_dc_funcs( hdc );
-  TRACE( "(%p, %p, %p, %u, %p, %p)\n", hdc, piAttribIList, pfAttribFList, nMaxFormats, piFormats, nNumFormats );
-  if (!funcs || !funcs->ext.p_wglChoosePixelFormatARB) return 0;
-  return funcs->ext.p_wglChoosePixelFormatARB( hdc, piAttribIList, pfAttribFList, nMaxFormats, piFormats, nNumFormats );
-}
-
-static void WINAPI wglFreeMemoryNV( void *pointer )
+static void WINAPI glXSwapIntervalEXT( Display *dpy, GLXDrawable drawable, int interval )
 {
   const struct opengl_funcs *funcs = NtCurrentTeb()->glTable;
-  TRACE( "(%p)\n", pointer );
-  funcs->ext.p_wglFreeMemoryNV( pointer );
-}
-
-static const char * WINAPI wglGetExtensionsStringARB( HDC hdc )
-{
-  const struct opengl_funcs *funcs = get_dc_funcs( hdc );
-  TRACE( "(%p)\n", hdc );
-  if (!funcs || !funcs->ext.p_wglGetExtensionsStringARB) return 0;
-  return funcs->ext.p_wglGetExtensionsStringARB( hdc );
-}
-
-static const char * WINAPI wglGetExtensionsStringEXT(void)
-{
-  const struct opengl_funcs *funcs = NtCurrentTeb()->glTable;
-  TRACE( "()\n" );
-  return funcs->ext.p_wglGetExtensionsStringEXT();
-}
-
-static BOOL WINAPI wglGetPixelFormatAttribfvARB( HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, FLOAT *pfValues )
-{
-  const struct opengl_funcs *funcs = get_dc_funcs( hdc );
-  TRACE( "(%p, %d, %d, %u, %p, %p)\n", hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, pfValues );
-  if (!funcs || !funcs->ext.p_wglGetPixelFormatAttribfvARB) return 0;
-  return funcs->ext.p_wglGetPixelFormatAttribfvARB( hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, pfValues );
-}
-
-static BOOL WINAPI wglGetPixelFormatAttribivARB( HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues )
-{
-  const struct opengl_funcs *funcs = get_dc_funcs( hdc );
-  TRACE( "(%p, %d, %d, %u, %p, %p)\n", hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, piValues );
-  if (!funcs || !funcs->ext.p_wglGetPixelFormatAttribivARB) return 0;
-  return funcs->ext.p_wglGetPixelFormatAttribivARB( hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, piValues );
-}
-
-static int WINAPI wglGetSwapIntervalEXT(void)
-{
-  const struct opengl_funcs *funcs = NtCurrentTeb()->glTable;
-  TRACE( "()\n" );
-  return funcs->ext.p_wglGetSwapIntervalEXT();
-}
-
-static BOOL WINAPI wglQueryCurrentRendererIntegerWINE( GLenum attribute, GLuint *value )
-{
-  const struct opengl_funcs *funcs = NtCurrentTeb()->glTable;
-  TRACE( "(%d, %p)\n", attribute, value );
-  return funcs->ext.p_wglQueryCurrentRendererIntegerWINE( attribute, value );
-}
-
-static const GLchar * WINAPI wglQueryCurrentRendererStringWINE( GLenum attribute )
-{
-  const struct opengl_funcs *funcs = NtCurrentTeb()->glTable;
-  TRACE( "(%d)\n", attribute );
-  return funcs->ext.p_wglQueryCurrentRendererStringWINE( attribute );
-}
-
-static BOOL WINAPI wglQueryRendererIntegerWINE( HDC dc, GLint renderer, GLenum attribute, GLuint *value )
-{
-  const struct opengl_funcs *funcs = get_dc_funcs( dc );
-  TRACE( "(%p, %d, %d, %p)\n", dc, renderer, attribute, value );
-  if (!funcs || !funcs->ext.p_wglQueryRendererIntegerWINE) return 0;
-  return funcs->ext.p_wglQueryRendererIntegerWINE( dc, renderer, attribute, value );
-}
-
-static const GLchar * WINAPI wglQueryRendererStringWINE( HDC dc, GLint renderer, GLenum attribute )
-{
-  const struct opengl_funcs *funcs = get_dc_funcs( dc );
-  TRACE( "(%p, %d, %d)\n", dc, renderer, attribute );
-  if (!funcs || !funcs->ext.p_wglQueryRendererStringWINE) return 0;
-  return funcs->ext.p_wglQueryRendererStringWINE( dc, renderer, attribute );
-}
-
-static BOOL WINAPI wglSetPixelFormatWINE( HDC hdc, int format )
-{
-  const struct opengl_funcs *funcs = get_dc_funcs( hdc );
-  TRACE( "(%p, %d)\n", hdc, format );
-  if (!funcs || !funcs->ext.p_wglSetPixelFormatWINE) return 0;
-  return funcs->ext.p_wglSetPixelFormatWINE( hdc, format );
-}
-
-static BOOL WINAPI wglSwapIntervalEXT( int interval )
-{
-  const struct opengl_funcs *funcs = NtCurrentTeb()->glTable;
-  TRACE( "(%d)\n", interval );
-  return funcs->ext.p_wglSwapIntervalEXT( interval );
+  TRACE( "(%p, %p, %d)\n", dpy, drawable, interval );
+  funcs->ext.p_glXSwapIntervalEXT( dpy, drawable, interval );
 }
 
 extern const GLubyte * WINAPI glGetStringi( GLenum name, GLuint index ) DECLSPEC_HIDDEN;
-extern BOOL WINAPI wglBindTexImageARB( HPBUFFERARB hPbuffer, int iBuffer ) DECLSPEC_HIDDEN;
-extern HGLRC WINAPI wglCreateContextAttribsARB( HDC hDC, HGLRC hShareContext, const int *attribList ) DECLSPEC_HIDDEN;
-extern HPBUFFERARB WINAPI wglCreatePbufferARB( HDC hDC, int iPixelFormat, int iWidth, int iHeight, const int *piAttribList ) DECLSPEC_HIDDEN;
-extern BOOL WINAPI wglDestroyPbufferARB( HPBUFFERARB hPbuffer ) DECLSPEC_HIDDEN;
-extern HDC WINAPI wglGetCurrentReadDCARB(void) DECLSPEC_HIDDEN;
-extern HDC WINAPI wglGetPbufferDCARB( HPBUFFERARB hPbuffer ) DECLSPEC_HIDDEN;
-extern BOOL WINAPI wglMakeContextCurrentARB( HDC hDrawDC, HDC hReadDC, HGLRC hglrc ) DECLSPEC_HIDDEN;
-extern BOOL WINAPI wglQueryPbufferARB( HPBUFFERARB hPbuffer, int iAttribute, int *piValue ) DECLSPEC_HIDDEN;
-extern int WINAPI wglReleasePbufferDCARB( HPBUFFERARB hPbuffer, HDC hDC ) DECLSPEC_HIDDEN;
-extern BOOL WINAPI wglReleaseTexImageARB( HPBUFFERARB hPbuffer, int iBuffer ) DECLSPEC_HIDDEN;
-extern BOOL WINAPI wglSetPbufferAttribARB( HPBUFFERARB hPbuffer, const int *piAttribList ) DECLSPEC_HIDDEN;
 
-const OpenGL_extension extension_registry[2655] = {
+const OpenGL_extension extension_registry[2632] = {
   { "glAccumxOES", "GL_OES_fixed_point", glAccumxOES },
   { "glAcquireKeyedMutexWin32EXT", "GL_EXT_win32_keyed_mutex", glAcquireKeyedMutexWin32EXT },
   { "glActiveProgramEXT", "GL_EXT_separate_shader_objects", glActiveProgramEXT },
@@ -21162,29 +21060,6 @@ const OpenGL_extension extension_registry[2655] = {
   { "glWindowPos4svMESA", "GL_MESA_window_pos", glWindowPos4svMESA },
   { "glWindowRectanglesEXT", "GL_EXT_window_rectangles", glWindowRectanglesEXT },
   { "glWriteMaskEXT", "GL_EXT_vertex_shader", glWriteMaskEXT },
-  { "wglAllocateMemoryNV", "WGL_NV_vertex_array_range", wglAllocateMemoryNV },
-  { "wglBindTexImageARB", "WGL_ARB_render_texture", wglBindTexImageARB },
-  { "wglChoosePixelFormatARB", "WGL_ARB_pixel_format", wglChoosePixelFormatARB },
-  { "wglCreateContextAttribsARB", "WGL_ARB_create_context", wglCreateContextAttribsARB },
-  { "wglCreatePbufferARB", "WGL_ARB_pbuffer", wglCreatePbufferARB },
-  { "wglDestroyPbufferARB", "WGL_ARB_pbuffer", wglDestroyPbufferARB },
-  { "wglFreeMemoryNV", "WGL_NV_vertex_array_range", wglFreeMemoryNV },
-  { "wglGetCurrentReadDCARB", "WGL_ARB_make_current_read", wglGetCurrentReadDCARB },
-  { "wglGetExtensionsStringARB", "WGL_ARB_extensions_string", wglGetExtensionsStringARB },
-  { "wglGetExtensionsStringEXT", "WGL_EXT_extensions_string", wglGetExtensionsStringEXT },
-  { "wglGetPbufferDCARB", "WGL_ARB_pbuffer", wglGetPbufferDCARB },
-  { "wglGetPixelFormatAttribfvARB", "WGL_ARB_pixel_format", wglGetPixelFormatAttribfvARB },
-  { "wglGetPixelFormatAttribivARB", "WGL_ARB_pixel_format", wglGetPixelFormatAttribivARB },
-  { "wglGetSwapIntervalEXT", "WGL_EXT_swap_control", wglGetSwapIntervalEXT },
-  { "wglMakeContextCurrentARB", "WGL_ARB_make_current_read", wglMakeContextCurrentARB },
-  { "wglQueryCurrentRendererIntegerWINE", "WGL_WINE_query_renderer", wglQueryCurrentRendererIntegerWINE },
-  { "wglQueryCurrentRendererStringWINE", "WGL_WINE_query_renderer", wglQueryCurrentRendererStringWINE },
-  { "wglQueryPbufferARB", "WGL_ARB_pbuffer", wglQueryPbufferARB },
-  { "wglQueryRendererIntegerWINE", "WGL_WINE_query_renderer", wglQueryRendererIntegerWINE },
-  { "wglQueryRendererStringWINE", "WGL_WINE_query_renderer", wglQueryRendererStringWINE },
-  { "wglReleasePbufferDCARB", "WGL_ARB_pbuffer", wglReleasePbufferDCARB },
-  { "wglReleaseTexImageARB", "WGL_ARB_render_texture", wglReleaseTexImageARB },
-  { "wglSetPbufferAttribARB", "WGL_ARB_render_texture", wglSetPbufferAttribARB },
-  { "wglSetPixelFormatWINE", "WGL_WINE_pixel_format_passthrough", wglSetPixelFormatWINE },
-  { "wglSwapIntervalEXT", "WGL_EXT_swap_control", wglSwapIntervalEXT }
+  { "glXCreateContextAttribsARB", "GLX_ARB_create_context", glXCreateContextAttribsARB },
+  { "glXSwapIntervalEXT", "GLX_EXT_swap_control", glXSwapIntervalEXT }
 };

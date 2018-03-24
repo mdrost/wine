@@ -28,6 +28,11 @@
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+#include <sys/resource.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <pthread.h>
+#include <errno.h>
 
 #include "ntstatus.h"
 #define WIN32_NO_STATUS
@@ -35,7 +40,10 @@
 #include "winbase.h"
 #include "winerror.h"
 #include "winternl.h"
+#include "wine/error.h"
 #include "wine/exception.h"
+#include "wine/handle.h"
+#include "wine/heap.h"
 #include "wine/library.h"
 #include "wine/server.h"
 #include "wine/debug.h"
@@ -44,6 +52,64 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(thread);
 
+
+typedef struct _thread_handle
+{
+    handle_vtbl *vtbl;
+    pthread_t thread;
+    pid_t tid;
+} thread_handle;
+
+static BOOL WINAPI THREAD_close_handle(HANDLE handle);
+
+handle_vtbl thread_handle_vtbl = {
+    THREAD_close_handle,
+    THREAD_duplicate_handle,
+};
+
+static __thread DWORD last_error = NO_ERROR;
+
+BOOL WINAPI THREAD_close_handle(HANDLE handle)
+{
+    thread_handle *thread = (thread_handle *)handle;
+    heap_free(thread);
+    return TRUE;
+}
+
+BOOL WINAPI THREAD_duplicate_handle(HANDLE source_process, HANDLE source, HANDLE dest_process, HANDLE *dest, DWORD access, BOOL inherit, DWORD options)
+{
+    thread_handle *source_handle = (thread_handle *)source;
+    thread_handle *dest_handle;
+
+    if (source_process != GetCurrentProcess() || dest_process != GetCurrentProcess())
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return FALSE;
+    }
+
+    if (!(dest_handle = heap_alloc( sizeof(*dest_handle) )))
+    {
+        SetLastError( ERROR_NOT_ENOUGH_MEMORY );
+        return FALSE;
+    }
+
+    if (source == GetCurrentThread())
+    {
+        dest_handle->vtbl = &thread_handle_vtbl;
+        dest_handle->thread = pthread_self();
+        dest_handle->tid = syscall(SYS_gettid);
+    }
+    else
+    {
+        dest_handle->vtbl = &thread_handle_vtbl;
+        dest_handle->thread = source_handle->thread;
+        dest_handle->tid = source_handle->tid;
+    }
+
+    *dest = (HANDLE)dest_handle;
+
+    return TRUE;
+}
 
 /***********************************************************************
  *           CreateThread   (KERNEL32.@)
@@ -63,6 +129,26 @@ HANDLE WINAPI CreateRemoteThread( HANDLE hProcess, SECURITY_ATTRIBUTES *sa, SIZE
                                   DWORD flags, DWORD *id )
 {
     return CreateRemoteThreadEx( hProcess, sa, stack, start, param, flags, NULL, id );
+}
+
+struct start_routine_data
+{
+    pthread_mutex_t mutex;
+    thread_handle *handle;
+    LPTHREAD_START_ROUTINE start;
+    LPVOID param;
+};
+
+static void *start_routine(void *arg)
+{
+    struct start_routine_data *data = (struct start_routine_data *)arg;
+    LPTHREAD_START_ROUTINE start = data->start;
+    LPVOID param = data->param;
+    DWORD ret;
+    data->handle->tid = syscall(SYS_gettid);
+    pthread_mutex_unlock(&data->mutex);
+    ret = start(param);
+    return (void *)ret;
 }
 
 /***************************************************************************
@@ -86,6 +172,7 @@ HANDLE WINAPI CreateRemoteThreadEx( HANDLE hProcess, SECURITY_ATTRIBUTES *sa, SI
                                     LPTHREAD_START_ROUTINE start, LPVOID param, DWORD flags,
                                     LPPROC_THREAD_ATTRIBUTE_LIST attributes, DWORD *id )
 {
+#if 0
     HANDLE handle;
     CLIENT_ID client_id;
     NTSTATUS status;
@@ -122,6 +209,74 @@ HANDLE WINAPI CreateRemoteThreadEx( HANDLE hProcess, SECURITY_ATTRIBUTES *sa, SI
         handle = 0;
     }
     return handle;
+#else
+    thread_handle *handle;
+    pthread_attr_t attr;
+    struct start_routine_data *data;
+    int err;
+
+    if (hProcess != GetCurrentProcess())
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return NULL;
+    }
+
+    if ((err = pthread_attr_init( &attr )) != 0)
+    {
+        SetLastError( wine_errno_to_error(err) );
+        return NULL;
+    }
+
+    if (stack && (err = pthread_attr_setstacksize( &attr, stack )) != 0)
+    {
+        SetLastError( wine_errno_to_error(err) );
+        return NULL;
+    }
+
+    if (attributes)
+        FIXME("thread attributes ignored\n");
+
+    if (!(handle = heap_alloc( sizeof(*handle) )))
+    {
+        SetLastError( ERROR_NOT_ENOUGH_MEMORY );
+        return NULL;
+    }
+
+    if (!(data = heap_alloc( sizeof(*data) )))
+    {
+        heap_free( handle );
+        SetLastError( ERROR_NOT_ENOUGH_MEMORY );
+        return NULL;
+    }
+
+    pthread_mutex_init( &data->mutex, NULL );
+    data->handle = handle;
+    data->start = start;
+    data->param = param;
+
+    if ((err = pthread_mutex_lock( &data->mutex )) != 0)
+    {
+        heap_free( data );
+        heap_free( handle );
+        SetLastError( wine_errno_to_error(err) );
+        return NULL;
+    }
+
+    if ((err = pthread_create( &handle->thread, &attr, start_routine, data )) != 0)
+    {
+        pthread_mutex_unlock( &data->mutex );
+        heap_free( data );
+        heap_free( handle );
+        SetLastError( wine_errno_to_error(err) );
+        return NULL;
+    }
+
+    heap_free( data );
+
+    if (id) *id = (DWORD)handle->tid;
+
+    return (HANDLE)handle;
+#endif
 }
 
 
@@ -229,9 +384,14 @@ BOOL WINAPI GetExitCodeThread(
 BOOL WINAPI SetThreadContext( HANDLE handle,           /* [in]  Handle to thread with context */
                               const CONTEXT *context ) /* [in] Address of context structure */
 {
+#if 0
     NTSTATUS status = NtSetContextThread( handle, context );
     if (status) SetLastError( RtlNtStatusToDosError(status) );
     return !status;
+#else
+   SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+   return FALSE;
+#endif
 }
 
 
@@ -245,9 +405,14 @@ BOOL WINAPI SetThreadContext( HANDLE handle,           /* [in]  Handle to thread
 BOOL WINAPI GetThreadContext( HANDLE handle,     /* [in]  Handle to thread with context */
                               CONTEXT *context ) /* [out] Address of context structure */
 {
+#if 0
     NTSTATUS status = NtGetContextThread( handle, context );
     if (status) SetLastError( RtlNtStatusToDosError(status) );
     return !status;
+#else
+   SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+   return 0;
+#endif
 }
 
 
@@ -307,6 +472,7 @@ DWORD WINAPI ResumeThread( HANDLE hthread ) /* [in] Identifies thread to restart
 INT WINAPI GetThreadPriority(
     HANDLE hthread) /* [in] Handle to thread */
 {
+#if 0
     THREAD_BASIC_INFORMATION info;
     NTSTATUS status = NtQueryInformationThread( hthread, ThreadBasicInformation,
                                                 &info, sizeof(info), NULL );
@@ -317,6 +483,26 @@ INT WINAPI GetThreadPriority(
         return THREAD_PRIORITY_ERROR_RETURN;
     }
     return info.Priority;
+#else
+    thread_handle *handle = (thread_handle *)hthread;
+    int priority;
+
+    if (handle == GetCurrentThread())
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return FALSE;
+    }
+
+    errno = 0;
+    priority = getpriority( PRIO_PROCESS, handle->thread );
+    if (priority == -1 && errno != 0)
+    {
+        SetLastError( wine_errno_to_error(errno) );
+        return THREAD_PRIORITY_ERROR_RETURN;
+    }
+
+    return -priority;
+#endif
 }
 
 
@@ -331,6 +517,7 @@ BOOL WINAPI SetThreadPriority(
     HANDLE hthread, /* [in] Handle to thread */
     INT priority)   /* [in] Thread priority level */
 {
+#if 0
     DWORD       prio = priority;
     NTSTATUS    status;
 
@@ -344,6 +531,23 @@ BOOL WINAPI SetThreadPriority(
     }
 
     return TRUE;
+#else
+    thread_handle *handle = (thread_handle *)hthread;
+
+    if (handle == GetCurrentThread())
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return FALSE;
+    }
+
+    if (setpriority( PRIO_PROCESS, handle->thread, -priority ) != 0)
+    {
+        SetLastError( wine_errno_to_error(errno) );
+        return FALSE;
+    }
+
+    return TRUE;
+#endif
 }
 
 
@@ -395,6 +599,7 @@ BOOL WINAPI SetThreadStackGuarantee(PULONG stacksize)
  */
 BOOL WINAPI GetThreadGroupAffinity( HANDLE thread, GROUP_AFFINITY *affinity )
 {
+#if 0
     NTSTATUS status;
 
     if (!affinity)
@@ -412,6 +617,10 @@ BOOL WINAPI GetThreadGroupAffinity( HANDLE thread, GROUP_AFFINITY *affinity )
     }
 
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -420,6 +629,7 @@ BOOL WINAPI GetThreadGroupAffinity( HANDLE thread, GROUP_AFFINITY *affinity )
 BOOL WINAPI SetThreadGroupAffinity( HANDLE thread, const GROUP_AFFINITY *affinity_new,
                                     GROUP_AFFINITY *affinity_old )
 {
+#if 0
     NTSTATUS status;
 
     if (affinity_old && !GetThreadGroupAffinity( thread, affinity_old ))
@@ -434,6 +644,10 @@ BOOL WINAPI SetThreadGroupAffinity( HANDLE thread, const GROUP_AFFINITY *affinit
     }
 
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /**********************************************************************
@@ -441,6 +655,7 @@ BOOL WINAPI SetThreadGroupAffinity( HANDLE thread, const GROUP_AFFINITY *affinit
  */
 DWORD_PTR WINAPI SetThreadAffinityMask( HANDLE hThread, DWORD_PTR dwThreadAffinityMask )
 {
+#if 0
     NTSTATUS                    status;
     THREAD_BASIC_INFORMATION    tbi;
 
@@ -460,6 +675,60 @@ DWORD_PTR WINAPI SetThreadAffinityMask( HANDLE hThread, DWORD_PTR dwThreadAffini
         return 0;
     }
     return tbi.AffinityMask;
+#else
+    thread_handle *handle = (thread_handle *)hThread;
+    DWORD_PTR ret = 0;
+    cpu_set_t cpuset;
+    int err, i;
+
+    if (handle == GetCurrentThread())
+    {
+        SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+        return 0;
+    }
+
+    if ((err = pthread_getaffinity_np( handle->thread, sizeof(cpuset), &cpuset )) != 0)
+    {
+        SetLastError(wine_errno_to_error(err));
+        return 0;
+    }
+
+    i = 0;
+    for (; i < min( CPU_SETSIZE, sizeof(DWORD_PTR) * 8 ); ++i)
+    {
+        if (CPU_ISSET( i, &cpuset ))
+            ret |= (1 << i);
+    }
+    for (; i < CPU_SETSIZE; ++i)
+    {
+        if (CPU_ISSET( i, &cpuset ))
+            ;
+    }
+
+    CPU_ZERO( &cpuset );
+    i = 0;
+    for (; i < min( CPU_SETSIZE, sizeof(DWORD_PTR) * 8 ); ++i)
+    {
+        if ((dwThreadAffinityMask & ( 1 << i )) >> i)
+            CPU_SET( i, &cpuset );
+    }
+    for (; i < CPU_SETSIZE; ++i)
+    {
+        if ((dwThreadAffinityMask & ( 1 << i )) >> i)
+        {
+            SetLastError( ERROR_INVALID_PARAMETER );
+            return 0;
+        }
+    }
+    
+    if ((ret = pthread_setaffinity_np( handle->thread, sizeof(cpuset), &cpuset )) != 0)
+    {
+        SetLastError(wine_errno_to_error(err));
+        return 0;
+    }
+
+    return ret;
+#endif
 }
 
 
@@ -540,10 +809,15 @@ BOOL WINAPI QueueUserWorkItem( LPTHREAD_START_ROUTINE Function, PVOID Context, U
 
     TRACE("(%p,%p,0x%08x)\n", Function, Context, Flags);
 
+#if 0
     status = RtlQueueWorkItem( Function, Context, Flags );
 
     if (status) SetLastError( RtlNtStatusToDosError(status) );
     return !status;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 /**********************************************************************
@@ -608,6 +882,7 @@ BOOL WINAPI GetThreadTimes(
  */
 DWORD WINAPI GetThreadId(HANDLE Thread)
 {
+#if 0
     THREAD_BASIC_INFORMATION tbi;
     NTSTATUS status;
 
@@ -622,6 +897,15 @@ DWORD WINAPI GetThreadId(HANDLE Thread)
     }
 
     return HandleToULong(tbi.ClientId.UniqueThread);
+#else
+    pthread_t thread = (pthread_t)Thread;
+
+    TRACE("(%p)\n", Thread);
+
+    if (thread == GetCurrentThread()) thread = pthread_self();
+
+    return (DWORD)thread;
+#endif
 }
 
 /**********************************************************************
@@ -739,6 +1023,7 @@ __ASM_STDCALL_FUNC( GetProcessHeap, 0, ".byte 0x65\n\tmovq 0x30,%rax\n\tmovq 0x6
 
 #else
 
+#if 0
 /***********************************************************************
  *		SetLastError (KERNEL32.@)
  */
@@ -768,6 +1053,68 @@ __ASM_STDCALL_FUNC( GetCurrentThreadId, 0, ".byte 0x65\n\tmovl 0x48,%eax\n\tret"
  */
 /* HANDLE WINAPI GetProcessHeap(void) */
 __ASM_STDCALL_FUNC( GetProcessHeap, 0, ".byte 0x65\n\tmovq 0x60,%rax\n\tmovq 0x30(%rax),%rax\n\tret");
+#else
+/***********************************************************************
+ *		GetCurrentProcessId (KERNEL32.@)
+ *
+ * Get the current process identifier.
+ *
+ * RETURNS
+ *  current process identifier
+ */
+DWORD WINAPI GetCurrentProcessId(void)
+{
+    return (DWORD)getpid();
+}
+
+/**********************************************************************
+ *		SetLastError (KERNEL32.@)
+ *
+ * Sets the last-error code.
+ *
+ * RETURNS
+ * Nothing.
+ */
+void WINAPI SetLastError( DWORD error ) /* [in] Per-thread error code */
+{
+    last_error = error;
+}
+
+/**********************************************************************
+ *              GetLastError (KERNEL32.@)
+ *
+ * Get the last-error code.
+ *
+ * RETURNS
+ *  last-error code.
+ */
+DWORD WINAPI GetLastError(void)
+{
+    return last_error;
+}
+
+/***********************************************************************
+ *		GetCurrentThreadId (KERNEL32.@)
+ *
+ * Get the current thread identifier.
+ *
+ * RETURNS
+ *  current thread identifier
+ */
+DWORD WINAPI GetCurrentThreadId(void)
+{
+    return (DWORD)syscall(SYS_gettid);
+}
+
+/***********************************************************************
+ *           GetProcessHeap    (KERNEL32.@)
+ */
+HANDLE WINAPI GetProcessHeap(void)
+{
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return NULL;
+}
+#endif
 
 #endif /* __APPLE__ */
 
@@ -783,7 +1130,11 @@ __ASM_STDCALL_FUNC( GetProcessHeap, 0, ".byte 0x65\n\tmovq 0x60,%rax\n\tmovq 0x3
  */
 void WINAPI SetLastError( DWORD error ) /* [in] Per-thread error code */
 {
+#if 0
     NtCurrentTeb()->LastErrorValue = error;
+#else
+    last_error = error;
+#endif
 }
 
 /**********************************************************************
@@ -796,7 +1147,11 @@ void WINAPI SetLastError( DWORD error ) /* [in] Per-thread error code */
  */
 DWORD WINAPI GetLastError(void)
 {
+#if 0
     return NtCurrentTeb()->LastErrorValue;
+#else
+    return last_error;
+#endif
 }
 
 /***********************************************************************
@@ -962,6 +1317,7 @@ BOOL WINAPI CallbackMayRunLong( TP_CALLBACK_INSTANCE *instance )
 
     TRACE( "%p\n", instance );
 
+#if 0
     status = TpCallbackMayRunLong( instance );
     if (status)
     {
@@ -970,6 +1326,10 @@ BOOL WINAPI CallbackMayRunLong( TP_CALLBACK_INSTANCE *instance )
     }
 
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -982,6 +1342,7 @@ PTP_POOL WINAPI CreateThreadpool( PVOID reserved )
 
     TRACE( "%p\n", reserved );
 
+#if 0
     status = TpAllocPool( &pool, reserved );
     if (status)
     {
@@ -990,6 +1351,10 @@ PTP_POOL WINAPI CreateThreadpool( PVOID reserved )
     }
 
     return pool;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return NULL;
+#endif
 }
 
 /***********************************************************************
@@ -1002,6 +1367,7 @@ PTP_CLEANUP_GROUP WINAPI CreateThreadpoolCleanupGroup( void )
 
     TRACE( "\n" );
 
+#if 0
     status = TpAllocCleanupGroup( &group );
     if (status)
     {
@@ -1010,6 +1376,10 @@ PTP_CLEANUP_GROUP WINAPI CreateThreadpoolCleanupGroup( void )
     }
 
     return group;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return NULL;
+#endif
 }
 
 /***********************************************************************
@@ -1033,6 +1403,7 @@ PTP_TIMER WINAPI CreateThreadpoolTimer( PTP_TIMER_CALLBACK callback, PVOID userd
 
     TRACE( "%p, %p, %p\n", callback, userdata, environment );
 
+#if 0
     status = TpAllocTimer( &timer, callback, userdata, environment );
     if (status)
     {
@@ -1041,6 +1412,10 @@ PTP_TIMER WINAPI CreateThreadpoolTimer( PTP_TIMER_CALLBACK callback, PVOID userd
     }
 
     return timer;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return NULL;
+#endif
 }
 
 /***********************************************************************
@@ -1054,6 +1429,7 @@ PTP_WAIT WINAPI CreateThreadpoolWait( PTP_WAIT_CALLBACK callback, PVOID userdata
 
     TRACE( "%p, %p, %p\n", callback, userdata, environment );
 
+#if 0
     status = TpAllocWait( &wait, callback, userdata, environment );
     if (status)
     {
@@ -1062,6 +1438,10 @@ PTP_WAIT WINAPI CreateThreadpoolWait( PTP_WAIT_CALLBACK callback, PVOID userdata
     }
 
     return wait;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return NULL;
+#endif
 }
 
 /***********************************************************************
@@ -1075,6 +1455,7 @@ PTP_WORK WINAPI CreateThreadpoolWork( PTP_WORK_CALLBACK callback, PVOID userdata
 
     TRACE( "%p, %p, %p\n", callback, userdata, environment );
 
+#if 0
     status = TpAllocWork( &work, callback, userdata, environment );
     if (status)
     {
@@ -1083,6 +1464,10 @@ PTP_WORK WINAPI CreateThreadpoolWork( PTP_WORK_CALLBACK callback, PVOID userdata
     }
 
     return work;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return NULL;
+#endif
 }
 
 /***********************************************************************
@@ -1095,6 +1480,7 @@ VOID WINAPI SetThreadpoolTimer( TP_TIMER *timer, FILETIME *due_time,
 
     TRACE( "%p, %p, %u, %u\n", timer, due_time, period, window_length );
 
+#if 0
     if (due_time)
     {
         timeout.u.LowPart = due_time->dwLowDateTime;
@@ -1102,6 +1488,7 @@ VOID WINAPI SetThreadpoolTimer( TP_TIMER *timer, FILETIME *due_time,
     }
 
     TpSetTimer( timer, due_time ? &timeout : NULL, period, window_length );
+#endif
 }
 
 /***********************************************************************
@@ -1113,6 +1500,7 @@ VOID WINAPI SetThreadpoolWait( TP_WAIT *wait, HANDLE handle, FILETIME *due_time 
 
     TRACE( "%p, %p, %p\n", wait, handle, due_time );
 
+#if 0
     if (!handle)
     {
         due_time = NULL;
@@ -1124,6 +1512,7 @@ VOID WINAPI SetThreadpoolWait( TP_WAIT *wait, HANDLE handle, FILETIME *due_time 
     }
 
     TpSetWait( wait, handle, due_time ? &timeout : NULL );
+#endif
 }
 
 /***********************************************************************
@@ -1136,6 +1525,7 @@ BOOL WINAPI TrySubmitThreadpoolCallback( PTP_SIMPLE_CALLBACK callback, PVOID use
 
     TRACE( "%p, %p, %p\n", callback, userdata, environment );
 
+#if 0
     status = TpSimpleTryPost( callback, userdata, environment );
     if (status)
     {
@@ -1144,4 +1534,8 @@ BOOL WINAPI TrySubmitThreadpoolCallback( PTP_SIMPLE_CALLBACK callback, PVOID use
     }
 
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }

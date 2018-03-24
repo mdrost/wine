@@ -82,7 +82,7 @@ void free_module_classes( HINSTANCE16 inst )
         if (class->inst != inst) continue;
         list_remove( &class->entry );
         UnregisterClassA( (LPCSTR)MAKEINTATOM(class->atom), HINSTANCE_32(class->inst) );
-        HeapFree( GetProcessHeap(), 0, class );
+        heap_free( class );
     }
 }
 
@@ -197,7 +197,7 @@ INT16 WINAPI EnumProps16( HWND16 hwnd, PROPENUMPROC16 func )
 
     while (total)
     {
-        if (!(list = HeapAlloc( GetProcessHeap(), 0, total * sizeof(*list) ))) break;
+        if (!(list = heap_alloc( total * sizeof(*list) ))) break;
         count = 0;
         SERVER_START_REQ( get_window_properties )
         {
@@ -235,10 +235,10 @@ INT16 WINAPI EnumProps16( HWND16 hwnd, PROPENUMPROC16 func )
                 if (!(ret = LOWORD(result))) break;
             }
             UnMapLS( segptr );
-            HeapFree( GetProcessHeap(), 0, list );
+            heap_free( list );
             break;
         }
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
         total = count;  /* restart with larger buffer */
     }
     return ret;
@@ -1281,7 +1281,7 @@ void WINAPI MapWindowPoints16( HWND16 hwndFrom, HWND16 hwndTo, LPPOINT16 lppt, U
     POINT buffer[8], *ppt = buffer;
     UINT i;
 
-    if (count > 8) ppt = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*ppt) );
+    if (count > 8) ppt = heap_alloc( count * sizeof(*ppt) );
     for (i = 0; i < count; i++)
     {
         ppt[i].x = lppt[i].x;
@@ -1293,7 +1293,7 @@ void WINAPI MapWindowPoints16( HWND16 hwndFrom, HWND16 hwndTo, LPPOINT16 lppt, U
         lppt[i].x = ppt[i].x;
         lppt[i].y = ppt[i].y;
     }
-    if (ppt != buffer) HeapFree( GetProcessHeap(), 0, ppt );
+    if (ppt != buffer) heap_free( ppt );
 }
 
 
@@ -1613,7 +1613,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.lpszClassName = MapSL(wc->lpszClassName);
     wc32.hIconSm       = get_icon_32(wc->hIconSm);
     atom = RegisterClassExA( &wc32 );
-    if ((class = HeapAlloc( GetProcessHeap(), 0, sizeof(*class) )))
+    if ((class = heap_alloc( sizeof(*class) )))
     {
         class->atom = atom;
         class->inst = inst;
@@ -1704,7 +1704,7 @@ BOOL16 WINAPI UnregisterClass16( LPCSTR className, HINSTANCE16 hInstance )
             if (class->inst != hInstance) continue;
             if (class->atom != atom) continue;
             list_remove( &class->entry );
-            HeapFree( GetProcessHeap(), 0, class );
+            heap_free( class );
             break;
         }
     }

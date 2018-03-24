@@ -2109,12 +2109,12 @@ static void add_message_(int line, const struct recvd_message *msg)
     if (!sequence)
     {
 	sequence_size = 10;
-	sequence = HeapAlloc( GetProcessHeap(), 0, sequence_size * sizeof(*sequence) );
+	sequence = heap_alloc( sequence_size * sizeof(*sequence) );
     }
     if (sequence_cnt == sequence_size) 
     {
 	sequence_size *= 2;
-	sequence = HeapReAlloc( GetProcessHeap(), 0, sequence, sequence_size * sizeof(*sequence) );
+	sequence = heap_realloc( sequence, sequence_size * sizeof(*sequence) );
     }
     assert(sequence);
 
@@ -2233,7 +2233,7 @@ static void flush_events(void)
 static void flush_sequence(void)
 {
     EnterCriticalSection( &sequence_cs );
-    HeapFree(GetProcessHeap(), 0, sequence);
+    heap_free(sequence);
     sequence = 0;
     sequence_cnt = sequence_size = 0;
     LeaveCriticalSection( &sequence_cs );
@@ -7052,13 +7052,13 @@ void dump_region(HRGN hrgn)
         return;
     }
     if (!(size = GetRegionData( hrgn, 0, NULL ))) return;
-    if (!(data = HeapAlloc( GetProcessHeap(), 0, size ))) return;
+    if (!(data = heap_alloc( size ))) return;
     GetRegionData( hrgn, size, data );
     printf("%d rects:", data->rdh.nCount );
     for (i = 0, rect = (RECT *)data->Buffer; i < data->rdh.nCount; i++, rect++)
         printf( " %s", wine_dbgstr_rect( rect ));
     printf("\n");
-    HeapFree( GetProcessHeap(), 0, data );
+    heap_free( data );
 }
 
 static void check_update_rgn( HWND hwnd, HRGN hrgn )

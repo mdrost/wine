@@ -36,6 +36,7 @@
 #define NO_SHLWAPI_STREAM
 #include "shlwapi.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
 
@@ -65,7 +66,7 @@ static inline WCHAR* heap_strdupAtoW(LPCSTR str)
     if (str)
     {
         DWORD len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-        ret = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+        ret = heap_alloc(len*sizeof(WCHAR));
         if (ret)
             MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
     }
@@ -1225,7 +1226,7 @@ static BOOL SHLWAPI_PathFindInOtherDirs(LPWSTR lpszFile, DWORD dwWhich)
   /* Try dirs listed in %PATH% */
   dwLenPATH = GetEnvironmentVariableW(szPath, buff, MAX_PATH);
 
-  if (!dwLenPATH || !(lpszPATH = HeapAlloc(GetProcessHeap(), 0, (dwLenPATH + 1) * sizeof (WCHAR))))
+  if (!dwLenPATH || !(lpszPATH = heap_alloc((dwLenPATH + 1) * sizeof (WCHAR))))
     return FALSE;
 
   GetEnvironmentVariableW(szPath, lpszPATH, dwLenPATH + 1);
@@ -1248,17 +1249,17 @@ static BOOL SHLWAPI_PathFindInOtherDirs(LPWSTR lpszFile, DWORD dwWhich)
 
     if (!PathAppendW(buff, lpszFile))
     {
-      HeapFree(GetProcessHeap(), 0, lpszPATH);
+      heap_free(lpszPATH);
       return FALSE;
     }
     if (PathFileExistsDefExtW(buff, dwWhich))
     {
       strcpyW(lpszFile, buff);
-      HeapFree(GetProcessHeap(), 0, lpszPATH);
+      heap_free(lpszPATH);
       return TRUE;
     }
   }
-  HeapFree(GetProcessHeap(), 0, lpszPATH);
+  heap_free(lpszPATH);
   return FALSE;
 }
 
@@ -3272,7 +3273,7 @@ HRESULT WINAPI PathCreateFromUrlA(LPCSTR pszUrl, LPSTR pszPath,
     if(!RtlCreateUnicodeStringFromAsciiz(&urlW, pszUrl))
         return E_INVALIDARG;
     if((ret = PathCreateFromUrlW(urlW.Buffer, pathW, &lenW, dwReserved)) == E_POINTER) {
-        pathW = HeapAlloc(GetProcessHeap(), 0, lenW * sizeof(WCHAR));
+        pathW = heap_alloc(lenW * sizeof(WCHAR));
         ret = PathCreateFromUrlW(urlW.Buffer, pathW, &lenW, dwReserved);
     }
     if(ret == S_OK) {
@@ -3286,7 +3287,7 @@ HRESULT WINAPI PathCreateFromUrlA(LPCSTR pszUrl, LPSTR pszPath,
             ret = E_POINTER;
         }
     }
-    if(pathW != bufW) HeapFree(GetProcessHeap(), 0, pathW);
+    if(pathW != bufW) heap_free(pathW);
     RtlFreeUnicodeString(&urlW);
     return ret;
 }
@@ -3344,7 +3345,7 @@ HRESULT WINAPI PathCreateFromUrlW(LPCWSTR pszUrl, LPWSTR pszPath,
      */
     len = 2 + lstrlenW(pszUrl) + 1;
     if (*pcchPath < len)
-        tpath = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+        tpath = heap_alloc(len * sizeof(WCHAR));
     else
         tpath = pszPath;
 
@@ -3439,7 +3440,7 @@ HRESULT WINAPI PathCreateFromUrlW(LPCWSTR pszUrl, LPWSTR pszPath,
             StrCpyW(pszPath, tpath);
     }
     if (tpath != pszPath)
-      HeapFree(GetProcessHeap(), 0, tpath);
+      heap_free(tpath);
 
     TRACE("Returning (%u) %s\n", *pcchPath, debugstr_w(pszPath));
     return ret;
@@ -4093,7 +4094,7 @@ BOOL WINAPI PathUnExpandEnvStringsA(LPCSTR path, LPSTR buffer, UINT buf_len)
     if (!pathW) return FALSE;
 
     ret = PathUnExpandEnvStringsW(pathW, bufferW, MAX_PATH);
-    HeapFree(GetProcessHeap(), 0, pathW);
+    heap_free(pathW);
     if (!ret) return FALSE;
 
     len = WideCharToMultiByte(CP_ACP, 0, bufferW, -1, NULL, 0, NULL, NULL);

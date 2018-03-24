@@ -32,6 +32,7 @@
 #include "objbase.h"
 #include "oleidl.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "moniker.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
@@ -112,7 +113,7 @@ PointerMonikerImpl_Release(IMoniker* iface)
     if (ref == 0)
     {
         if (This->pObject) IUnknown_Release(This->pObject);
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     }
 
     return ref;
@@ -576,7 +577,7 @@ HRESULT WINAPI CreatePointerMoniker(LPUNKNOWN punk, LPMONIKER *ppmk)
     if (!ppmk)
         return E_INVALIDARG;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    This = heap_alloc(sizeof(*This));
     if (!This)
     {
         *ppmk = NULL;

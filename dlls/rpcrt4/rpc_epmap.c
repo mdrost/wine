@@ -31,6 +31,7 @@
 
 #include "wine/debug.h"
 #include "wine/exception.h"
+#include "wine/heap.h"
 
 #include "rpc_binding.h"
 #include "epm.h"
@@ -181,6 +182,7 @@ static RPC_STATUS get_epm_handle_server(RPC_BINDING_HANDLE *epm_handle)
     return RpcBindingFromStringBindingA(string_binding, epm_handle);
 }
 
+#if 0
 static LONG WINAPI rpc_filter(EXCEPTION_POINTERS *__eptr)
 {
     switch (GetExceptionCode())
@@ -192,6 +194,7 @@ static LONG WINAPI rpc_filter(EXCEPTION_POINTERS *__eptr)
             return EXCEPTION_EXECUTE_HANDLER;
     }
 }
+#endif
 
 static RPC_STATUS epm_register( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *BindingVector,
                                 UUID_VECTOR *UuidVector, RPC_CSTR Annotation, BOOL replace )
@@ -217,14 +220,14 @@ static RPC_STATUS epm_register( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *Bindin
 
   if (!BindingVector->Count) return RPC_S_OK;
 
-  entries = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*entries) * BindingVector->Count * (UuidVector ? UuidVector->Count : 1));
+  entries = heap_alloc_zero(sizeof(*entries) * BindingVector->Count * (UuidVector ? UuidVector->Count : 1));
   if (!entries)
       return RPC_S_OUT_OF_MEMORY;
 
   status = get_epm_handle_server(&handle);
   if (status != RPC_S_OK)
   {
-    HeapFree(GetProcessHeap(), 0, entries);
+    heap_free(entries);
     return status;
   }
 
@@ -254,6 +257,7 @@ static RPC_STATUS epm_register( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *Bindin
   {
       while (TRUE)
       {
+#if 0
           __TRY
           {
               ept_insert(handle, BindingVector->Count * (UuidVector ? UuidVector->Count : 1),
@@ -264,6 +268,10 @@ static RPC_STATUS epm_register( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *Bindin
               status2 = GetExceptionCode();
           }
           __ENDTRY
+#else
+          ept_insert(handle, BindingVector->Count * (UuidVector ? UuidVector->Count : 1),
+                     entries, replace, &status2);
+#endif
           if (status2 == RPC_S_SERVER_UNAVAILABLE &&
               is_epm_destination_local(handle))
           {
@@ -285,7 +293,7 @@ static RPC_STATUS epm_register( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *Bindin
           I_RpcFree(entries[i*(UuidVector ? UuidVector->Count : 1) + j].tower);
   }
 
-  HeapFree(GetProcessHeap(), 0, entries);
+  heap_free(entries);
 
   return status;
 }
@@ -319,7 +327,7 @@ RPC_STATUS WINAPI RpcEpRegisterW( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *Bind
 
   status = epm_register(IfSpec, BindingVector, UuidVector, (RPC_CSTR)annA, TRUE);
 
-  HeapFree(GetProcessHeap(), 0, annA);
+  heap_free(annA);
   return status;
 }
 
@@ -334,7 +342,7 @@ RPC_STATUS WINAPI RpcEpRegisterNoReplaceW( RPC_IF_HANDLE IfSpec, RPC_BINDING_VEC
 
   status = epm_register(IfSpec, BindingVector, UuidVector, (RPC_CSTR)annA, FALSE);
 
-  HeapFree(GetProcessHeap(), 0, annA);
+  heap_free(annA);
   return status;
 }
 
@@ -363,14 +371,14 @@ RPC_STATUS WINAPI RpcEpUnregister( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *Bin
       TRACE(" obj[%d]=%s\n", i, debugstr_guid(UuidVector->Uuid[i]));
   }
 
-  entries = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*entries) * BindingVector->Count * (UuidVector ? UuidVector->Count : 1));
+  entries = heap_alloc_zero(sizeof(*entries) * BindingVector->Count * (UuidVector ? UuidVector->Count : 1));
   if (!entries)
       return RPC_S_OUT_OF_MEMORY;
 
   status = get_epm_handle_server(&handle);
   if (status != RPC_S_OK)
   {
-    HeapFree(GetProcessHeap(), 0, entries);
+    heap_free(entries);
     return status;
   }
 
@@ -395,6 +403,7 @@ RPC_STATUS WINAPI RpcEpUnregister( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *Bin
 
   if (status == RPC_S_OK)
   {
+#if 0
       __TRY
       {
           ept_insert(handle, BindingVector->Count * (UuidVector ? UuidVector->Count : 1),
@@ -405,6 +414,10 @@ RPC_STATUS WINAPI RpcEpUnregister( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *Bin
           status2 = GetExceptionCode();
       }
       __ENDTRY
+#else
+      ept_insert(handle, BindingVector->Count * (UuidVector ? UuidVector->Count : 1),
+                 entries, TRUE, &status2);
+#endif
       if (status2 == RPC_S_SERVER_UNAVAILABLE)
           status2 = EPT_S_NOT_REGISTERED;
       if (status2 != RPC_S_OK)
@@ -420,7 +433,7 @@ RPC_STATUS WINAPI RpcEpUnregister( RPC_IF_HANDLE IfSpec, RPC_BINDING_VECTOR *Bin
           I_RpcFree(entries[i*(UuidVector ? UuidVector->Count : 1) + j].tower);
   }
 
-  HeapFree(GetProcessHeap(), 0, entries);
+  heap_free(entries);
 
   return status;
 }
@@ -454,7 +467,7 @@ RPC_STATUS WINAPI RpcEpResolveBinding( RPC_BINDING_HANDLE Binding, RPC_IF_HANDLE
 
   status = get_epm_handle_client(Binding, &handle);
   if (status != RPC_S_OK) return status;
-  
+
   status = TowerConstruct(&If->InterfaceId, &If->TransferSyntax, bind->Protseq,
                           ((RpcBinding *)handle)->Endpoint,
                           bind->NetworkAddr, &tower);
@@ -467,6 +480,7 @@ RPC_STATUS WINAPI RpcEpResolveBinding( RPC_BINDING_HANDLE Binding, RPC_IF_HANDLE
 
   while (TRUE)
   {
+#if 0
     __TRY
     {
       ept_map(handle, &uuid, tower, &entry_handle, sizeof(towers)/sizeof(towers[0]), &num_towers, towers, &status2);
@@ -477,6 +491,9 @@ RPC_STATUS WINAPI RpcEpResolveBinding( RPC_BINDING_HANDLE Binding, RPC_IF_HANDLE
       status2 = GetExceptionCode();
     }
     __ENDTRY
+#else
+    ept_map(handle, &uuid, tower, &entry_handle, sizeof(towers)/sizeof(towers[0]), &num_towers, towers, &status2);
+#endif
     if (status2 == RPC_S_SERVER_UNAVAILABLE &&
         is_epm_destination_local(handle))
     {
@@ -656,10 +673,10 @@ RPC_STATUS WINAPI TowerConstruct(
 
 void __RPC_FAR * __RPC_USER MIDL_user_allocate(SIZE_T len)
 {
-    return HeapAlloc(GetProcessHeap(), 0, len);
+    return heap_alloc(len);
 }
 
 void __RPC_USER MIDL_user_free(void __RPC_FAR * ptr)
 {
-    HeapFree(GetProcessHeap(), 0, ptr);
+    heap_free(ptr);
 }

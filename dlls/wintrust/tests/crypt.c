@@ -362,7 +362,7 @@ static void test_calchash(void)
      */
     file = CreateFileA(selfname, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     hashsize *= 2;
-    hash = HeapAlloc(GetProcessHeap(), 0, hashsize);
+    hash = heap_alloc(hashsize);
     SetLastError(0xdeadbeef);
     ret = pCryptCATAdminCalcHashFromFileHandle(file, &hashsize, hash, 0);
     ok(ret, "Expected success, got FALSE with %d\n", GetLastError());
@@ -370,7 +370,7 @@ static void test_calchash(void)
     ok(GetLastError() == ERROR_SUCCESS,
        "Expected ERROR_SUCCESS, got %d\n", GetLastError());
     CloseHandle(file);
-    HeapFree(GetProcessHeap(), 0, hash);
+    heap_free(hash);
 
     /* Do the same test with a file created and filled by ourselves (and we thus
      * have a known hash for).
@@ -384,7 +384,7 @@ static void test_calchash(void)
     file = CreateFileA(temp, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
     hashsize = 0;
     pCryptCATAdminCalcHashFromFileHandle(file, &hashsize, NULL, 0);
-    hash = HeapAlloc(GetProcessHeap(), 0, hashsize);
+    hash = heap_alloc(hashsize);
     SetLastError(0xdeadbeef);
     ret = pCryptCATAdminCalcHashFromFileHandle(file, &hashsize, hash, 0);
     ok(ret, "Expected success, got FALSE with %d\n", GetLastError());
@@ -395,7 +395,7 @@ static void test_calchash(void)
        "Hashes didn't match\n");
     CloseHandle(file);
 
-    HeapFree(GetProcessHeap(), 0, hash);
+    heap_free(hash);
     DeleteFileA(temp);
 }
 

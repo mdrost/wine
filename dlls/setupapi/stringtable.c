@@ -393,6 +393,7 @@ DWORD WINAPI StringTableAddStringEx(HSTRING_TABLE hTable, LPWSTR string,
     if (!table)
         return -1;
 
+#if 0
     id = StringTableLookUpStringEx(hTable, string, flags, NULL, 0);
     if (id != -1)
         return id;
@@ -432,6 +433,9 @@ DWORD WINAPI StringTableAddStringEx(HSTRING_TABLE hTable, LPWSTR string,
 
     table->nextoffset += len;
     return id;
+#else
+    return -1;
+#endif
 }
 
 /**************************************************************************

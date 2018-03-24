@@ -36,6 +36,7 @@
 #include "winerror.h"
 #include "winternl.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 #include "storage32.h"
 
@@ -110,7 +111,7 @@ static ULONG WINAPI StgStreamImpl_Release(
     if (This->parentStorage)
       StorageBaseImpl_RemoveStream(This->parentStorage, This);
     This->parentStorage = 0;
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
   }
 
   return ref;
@@ -670,7 +671,7 @@ StgStreamImpl* StgStreamImpl_Construct(
 {
   StgStreamImpl* newStream;
 
-  newStream = HeapAlloc(GetProcessHeap(), 0, sizeof(StgStreamImpl));
+  newStream = heap_alloc(sizeof(StgStreamImpl));
 
   if (newStream)
   {

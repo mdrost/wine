@@ -26,6 +26,7 @@
 #include "wine/rpcfc.h"
 
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "wine/list.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
@@ -141,7 +142,7 @@ RPC_STATUS WINAPI RpcSmDestroyClientContext(void **ContextHandle)
     if (che)
     {
         RpcBindingFree(&che->handle);
-        HeapFree(GetProcessHeap(), 0, che);
+        heap_free(che);
     }
 
     return status;
@@ -181,14 +182,14 @@ static RPC_STATUS ndr_update_context_handle(NDR_CCONTEXT *CContext,
                 return RPC_X_SS_CONTEXT_MISMATCH;
             list_remove(&che->entry);
             RpcBindingFree(&che->handle);
-            HeapFree(GetProcessHeap(), 0, che);
+            heap_free(che);
             che = NULL;
         }
     }
     /* if there's no existing entry matching the GUID, allocate one */
     else if (!(che = context_entry_from_guid(&chi->uuid)))
     {
-        che = HeapAlloc(GetProcessHeap(), 0, sizeof *che);
+        che = heap_alloc(sizeof *che);
         if (!che)
             return RPC_X_NO_MEMORY;
         che->magic = NDR_CONTEXT_HANDLE_MAGIC;

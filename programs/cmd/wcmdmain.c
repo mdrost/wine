@@ -441,7 +441,7 @@ void *heap_alloc(size_t size)
 {
     void *ret;
 
-    ret = HeapAlloc(GetProcessHeap(), 0, size);
+    ret = heap_alloc(size);
     if(!ret) {
         ERR("Out of memory\n");
         ExitProcess(1);

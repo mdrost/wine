@@ -3728,7 +3728,7 @@ IShellView *IShellView_Constructor(IShellFolder *folder)
 {
     IShellViewImpl *sv;
 
-    sv = heap_alloc_zero(sizeof(*sv));
+    sv = heap_alloc_zero(sizeof(IShellViewImpl));
     if (!sv)
         return NULL;
 

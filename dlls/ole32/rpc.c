@@ -203,7 +203,7 @@ static ULONG ChannelHooks_ClientGetSize(SChannelHookCallInfo *info,
         (*hook_count)++;
 
     if (*hook_count)
-        *data = HeapAlloc(GetProcessHeap(), 0, *hook_count * sizeof(struct channel_hook_buffer_data));
+        *data = heap_alloc(*hook_count * sizeof(struct channel_hook_buffer_data));
     else
         *data = NULL;
 
@@ -321,7 +321,7 @@ static ULONG ChannelHooks_ServerGetSize(SChannelHookCallInfo *info,
         (*hook_count)++;
 
     if (*hook_count)
-        *data = HeapAlloc(GetProcessHeap(), 0, *hook_count * sizeof(struct channel_hook_buffer_data));
+        *data = heap_alloc(*hook_count * sizeof(struct channel_hook_buffer_data));
     else
         *data = NULL;
 
@@ -430,7 +430,7 @@ HRESULT RPC_RegisterChannelHook(REFGUID rguid, IChannelHook *hook)
 
     TRACE("(%s, %p)\n", debugstr_guid(rguid), hook);
 
-    entry = HeapAlloc(GetProcessHeap(), 0, sizeof(*entry));
+    entry = heap_alloc(sizeof(*entry));
     if (!entry)
         return E_OUTOFMEMORY;
 
@@ -452,7 +452,7 @@ void RPC_UnregisterAllChannelHooks(void)
 
     EnterCriticalSection(&csChannelHook);
     LIST_FOR_EACH_ENTRY_SAFE(cursor, cursor2, &channel_hooks, struct channel_hook_entry, entry)
-        HeapFree(GetProcessHeap(), 0, cursor);
+        heap_free(cursor);
     LeaveCriticalSection(&csChannelHook);
     DeleteCriticalSection(&csChannelHook);
     DeleteCriticalSection(&csRegIf);
@@ -487,7 +487,7 @@ static ULONG WINAPI ServerRpcChannelBuffer_Release(LPRPCCHANNELBUFFER iface)
     if (ref)
         return ref;
 
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
     return 0;
 }
 
@@ -502,7 +502,7 @@ static ULONG WINAPI ClientRpcChannelBuffer_Release(LPRPCCHANNELBUFFER iface)
 
     if (This->event) CloseHandle(This->event);
     RpcBindingFree(&This->bind);
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
     return 0;
 }
 
@@ -538,12 +538,12 @@ static HRESULT WINAPI ServerRpcChannelBuffer_GetBuffer(LPRPCCHANNELBUFFER iface,
 
     if (message_state->bypass_rpcrt)
     {
-        msg->Buffer = HeapAlloc(GetProcessHeap(), 0, msg->BufferLength);
+        msg->Buffer = heap_alloc(msg->BufferLength);
         if (msg->Buffer)
             status = RPC_S_OK;
         else
         {
-            HeapFree(GetProcessHeap(), 0, channel_hook_data);
+            heap_free(channel_hook_data);
             return E_OUTOFMEMORY;
         }
     }
@@ -587,7 +587,7 @@ static HRESULT WINAPI ServerRpcChannelBuffer_GetBuffer(LPRPCCHANNELBUFFER iface,
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, channel_hook_data);
+    heap_free(channel_hook_data);
 
     /* store the prefixed data length so that we can restore the real buffer
      * later */
@@ -637,14 +637,14 @@ static HRESULT WINAPI ClientRpcChannelBuffer_GetBuffer(LPRPCCHANNELBUFFER iface,
 
     TRACE("(%p)->(%p,%s)\n", This, olemsg, debugstr_guid(riid));
 
-    cif = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(RPC_CLIENT_INTERFACE));
+    cif = heap_alloc_zero(sizeof(RPC_CLIENT_INTERFACE));
     if (!cif)
         return E_OUTOFMEMORY;
 
-    message_state = HeapAlloc(GetProcessHeap(), 0, sizeof(*message_state));
+    message_state = heap_alloc(sizeof(*message_state));
     if (!message_state)
     {
-        HeapFree(GetProcessHeap(), 0, cif);
+        heap_free(cif);
         return E_OUTOFMEMORY;
     }
 
@@ -717,7 +717,7 @@ static HRESULT WINAPI ClientRpcChannelBuffer_GetBuffer(LPRPCCHANNELBUFFER iface,
     /* shortcut the RPC runtime */
     if (message_state->target_hwnd)
     {
-        msg->Buffer = HeapAlloc(GetProcessHeap(), 0, msg->BufferLength);
+        msg->Buffer = heap_alloc(msg->BufferLength);
         if (msg->Buffer)
             status = RPC_S_OK;
         else
@@ -777,7 +777,7 @@ static HRESULT WINAPI ClientRpcChannelBuffer_GetBuffer(LPRPCCHANNELBUFFER iface,
         msg->BufferLength -= message_state->prefix_data_len;
     }
 
-    HeapFree(GetProcessHeap(), 0, channel_hook_data);
+    heap_free(channel_hook_data);
 
     TRACE("-- %d\n", status);
 
@@ -987,7 +987,7 @@ static HRESULT WINAPI ServerRpcChannelBuffer_FreeBuffer(LPRPCCHANNELBUFFER iface
 
     if (message_state->bypass_rpcrt)
     {
-        HeapFree(GetProcessHeap(), 0, msg->Buffer);
+        heap_free(msg->Buffer);
         status = RPC_S_OK;
     }
     else
@@ -1016,20 +1016,20 @@ static HRESULT WINAPI ClientRpcChannelBuffer_FreeBuffer(LPRPCCHANNELBUFFER iface
 
     if (message_state->params.bypass_rpcrt)
     {
-        HeapFree(GetProcessHeap(), 0, msg->Buffer);
+        heap_free(msg->Buffer);
         status = RPC_S_OK;
     }
     else
         status = I_RpcFreeBuffer(msg);
 
-    HeapFree(GetProcessHeap(), 0, msg->RpcInterfaceInformation);
+    heap_free(msg->RpcInterfaceInformation);
     msg->RpcInterfaceInformation = NULL;
 
     if (message_state->params.stub)
         IRpcStubBuffer_Release(message_state->params.stub);
     if (message_state->params.chan)
         IRpcChannelBuffer_Release(message_state->params.chan);
-    HeapFree(GetProcessHeap(), 0, message_state);
+    heap_free(message_state);
 
     TRACE("-- %d\n", status);
 
@@ -1136,7 +1136,7 @@ HRESULT RPC_CreateClientChannel(const OXID *oxid, const IPID *ipid,
         return HRESULT_FROM_WIN32(status);
     }
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    This = heap_alloc(sizeof(*This));
     if (!This)
     {
         RpcBindingFree(&bind);
@@ -1159,7 +1159,7 @@ HRESULT RPC_CreateClientChannel(const OXID *oxid, const IPID *ipid,
 
 HRESULT RPC_CreateServerChannel(DWORD dest_context, void *dest_context_data, IRpcChannelBuffer **chan)
 {
-    RpcChannelBuffer *This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    RpcChannelBuffer *This = heap_alloc(sizeof(*This));
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -1341,7 +1341,7 @@ void RPC_ExecuteCall(struct dispatch_params *params)
         goto exit;
     }
 
-    message_state = HeapAlloc(GetProcessHeap(), 0, sizeof(*message_state));
+    message_state = heap_alloc(sizeof(*message_state));
     if (!message_state)
     {
         params->hr = E_OUTOFMEMORY;
@@ -1425,7 +1425,7 @@ void RPC_ExecuteCall(struct dispatch_params *params)
 
     /* the invoke allocated a new buffer, so free the old one */
     if (message_state->bypass_rpcrt && original_buffer != msg->Buffer)
-        HeapFree(GetProcessHeap(), 0, original_buffer);
+        heap_free(original_buffer);
 
 exit_reset_state:
     message_state = msg->Handle;
@@ -1434,7 +1434,7 @@ exit_reset_state:
     msg->BufferLength += message_state->prefix_data_len;
 
 exit:
-    HeapFree(GetProcessHeap(), 0, message_state);
+    heap_free(message_state);
     if (params->handle) SetEvent(params->handle);
 }
 
@@ -1450,7 +1450,7 @@ static void __RPC_STUB dispatch_rpc(RPC_MESSAGE *msg)
 
     TRACE("ipid = %s, iMethod = %d\n", debugstr_guid(&ipid), msg->ProcNum);
 
-    params = HeapAlloc(GetProcessHeap(), 0, sizeof(*params));
+    params = heap_alloc(sizeof(*params));
     if (!params)
     {
         RpcRaiseException(E_OUTOFMEMORY);
@@ -1462,7 +1462,7 @@ static void __RPC_STUB dispatch_rpc(RPC_MESSAGE *msg)
     if (hr != S_OK)
     {
         ERR("no apartment found for ipid %s\n", debugstr_guid(&ipid));
-        HeapFree(GetProcessHeap(), 0, params);
+        heap_free(params);
         RpcRaiseException(hr);
         return;
     }
@@ -1514,7 +1514,7 @@ static void __RPC_STUB dispatch_rpc(RPC_MESSAGE *msg)
         IRpcChannelBuffer_Release(params->chan);
     if (params->stub)
         IRpcStubBuffer_Release(params->stub);
-    HeapFree(GetProcessHeap(), 0, params);
+    heap_free(params);
 
     stub_manager_int_release(stub_manager);
     apartment_release(apt);
@@ -1547,7 +1547,7 @@ HRESULT RPC_RegisterInterface(REFIID riid)
     {
         TRACE("Creating new interface\n");
 
-        rif = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*rif));
+        rif = heap_alloc_zero(sizeof(*rif));
         if (rif)
         {
             RPC_STATUS status;
@@ -1570,7 +1570,7 @@ HRESULT RPC_RegisterInterface(REFIID riid)
             else
             {
                 ERR("RpcServerRegisterIfEx failed with error %d\n", status);
-                HeapFree(GetProcessHeap(), 0, rif);
+                heap_free(rif);
                 hr = HRESULT_FROM_WIN32(status);
             }
         }
@@ -1594,7 +1594,7 @@ void RPC_UnregisterInterface(REFIID riid, BOOL wait)
             {
                 RpcServerUnregisterIf((RPC_IF_HANDLE)&rif->If, NULL, wait);
                 list_remove(&rif->entry);
-                HeapFree(GetProcessHeap(), 0, rif);
+                heap_free(rif);
             }
             break;
         }
@@ -1771,14 +1771,14 @@ static HRESULT create_local_service(REFCLSID rclsid)
         r = RegQueryValueExW(hkey, szServiceParams, NULL, &type, NULL, &sz);
         if (r == ERROR_SUCCESS && type == REG_SZ && sz)
         {
-            args[0] = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sz);
+            args[0] = heap_alloc_zero(sz);
             num_args++;
             RegQueryValueExW(hkey, szServiceParams, NULL, &type, (LPBYTE)args[0], &sz);
         }
         r = start_local_service(buf, num_args, (LPCWSTR *)args);
         if (r != ERROR_SUCCESS)
             hres = REGDB_E_CLASSNOTREG; /* FIXME: check retval */
-        HeapFree(GetProcessHeap(),0,args[0]);
+        heap_free(args[0]);
     }
     else
     {
@@ -1951,18 +1951,18 @@ static DWORD WINAPI local_server_thread(LPVOID param)
         }
 
         buflen = ststg.cbSize.u.LowPart;
-        buffer = HeapAlloc(GetProcessHeap(),0,buflen);
+        buffer = heap_alloc(buflen);
         
         hres = IStream_Read(pStm,buffer,buflen,&res);
         if (hres != S_OK) {
             FIXME("Stream Read failed, %x\n",hres);
-            HeapFree(GetProcessHeap(),0,buffer);
+            heap_free(buffer);
             break;
         }
         
         WriteFile(hPipe,buffer,buflen,&res,&ovl);
         GetOverlappedResult(hPipe, &ovl, &bytes, TRUE);
-        HeapFree(GetProcessHeap(),0,buffer);
+        heap_free(buffer);
 
         FlushFileBuffers(hPipe);
         DisconnectNamedPipe(hPipe);
@@ -1997,7 +1997,7 @@ HRESULT RPC_StartLocalServer(REFCLSID clsid, IStream *stream, BOOL multi_use, vo
     struct local_server_params *lsp;
     WCHAR pipefn[100];
 
-    lsp = HeapAlloc(GetProcessHeap(), 0, sizeof(*lsp));
+    lsp = heap_alloc(sizeof(*lsp));
     if (!lsp)
         return E_OUTOFMEMORY;
 
@@ -2007,7 +2007,7 @@ HRESULT RPC_StartLocalServer(REFCLSID clsid, IStream *stream, BOOL multi_use, vo
     lsp->stop_event = CreateEventW(NULL, FALSE, FALSE, NULL);
     if (!lsp->stop_event)
     {
-        HeapFree(GetProcessHeap(), 0, lsp);
+        heap_free(lsp);
         return HRESULT_FROM_WIN32(GetLastError());
     }
     lsp->multi_use = multi_use;
@@ -2021,7 +2021,7 @@ HRESULT RPC_StartLocalServer(REFCLSID clsid, IStream *stream, BOOL multi_use, vo
         err = GetLastError();
         FIXME("pipe creation failed for %s, le is %u\n", debugstr_w(pipefn), GetLastError());
         CloseHandle(lsp->stop_event);
-        HeapFree(GetProcessHeap(), 0, lsp);
+        heap_free(lsp);
         return HRESULT_FROM_WIN32(err);
     }
 
@@ -2030,7 +2030,7 @@ HRESULT RPC_StartLocalServer(REFCLSID clsid, IStream *stream, BOOL multi_use, vo
     {
         CloseHandle(lsp->pipe);
         CloseHandle(lsp->stop_event);
-        HeapFree(GetProcessHeap(), 0, lsp);
+        heap_free(lsp);
         return HRESULT_FROM_WIN32(GetLastError());
     }
 
@@ -2051,5 +2051,5 @@ void RPC_StopLocalServer(void *registration)
     IStream_Release(lsp->stream);
     CloseHandle(lsp->stop_event);
     CloseHandle(lsp->thread);
-    HeapFree(GetProcessHeap(), 0, lsp);
+    heap_free(lsp);
 }

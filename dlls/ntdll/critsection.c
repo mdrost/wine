@@ -223,6 +223,7 @@ static inline HANDLE get_semaphore( RTL_CRITICAL_SECTION *crit )
  */
 static inline NTSTATUS wait_semaphore( RTL_CRITICAL_SECTION *crit, int timeout )
 {
+#if 0
     NTSTATUS ret;
 
     /* debug info is cleared by MakeCriticalSectionGlobal */
@@ -238,6 +239,9 @@ static inline NTSTATUS wait_semaphore( RTL_CRITICAL_SECTION *crit, int timeout )
         ret = server_select( &select_op, offsetof( select_op_t, wait.handles[1] ), 0, &time );
     }
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /***********************************************************************
@@ -323,7 +327,7 @@ NTSTATUS WINAPI RtlInitializeCriticalSectionEx( RTL_CRITICAL_SECTION *crit, ULON
     if (flags & RTL_CRITICAL_SECTION_FLAG_NO_DEBUG_INFO)
         crit->DebugInfo = NULL;
     else
-        crit->DebugInfo = RtlAllocateHeap(GetProcessHeap(), 0, sizeof(RTL_CRITICAL_SECTION_DEBUG));
+        crit->DebugInfo = malloc(sizeof(RTL_CRITICAL_SECTION_DEBUG));
 
     if (crit->DebugInfo)
     {
@@ -340,7 +344,11 @@ NTSTATUS WINAPI RtlInitializeCriticalSectionEx( RTL_CRITICAL_SECTION *crit, ULON
     crit->RecursionCount = 0;
     crit->OwningThread   = 0;
     crit->LockSemaphore  = 0;
+#if 0
     if (NtCurrentTeb()->Peb->NumberOfProcessors <= 1) spincount = 0;
+#else
+    if (sysconf(_SC_NPROCESSORS_ONLN) <= 1) spincount = 0;
+#endif
     crit->SpinCount = spincount & ~0x80000000;
     return STATUS_SUCCESS;
 }
@@ -369,7 +377,11 @@ NTSTATUS WINAPI RtlInitializeCriticalSectionEx( RTL_CRITICAL_SECTION *crit, ULON
 ULONG WINAPI RtlSetCriticalSectionSpinCount( RTL_CRITICAL_SECTION *crit, ULONG spincount )
 {
     ULONG oldspincount = crit->SpinCount;
+#if 0
     if (NtCurrentTeb()->Peb->NumberOfProcessors <= 1) spincount = 0;
+#else
+    if (sysconf(_SC_NPROCESSORS_ONLN) <= 1) spincount = 0;
+#endif
     crit->SpinCount = spincount;
     return oldspincount;
 }
@@ -401,7 +413,7 @@ NTSTATUS WINAPI RtlDeleteCriticalSection( RTL_CRITICAL_SECTION *crit )
         /* only free the ones we made in here */
         if (!crit->DebugInfo->Spare[0])
         {
-            RtlFreeHeap( GetProcessHeap(), 0, crit->DebugInfo );
+            free( crit->DebugInfo );
             crit->DebugInfo = NULL;
         }
         close_semaphore( crit );
@@ -435,7 +447,11 @@ NTSTATUS WINAPI RtlDeleteCriticalSection( RTL_CRITICAL_SECTION *crit )
  */
 NTSTATUS WINAPI RtlpWaitForCriticalSection( RTL_CRITICAL_SECTION *crit )
 {
+#if 0
     LONGLONG timeout = NtCurrentTeb()->Peb->CriticalSectionTimeout.QuadPart / -10000000;
+#else
+    LONGLONG timeout = 30000;
+#endif
     for (;;)
     {
         EXCEPTION_RECORD rec;

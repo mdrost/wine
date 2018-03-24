@@ -321,7 +321,7 @@ static BOOL is_stub_dll(const char *filename)
     size = GetFileVersionInfoSizeA(filename, &ver);
     if (!size) return FALSE;
 
-    data = HeapAlloc(GetProcessHeap(), 0, size);
+    data = heap_alloc(size);
     if (!data) return FALSE;
 
     if (GetFileVersionInfoA(filename, ver, size, data))
@@ -332,7 +332,7 @@ static BOOL is_stub_dll(const char *filename)
         if (VerQueryValueA(data, buf, (void**)&p, &size))
             isstub = !lstrcmpiA("wcodstub.dll", p);
     }
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     return isstub;
 }

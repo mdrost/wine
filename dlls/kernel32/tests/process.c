@@ -567,11 +567,11 @@ static void ok_child_stringWA( int line, const char *sect, const char *key,
     WCHAR* result = getChildStringW( sect, key );
 
     len = MultiByteToWideChar( CP_ACP, 0, expect, -1, NULL, 0);
-    expectW = HeapAlloc(GetProcessHeap(),0,len*sizeof(WCHAR));
+    expectW = heap_alloc(len*sizeof(WCHAR));
     MultiByteToWideChar( CP_ACP, 0, expect, -1, expectW, len);
 
     len = WideCharToMultiByte( CP_ACP, 0, result, -1, NULL, 0, NULL, NULL);
-    resultA = HeapAlloc(GetProcessHeap(),0,len*sizeof(CHAR));
+    resultA = heap_alloc(len*sizeof(CHAR));
     WideCharToMultiByte( CP_ACP, 0, result, -1, resultA, len, NULL, NULL);
 
     if (sensitive)
@@ -580,8 +580,8 @@ static void ok_child_stringWA( int line, const char *sect, const char *key,
     else
         ok_(__FILE__, line)( lstrcmpiW(result, expectW) == 0, "%s:%s expected '%s', got '%s'\n",
                          sect, key, expect ? expect : "(null)", resultA );
-    HeapFree(GetProcessHeap(),0,expectW);
-    HeapFree(GetProcessHeap(),0,resultA);
+    heap_free(expectW);
+    heap_free(resultA);
 }
 
 static void ok_child_int( int line, const char *sect, const char *key, UINT expect )
@@ -1352,7 +1352,7 @@ static void test_Environment(void)
     }
     /* Add space for additional environment variables */
     child_env_len += 256;
-    child_env = HeapAlloc(GetProcessHeap(), 0, child_env_len);
+    child_env = heap_alloc(child_env_len);
 
     ptr = child_env;
     sprintf(ptr, "=%c:=%s", 'C', "C:\\FOO\\BAR");
@@ -1387,7 +1387,7 @@ static void test_Environment(void)
 
     cmpEnvironment(child_env);
 
-    HeapFree(GetProcessHeap(), 0, child_env);
+    heap_free(child_env);
     FreeEnvironmentStringsA(env);
     release_memory();
     DeleteFileA(resfile);
@@ -3641,11 +3641,11 @@ static void test_GetLogicalProcessorInformationEx(void)
     ok(!ret && GetLastError() == ERROR_INSUFFICIENT_BUFFER, "got %d, error %d\n", ret, GetLastError());
     ok(len > 0, "got %u\n", len);
 
-    info = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+    info = heap_alloc_zero(len);
     ret = pGetLogicalProcessorInformationEx(RelationAll, info, &len);
     ok(ret, "got %d, error %d\n", ret, GetLastError());
     ok(info->Size > 0, "got %u\n", info->Size);
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
 }
 
 static void test_largepages(void)

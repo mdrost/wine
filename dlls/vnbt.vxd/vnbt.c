@@ -84,7 +84,7 @@ BOOL WINAPI VNBT_DeviceIoControl(DWORD dwIoControlCode,
             error = GetNetworkParams(NULL, &size);
             if (ERROR_BUFFER_OVERFLOW == error)
             {
-                PFIXED_INFO fixedInfo = HeapAlloc( GetProcessHeap(), 0, size);
+                PFIXED_INFO fixedInfo = heap_alloc( size);
 
                 error = GetNetworkParams(fixedInfo, &size);
                 if (NO_ERROR == error)
@@ -114,13 +114,13 @@ BOOL WINAPI VNBT_DeviceIoControl(DWORD dwIoControlCode,
                      * ipconfig.exe and winipcfg.exe read these from the
                      * registry, there's no point */
                 }
-                HeapFree(GetProcessHeap(), 0, fixedInfo);
+                heap_free(fixedInfo);
             }
             size = 0;
             error = GetAdaptersInfo(NULL, &size);
             if (ERROR_BUFFER_OVERFLOW == error)
             {
-                PIP_ADAPTER_INFO adapterInfo = HeapAlloc(GetProcessHeap(), 0, size);
+                PIP_ADAPTER_INFO adapterInfo = heap_alloc(size);
 
                 error = GetAdaptersInfo(adapterInfo, &size);
                 if (NO_ERROR == error)
@@ -144,7 +144,7 @@ BOOL WINAPI VNBT_DeviceIoControl(DWORD dwIoControlCode,
                         info->numEntries++;
                     }
                 }
-                HeapFree(GetProcessHeap(), 0, adapterInfo);
+                heap_free(adapterInfo);
             }
         }
         break;

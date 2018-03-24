@@ -31,7 +31,6 @@
 #include "urlmon.h"
 
 #include "initguid.h"
-#include "wine/heap.h"
 
 DEFINE_GUID(CLSID_AboutProtocol, 0x3050F406, 0x98B5, 0x11CF, 0xBB,0x82, 0x00,0xAA,0x00,0xBD,0xCE,0x0B);
 
@@ -89,6 +88,11 @@ static int strcmp_wa(const WCHAR *strw, const char *stra)
     return lstrcmpW(strw, buf);
 }
 
+static void heap_free(void *mem)
+{
+    heap_free(mem);
+}
+
 static WCHAR *a2w(const char *str)
 {
     WCHAR *ret;
@@ -98,7 +102,7 @@ static WCHAR *a2w(const char *str)
         return NULL;
 
     len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-    ret = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+    ret = heap_alloc(len*sizeof(WCHAR));
     MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
 
     return ret;
@@ -1489,7 +1493,7 @@ static void test_user_agent(void)
     ok(hres == E_OUTOFMEMORY, "ObtainUserAgentString failed: %08x\n", hres);
     ok(size > 0, "size=%d, expected non-zero\n", size);
 
-    str2 = HeapAlloc(GetProcessHeap(), 0, (size+20)*sizeof(CHAR));
+    str2 = heap_alloc((size+20)*sizeof(CHAR));
     saved = size;
     hres = pObtainUserAgentString(0, str2, &size);
     ok(hres == S_OK, "ObtainUserAgentString failed: %08x\n", hres);
@@ -1581,7 +1585,7 @@ static void test_user_agent(void)
     hres = UrlMkSetSessionOption(URLMON_OPTION_USERAGENT, NULL, 0, 0);
     ok(hres == E_INVALIDARG, "UrlMkSetSessionOption failed: %08x\n", hres);
 
-    HeapFree(GetProcessHeap(), 0, str2);
+    heap_free(str2);
 }
 
 static void test_MkParseDisplayNameEx(void)
@@ -2332,7 +2336,7 @@ static void test_bsc_marshaling(void)
 
     rem_bindinfo.stgmedData.tymed = TYMED_HGLOBAL;
 
-    buf = GlobalAlloc(0, 5);
+    buf = GlobalAlloc(0, sizeof(5));
     strcpy(buf, "test");
     rem_bindinfo.stgmedData.u.hGlobal = buf;
     rem_bindinfo.cbstgmedData = 5;
@@ -2549,7 +2553,7 @@ static void test_bsc_marshaling(void)
 
         rem_bindinfo.stgmedData.tymed = TYMED_HGLOBAL;
 
-        buf = GlobalAlloc(0, 5);
+        buf = GlobalAlloc(0, sizeof(5));
         strcpy(buf, "test");
         rem_bindinfo.stgmedData.u.hGlobal = buf;
         rem_bindinfo.cbstgmedData = 5;

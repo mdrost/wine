@@ -118,12 +118,12 @@ static BOOL LoadCABINETDll(void)
 
 static void * CDECL sc_cb_alloc(ULONG cb)
 {
-  return HeapAlloc(GetProcessHeap(), 0, cb);
+  return heap_alloc(cb);
 }
 
 static void CDECL sc_cb_free(void *pv)
 {
-  HeapFree(GetProcessHeap(), 0, pv);
+  heap_free(pv);
 }
 
 static INT_PTR CDECL sc_cb_open(char *pszFile, int oflag, int pmode)

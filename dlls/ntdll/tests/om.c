@@ -455,7 +455,7 @@ static void test_name_limits(void)
     InitializeObjectAttributes( &attr, &str, 0, 0, NULL );
     InitializeObjectAttributes( &attr2, &str, 0, (HANDLE)0xdeadbeef, NULL );
     InitializeObjectAttributes( &attr3, &str, 0, 0, NULL );
-    str.Buffer = HeapAlloc( GetProcessHeap(), 0, 65536 + sizeof(registryW));
+    str.Buffer = heap_alloc( 65536 + sizeof(registryW));
     str.MaximumLength = 65534;
     for (i = 0; i < 65536 / sizeof(WCHAR); i++) str.Buffer[i] = 'a';
     size.QuadPart = 4096;

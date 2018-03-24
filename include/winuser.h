@@ -1566,11 +1566,19 @@ typedef struct tagACCEL
 {
 #ifdef WORDS_BIGENDIAN
     WORD   fVirt;
+#if 0
     WORD   key;
+#else
+    DWORD  key;
+#endif
     DWORD  cmd;
 #else
     BYTE   fVirt;
+#if 0
     WORD   key;
+#else
+    DWORD  key;
+#endif
     WORD   cmd;
 #endif
 } ACCEL, *LPACCEL;

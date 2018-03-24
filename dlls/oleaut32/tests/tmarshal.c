@@ -102,7 +102,7 @@ static DWORD CALLBACK host_object_proc(LPVOID p)
             DispatchMessageA(&msg);
     }
 
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     CoUninitialize();
 
@@ -113,7 +113,7 @@ static DWORD start_host_object2(IStream *stream, REFIID riid, IUnknown *object, 
 {
     DWORD tid = 0;
     HANDLE marshal_event = CreateEventA(NULL, FALSE, FALSE, NULL);
-    struct host_object_data *data = HeapAlloc(GetProcessHeap(), 0, sizeof(*data));
+    struct host_object_data *data = heap_alloc(sizeof(*data));
 
     data->stream = stream;
     data->iid = *riid;
@@ -422,7 +422,7 @@ static ULONG WINAPI Widget_Release(
     {
         IUnknown_Release(This->pDispatchUnknown);
         memset(This, 0xcc, sizeof(*This));
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         trace("Widget destroyed!\n");
     }
 
@@ -1105,7 +1105,7 @@ static IWidget *Widget_Create(void)
     if(!pTypeInfo)
         return NULL;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    This = heap_alloc(sizeof(*This));
     This->IWidget_iface.lpVtbl = &Widget_VTable;
     This->refs = 1;
     This->pDispatchUnknown = NULL;
@@ -1119,7 +1119,7 @@ static IWidget *Widget_Create(void)
         return &This->IWidget_iface;
     else
     {
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         return NULL;
     }
 }
@@ -1158,7 +1158,7 @@ static ULONG WINAPI KindaEnum_Release(
     if (!refs)
     {
         memset(This, 0xcc, sizeof(*This));
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         trace("KindaEnumWidget destroyed!\n");
     }
 
@@ -1211,7 +1211,7 @@ static IKindaEnumWidget *KindaEnumWidget_Create(void)
 {
     KindaEnum *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    This = heap_alloc(sizeof(*This));
     if (!This) return NULL;
     This->IKindaEnumWidget_iface.lpVtbl = &KindaEnumWidget_VTable;
     This->refs = 1;

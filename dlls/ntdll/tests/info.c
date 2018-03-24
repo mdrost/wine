@@ -295,7 +295,7 @@ static void test_query_process(void)
     } SYSTEM_PROCESS_INFORMATION_PRIVATE;
 
     ULONG SystemInformationLength = sizeof(SYSTEM_PROCESS_INFORMATION_PRIVATE);
-    SYSTEM_PROCESS_INFORMATION_PRIVATE *spi, *spi_buf = HeapAlloc(GetProcessHeap(), 0, SystemInformationLength);
+    SYSTEM_PROCESS_INFORMATION_PRIVATE *spi, *spi_buf = heap_alloc(SystemInformationLength);
 
     /* test ReturnLength */
     ReturnLength = 0;
@@ -311,7 +311,7 @@ static void test_query_process(void)
 
         if (status != STATUS_INFO_LENGTH_MISMATCH) break;
         
-        spi_buf = HeapReAlloc(GetProcessHeap(), 0, spi_buf , SystemInformationLength *= 2);
+        spi_buf = heap_realloc(spi_buf , SystemInformationLength *= 2);
     }
     ok( status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status);
     spi = spi_buf;
@@ -378,7 +378,7 @@ static void test_query_process(void)
 
     if (one_before_last_pid == 0) one_before_last_pid = last_pid;
 
-    HeapFree( GetProcessHeap(), 0, spi_buf);
+    heap_free( spi_buf);
 }
 
 static void test_query_procperf(void)
@@ -394,7 +394,7 @@ static void test_query_procperf(void)
     ok(status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status);
     NeededLength = sbi.NumberOfProcessors * sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION);
 
-    sppi = HeapAlloc(GetProcessHeap(), 0, NeededLength);
+    sppi = heap_alloc(NeededLength);
 
     status = pNtQuerySystemInformation(SystemProcessorPerformanceInformation, sppi, 0, &ReturnLength);
     ok( status == STATUS_INFO_LENGTH_MISMATCH, "Expected STATUS_INFO_LENGTH_MISMATCH, got %08x\n", status);
@@ -424,7 +424,7 @@ static void test_query_procperf(void)
     ok (sppi->IdleTime.QuadPart != 0xdeaddead, "IdleTime unchanged\n");
 
     /* A too large given buffer size */
-    sppi = HeapReAlloc(GetProcessHeap(), 0, sppi , NeededLength + 2);
+    sppi = heap_realloc(sppi , NeededLength + 2);
     sppi->KernelTime.QuadPart = 0xdeaddead;
     sppi->UserTime.QuadPart = 0xdeaddead;
     sppi->IdleTime.QuadPart = 0xdeaddead;
@@ -445,7 +445,7 @@ static void test_query_procperf(void)
         ok (sppi->IdleTime.QuadPart == 0xdeaddead, "IdleTime changed\n");
     }
 
-    HeapFree( GetProcessHeap(), 0, sppi);
+    heap_free( sppi);
 }
 
 static void test_query_module(void)
@@ -455,7 +455,7 @@ static void test_query_module(void)
     ULONG ModuleCount, i;
 
     ULONG SystemInformationLength = sizeof(SYSTEM_MODULE_INFORMATION);
-    SYSTEM_MODULE_INFORMATION* smi = HeapAlloc(GetProcessHeap(), 0, SystemInformationLength); 
+    SYSTEM_MODULE_INFORMATION* smi = heap_alloc(SystemInformationLength); 
     SYSTEM_MODULE* sm;
 
     /* Request the needed length */
@@ -464,7 +464,7 @@ static void test_query_module(void)
     ok( ReturnLength > 0, "Expected a ReturnLength to show the needed length\n");
 
     SystemInformationLength = ReturnLength;
-    smi = HeapReAlloc(GetProcessHeap(), 0, smi , SystemInformationLength);
+    smi = heap_realloc(smi , SystemInformationLength);
     status = pNtQuerySystemInformation(SystemModuleInformation, smi, SystemInformationLength, &ReturnLength);
     ok( status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status);
 
@@ -480,7 +480,7 @@ static void test_query_module(void)
         sm++;
     }
 
-    HeapFree( GetProcessHeap(), 0, smi);
+    heap_free( smi);
 }
 
 static void test_query_handle(void)
@@ -488,7 +488,7 @@ static void test_query_handle(void)
     NTSTATUS status;
     ULONG ExpectedLength, ReturnLength;
     ULONG SystemInformationLength = sizeof(SYSTEM_HANDLE_INFORMATION);
-    SYSTEM_HANDLE_INFORMATION* shi = HeapAlloc(GetProcessHeap(), 0, SystemInformationLength);
+    SYSTEM_HANDLE_INFORMATION* shi = heap_alloc(SystemInformationLength);
     HANDLE EventHandle;
     BOOL found;
     INT i;
@@ -503,7 +503,7 @@ static void test_query_handle(void)
     ok( ReturnLength != 0xdeadbeef, "Expected valid ReturnLength\n" );
 
     SystemInformationLength = ReturnLength;
-    shi = HeapReAlloc(GetProcessHeap(), 0, shi , SystemInformationLength);
+    shi = heap_realloc(shi , SystemInformationLength);
     memset(shi, 0x55, SystemInformationLength);
 
     ReturnLength = 0xdeadbeef;
@@ -511,7 +511,7 @@ static void test_query_handle(void)
     while (status == STATUS_INFO_LENGTH_MISMATCH) /* Vista / 2008 */
     {
         SystemInformationLength *= 2;
-        shi = HeapReAlloc(GetProcessHeap(), 0, shi, SystemInformationLength);
+        shi = heap_realloc(shi, SystemInformationLength);
         memset(shi, 0x55, SystemInformationLength);
         status = pNtQuerySystemInformation(SystemHandleInformation, shi, SystemInformationLength, &ReturnLength);
     }
@@ -545,7 +545,7 @@ static void test_query_handle(void)
     while (status == STATUS_INFO_LENGTH_MISMATCH) /* Vista / 2008 */
     {
         SystemInformationLength *= 2;
-        shi = HeapReAlloc(GetProcessHeap(), 0, shi, SystemInformationLength);
+        shi = heap_realloc(shi, SystemInformationLength);
         status = pNtQuerySystemInformation(SystemHandleInformation, shi, SystemInformationLength, &ReturnLength);
     }
     ok( status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status );
@@ -558,7 +558,7 @@ static void test_query_handle(void)
     ok( status == STATUS_ACCESS_VIOLATION, "Expected STATUS_ACCESS_VIOLATION, got %08x\n", status );
 
 done:
-    HeapFree( GetProcessHeap(), 0, shi);
+    heap_free( shi);
 }
 
 static void test_query_cache(void)
@@ -625,7 +625,7 @@ static void test_query_interrupt(void)
     ok(status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status);
     NeededLength = sbi.NumberOfProcessors * sizeof(SYSTEM_INTERRUPT_INFORMATION);
 
-    sii = HeapAlloc(GetProcessHeap(), 0, NeededLength);
+    sii = heap_alloc(NeededLength);
 
     status = pNtQuerySystemInformation(SystemInterruptInformation, sii, 0, &ReturnLength);
     ok( status == STATUS_INFO_LENGTH_MISMATCH, "Expected STATUS_INFO_LENGTH_MISMATCH, got %08x\n", status);
@@ -638,7 +638,7 @@ static void test_query_interrupt(void)
      * No test added for this as it's highly unlikely that an app depends on this
     */
 
-    HeapFree( GetProcessHeap(), 0, sii);
+    heap_free( sii);
 }
 
 static void test_query_kerndebug(void)
@@ -700,7 +700,7 @@ static void test_query_logicalproc(void)
     ok(status == STATUS_INFO_LENGTH_MISMATCH, "Expected STATUS_INFO_LENGTH_MISMATCH, got %08x\n", status);
     ok(len%sizeof(*slpi) == 0, "Incorrect length %d\n", len);
 
-    slpi = HeapAlloc(GetProcessHeap(), 0, len);
+    slpi = heap_alloc(len);
     status = pNtQuerySystemInformation(SystemLogicalProcessorInformation, slpi, len, &len);
     ok(status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status);
 
@@ -721,7 +721,7 @@ static void test_query_logicalproc(void)
         ok(proc_no == si.dwNumberOfProcessors, "Incorrect number of logical processors: %d, expected %d\n",
                 proc_no, si.dwNumberOfProcessors);
 
-    HeapFree(GetProcessHeap(), 0, slpi);
+    heap_free(slpi);
 }
 
 static void test_query_logicalprocex(void)
@@ -754,8 +754,8 @@ static void test_query_logicalprocex(void)
     if (len && len == len2) {
         int j, i;
 
-        infoex = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
-        infoex2 = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+        infoex = heap_alloc_zero(len);
+        infoex2 = heap_alloc_zero(len);
 
         status = pNtQuerySystemInformationEx(SystemLogicalProcessorInformationEx, &relationship, sizeof(relationship), infoex, len, &len);
         ok(status == STATUS_SUCCESS, "got 0x%08x\n", status);
@@ -821,8 +821,8 @@ static void test_query_logicalprocex(void)
             i += ex->Size;
         }
 
-        HeapFree(GetProcessHeap(), 0, infoex);
-        HeapFree(GetProcessHeap(), 0, infoex2);
+        heap_free(infoex);
+        heap_free(infoex2);
     }
 }
 
@@ -836,7 +836,7 @@ static void test_query_processor_power_info(void)
 
     GetSystemInfo(&si);
     size = si.dwNumberOfProcessors * sizeof(PROCESSOR_POWER_INFORMATION);
-    ppi = HeapAlloc(GetProcessHeap(), 0, size);
+    ppi = heap_alloc(size);
 
     /* If size < (sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors), Win7 returns
      * STATUS_BUFFER_TOO_SMALL. WinXP returns STATUS_SUCCESS for any value of size.  It copies as
@@ -896,7 +896,7 @@ static void test_query_processor_power_info(void)
     status = pNtPowerInformation(ProcessorInformation, 0, 0, ppi, size);
     ok( status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status);
 
-    HeapFree(GetProcessHeap(), 0, ppi);
+    heap_free(ppi);
 }
 
 static void test_query_process_wow64(void)
@@ -1334,40 +1334,6 @@ static void test_query_process_debug_port(int argc, char **argv)
     ok(ret, "CloseHandle failed, last error %#x.\n", GetLastError());
 }
 
-static void test_query_process_priority(void)
-{
-    PROCESS_PRIORITY_CLASS priority[2];
-    ULONG ReturnLength;
-    DWORD orig_priority;
-    NTSTATUS status;
-    BOOL ret;
-
-    status = pNtQueryInformationProcess(NULL, ProcessPriorityClass, NULL, sizeof(priority[0]), NULL);
-    ok(status == STATUS_ACCESS_VIOLATION || broken(status == STATUS_INVALID_HANDLE) /* w2k3 */,
-       "Expected STATUS_ACCESS_VIOLATION, got %08x\n", status);
-
-    status = pNtQueryInformationProcess(NULL, ProcessPriorityClass, &priority, sizeof(priority[0]), NULL);
-    ok(status == STATUS_INVALID_HANDLE, "Expected STATUS_INVALID_HANDLE, got %08x\n", status);
-
-    status = pNtQueryInformationProcess(GetCurrentProcess(), ProcessPriorityClass, &priority, 1, &ReturnLength);
-    ok(status == STATUS_INFO_LENGTH_MISMATCH, "Expected STATUS_INFO_LENGTH_MISMATCH, got %08x\n", status);
-
-    status = pNtQueryInformationProcess(GetCurrentProcess(), ProcessPriorityClass, &priority, sizeof(priority), &ReturnLength);
-    ok(status == STATUS_INFO_LENGTH_MISMATCH, "Expected STATUS_INFO_LENGTH_MISMATCH, got %08x\n", status);
-
-    orig_priority = GetPriorityClass(GetCurrentProcess());
-    ret = SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
-    ok(ret, "Failed to set priority class: %u\n", GetLastError());
-
-    status = pNtQueryInformationProcess(GetCurrentProcess(), ProcessPriorityClass, &priority, sizeof(priority[0]), &ReturnLength);
-    ok(status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status);
-    ok(priority[0].PriorityClass == PROCESS_PRIOCLASS_BELOW_NORMAL,
-       "Expected PROCESS_PRIOCLASS_BELOW_NORMAL, got %u\n", priority[0].PriorityClass);
-
-    ret = SetPriorityClass(GetCurrentProcess(), orig_priority);
-    ok(ret, "Failed to reset priority class: %u\n", GetLastError());
-}
-
 static void test_query_process_handlecount(void)
 {
     NTSTATUS status;
@@ -1416,11 +1382,12 @@ static void test_query_process_handlecount(void)
 
 static void test_query_process_image_file_name(void)
 {
-    static const WCHAR deviceW[] = {'\\','D','e','v','i','c','e','\\'};
     NTSTATUS status;
     ULONG ReturnLength;
     UNICODE_STRING image_file_name;
-    UNICODE_STRING *buffer = NULL;
+    void *buffer;
+    char *file_nameA;
+    INT len;
 
     status = pNtQueryInformationProcess(NULL, ProcessImageFileName, &image_file_name, sizeof(image_file_name), NULL);
     if (status == STATUS_INVALID_INFO_CLASS)
@@ -1439,33 +1406,15 @@ static void test_query_process_image_file_name(void)
     buffer = heap_alloc(ReturnLength);
     status = pNtQueryInformationProcess( GetCurrentProcess(), ProcessImageFileName, buffer, ReturnLength, &ReturnLength);
     ok( status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status);
-todo_wine
-    ok(!memcmp(buffer->Buffer, deviceW, sizeof(deviceW)),
-        "Expected image name to begin with \\Device\\, got %s\n",
-        wine_dbgstr_wn(buffer->Buffer, buffer->Length / sizeof(WCHAR)));
+    memcpy(&image_file_name, buffer, sizeof(image_file_name));
+    len = WideCharToMultiByte(CP_ACP, 0, image_file_name.Buffer, image_file_name.Length/sizeof(WCHAR), NULL, 0, NULL, NULL);
+    file_nameA = heap_alloc(len + 1);
+    WideCharToMultiByte(CP_ACP, 0, image_file_name.Buffer, image_file_name.Length/sizeof(WCHAR), file_nameA, len, NULL, NULL);
+    file_nameA[len] = '\0';
     heap_free(buffer);
-
-    status = pNtQueryInformationProcess(NULL, ProcessImageFileNameWin32, &image_file_name, sizeof(image_file_name), NULL);
-    if (status == STATUS_INVALID_INFO_CLASS)
-    {
-        win_skip("ProcessImageFileNameWin32 is not supported\n");
-        return;
-    }
-    ok( status == STATUS_INVALID_HANDLE, "Expected STATUS_INVALID_HANDLE, got %08x\n", status);
-
-    status = pNtQueryInformationProcess( GetCurrentProcess(), ProcessImageFileNameWin32, &image_file_name, 2, &ReturnLength);
-    ok( status == STATUS_INFO_LENGTH_MISMATCH, "Expected STATUS_INFO_LENGTH_MISMATCH, got %08x\n", status);
-
-    status = pNtQueryInformationProcess( GetCurrentProcess(), ProcessImageFileNameWin32, &image_file_name, sizeof(image_file_name), &ReturnLength);
-    ok( status == STATUS_INFO_LENGTH_MISMATCH, "Expected STATUS_INFO_LENGTH_MISMATCH, got %08x\n", status);
-
-    buffer = heap_alloc(ReturnLength);
-    status = pNtQueryInformationProcess( GetCurrentProcess(), ProcessImageFileNameWin32, buffer, ReturnLength, &ReturnLength);
-    ok( status == STATUS_SUCCESS, "Expected STATUS_SUCCESS, got %08x\n", status);
-    ok(memcmp(buffer->Buffer, deviceW, sizeof(deviceW)),
-        "Expected image name not to begin with \\Device\\, got %s\n",
-        wine_dbgstr_wn(buffer->Buffer, buffer->Length / sizeof(WCHAR)));
-    heap_free(buffer);
+    trace("process image file name: %s\n", file_nameA);
+    todo_wine ok(strncmp(file_nameA, "\\Device\\", 8) == 0, "Process image name should be an NT path beginning with \\Device\\ (is %s)\n", file_nameA);
+    heap_free(file_nameA);
 }
 
 static void test_query_process_debug_object_handle(int argc, char **argv)
@@ -1836,6 +1785,7 @@ static void test_mapprotection(void)
     pNtSetInformationProcess( GetCurrentProcess(), ProcessExecuteFlags, &oldflags, sizeof(oldflags) );
 }
 
+#if 0
 static void test_queryvirtualmemory(void)
 {
     NTSTATUS status;
@@ -1924,6 +1874,7 @@ static void test_queryvirtualmemory(void)
     status = pNtQueryVirtualMemory(NtCurrentProcess(), (void *)~0, MemoryBasicInformation, &mbi, sizeof(mbi), &readcount);
     ok(status == STATUS_INVALID_PARAMETER, "Expected STATUS_INVALID_PARAMETER, got %08x\n", status);
 }
+#endif
 
 static void test_affinity(void)
 {
@@ -2243,10 +2194,6 @@ START_TEST(info)
     trace("Starting test_process_debug_port()\n");
     test_query_process_debug_port(argc, argv);
 
-    /* 0x12 ProcessPriorityClass */
-    trace("Starting test_query_process_priority()\n");
-    test_query_process_priority();
-
     /* 0x14 ProcessHandleCount */
     trace("Starting test_query_process_handlecount()\n");
     test_query_process_handlecount();
@@ -2271,8 +2218,10 @@ START_TEST(info)
     trace("Starting test_readvirtualmemory()\n");
     test_readvirtualmemory();
 
+#if 0
     trace("Starting test_queryvirtualmemory()\n");
     test_queryvirtualmemory();
+#endif
 
     trace("Starting test_mapprotection()\n");
     test_mapprotection();

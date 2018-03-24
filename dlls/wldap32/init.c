@@ -62,7 +62,8 @@ static char **split_hostnames( const char *hostnames )
         p++;
     }
 
-    if (!(res = heap_alloc( (i + 1) * sizeof(char *) )))
+    res = heap_alloc( (i + 1) * sizeof(char *) );
+    if (!res)
     {
         heap_free( str );
         return NULL;
@@ -73,7 +74,7 @@ static char **split_hostnames( const char *hostnames )
 
     q = p;
     i = 0;
-
+    
     while (*p)
     {
         if (p[1] != '\0')
@@ -84,7 +85,7 @@ static char **split_hostnames( const char *hostnames )
                 res[i] = strdupU( q );
                 if (!res[i]) goto oom;
                 i++;
-
+            
                 while (isspace( *p )) p++;
                 q = p;
             }
@@ -153,7 +154,9 @@ static char *join_hostnames( const char *scheme, char **hostnames, ULONG portnum
     }
 
     size += (i - 1) * strlen( sep );
-    if (!(res = heap_alloc( size + 1 ))) return NULL;
+ 
+    res = heap_alloc( size + 1 );
+    if (!res) return NULL;
 
     p = res;
     for (v = hostnames; *v; v++)

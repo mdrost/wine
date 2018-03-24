@@ -170,7 +170,7 @@ void WINAPI WlanFreeMemory(void *ptr)
 {
     TRACE("(%p)\n", ptr);
 
-    HeapFree(GetProcessHeap(), 0, ptr);
+    heap_free(ptr);
 }
 
 void *WINAPI WlanAllocateMemory(DWORD size)
@@ -185,7 +185,7 @@ void *WINAPI WlanAllocateMemory(DWORD size)
         return NULL;
     }
 
-    ret = HeapAlloc(GetProcessHeap(), 0, size);
+    ret = heap_alloc(size);
     if (!ret)
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
 

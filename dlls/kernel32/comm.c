@@ -28,10 +28,14 @@
 #include "windef.h"
 #include "winbase.h"
 #include "winerror.h"
+#include "winternl.h"
 #include "winioctl.h"
 #include "ddk/ntddser.h"
 
+#include "wine/heap.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/unicode.h"
 
 #include "wine/debug.h"
@@ -58,10 +62,10 @@ static LPCWSTR COMM_ParseStart(LPCWSTR ptr)
 		   values for com ports which are actually present) */
 		if(*ptr < '1' || *ptr > '9')
 			return NULL;
-		
+
 		/* Advance pointer past port number */
 		while(*ptr >= '0' && *ptr <= '9') ptr++;
-		
+
 		/* The com port number must be followed by a ':' or ' ' */
 		if(*ptr != ':' && *ptr != ' ')
 			return NULL;
@@ -77,10 +81,10 @@ static LPCWSTR COMM_ParseStart(LPCWSTR ptr)
 	/* The device control string must not start with a space. */
 	else if(*ptr == ' ')
 		return NULL;
-	
+
 	return ptr;
 }
- 
+
 static LPCWSTR COMM_ParseNumber(LPCWSTR ptr, LPDWORD lpnumber)
 {
 	if(*ptr < '0' || *ptr > '9') return NULL;
@@ -157,7 +161,7 @@ static LPCWSTR COMM_ParseStopBits(LPCWSTR ptr, LPBYTE lpstopbits)
 		else
 			return NULL;
 	}
-	
+
 	return ptr;
 }
 
@@ -193,7 +197,7 @@ static BOOL COMM_BuildOldCommDCB(LPCWSTR device, LPDCB lpdcb)
 
 	if(!(device = COMM_ParseNumber(device, &lpdcb->BaudRate)))
 		return FALSE;
-	
+
 	switch(lpdcb->BaudRate)
 	{
 	case 11:
@@ -222,7 +226,7 @@ static BOOL COMM_BuildOldCommDCB(LPCWSTR device, LPDCB lpdcb)
 	while(*device == ' ') device++;
 	if(*device++ != ',') return FALSE;
 	while(*device == ' ') device++;
-		
+
 	if(!(device = COMM_ParseByteSize(device, &lpdcb->ByteSize)))
 		return FALSE;
 
@@ -277,7 +281,7 @@ static BOOL COMM_BuildOldCommDCB(LPCWSTR device, LPDCB lpdcb)
 
 	/* This should be the end of the string. */
 	if(*device) return FALSE;
-	
+
 	return TRUE;
 }
 
@@ -310,7 +314,7 @@ static BOOL COMM_BuildNewCommDCB(LPCWSTR device, LPDCB lpdcb, LPCOMMTIMEOUTS lpt
 		if(!strncmpiW(baudW, device, 5))
 		{
 			baud = TRUE;
-			
+
 			if(!(device = COMM_ParseNumber(device + 5, &lpdcb->BaudRate)))
 				return FALSE;
 		}
@@ -327,7 +331,7 @@ static BOOL COMM_BuildNewCommDCB(LPCWSTR device, LPDCB lpdcb, LPCOMMTIMEOUTS lpt
 		else if(!strncmpiW(stopW, device, 5))
 		{
 			stop = TRUE;
-			
+
 			if(!(device = COMM_ParseStopBits(device + 5, &lpdcb->StopBits)))
 				return FALSE;
 		}
@@ -509,7 +513,7 @@ BOOL WINAPI BuildCommDCBAndTimeoutsW(
 		WARN("Invalid device control string: %s\n", debugstr_w(devid));
 		SetLastError(ERROR_INVALID_PARAMETER);
 		return FALSE;
-	}	
+	}
 }
 
 /**************************************************************************
@@ -674,7 +678,7 @@ BOOL WINAPI ClearCommError(HANDLE handle, LPDWORD errors, LPCOMSTAT lpStat)
         if (ss.Errors & SERIAL_ERROR_QUEUEOVERRUN)      *errors |= CE_RXOVER;
         if (ss.Errors & SERIAL_ERROR_PARITY)            *errors |= CE_RXPARITY;
     }
- 
+
     if (lpStat)
     {
         memset(lpStat, 0, sizeof(*lpStat));
@@ -818,7 +822,7 @@ BOOL WINAPI SetCommState( HANDLE handle, LPDCB lpdcb)
     dump_dcb(lpdcb);
 
     sbr.BaudRate = lpdcb->BaudRate;
-             
+
     slc.StopBits = lpdcb->StopBits;
     slc.Parity = lpdcb->Parity;
     slc.WordLength = lpdcb->ByteSize;
@@ -841,7 +845,7 @@ BOOL WINAPI SetCommState( HANDLE handle, LPDCB lpdcb)
     case RTS_CONTROL_DISABLE:                                                  break;
     case RTS_CONTROL_ENABLE:      shf.FlowReplace |= SERIAL_RTS_CONTROL;       break;
     case RTS_CONTROL_HANDSHAKE:   shf.FlowReplace |= SERIAL_RTS_HANDSHAKE;     break;
-    case RTS_CONTROL_TOGGLE:      shf.FlowReplace |= SERIAL_RTS_CONTROL | 
+    case RTS_CONTROL_TOGGLE:      shf.FlowReplace |= SERIAL_RTS_CONTROL |
                                                      SERIAL_RTS_HANDSHAKE;     break;
     default:
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -912,7 +916,7 @@ BOOL WINAPI GetCommState(HANDLE handle, LPDCB lpdcb)
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
-    
+
     if (!DeviceIoControl(handle, IOCTL_SERIAL_GET_BAUD_RATE,
                          NULL, 0, &sbr, sizeof(sbr), &dwBytesReturned, NULL) ||
         !DeviceIoControl(handle, IOCTL_SERIAL_GET_LINE_CONTROL,
@@ -1072,7 +1076,7 @@ BOOL WINAPI SetCommTimeouts(HANDLE hComm, LPCOMMTIMEOUTS lptimeouts)
     st.ReadTotalTimeoutConstant    = lptimeouts->ReadTotalTimeoutConstant;
     st.WriteTotalTimeoutMultiplier = lptimeouts->WriteTotalTimeoutMultiplier;
     st.WriteTotalTimeoutConstant   = lptimeouts->WriteTotalTimeoutConstant;
- 
+
     return DeviceIoControl(hComm, IOCTL_SERIAL_SET_TIMEOUTS,
                            &st, sizeof(st), NULL, 0, &dwBytesReturned, NULL);
 }
@@ -1186,7 +1190,7 @@ BOOL WINAPI GetCommProperties(
  * The DLL should be loaded when the COMM port is opened, and closed
  * when the COMM port is closed. - MJM 20 June 2000
  ***********************************************************************/
-static const WCHAR lpszSerialUI[] = { 
+static const WCHAR lpszSerialUI[] = {
    's','e','r','i','a','l','u','i','.','d','l','l',0 };
 
 
@@ -1221,11 +1225,11 @@ BOOL WINAPI CommConfigDialogA(
     if (lpszDevice)
     {
         len = MultiByteToWideChar( CP_ACP, 0, lpszDevice, -1, NULL, 0 );
-        lpDeviceW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        lpDeviceW = heap_alloc( len * sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, lpszDevice, -1, lpDeviceW, len );
     }
     r = CommConfigDialogW(lpDeviceW, hWnd, lpCommConfig);
-    HeapFree( GetProcessHeap(), 0, lpDeviceW );
+    heap_free( lpDeviceW );
     return r;
 }
 
@@ -1374,11 +1378,11 @@ BOOL WINAPI SetDefaultCommConfigA(LPCSTR lpszDevice, LPCOMMCONFIG lpCommConfig, 
     if (lpszDevice)
     {
         len = MultiByteToWideChar( CP_ACP, 0, lpszDevice, -1, NULL, 0 );
-        lpDeviceW = HeapAlloc( GetProcessHeap(), 0, len*sizeof(WCHAR) );
+        lpDeviceW = heap_alloc( len*sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, lpszDevice, -1, lpDeviceW, len );
     }
     r = SetDefaultCommConfigW(lpDeviceW,lpCommConfig,dwSize);
-    HeapFree( GetProcessHeap(), 0, lpDeviceW );
+    heap_free( lpDeviceW );
     return r;
 }
 

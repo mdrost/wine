@@ -234,7 +234,7 @@ static ULONG WINAPI HeapUnknown_Release(IUnknown *iface)
 {
     HeapUnknown *This = impl_from_IUnknown(iface);
     ULONG refs = InterlockedDecrement((LONG*)&This->refs);
-    if (!refs) HeapFree(GetProcessHeap(), 0, This);
+    if (!refs) heap_free(This);
     return refs;
 }
 
@@ -1937,7 +1937,7 @@ static void test_bind_context(void)
     hr = IBindCtx_RegisterObjectParam(pBindCtx, (WCHAR *)wszParamName, NULL);
     ok(hr == E_INVALIDARG, "IBindCtx_RegisterObjectParam should have returned E_INVALIDARG instead of 0x%08x\n", hr);
 
-    unknown = HeapAlloc(GetProcessHeap(), 0, sizeof(*unknown));
+    unknown = heap_alloc(sizeof(*unknown));
     unknown->IUnknown_iface.lpVtbl = &HeapUnknown_Vtbl;
     unknown->refs = 1;
     hr = IBindCtx_RegisterObjectParam(pBindCtx, (WCHAR *)wszParamName, &unknown->IUnknown_iface);
@@ -1964,7 +1964,7 @@ static void test_bind_context(void)
     hr = IBindCtx_RevokeObjectBound(pBindCtx, NULL);
     ok(hr == E_INVALIDARG, "IBindCtx_RevokeObjectBound(NULL) should have return E_INVALIDARG instead of 0x%08x\n", hr);
 
-    unknown2 = HeapAlloc(GetProcessHeap(), 0, sizeof(*unknown));
+    unknown2 = heap_alloc(sizeof(*unknown));
     unknown2->IUnknown_iface.lpVtbl = &HeapUnknown_Vtbl;
     unknown2->refs = 1;
     hr = IBindCtx_RegisterObjectBound(pBindCtx, &unknown2->IUnknown_iface);

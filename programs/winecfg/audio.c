@@ -373,10 +373,10 @@ static void initAudioDlg (HWND hDlg)
                 SendDlgItemMessageW(hDlg, IDC_VOICEIN_DEVICE, CB_SETCURSEL, i + 1, 0);
         }
 
-        HeapFree(GetProcessHeap(), 0, reg_out_dev);
-        HeapFree(GetProcessHeap(), 0, reg_vout_dev);
-        HeapFree(GetProcessHeap(), 0, reg_in_dev);
-        HeapFree(GetProcessHeap(), 0, reg_vin_dev);
+        heap_free(reg_out_dev);
+        heap_free(reg_vout_dev);
+        heap_free(reg_in_dev);
+        heap_free(reg_vin_dev);
     }else
         wnsprintfW(display_str, sizeof(display_str) / sizeof(*display_str),
                 format_str, disabled_str);

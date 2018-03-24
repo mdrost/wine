@@ -47,14 +47,14 @@ static INT MFDRV_ExtEscape( PHYSDEV dev, INT nEscape, INT cbInput, LPCVOID in_da
     if (cbOutput) return 0;  /* escapes that require output cannot work in metafiles */
 
     len = sizeof(*mr) + sizeof(WORD) + ((cbInput + 1) & ~1);
-    mr = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+    mr = heap_alloc_zero(len);
     mr->rdSize = len / 2;
     mr->rdFunction = META_ESCAPE;
     mr->rdParm[0] = nEscape;
     mr->rdParm[1] = cbInput;
     memcpy(&(mr->rdParm[2]), in_data, cbInput);
     ret = MFDRV_WriteRecord( dev, mr, len);
-    HeapFree(GetProcessHeap(), 0, mr);
+    heap_free(mr);
     return ret;
 }
 
@@ -242,22 +242,22 @@ static DC *MFDRV_AllocMetaFile(void)
 
     if (!(dc = alloc_dc_ptr( OBJ_METADC ))) return NULL;
 
-    physDev = HeapAlloc(GetProcessHeap(),0,sizeof(*physDev));
+    physDev = heap_alloc(sizeof(*physDev));
     if (!physDev)
     {
         free_dc_ptr( dc );
         return NULL;
     }
-    if (!(physDev->mh = HeapAlloc( GetProcessHeap(), 0, sizeof(*physDev->mh) )))
+    if (!(physDev->mh = heap_alloc( sizeof(*physDev->mh) )))
     {
-        HeapFree( GetProcessHeap(), 0, physDev );
+        heap_free( physDev );
         free_dc_ptr( dc );
         return NULL;
     }
 
     push_dc_driver( &dc->physDev, &physDev->dev, &MFDRV_Funcs );
 
-    physDev->handles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, HANDLE_LIST_INC * sizeof(physDev->handles[0]));
+    physDev->handles = heap_alloc_zero(HANDLE_LIST_INC * sizeof(physDev->handles[0]));
     physDev->handles_size = HANDLE_LIST_INC;
     physDev->cur_handles = 0;
 
@@ -294,12 +294,12 @@ static BOOL MFDRV_DeleteDC( PHYSDEV dev )
     METAFILEDRV_PDEVICE *physDev = (METAFILEDRV_PDEVICE *)dev;
     DWORD index;
 
-    HeapFree( GetProcessHeap(), 0, physDev->mh );
+    heap_free( physDev->mh );
     for(index = 0; index < physDev->handles_size; index++)
         if(physDev->handles[index])
             GDI_hdc_not_using_object(physDev->handles[index], dev->hdc);
-    HeapFree( GetProcessHeap(), 0, physDev->handles );
-    HeapFree( GetProcessHeap(), 0, physDev );
+    heap_free( physDev->handles );
+    heap_free( physDev );
     return TRUE;
 }
 
@@ -371,12 +371,12 @@ HDC WINAPI CreateMetaFileA(LPCSTR filename)
     if (!filename) return CreateMetaFileW(NULL);
 
     len = MultiByteToWideChar( CP_ACP, 0, filename, -1, NULL, 0 );
-    filenameW = HeapAlloc( GetProcessHeap(), 0, len*sizeof(WCHAR) );
+    filenameW = heap_alloc( len*sizeof(WCHAR) );
     MultiByteToWideChar( CP_ACP, 0, filename, -1, filenameW, len );
 
     hReturnDC = CreateMetaFileW(filenameW);
 
-    HeapFree( GetProcessHeap(), 0, filenameW );
+    heap_free( filenameW );
 
     return hReturnDC;
 }
@@ -444,7 +444,7 @@ static DC *MFDRV_CloseMetaFile( HDC hdc )
  *  hdc and retrieve metafile.
  *
  * PARAMS
- *  hdc [I] Metafile DC to close 
+ *  hdc [I] Metafile DC to close
  *
  * RETURNS
  *  Handle of newly created metafile on success, NULL on failure.
@@ -480,6 +480,7 @@ BOOL MFDRV_WriteRecord( PHYSDEV dev, METARECORD *mr, DWORD rlen)
 
     switch(physDev->mh->mtType)
     {
+#if 0
     case METAFILE_MEMORY:
 	len = physDev->mh->mtSize * 2 + rlen;
 	/* reallocate memory if needed */
@@ -488,13 +489,14 @@ BOOL MFDRV_WriteRecord( PHYSDEV dev, METARECORD *mr, DWORD rlen)
         {
             /*expand size*/
             size += size / 2 + rlen;
-            mh = HeapReAlloc( GetProcessHeap(), 0, physDev->mh, size);
+            mh = heap_realloc( physDev->mh, size);
             if (!mh) return FALSE;
             physDev->mh = mh;
             TRACE("Reallocated metafile: new size is %d\n",size);
         }
 	memcpy((WORD *)physDev->mh + physDev->mh->mtSize, mr, rlen);
         break;
+#endif
     case METAFILE_DISK:
         TRACE("Writing record to disk\n");
         if (!WriteFile(physDev->hFile, mr, rlen, NULL, NULL))

@@ -496,7 +496,7 @@ UINT WINAPI GetRoleTextA(DWORD role, LPSTR lpRole, UINT rolemax)
         return 0;
     }
 
-    roletextW = HeapAlloc(GetProcessHeap(), 0, (length + 1)*sizeof(WCHAR));
+    roletextW = heap_alloc((length + 1)*sizeof(WCHAR));
     if(!roletextW)
         return 0;
 
@@ -505,12 +505,12 @@ UINT WINAPI GetRoleTextA(DWORD role, LPSTR lpRole, UINT rolemax)
     length = WideCharToMultiByte( CP_ACP, 0, roletextW, -1, NULL, 0, NULL, NULL );
 
     if(!lpRole){
-        HeapFree(GetProcessHeap(), 0, roletextW);
+        heap_free(roletextW);
         return length - 1;
     }
 
     if(rolemax < length) {
-        HeapFree(GetProcessHeap(), 0, roletextW);
+        heap_free(roletextW);
         lpRole[0] = 0;
         return 0;
     }
@@ -522,7 +522,7 @@ UINT WINAPI GetRoleTextA(DWORD role, LPSTR lpRole, UINT rolemax)
         length = rolemax;
     }
 
-    HeapFree(GetProcessHeap(), 0, roletextW);
+    heap_free(roletextW);
 
     return length - 1;
 }

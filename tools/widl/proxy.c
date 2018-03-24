@@ -987,7 +987,7 @@ static void write_proxy_routines(const statement_list_t *stmts)
   fprintf(proxy, "}\n");
   fprintf(proxy, "\n");
 
-  fprintf(proxy, "const ExtendedProxyFileInfo %s_ProxyFileInfo DECLSPEC_HIDDEN =\n", file_id);
+  fprintf(proxy, "const ExtendedProxyFileInfo %s_ProxyFileInfo =\n", file_id);
   fprintf(proxy, "{\n");
   fprintf(proxy, "    (const PCInterfaceProxyVtblList*)_%s_ProxyVtblList,\n", file_id);
   fprintf(proxy, "    (const PCInterfaceStubVtblList*)_%s_StubVtblList,\n", file_id);

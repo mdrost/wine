@@ -1034,7 +1034,7 @@ static void test_GetConsoleProcessList(void)
      * we created our own console. An AttachConsole(ATTACH_PARENT_PROCESS) would
      * give us two processes for example.
      */
-    list = HeapAlloc(GetProcessHeap(), 0, sizeof(DWORD));
+    list = heap_alloc(sizeof(DWORD));
 
     SetLastError(0xdeadbeef);
     ret = pGetConsoleProcessList(list, 0);
@@ -1048,9 +1048,9 @@ static void test_GetConsoleProcessList(void)
     todo_wine
     ok(ret == 1, "Expected 1, got %d\n", ret);
 
-    HeapFree(GetProcessHeap(), 0, list);
+    heap_free(list);
 
-    list = HeapAlloc(GetProcessHeap(), 0, ret * sizeof(DWORD));
+    list = heap_alloc(ret * sizeof(DWORD));
 
     SetLastError(0xdeadbeef);
     ret = pGetConsoleProcessList(list, ret);
@@ -1063,7 +1063,7 @@ static void test_GetConsoleProcessList(void)
         ok(list[0] == pid, "Expected %d, got %d\n", pid, list[0]);
     }
 
-    HeapFree(GetProcessHeap(), 0, list);
+    heap_free(list);
 }
 
 static void test_OpenCON(void)
@@ -2840,7 +2840,7 @@ static void test_GetConsoleFontInfo(HANDLE std_output)
 
     num_fonts = pGetNumberOfConsoleFonts();
     memsize = num_fonts * sizeof(CONSOLE_FONT_INFO);
-    cfi = HeapAlloc(GetProcessHeap(), 0, memsize);
+    cfi = heap_alloc(memsize);
     memset(cfi, 0, memsize);
 
     GetConsoleScreenBufferInfo(std_output, &csbi);
@@ -2925,7 +2925,7 @@ static void test_GetConsoleFontInfo(HANDLE std_output)
         todo_wine ok(cfi[i].dwFontSize.Y == tmp_h, "got %d, expected %d\n", cfi[i].dwFontSize.Y, tmp_h);
      }
 
-    HeapFree(GetProcessHeap(), 0, cfi);
+    heap_free(cfi);
     SetConsoleScreenBufferSize(std_output, orig_sb_size);
 }
 

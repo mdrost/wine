@@ -28,6 +28,7 @@
 #define NONAMELESSUNION
 
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "undocshell.h"
 #include "commoncontrols.h"
 #include "pidl.h"

@@ -175,10 +175,10 @@ static ULONG WINAPI IcnsFrameEncode_Release(IWICBitmapFrameEncode *iface)
             This->encoder->outstanding_commits--;
             LeaveCriticalSection(&This->encoder->lock);
         }
-        HeapFree(GetProcessHeap(), 0, This->icns_image);
+        heap_free(This->icns_image);
 
         IWICBitmapEncoder_Release(&This->encoder->IWICBitmapEncoder_iface);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -353,7 +353,7 @@ static HRESULT WINAPI IcnsFrameEncode_WritePixels(IWICBitmapFrameEncode *iface,
                 hr = E_INVALIDARG;
                 goto end;
         }
-        This->icns_image = HeapAlloc(GetProcessHeap(), 0, This->size * This->size * 4);
+        This->icns_image = heap_alloc(This->size * This->size * 4);
         if (!This->icns_image)
         {
             WARN("failed to allocate image buffer\n");
@@ -524,7 +524,7 @@ static ULONG WINAPI IcnsEncoder_Release(IWICBitmapEncoder *iface)
             DisposeHandle((Handle)This->icns_family);
         if (This->stream)
             IStream_Release(This->stream);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -624,7 +624,7 @@ static HRESULT WINAPI IcnsEncoder_CreateNewFrame(IWICBitmapEncoder *iface,
             goto end;
     }
 
-    frameEncode = HeapAlloc(GetProcessHeap(), 0, sizeof(IcnsFrameEncode));
+    frameEncode = heap_alloc(sizeof(IcnsFrameEncode));
     if (frameEncode == NULL)
     {
         hr = E_OUTOFMEMORY;
@@ -713,7 +713,7 @@ HRESULT IcnsEncoder_CreateInstance(REFIID iid, void** ppv)
 
     *ppv = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(IcnsEncoder));
+    This = heap_alloc(sizeof(IcnsEncoder));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapEncoder_iface.lpVtbl = &IcnsEncoder_Vtbl;

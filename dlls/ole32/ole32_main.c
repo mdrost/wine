@@ -138,6 +138,7 @@ HGLOBAL WINAPI OleMetafilePictFromIconAndLabel(HICON hIcon, LPOLESTR lpszLabel,
 	if( !mfp.hMF )
 		return NULL;
 
+#if 0
 	hmem = GlobalAlloc( GMEM_MOVEABLE, sizeof(mfp) );
 	if( !hmem )
 	{
@@ -159,6 +160,10 @@ HGLOBAL WINAPI OleMetafilePictFromIconAndLabel(HICON hIcon, LPOLESTR lpszLabel,
 	TRACE("returning %p\n",hmem);
 
 	return hmem;
+#else
+	DeleteMetaFile(mfp.hMF);
+	return NULL;
+#endif
 }
 
 /***********************************************************************

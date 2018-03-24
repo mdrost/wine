@@ -56,8 +56,8 @@ static void WCUSER_FillMemDC(const struct inner_data* data, int upd_tp, int upd_
     /* FIXME: could set up a mechanism to reuse the line between different
      * calls to this function
      */
-    if (!(line = HeapAlloc(GetProcessHeap(), 0, data->curcfg.sb_width * sizeof(WCHAR)))) return;
-    dx = HeapAlloc( GetProcessHeap(), 0, data->curcfg.sb_width * sizeof(*dx) );
+    if (!(line = heap_alloc(data->curcfg.sb_width * sizeof(WCHAR)))) return;
+    dx = heap_alloc( data->curcfg.sb_width * sizeof(*dx) );
 
     hOldFont = SelectObject(PRIVATE(data)->hMemDC, PRIVATE(data)->hFont);
     for (j = upd_tp; j <= upd_bm; j++)
@@ -89,8 +89,8 @@ static void WCUSER_FillMemDC(const struct inner_data* data, int upd_tp, int upd_
 	}
     }
     SelectObject(PRIVATE(data)->hMemDC, hOldFont);
-    HeapFree(GetProcessHeap(), 0, dx);
-    HeapFree(GetProcessHeap(), 0, line);
+    heap_free(dx);
+    heap_free(line);
 }
 
 /******************************************************************
@@ -167,7 +167,7 @@ static void	WCUSER_ShapeCursor(struct inner_data* data, int size, int vis, BOOL 
 	    int		i, j, nbl;
 
 	    w16b = ((data->curcfg.cell_width + 15) & ~15) / 8;
-	    ptr = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, w16b * data->curcfg.cell_height);
+	    ptr = heap_alloc_zero(w16b * data->curcfg.cell_height);
 	    if (!ptr) return;
 	    nbl = max((data->curcfg.cell_height * size) / 100, 1);
 	    for (j = data->curcfg.cell_height - nbl; j < data->curcfg.cell_height; j++)
@@ -179,7 +179,7 @@ static void	WCUSER_ShapeCursor(struct inner_data* data, int size, int vis, BOOL 
 	    }
 	    PRIVATE(data)->cursor_bitmap = CreateBitmap(data->curcfg.cell_width,
                                                data->curcfg.cell_height, 1, 1, ptr);
-	    HeapFree(GetProcessHeap(), 0, ptr);
+	    heap_free(ptr);
 	}
 	data->curcfg.cursor_size = size;
 	data->curcfg.cursor_visible = -1;
@@ -1345,7 +1345,7 @@ static void WCUSER_DeleteBackend(struct inner_data* data)
     if (PRIVATE(data)->hFont)		DeleteObject(PRIVATE(data)->hFont);
     if (PRIVATE(data)->cursor_bitmap)	DeleteObject(PRIVATE(data)->cursor_bitmap);
     if (PRIVATE(data)->hBitmap)		DeleteObject(PRIVATE(data)->hBitmap);
-    HeapFree(GetProcessHeap(), 0, PRIVATE(data));
+    heap_free(PRIVATE(data));
 }
 
 /******************************************************************
@@ -1404,7 +1404,7 @@ enum init_return WCUSER_InitBackend(struct inner_data* data)
     g_uiDefaultCharset = ci.ciCharset;
     WINE_TRACE_(wc_font)("Code page %d => Default charset: %d\n", GetACP(), g_uiDefaultCharset);
 
-    data->private = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct inner_data_user));
+    data->private = heap_alloc_zero(sizeof(struct inner_data_user));
     if (!data->private) return init_failed;
 
     data->fnMainLoop = WCUSER_MainLoop;

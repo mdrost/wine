@@ -107,13 +107,13 @@ static inline struct path_physdev *get_path_physdev( PHYSDEV dev )
 void free_gdi_path( struct gdi_path *path )
 {
     if (path->points != path->points_buf)
-        HeapFree( GetProcessHeap(), 0, path->points );
-    HeapFree( GetProcessHeap(), 0, path );
+        heap_free( path->points );
+    heap_free( path );
 }
 
 static struct gdi_path *alloc_gdi_path( int count )
 {
-    struct gdi_path *path = HeapAlloc( GetProcessHeap(), 0, sizeof(*path) );
+    struct gdi_path *path = heap_alloc( sizeof(*path) );
 
     if (!path)
     {
@@ -123,11 +123,11 @@ static struct gdi_path *alloc_gdi_path( int count )
     count = max( NUM_ENTRIES_INITIAL, count );
     if (count > NUM_ENTRIES_INITIAL)
     {
-        path->points = HeapAlloc( GetProcessHeap(), 0,
+        path->points = heap_alloc(
                                   count * (sizeof(path->points[0]) + sizeof(path->flags[0])) );
         if (!path->points)
         {
-            HeapFree( GetProcessHeap(), 0, path );
+            heap_free( path );
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
             return NULL;
         }
@@ -206,14 +206,14 @@ static BOOL PATH_ReserveEntries(struct gdi_path *path, INT count)
 
         if (path->points == path->points_buf)
         {
-            pts_new = HeapAlloc( GetProcessHeap(), 0, size );
+            pts_new = heap_alloc( size );
             if (!pts_new) return FALSE;
             memcpy( pts_new, path->points, path->count * sizeof(path->points[0]) );
             memcpy( pts_new + count, path->flags, path->count * sizeof(path->flags[0]) );
         }
         else
         {
-            pts_new = HeapReAlloc( GetProcessHeap(), 0, path->points, size );
+            pts_new = heap_realloc( path->points, size );
             if (!pts_new) return FALSE;
             memmove( pts_new + count, pts_new + path->allocated, path->count * sizeof(path->flags[0]) );
         }
@@ -340,7 +340,7 @@ static HRGN path_to_region( const struct gdi_path *path, int mode )
 
     if (!path->count) return 0;
 
-    if (!(counts = HeapAlloc( GetProcessHeap(), 0, (path->count / 2) * sizeof(*counts) ))) return 0;
+    if (!(counts = heap_alloc( (path->count / 2) * sizeof(*counts) ))) return 0;
 
     pos = polygons = 0;
     assert( path->flags[0] == PT_MOVETO );
@@ -354,7 +354,7 @@ static HRGN path_to_region( const struct gdi_path *path, int mode )
 
     assert( polygons <= path->count / 2 );
     hrgn = CreatePolyPolygonRgn( path->points, counts, polygons, mode );
-    HeapFree( GetProcessHeap(), 0, counts );
+    heap_free( counts );
     return hrgn;
 }
 
@@ -411,7 +411,7 @@ static BOOL PATH_AddFlatBezier(struct gdi_path *pPath, POINT *pt, BOOL closed)
 
     ret = (add_points( pPath, pts + 1, no - 1, PT_LINETO ) != NULL);
     if (ret && closed) close_figure( pPath );
-    HeapFree( GetProcessHeap(), 0, pts );
+    heap_free( pts );
     return ret;
 }
 
@@ -784,7 +784,7 @@ static BOOL pathdrv_EndPath( PHYSDEV dev )
 
     dc->path = physdev->path;
     pop_dc_driver( dc, &path_driver );
-    HeapFree( GetProcessHeap(), 0, physdev );
+    heap_free( physdev );
     return TRUE;
 }
 
@@ -795,7 +795,7 @@ static BOOL pathdrv_EndPath( PHYSDEV dev )
 static BOOL pathdrv_CreateDC( PHYSDEV *dev, LPCWSTR driver, LPCWSTR device,
                               LPCWSTR output, const DEVMODEW *devmode )
 {
-    struct path_physdev *physdev = HeapAlloc( GetProcessHeap(), 0, sizeof(*physdev) );
+    struct path_physdev *physdev = heap_alloc( sizeof(*physdev) );
 
     if (!physdev) return FALSE;
     push_dc_driver( dev, &physdev->dev, &path_driver );
@@ -811,7 +811,7 @@ static BOOL pathdrv_DeleteDC( PHYSDEV dev )
     struct path_physdev *physdev = get_path_physdev( dev );
 
     free_gdi_path( physdev->path );
-    HeapFree( GetProcessHeap(), 0, physdev );
+    heap_free( physdev );
     return TRUE;
 }
 
@@ -843,7 +843,7 @@ BOOL PATH_RestorePath( DC *dst, DC *src )
     {
         physdev = get_path_physdev( dev );
         free_gdi_path( physdev->path );
-        HeapFree( GetProcessHeap(), 0, physdev );
+        heap_free( physdev );
     }
 
     if (src->path && src->path_open)
@@ -1537,7 +1537,7 @@ static BOOL PATH_add_outline(struct path_physdev *physdev, INT x, INT y,
             {
                 WORD i;
                 POINTFX ptfx;
-                POINT *pts = HeapAlloc(GetProcessHeap(), 0, (curve->cpfx + 1) * sizeof(POINT));
+                POINT *pts = heap_alloc((curve->cpfx + 1) * sizeof(POINT));
 
                 if (!pts) return FALSE;
 
@@ -1554,7 +1554,7 @@ static BOOL PATH_add_outline(struct path_physdev *physdev, INT x, INT y,
 
                 PATH_BezierTo(physdev->path, pts, curve->cpfx + 1);
 
-                HeapFree(GetProcessHeap(), 0, pts);
+                heap_free(pts);
                 break;
             }
 
@@ -1599,13 +1599,13 @@ static BOOL pathdrv_ExtTextOut( PHYSDEV dev, INT x, INT y, UINT flags, const REC
         /* add outline only if char is printable */
         if(dwSize)
         {
-            outline = HeapAlloc(GetProcessHeap(), 0, dwSize);
+            outline = heap_alloc(dwSize);
             if (!outline) return FALSE;
 
             GetGlyphOutlineW(dev->hdc, str[idx], ggo_flags, &gm, dwSize, outline, &identity);
             PATH_add_outline(physdev, x + offset.x, y + offset.y, outline, dwSize);
 
-            HeapFree(GetProcessHeap(), 0, outline);
+            heap_free(outline);
         }
 
         if (dx)
@@ -1678,7 +1678,7 @@ static struct gdi_path *PATH_WidenPath(DC *dc)
         return NULL;
     }
 
-    elp = HeapAlloc( GetProcessHeap(), 0, size );
+    elp = heap_alloc( size );
     GetObjectW( dc->hPen, size, elp );
 
     obj_type = GetObjectType(dc->hPen);
@@ -1690,12 +1690,12 @@ static struct gdi_path *PATH_WidenPath(DC *dc)
     }
     else {
         SetLastError(ERROR_CAN_NOT_COMPLETE);
-        HeapFree( GetProcessHeap(), 0, elp );
+        heap_free( elp );
         return NULL;
     }
 
     penWidth = elp->elpWidth;
-    HeapFree( GetProcessHeap(), 0, elp );
+    heap_free( elp );
 
     endcap = (PS_ENDCAP_MASK & penStyle);
     joint = (PS_JOIN_MASK & penStyle);
@@ -1731,9 +1731,9 @@ static struct gdi_path *PATH_WidenPath(DC *dc)
                 numStrokes++;
                 j = 0;
                 if(numStrokes == 1)
-                    pStrokes = HeapAlloc(GetProcessHeap(), 0, sizeof(*pStrokes));
+                    pStrokes = heap_alloc(sizeof(*pStrokes));
                 else
-                    pStrokes = HeapReAlloc(GetProcessHeap(), 0, pStrokes, numStrokes * sizeof(*pStrokes));
+                    pStrokes = heap_realloc(pStrokes, numStrokes * sizeof(*pStrokes));
                 if(!pStrokes) return NULL;
                 pStrokes[numStrokes - 1] = alloc_gdi_path(0);
                 /* fall through */
@@ -1938,7 +1938,7 @@ static struct gdi_path *PATH_WidenPath(DC *dc)
         free_gdi_path( pUpPath );
         free_gdi_path( pDownPath );
     }
-    HeapFree(GetProcessHeap(), 0, pStrokes);
+    heap_free(pStrokes);
     free_gdi_path( flat_path );
     return pNewPath;
 }

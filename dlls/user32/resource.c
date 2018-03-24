@@ -27,6 +27,7 @@
 #include "winternl.h"
 #include "winnls.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "user_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(resource);
@@ -36,9 +37,15 @@ WINE_DECLARE_DEBUG_CHANNEL(accel);
 typedef struct
 {
     WORD   fVirt;
+#if 0
     WORD   key;
+#else
+    DWORD  key;
+#endif
     WORD   cmd;
+#if 0
     WORD   pad;
+#endif
 } PE_ACCEL;
 
 /* the accelerator user object */
@@ -64,12 +71,12 @@ HACCEL WINAPI LoadAcceleratorsW(HINSTANCE instance, LPCWSTR name)
     table = LoadResource( instance, rsrc );
     count = SizeofResource( instance, rsrc ) / sizeof(*table);
     if (!count) return 0;
-    accel = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( struct accelerator, table[count] ));
+    accel = heap_alloc( FIELD_OFFSET( struct accelerator, table[count] ));
     if (!accel) return 0;
     accel->count = count;
     memcpy( accel->table, table, count * sizeof(*table) );
     if (!(handle = alloc_user_handle( &accel->obj, USER_ACCEL )))
-        HeapFree( GetProcessHeap(), 0, accel );
+        heap_free( accel );
     TRACE_(accel)("%p %s returning %p\n", instance, debugstr_w(name), handle );
     return handle;
 }
@@ -86,11 +93,11 @@ HACCEL WINAPI LoadAcceleratorsA(HINSTANCE instance,LPCSTR lpTableName)
     if (IS_INTRESOURCE(lpTableName)) return LoadAcceleratorsW( instance, (LPCWSTR)lpTableName );
 
     len = MultiByteToWideChar( CP_ACP, 0, lpTableName, -1, NULL, 0 );
-    if ((uni = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+    if ((uni = heap_alloc( len * sizeof(WCHAR) )))
     {
         MultiByteToWideChar( CP_ACP, 0, lpTableName, -1, uni, len );
         result = LoadAcceleratorsW(instance,uni);
-        HeapFree( GetProcessHeap(), 0, uni);
+        heap_free( uni);
     }
     return result;
 }
@@ -158,7 +165,7 @@ HACCEL WINAPI CreateAcceleratorTableA(LPACCEL lpaccel, INT count)
         SetLastError( ERROR_INVALID_PARAMETER );
         return 0;
     }
-    accel = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( struct accelerator, table[count] ));
+    accel = heap_alloc( FIELD_OFFSET( struct accelerator, table[count] ));
     if (!accel) return 0;
     accel->count = count;
     for (i = 0; i < count; i++)
@@ -173,7 +180,7 @@ HACCEL WINAPI CreateAcceleratorTableA(LPACCEL lpaccel, INT count)
         else accel->table[i].key = lpaccel[i].key;
     }
     if (!(handle = alloc_user_handle( &accel->obj, USER_ACCEL )))
-        HeapFree( GetProcessHeap(), 0, accel );
+        heap_free( accel );
     TRACE_(accel)("returning %p\n", handle );
     return handle;
 }
@@ -192,7 +199,7 @@ HACCEL WINAPI CreateAcceleratorTableW(LPACCEL lpaccel, INT count)
         SetLastError( ERROR_INVALID_PARAMETER );
         return 0;
     }
-    accel = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( struct accelerator, table[count] ));
+    accel = heap_alloc( FIELD_OFFSET( struct accelerator, table[count] ));
     if (!accel) return 0;
     accel->count = count;
     for (i = 0; i < count; i++)
@@ -202,7 +209,7 @@ HACCEL WINAPI CreateAcceleratorTableW(LPACCEL lpaccel, INT count)
         accel->table[i].cmd   = lpaccel[i].cmd;
     }
     if (!(handle = alloc_user_handle( &accel->obj, USER_ACCEL )))
-        HeapFree( GetProcessHeap(), 0, accel );
+        heap_free( accel );
     TRACE_(accel)("returning %p\n", handle );
     return handle;
 }
@@ -228,7 +235,7 @@ BOOL WINAPI DestroyAcceleratorTable( HACCEL handle )
         FIXME( "other process handle %p?\n", accel );
         return FALSE;
     }
-    return HeapFree( GetProcessHeap(), 0, accel );
+    return heap_free( accel );
 }
 
 /**********************************************************************

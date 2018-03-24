@@ -26,12 +26,15 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include <pthread.h>
+
 #include "windef.h"
 #include "winbase.h"
 #include "wingdi.h"
 #include "controls.h"
 #include "win.h"
 #include "user_private.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -84,6 +87,7 @@ static WINDOWPROC winproc_array[MAX_WINPROCS] =
 
 static UINT winproc_used = NB_BUILTIN_WINPROCS;
 
+#if 0
 static CRITICAL_SECTION winproc_cs;
 static CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -92,16 +96,19 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": winproc_cs") }
 };
 static CRITICAL_SECTION winproc_cs = { &critsect_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t winproc_cs = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 static inline void *get_buffer( void *static_buffer, size_t size, size_t need )
 {
     if (size >= need) return static_buffer;
-    return HeapAlloc( GetProcessHeap(), 0, need );
+    return heap_alloc( need );
 }
 
 static inline void free_buffer( void *static_buffer, void *buffer )
 {
-    if (buffer != static_buffer) HeapFree( GetProcessHeap(), 0, buffer );
+    if (buffer != static_buffer) heap_free( buffer );
 }
 
 /* find an existing winproc for a given function and type */
@@ -151,7 +158,11 @@ static inline WINDOWPROC *alloc_winproc( WNDPROC func, BOOL unicode )
     if (!func) return NULL;
     if ((proc = handle_to_proc( func ))) return proc;
 
+#if 0
     EnterCriticalSection( &winproc_cs );
+#else
+    pthread_mutex_lock( &winproc_cs );
+#endif
 
     /* check if we already have a winproc for that function */
     if (!(proc = find_winproc( func, unicode )))
@@ -169,7 +180,11 @@ static inline WINDOWPROC *alloc_winproc( WNDPROC func, BOOL unicode )
     }
     else TRACE( "reusing %p for %p\n", proc_to_handle(proc), func );
 
+#if 0
     LeaveCriticalSection( &winproc_cs );
+#else
+    pthread_mutex_unlock( &winproc_cs );
+#endif
     return proc;
 }
 
@@ -1156,7 +1171,9 @@ static LRESULT WINAPI StaticWndProcW( HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 static DWORD wait_message( DWORD count, const HANDLE *handles, DWORD timeout, DWORD mask, DWORD flags )
 {
     DWORD ret = USER_Driver->pMsgWaitForMultipleObjectsEx( count, handles, timeout, mask, flags );
+#if 0
     if (ret == WAIT_TIMEOUT && !count && !timeout) NtYieldExecution();
+#endif
     if ((mask & QS_INPUT) == QS_INPUT) get_user_thread_info()->message_count = 0;
     return ret;
 }

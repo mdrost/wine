@@ -29,6 +29,10 @@
 #include "winreg.h"
 #include "winternl.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define GET_WORD(ptr)  (*(const WORD *)(ptr))
 #define GET_DWORD(ptr) (*(const DWORD *)(ptr))
 
@@ -208,7 +212,11 @@ struct hook_extra_info
 
 static inline struct user_thread_info *get_user_thread_info(void)
 {
+#if 0
     return (struct user_thread_info *)NtCurrentTeb()->Win32ClientInfo;
+#else
+    return NULL;
+#endif
 }
 
 /* check if hwnd is a broadcast magic handle */
@@ -350,6 +358,10 @@ extern BOOL get_icon_size( HICON handle, SIZE *size ) DECLSPEC_HIDDEN;
 #ifdef __MINGW32__
 #undef assert
 #define assert(expr) ((void)0)
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* __WINE_USER_PRIVATE_H */

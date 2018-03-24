@@ -71,7 +71,7 @@ typedef enum ifstub_state
 } STUB_STATE;
 
 /* an interface stub */
-struct ifstub   
+struct ifstub
 {
     struct list       entry;      /* entry in stub_manager->ifstubs list (CS stub_manager->lock) */
     IRpcStubBuffer   *stubbuffer; /* RO */
@@ -223,11 +223,13 @@ HRESULT RPC_RegisterChannelHook(REFGUID rguid, IChannelHook *hook) DECLSPEC_HIDD
 void    RPC_UnregisterAllChannelHooks(void) DECLSPEC_HIDDEN;
 HRESULT RPC_ResolveOxid(OXID oxid, OXID_INFO *oxid_info) DECLSPEC_HIDDEN;
 
+#if 0
 /* This function initialize the Running Object Table */
 HRESULT WINAPI RunningObjectTableImpl_Initialize(void) DECLSPEC_HIDDEN;
 
 /* This function uninitialize the Running Object Table */
 HRESULT WINAPI RunningObjectTableImpl_UnInitialize(void) DECLSPEC_HIDDEN;
+#endif
 
 /* Drag and drop */
 void OLEDD_UnInitialize(void) DECLSPEC_HIDDEN;
@@ -266,7 +268,7 @@ static inline struct oletls *COM_CurrentInfo(void)
 }
 
 static inline APARTMENT* COM_CurrentApt(void)
-{  
+{
     return COM_CurrentInfo()->apt;
 }
 
@@ -289,10 +291,10 @@ static inline GUID COM_CurrentCausalityId(void)
 #define WINE_CLSCTX_DONT_HOST   0x80000000
 
 /* from dlldata.c */
-extern HINSTANCE hProxyDll DECLSPEC_HIDDEN;
-extern HRESULT WINAPI OLE32_DllGetClassObject(REFCLSID rclsid, REFIID iid,LPVOID *ppv) DECLSPEC_HIDDEN;
-extern HRESULT WINAPI OLE32_DllRegisterServer(void) DECLSPEC_HIDDEN;
-extern HRESULT WINAPI OLE32_DllUnregisterServer(void) DECLSPEC_HIDDEN;
+extern HINSTANCE hProxyDll;
+extern HRESULT WINAPI OLE32_DllGetClassObject(REFCLSID rclsid, REFIID iid,LPVOID *ppv);
+extern HRESULT WINAPI OLE32_DllRegisterServer(void);
+extern HRESULT WINAPI OLE32_DllUnregisterServer(void);
 
 extern HRESULT Handler_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv) DECLSPEC_HIDDEN;
 extern HRESULT HandlerCF_Create(REFCLSID rclsid, REFIID riid, LPVOID *ppv) DECLSPEC_HIDDEN;

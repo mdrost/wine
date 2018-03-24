@@ -35,6 +35,7 @@
 #include "oleauto.h"
 #include "rpcproxy.h"
 
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -357,6 +358,7 @@ IMPL_WIREM_HANDLE(HDC)
 IMPL_WIREM_HANDLE(HICON)
 IMPL_WIREM_HANDLE(HBRUSH)
 
+#if 0
 /******************************************************************************
  *           HGLOBAL_UserSize [OLE32.@]
  *
@@ -575,6 +577,7 @@ void __RPC_USER HGLOBAL_UserFree(ULONG *pFlags, HGLOBAL *phGlobal)
     if (LOWORD(*pFlags != MSHCTX_INPROC) && *phGlobal)
         GlobalFree(*phGlobal);
 }
+#endif
 
 /******************************************************************************
  *           HBITMAP_UserSize [OLE32.@]
@@ -729,7 +732,7 @@ unsigned char * __RPC_USER HBITMAP_UserUnmarshal(ULONG *flags, unsigned char *bu
 
             bitmap_size = *(ULONG *)buffer;
             buffer += sizeof(ULONG);
-            bits = HeapAlloc(GetProcessHeap(), 0, bitmap_size);
+            bits = heap_alloc(bitmap_size);
 
             memcpy(&bitmap, buffer, header_size);
             buffer += header_size;
@@ -740,7 +743,7 @@ unsigned char * __RPC_USER HBITMAP_UserUnmarshal(ULONG *flags, unsigned char *bu
             bitmap.bmBits = bits;
             *bmp = CreateBitmapIndirect(&bitmap);
 
-            HeapFree(GetProcessHeap(), 0, bits);
+            heap_free(bits);
         }
         else
             *bmp = NULL;
@@ -1271,6 +1274,7 @@ void __RPC_USER HENHMETAFILE_UserFree(ULONG *pFlags, HENHMETAFILE *phEmf)
         DeleteEnhMetaFile(*phEmf);
 }
 
+#if 0
 /******************************************************************************
  *           HMETAFILEPICT_UserSize [OLE32.@]
  *
@@ -1491,6 +1495,7 @@ void __RPC_USER HMETAFILEPICT_UserFree(ULONG *pFlags, HMETAFILEPICT *phMfp)
         GlobalFree(*phMfp);
     }
 }
+#endif
 
 /******************************************************************************
  *           WdtpInterfacePointer_UserSize [OLE32.@]
@@ -1528,6 +1533,7 @@ ULONG __RPC_USER WdtpInterfacePointer_UserSize(ULONG *pFlags, ULONG RealFlags, U
     return StartingSize + marshal_size;
 }
 
+#if 0
 /******************************************************************************
  *           WdtpInterfacePointer_UserMarshal [OLE32.@]
  *
@@ -1650,6 +1656,7 @@ unsigned char * WINAPI WdtpInterfacePointer_UserUnmarshal(ULONG *pFlags, unsigne
 
     return pBuffer + size;
 }
+#endif
 
 /******************************************************************************
  *           WdtpInterfacePointer_UserFree [OLE32.@]
@@ -1668,6 +1675,7 @@ void WINAPI WdtpInterfacePointer_UserFree(IUnknown *punk)
     if(punk) IUnknown_Release(punk);
 }
 
+#if 0
 /******************************************************************************
 *           STGMEDIUM_UserSize [OLE32.@]
 *
@@ -1763,6 +1771,7 @@ ULONG __RPC_USER STGMEDIUM_UserSize(ULONG *pFlags, ULONG StartingSize, STGMEDIUM
 
     return size;
 }
+#endif
 
 /******************************************************************************
  *           STGMEDIUM_UserMarshal [OLE32.@]
@@ -2018,6 +2027,7 @@ unsigned char * __RPC_USER STGMEDIUM_UserUnmarshal(ULONG *pFlags, unsigned char 
     return pBuffer;
 }
 
+#if 0
 /******************************************************************************
  *           STGMEDIUM_UserFree [OLE32.@]
  *
@@ -2042,6 +2052,7 @@ void __RPC_USER STGMEDIUM_UserFree(ULONG *pFlags, STGMEDIUM *pStgMedium)
 
     ReleaseStgMedium(pStgMedium);
 }
+#endif
 
 ULONG __RPC_USER ASYNC_STGMEDIUM_UserSize(ULONG *pFlags, ULONG StartingSize, ASYNC_STGMEDIUM *pStgMedium)
 {

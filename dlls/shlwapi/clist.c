@@ -28,6 +28,7 @@
 #include "objbase.h"
 #include "shlobj.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
 
@@ -91,11 +92,12 @@ HRESULT WINAPI SHAddDataBlock(LPDBLIST* lppList, const DATABLOCK_HEADER *lpNewIt
   if(!*lppList)
   {
     /* An empty list. Allocate space for terminal ulSize also */
-    *lppList = LocalAlloc(LMEM_ZEROINIT, ulSize + sizeof(ULONG));
+    *lppList = heap_alloc_zero(ulSize + sizeof(ULONG));
     lpInsertAt = *lppList;
   }
   else
   {
+ #if 0
     /* Append to the end of the list */
     ULONG ulTotalSize = 0;
     LPDATABLOCK_HEADER lpIter = *lppList;
@@ -115,6 +117,9 @@ HRESULT WINAPI SHAddDataBlock(LPDBLIST* lppList, const DATABLOCK_HEADER *lpNewIt
       *lppList = lpIter;
       lpInsertAt = (LPDATABLOCK_HEADER)((char*)lpIter + ulTotalSize); /* At end */
     }
+#else
+    return E_NOTIMPL;
+#endif
   }
 
   if(lpInsertAt)
@@ -245,7 +250,7 @@ HRESULT WINAPI SHReadDataBlockList(IStream* lpStream, LPDBLIST* lppList)
   if(*lppList)
   {
     /* Free any existing list */
-    LocalFree(*lppList);
+    heap_free(*lppList);
     *lppList = NULL;
   }
 
@@ -281,9 +286,13 @@ HRESULT WINAPI SHReadDataBlockList(IStream* lpStream, LPDBLIST* lppList)
         LPDATABLOCK_HEADER lpTemp;
 
         if (pItem == bBuff)
-          lpTemp = LocalAlloc(LMEM_ZEROINIT, ulSize);
+          lpTemp = heap_alloc_zero(ulSize);
         else
+#if 0
           lpTemp = LocalReAlloc(pItem, ulSize, LMEM_ZEROINIT|LMEM_MOVEABLE);
+#else
+          lpTemp = NULL;
+#endif
 
         if(!lpTemp)
         {
@@ -309,7 +318,7 @@ HRESULT WINAPI SHReadDataBlockList(IStream* lpStream, LPDBLIST* lppList)
 
   /* If we allocated space, free it */
   if(pItem != bBuff)
-    LocalFree(pItem);
+    heap_free(pItem);
 
   return hRet;
 }
@@ -333,7 +342,7 @@ VOID WINAPI SHFreeDataBlockList(LPDBLIST lpList)
   TRACE("(%p)\n", lpList);
 
   if (lpList)
-    LocalFree(lpList);
+    heap_free(lpList);
 }
 
 /*************************************************************************
@@ -361,6 +370,7 @@ BOOL WINAPI SHRemoveDataBlock(LPDBLIST* lppList, DWORD dwSignature)
 
   TRACE("(%p,%d)\n", lppList, dwSignature);
 
+#if 0
   if(lppList && (lpList = *lppList))
   {
     /* Search for item in list */
@@ -393,7 +403,7 @@ BOOL WINAPI SHRemoveDataBlock(LPDBLIST* lppList, DWORD dwSignature)
 
   if(ulNewSize <= sizeof(ULONG))
   {
-    LocalFree(*lppList);
+    heap_free(*lppList);
     *lppList = NULL; /* Removed the last element */
   }
   else
@@ -403,6 +413,9 @@ BOOL WINAPI SHRemoveDataBlock(LPDBLIST* lppList, DWORD dwSignature)
       *lppList = lpList;
   }
   return TRUE;
+#else
+  return FALSE;
+#endif
 }
 
 /*************************************************************************

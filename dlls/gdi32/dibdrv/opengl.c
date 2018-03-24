@@ -196,7 +196,7 @@ static struct wgl_context *dibdrv_wglCreateContext( HDC hdc )
 {
     struct wgl_context *context;
 
-    if (!(context = HeapAlloc( GetProcessHeap(), 0, sizeof( *context )))) return NULL;
+    if (!(context = heap_alloc( sizeof( *context )))) return NULL;
     context->format = GetPixelFormat( hdc );
     if (!context->format || context->format > nb_formats) context->format = 1;
 
@@ -205,7 +205,7 @@ static struct wgl_context *dibdrv_wglCreateContext( HDC hdc )
                                                       pixel_formats[context->format - 1].stencil_bits,
                                                       pixel_formats[context->format - 1].accum_bits, 0 )))
     {
-        HeapFree( GetProcessHeap(), 0, context );
+        heap_free( context );
         return NULL;
     }
     return context;
@@ -217,7 +217,7 @@ static struct wgl_context *dibdrv_wglCreateContext( HDC hdc )
 static BOOL dibdrv_wglDeleteContext( struct wgl_context *context )
 {
     pOSMesaDestroyContext( context->context );
-    HeapFree( GetProcessHeap(), 0, context );
+    heap_free( context );
     return TRUE;
 }
 

@@ -34,6 +34,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(enhmetafile);
  */
 static UINT EMFDRV_AddHandle( PHYSDEV dev, HGDIOBJ obj )
 {
+#if 0
     EMFDRV_PDEVICE *physDev = get_emf_physdev( dev );
     UINT index;
 
@@ -52,6 +53,9 @@ static UINT EMFDRV_AddHandle( PHYSDEV dev, HGDIOBJ obj )
         physDev->emh->nHandles++;
 
     return index + 1; /* index 0 is reserved for the hmf, so we increment everything by 1 */
+#else
+    return -1;
+#endif
 }
 
 /******************************************************************
@@ -145,7 +149,7 @@ DWORD EMFDRV_CreateBrushIndirect( PHYSDEV dev, HBRUSH hBrush )
         if (!get_brush_bitmap_info( hBrush, info, &bits, &usage )) break;
         info_size = get_dib_info_size( info, usage );
 
-        emr = HeapAlloc( GetProcessHeap(), 0,
+        emr = heap_alloc(
                          sizeof(EMRCREATEDIBPATTERNBRUSHPT)+info_size+info->bmiHeader.biSizeImage );
         if(!emr) break;
 
@@ -183,7 +187,7 @@ DWORD EMFDRV_CreateBrushIndirect( PHYSDEV dev, HBRUSH hBrush )
 
         if(!EMFDRV_WriteRecord( dev, &emr->emr ))
             index = 0;
-        HeapFree( GetProcessHeap(), 0, emr );
+        heap_free( emr );
       }
       break;
 
@@ -338,7 +342,7 @@ static DWORD EMFDRV_CreatePenIndirect(PHYSDEV dev, HPEN hPen)
 
         if (!size) return 0;
 
-        elp = HeapAlloc( GetProcessHeap(), 0, size );
+        elp = heap_alloc( size );
 
         GetObjectW( hPen, size, elp );
         /* FIXME: add support for user style pens */
@@ -347,7 +351,7 @@ static DWORD EMFDRV_CreatePenIndirect(PHYSDEV dev, HPEN hPen)
         emr.lopn.lopnWidth.y = 0;
         emr.lopn.lopnColor = elp->elpColor;
 
-        HeapFree( GetProcessHeap(), 0, elp );
+        heap_free( elp );
     }
 
     emr.emr.iType = EMR_CREATEPEN;
@@ -514,7 +518,7 @@ BOOL EMFDRV_GdiComment(PHYSDEV dev, UINT bytes, const BYTE *buffer)
     rounded_size = (bytes+3) & ~3;
     total = offsetof(EMRGDICOMMENT,Data) + rounded_size;
 
-    emr = HeapAlloc(GetProcessHeap(), 0, total);
+    emr = heap_alloc(total);
     emr->emr.iType = EMR_GDICOMMENT;
     emr->emr.nSize = total;
     emr->cbData = bytes;
@@ -523,7 +527,7 @@ BOOL EMFDRV_GdiComment(PHYSDEV dev, UINT bytes, const BYTE *buffer)
 
     ret = EMFDRV_WriteRecord( dev, &emr->emr );
 
-    HeapFree(GetProcessHeap(), 0, emr);
+    heap_free(emr);
 
     return ret;
 }

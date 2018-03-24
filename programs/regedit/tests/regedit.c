@@ -81,12 +81,12 @@ static BOOL import_reg(unsigned line, const char *contents, BOOL unicode)
     {
         int len = MultiByteToWideChar(CP_UTF8, 0, contents, lenA, NULL, 0);
         int size = len * sizeof(WCHAR);
-        WCHAR *wstr = HeapAlloc(GetProcessHeap(), 0, size);
+        WCHAR *wstr = heap_alloc(size);
         if (!wstr) return FALSE;
         MultiByteToWideChar(CP_UTF8, 0, contents, lenA, wstr, len);
 
         ret = write_file(wstr, size);
-        HeapFree(GetProcessHeap(), 0, wstr);
+        heap_free(wstr);
     }
     else
         ret = write_file(contents, lenA);
@@ -218,7 +218,7 @@ static LONG delete_tree(const HKEY key, const char *subkey)
 
     max_subkey_len++;
 
-    subkey_name = HeapAlloc(GetProcessHeap(), 0, max_subkey_len);
+    subkey_name = heap_alloc(max_subkey_len);
     if (!subkey_name)
     {
         ret = ERROR_NOT_ENOUGH_MEMORY;
@@ -238,7 +238,7 @@ static LONG delete_tree(const HKEY key, const char *subkey)
     ret = RegDeleteKeyA(hkey, empty);
 
 cleanup:
-    HeapFree(GetProcessHeap(), 0, subkey_name);
+    heap_free(subkey_name);
     RegCloseKey(hkey);
     return ret;
 }
@@ -3374,7 +3374,7 @@ static BOOL compare_export_(unsigned line, const char *filename, const char *exp
     if (file_size == -1) goto error;
     rewind(fp);
 
-    fbuf = HeapAlloc(GetProcessHeap(), 0, file_size + sizeof(WCHAR));
+    fbuf = heap_alloc(file_size + sizeof(WCHAR));
     if (!fbuf) goto error;
 
     fread(fbuf, file_size, 1, fp);
@@ -3382,7 +3382,7 @@ static BOOL compare_export_(unsigned line, const char *filename, const char *exp
     fclose(fp);
 
     len = MultiByteToWideChar(CP_UTF8, 0, expected, -1, NULL, 0);
-    wstr = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    wstr = heap_alloc(len * sizeof(WCHAR));
     if (!wstr) goto exit;
     MultiByteToWideChar(CP_UTF8, 0, expected, -1, wstr, len);
 
@@ -3393,8 +3393,8 @@ static BOOL compare_export_(unsigned line, const char *filename, const char *exp
     lok(ret, "DeleteFile failed: %u\n", GetLastError());
 
 exit:
-    HeapFree(GetProcessHeap(), 0, fbuf);
-    HeapFree(GetProcessHeap(), 0, wstr);
+    heap_free(fbuf);
+    heap_free(wstr);
     return ret;
 
 error:

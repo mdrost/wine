@@ -46,9 +46,12 @@
 #include "user_private.h"
 #include "win.h"
 
+#include "wine/heap.h"
 #include "wine/list.h"
 #include "wine/unicode.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(clipboard);
@@ -65,6 +68,7 @@ struct cached_format
 static struct list cached_formats = LIST_INIT( cached_formats );
 static struct list formats_to_free = LIST_INIT( formats_to_free );
 
+#if 0
 static CRITICAL_SECTION clipboard_cs;
 static CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -124,6 +128,7 @@ static const char *debugstr_format( UINT id )
 /* build the data to send to the server in SetClipboardData */
 static HANDLE marshal_data( UINT format, HANDLE handle, data_size_t *ret_size )
 {
+#if 0
     SIZE_T size;
 
     switch (format)
@@ -214,11 +219,15 @@ static HANDLE marshal_data( UINT format, HANDLE handle, data_size_t *ret_size )
         *ret_size = size;
         return handle;
     }
+#else
+    return 0;
+#endif
 }
 
 /* rebuild the target handle from the data received in GetClipboardData */
 static HANDLE unmarshal_data( UINT format, void *data, data_size_t size )
 {
+#if 0
     HANDLE handle = GlobalReAlloc( data, size, 0 );  /* release unused space */
 
     switch (format)
@@ -259,6 +268,9 @@ static HANDLE unmarshal_data( UINT format, void *data, data_size_t size )
         }
     }
     return handle;
+#else
+    return 0;
+#endif
 }
 
 /* retrieve a data format from the cache */
@@ -275,6 +287,7 @@ static struct cached_format *get_cached_format( UINT format )
 static HANDLE cache_data( UINT format, HANDLE data, data_size_t size, UINT seqno,
                           struct cached_format *cache )
 {
+#if 0
     if (cache)
     {
         if (seqno == cache->seqno)  /* we can reuse the cached data */
@@ -288,7 +301,7 @@ static HANDLE cache_data( UINT format, HANDLE data, data_size_t size, UINT seqno
     }
 
     /* allocate new cache entry */
-    if (!(cache = HeapAlloc( GetProcessHeap(), 0, sizeof(*cache) )))
+    if (!(cache = heap_alloc( sizeof(*cache) )))
     {
         GlobalFree( data );
         return 0;
@@ -298,6 +311,9 @@ static HANDLE cache_data( UINT format, HANDLE data, data_size_t size, UINT seqno
     cache->handle = unmarshal_data( format, data, size );
     list_add_tail( &cached_formats, &cache->entry );
     return cache->handle;
+#else
+    return 0;
+#endif
 }
 
 /* free a single cached format */
@@ -330,7 +346,7 @@ static void free_cached_data( struct cached_format *cache )
         break;
     }
     list_remove( &cache->entry );
-    HeapFree( GetProcessHeap(), 0, cache );
+    heap_free( cache );
 }
 
 /* clear global memory formats; special types are freed on EmptyClipboard */
@@ -412,7 +428,7 @@ static HANDLE render_synthesized_textA( HANDLE data, UINT format, UINT from )
     {
         UINT from_codepage = get_format_codepage( lcid, from );
         len = MultiByteToWideChar( from_codepage, 0, src, size, NULL, 0 );
-        if (!(srcW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) ))) goto done;
+        if (!(srcW = heap_alloc( len * sizeof(WCHAR) ))) goto done;
         MultiByteToWideChar( from_codepage, 0, src, size, srcW, len );
         src = srcW;
         size = len * sizeof(WCHAR);
@@ -425,7 +441,7 @@ static HANDLE render_synthesized_textA( HANDLE data, UINT format, UINT from )
     }
 
 done:
-    HeapFree( GetProcessHeap(), 0, srcW );
+    heap_free( srcW );
     GlobalUnlock( data );
     return ret;
 }
@@ -536,7 +552,7 @@ static HANDLE render_synthesized_metafile( HANDLE data )
     HDC hdc = GetDC( 0 );
 
     size = GetWinMetaFileBits( data, 0, NULL, MM_ISOTROPIC, hdc );
-    if ((bits = HeapAlloc( GetProcessHeap(), 0, size )))
+    if ((bits = heap_alloc( size )))
     {
         if (GetEnhMetaFileHeader( data, sizeof(header), &header ) &&
             GetWinMetaFileBits( data, size, bits, MM_ISOTROPIC, hdc ))
@@ -550,7 +566,7 @@ static HANDLE render_synthesized_metafile( HANDLE data )
                 pict->hMF  = SetMetaFileBitsEx( size, bits );
             }
         }
-        HeapFree( GetProcessHeap(), 0, bits );
+        heap_free( bits );
     }
     ReleaseDC( 0, hdc );
     return ret;
@@ -567,11 +583,11 @@ static HANDLE render_synthesized_enhmetafile( HANDLE data )
     if (!(pict = GlobalLock( data ))) return 0;
 
     size = GetMetaFileBitsEx( pict->hMF, 0, NULL );
-    if ((bits = HeapAlloc( GetProcessHeap(), 0, size )))
+    if ((bits = heap_alloc( size )))
     {
         GetMetaFileBitsEx( pict->hMF, size, bits );
         ret = SetWinMetaFileBits( size, bits, NULL, pict );
-        HeapFree( GetProcessHeap(), 0, bits );
+        heap_free( bits );
     }
 
     GlobalUnlock( data );
@@ -618,12 +634,14 @@ static HANDLE render_synthesized_format( UINT format, UINT from )
     }
     return data;
 }
+#endif
 
 /**************************************************************************
  *	CLIPBOARD_ReleaseOwner
  */
 void CLIPBOARD_ReleaseOwner( HWND hwnd )
 {
+#if 0
     HWND viewer = 0, owner = 0;
 
     SendMessageW( hwnd, WM_RENDERALLFORMATS, 0, 0 );
@@ -640,6 +658,7 @@ void CLIPBOARD_ReleaseOwner( HWND hwnd )
     SERVER_END_REQ;
 
     if (viewer) SendNotifyMessageW( viewer, WM_DRAWCLIPBOARD, (WPARAM)owner, 0 );
+#endif
 }
 
 
@@ -686,6 +705,7 @@ INT WINAPI GetClipboardFormatNameA( UINT format, LPSTR buffer, INT maxlen )
  */
 BOOL WINAPI OpenClipboard( HWND hwnd )
 {
+#if 0
     BOOL ret;
     HWND owner;
 
@@ -707,6 +727,9 @@ BOOL WINAPI OpenClipboard( HWND hwnd )
 
     LeaveCriticalSection( &clipboard_cs );
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -715,6 +738,7 @@ BOOL WINAPI OpenClipboard( HWND hwnd )
  */
 BOOL WINAPI CloseClipboard(void)
 {
+#if 0
     HWND viewer = 0, owner = 0;
     BOOL ret;
 
@@ -732,6 +756,10 @@ BOOL WINAPI CloseClipboard(void)
 
     if (viewer) SendNotifyMessageW( viewer, WM_DRAWCLIPBOARD, (WPARAM)owner, 0 );
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -741,6 +769,7 @@ BOOL WINAPI CloseClipboard(void)
  */
 BOOL WINAPI EmptyClipboard(void)
 {
+#if 0
     BOOL ret;
     HWND owner = GetClipboardOwner();
 
@@ -760,6 +789,9 @@ BOOL WINAPI EmptyClipboard(void)
 
     LeaveCriticalSection( &clipboard_cs );
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -770,6 +802,7 @@ HWND WINAPI GetClipboardOwner(void)
 {
     HWND hWndOwner = 0;
 
+#if 0
     SERVER_START_REQ( get_clipboard_info )
     {
         if (!wine_server_call_err( req )) hWndOwner = wine_server_ptr_handle( reply->owner );
@@ -777,11 +810,13 @@ HWND WINAPI GetClipboardOwner(void)
     SERVER_END_REQ;
 
     TRACE( "returning %p\n", hWndOwner );
+#endif
 
     return hWndOwner;
 }
 
 
+#if 0
 /**************************************************************************
  *		GetOpenClipboardWindow (USER32.@)
  */
@@ -885,11 +920,12 @@ HANDLE WINAPI SetClipboardData( UINT format, HANDLE data )
 
     TRACE( "%s %p\n", debugstr_format( format ), data );
 
+#if 0
     if (data)
     {
         if (!(handle = marshal_data( format, data, &size ))) return 0;
         if (!(ptr = GlobalLock( handle ))) goto done;
-        if (!(cache = HeapAlloc( GetProcessHeap(), 0, sizeof(*cache) ))) goto done;
+        if (!(cache = heap_alloc( sizeof(*cache) ))) goto done;
         cache->format = format;
         cache->handle = data;
     }
@@ -917,7 +953,7 @@ HANDLE WINAPI SetClipboardData( UINT format, HANDLE data )
         if (cache) list_add_tail( &cached_formats, &cache->entry );
         retval = data;
     }
-    else HeapFree( GetProcessHeap(), 0, cache );
+    else heap_free( cache );
 
     LeaveCriticalSection( &clipboard_cs );
 
@@ -925,6 +961,7 @@ done:
     if (ptr) GlobalUnlock( handle );
     if (handle != data) GlobalFree( handle );
     if (status) SetLastError( RtlNtStatusToDosError( status ));
+#endif
     return retval;
 }
 
@@ -1039,6 +1076,7 @@ HANDLE WINAPI GetClipboardData( UINT format )
 
     for (;;)
     {
+#if 0
         if (!(data = GlobalAlloc( GMEM_FIXED, size ))) return 0;
 
         EnterCriticalSection( &clipboard_cs );
@@ -1095,6 +1133,7 @@ HANDLE WINAPI GetClipboardData( UINT format )
             }
         }
         TRACE( "%s returning 0\n", debugstr_format( format ));
+#endif
         return 0;
     }
 }
@@ -1168,3 +1207,4 @@ BOOL WINAPI RemoveClipboardFormatListener(HWND hwnd)
     SERVER_END_REQ;
     return ret;
 }
+#endif

@@ -196,26 +196,6 @@ static BOOL has_owned_popups( HWND hwnd )
     return result.found;
 }
 
-
-/***********************************************************************
- *              alloc_win_data
- */
-static struct x11drv_win_data *alloc_win_data( Display *display, HWND hwnd )
-{
-    struct x11drv_win_data *data;
-
-    if ((data = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data))))
-    {
-        data->display = display;
-        data->vis = default_visual;
-        data->hwnd = hwnd;
-        EnterCriticalSection( &win_data_section );
-        XSaveContext( gdi_display, (XID)hwnd, win_data_context, (char *)data );
-    }
-    return data;
-}
-
-
 /***********************************************************************
  *		is_window_managed
  *
@@ -420,7 +400,7 @@ static void sync_window_region( struct x11drv_win_data *data, HRGN win_region )
                                      data->window_rect.top - data->whole_rect.top,
                                      (XRectangle *)pRegionData->Buffer,
                                      pRegionData->rdh.nCount, ShapeSet, YXBanded );
-            HeapFree(GetProcessHeap(), 0, pRegionData);
+            heap_free(pRegionData);
             data->shaped = TRUE;
         }
     }
@@ -458,13 +438,13 @@ static void sync_window_text( Display *display, Window win, const WCHAR *text )
 
     /* allocate new buffer for window text */
     count = WideCharToMultiByte(CP_UNIXCP, 0, text, -1, NULL, 0, NULL, NULL);
-    if (!(buffer = HeapAlloc( GetProcessHeap(), 0, count ))) return;
+    if (!(buffer = heap_alloc( count ))) return;
     WideCharToMultiByte(CP_UNIXCP, 0, text, -1, buffer, count, NULL, NULL);
 
     count = WideCharToMultiByte(CP_UTF8, 0, text, strlenW(text), NULL, 0, NULL, NULL);
-    if (!(utf8_buffer = HeapAlloc( GetProcessHeap(), 0, count )))
+    if (!(utf8_buffer = heap_alloc( count )))
     {
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
         return;
     }
     WideCharToMultiByte(CP_UTF8, 0, text, strlenW(text), utf8_buffer, count, NULL, NULL);
@@ -483,8 +463,8 @@ static void sync_window_text( Display *display, Window win, const WCHAR *text )
     XChangeProperty( display, win, x11drv_atom(_NET_WM_NAME), x11drv_atom(UTF8_STRING),
                      8, PropModeReplace, (unsigned char *) utf8_buffer, count);
 
-    HeapFree( GetProcessHeap(), 0, utf8_buffer );
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( utf8_buffer );
+    heap_free( buffer );
 }
 
 
@@ -516,7 +496,7 @@ static unsigned long *get_bitmap_argb( HDC hdc, HBITMAP color, HBITMAP mask, uns
     info->bmiHeader.biClrUsed = 0;
     info->bmiHeader.biClrImportant = 0;
     *size = bm.bmWidth * bm.bmHeight + 2;
-    if (!(bits = HeapAlloc( GetProcessHeap(), 0, *size * sizeof(long) ))) goto failed;
+    if (!(bits = heap_alloc( *size * sizeof(long) ))) goto failed;
     if (!GetDIBits( hdc, color, 0, bm.bmHeight, bits + 2, info, DIB_RGB_COLORS )) goto failed;
 
     bits[0] = bm.bmWidth;
@@ -531,13 +511,13 @@ static unsigned long *get_bitmap_argb( HDC hdc, HBITMAP color, HBITMAP mask, uns
         /* generate alpha channel from the mask */
         info->bmiHeader.biBitCount = 1;
         info->bmiHeader.biSizeImage = width_bytes * bm.bmHeight;
-        if (!(mask_bits = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage ))) goto failed;
+        if (!(mask_bits = heap_alloc( info->bmiHeader.biSizeImage ))) goto failed;
         if (!GetDIBits( hdc, mask, 0, bm.bmHeight, mask_bits, info, DIB_RGB_COLORS )) goto failed;
         ptr = bits + 2;
         for (i = 0; i < bm.bmHeight; i++)
             for (j = 0; j < bm.bmWidth; j++, ptr++)
                 if (!((mask_bits[i * width_bytes + j / 8] << (j % 8)) & 0x80)) *ptr |= 0xff000000;
-        HeapFree( GetProcessHeap(), 0, mask_bits );
+        heap_free( mask_bits );
     }
 
     /* convert to array of longs */
@@ -547,8 +527,8 @@ static unsigned long *get_bitmap_argb( HDC hdc, HBITMAP color, HBITMAP mask, uns
     return (unsigned long *)bits;
 
 failed:
-    HeapFree( GetProcessHeap(), 0, bits );
-    HeapFree( GetProcessHeap(), 0, mask_bits );
+    heap_free( bits );
+    heap_free( mask_bits );
     return NULL;
 }
 
@@ -573,18 +553,18 @@ static BOOL create_icon_pixmaps( HDC hdc, const ICONINFO *icon, Pixmap *icon_ret
     info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     info->bmiHeader.biBitCount = 0;
     if (!(lines = GetDIBits( hdc, icon->hbmColor, 0, 0, NULL, info, DIB_RGB_COLORS ))) goto failed;
-    if (!(bits.ptr = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage ))) goto failed;
+    if (!(bits.ptr = heap_alloc( info->bmiHeader.biSizeImage ))) goto failed;
     if (!GetDIBits( hdc, icon->hbmColor, 0, lines, bits.ptr, info, DIB_RGB_COLORS )) goto failed;
 
     color_pixmap = create_pixmap_from_image( hdc, &vis, info, &bits, DIB_RGB_COLORS );
-    HeapFree( GetProcessHeap(), 0, bits.ptr );
+    heap_free( bits.ptr );
     bits.ptr = NULL;
     if (!color_pixmap) goto failed;
 
     info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     info->bmiHeader.biBitCount = 0;
     if (!(lines = GetDIBits( hdc, icon->hbmMask, 0, 0, NULL, info, DIB_RGB_COLORS ))) goto failed;
-    if (!(bits.ptr = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage ))) goto failed;
+    if (!(bits.ptr = heap_alloc( info->bmiHeader.biSizeImage ))) goto failed;
     if (!GetDIBits( hdc, icon->hbmMask, 0, lines, bits.ptr, info, DIB_RGB_COLORS )) goto failed;
 
     /* invert the mask */
@@ -592,7 +572,7 @@ static BOOL create_icon_pixmaps( HDC hdc, const ICONINFO *icon, Pixmap *icon_ret
 
     vis.depth = 1;
     mask_pixmap = create_pixmap_from_image( hdc, &vis, info, &bits, DIB_RGB_COLORS );
-    HeapFree( GetProcessHeap(), 0, bits.ptr );
+    heap_free( bits.ptr );
     bits.ptr = NULL;
     if (!mask_pixmap) goto failed;
 
@@ -602,7 +582,7 @@ static BOOL create_icon_pixmaps( HDC hdc, const ICONINFO *icon, Pixmap *icon_ret
 
 failed:
     if (color_pixmap) XFreePixmap( gdi_display, color_pixmap );
-    HeapFree( GetProcessHeap(), 0, bits.ptr );
+    heap_free( bits.ptr );
     return FALSE;
 }
 
@@ -643,7 +623,7 @@ static void fetch_icon_data( HWND hwnd, HICON icon_big, HICON icon_small )
         if ((bits_small = get_bitmap_argb( hDC, ii_small.hbmColor, ii_small.hbmMask, &size_small )) &&
             (bits_small[0] != bits[0] || bits_small[1] != bits[1]))  /* size must be different */
         {
-            if ((new = HeapReAlloc( GetProcessHeap(), 0, bits,
+            if ((new = heap_realloc( bits,
                                     (size + size_small) * sizeof(unsigned long) )))
             {
                 bits = new;
@@ -651,7 +631,7 @@ static void fetch_icon_data( HWND hwnd, HICON icon_big, HICON icon_small )
                 size += size_small;
             }
         }
-        HeapFree( GetProcessHeap(), 0, bits_small );
+        heap_free( bits_small );
         DeleteObject( ii_small.hbmColor );
         DeleteObject( ii_small.hbmMask );
     }
@@ -666,7 +646,7 @@ static void fetch_icon_data( HWND hwnd, HICON icon_big, HICON icon_small )
     {
         if (data->icon_pixmap) XFreePixmap( gdi_display, data->icon_pixmap );
         if (data->icon_mask) XFreePixmap( gdi_display, data->icon_mask );
-        HeapFree( GetProcessHeap(), 0, data->icon_bits );
+        heap_free( data->icon_bits );
         data->icon_pixmap = icon_pixmap;
         data->icon_mask = mask_pixmap;
         data->icon_bits = bits;
@@ -677,7 +657,7 @@ static void fetch_icon_data( HWND hwnd, HICON icon_big, HICON icon_small )
     {
         if (icon_pixmap) XFreePixmap( gdi_display, icon_pixmap );
         if (mask_pixmap) XFreePixmap( gdi_display, mask_pixmap );
-        HeapFree( GetProcessHeap(), 0, bits );
+        heap_free( bits );
     }
 }
 
@@ -1410,61 +1390,25 @@ static void move_window_bits( HWND hwnd, Window window, const RECT *old_rect, co
 }
 
 
-/***********************************************************************
- *              get_dummy_parent
- *
- * Create a dummy parent window for child windows that don't have a true X11 parent.
- */
-static Window get_dummy_parent(void)
-{
-    static Window dummy_parent;
-
-    if (!dummy_parent)
-    {
-        XSetWindowAttributes attrib;
-
-        attrib.override_redirect = True;
-        attrib.border_pixel = 0;
-        attrib.colormap = default_colormap;
-        dummy_parent = XCreateWindow( gdi_display, root_window, -1, -1, 1, 1, 0, default_visual.depth,
-                                      InputOutput, default_visual.visual,
-                                      CWColormap | CWBorderPixel | CWOverrideRedirect, &attrib );
-        XMapWindow( gdi_display, dummy_parent );
-    }
-    return dummy_parent;
-}
-
-
 /**********************************************************************
  *		create_client_window
  */
-Window create_client_window( HWND hwnd, const XVisualInfo *visual )
+Window create_client_window( struct x11drv_win_data *data, const XVisualInfo *visual )
 {
-    Window dummy_parent = get_dummy_parent();
-    struct x11drv_win_data *data = get_win_data( hwnd );
     XSetWindowAttributes attr;
-    Window ret;
-    int x, y, cx, cy;
-
-    if (!data)
-    {
-        /* explicitly create data for HWND_MESSAGE windows since they can be used for OpenGL */
-        HWND parent = GetAncestor( hwnd, GA_PARENT );
-        if (parent == GetDesktopWindow() || GetAncestor( parent, GA_PARENT )) return 0;
-        if (!(data = alloc_win_data( thread_init_display(), hwnd ))) return 0;
-        GetClientRect( hwnd, &data->client_rect );
-        data->window_rect = data->whole_rect = data->client_rect;
-    }
+    int x = data->client_rect.left - data->whole_rect.left;
+    int y = data->client_rect.top - data->whole_rect.top;
+    int cx = min( max( 1, data->client_rect.right - data->client_rect.left ), 65535 );
+    int cy = min( max( 1, data->client_rect.bottom - data->client_rect.top ), 65535 );
 
     if (data->client_window)
     {
         XDeleteContext( data->display, data->client_window, winContext );
-        XReparentWindow( gdi_display, data->client_window, dummy_parent, 0, 0 );
-        TRACE( "%p reparent xwin %lx/%lx\n", data->hwnd, data->whole_window, data->client_window );
+        XDestroyWindow( data->display, data->client_window );
     }
 
-    if (data->colormap) XFreeColormap( gdi_display, data->colormap );
-    data->colormap = XCreateColormap( gdi_display, dummy_parent, visual->visual,
+    if (data->colormap) XFreeColormap( data->display, data->colormap );
+    data->colormap = XCreateColormap( data->display, root_window, visual->visual,
                                       (visual->class == PseudoColor ||
                                        visual->class == GrayScale ||
                                        visual->class == DirectColor) ? AllocAll : AllocNone );
@@ -1472,28 +1416,19 @@ Window create_client_window( HWND hwnd, const XVisualInfo *visual )
     attr.bit_gravity = NorthWestGravity;
     attr.win_gravity = NorthWestGravity;
     attr.backing_store = NotUseful;
+    attr.event_mask = ExposureMask;
     attr.border_pixel = 0;
 
-    x = data->client_rect.left - data->whole_rect.left;
-    y = data->client_rect.top - data->whole_rect.top;
-    cx = min( max( 1, data->client_rect.right - data->client_rect.left ), 65535 );
-    cy = min( max( 1, data->client_rect.bottom - data->client_rect.top ), 65535 );
+    data->client_window = XCreateWindow( data->display, data->whole_window, x, y, cx, cy,
+                                         0, default_visual.depth, InputOutput, visual->visual,
+                                         CWBitGravity | CWWinGravity | CWBackingStore |
+                                         CWColormap | CWEventMask | CWBorderPixel, &attr );
+    if (!data->client_window) return 0;
 
-    ret = data->client_window = XCreateWindow( gdi_display,
-                                               data->whole_window ? data->whole_window : dummy_parent,
-                                               x, y, cx, cy, 0, default_visual.depth, InputOutput,
-                                               visual->visual, CWBitGravity | CWWinGravity |
-                                               CWBackingStore | CWColormap | CWBorderPixel, &attr );
-    if (data->client_window)
-    {
-        XSaveContext( data->display, data->client_window, winContext, (char *)data->hwnd );
-        XMapWindow( gdi_display, data->client_window );
-        XSync( gdi_display, False );
-        if (data->whole_window) XSelectInput( data->display, data->client_window, ExposureMask );
-        TRACE( "%p xwin %lx/%lx\n", data->hwnd, data->whole_window, data->client_window );
-    }
-    release_win_data( data );
-    return ret;
+    XSaveContext( data->display, data->client_window, winContext, (char *)data->hwnd );
+    XMapWindow( data->display, data->client_window );
+    XSync( data->display, False );
+    return data->client_window;
 }
 
 
@@ -1577,10 +1512,6 @@ done:
  */
 static void destroy_whole_window( struct x11drv_win_data *data, BOOL already_destroyed )
 {
-    TRACE( "win %p xwin %lx/%lx\n", data->hwnd, data->whole_window, data->client_window );
-
-    if (data->client_window) XDeleteContext( data->display, data->client_window, winContext );
-
     if (!data->whole_window)
     {
         if (data->embedded)
@@ -1592,20 +1523,15 @@ static void destroy_whole_window( struct x11drv_win_data *data, BOOL already_des
                 XDeleteContext( data->display, xwin, winContext );
                 RemovePropA( data->hwnd, foreign_window_prop );
             }
-            return;
         }
+        return;
     }
-    else
-    {
-        if (data->client_window && !already_destroyed)
-        {
-            XSelectInput( data->display, data->client_window, 0 );
-            XReparentWindow( data->display, data->client_window, get_dummy_parent(), 0, 0 );
-            XSync( data->display, False );
-        }
-        XDeleteContext( data->display, data->whole_window, winContext );
-        if (!already_destroyed) XDestroyWindow( data->display, data->whole_window );
-    }
+
+
+    TRACE( "win %p xwin %lx\n", data->hwnd, data->whole_window );
+    XDeleteContext( data->display, data->whole_window, winContext );
+    if (data->client_window) XDeleteContext( data->display, data->client_window, winContext );
+    if (!already_destroyed) XDestroyWindow( data->display, data->whole_window );
     if (data->colormap) XFreeColormap( data->display, data->colormap );
     data->whole_window = data->client_window = 0;
     data->colormap = 0;
@@ -1707,6 +1633,8 @@ void CDECL X11DRV_DestroyWindow( HWND hwnd )
     struct x11drv_thread_data *thread_data = x11drv_thread_data();
     struct x11drv_win_data *data;
 
+    destroy_gl_drawable( hwnd );
+
     if (!(data = get_win_data( hwnd ))) return;
 
     destroy_whole_window( data, FALSE );
@@ -1714,11 +1642,10 @@ void CDECL X11DRV_DestroyWindow( HWND hwnd )
     if (thread_data->last_xic_hwnd == hwnd) thread_data->last_xic_hwnd = 0;
     if (data->icon_pixmap) XFreePixmap( gdi_display, data->icon_pixmap );
     if (data->icon_mask) XFreePixmap( gdi_display, data->icon_mask );
-    HeapFree( GetProcessHeap(), 0, data->icon_bits );
+    heap_free( data->icon_bits );
     XDeleteContext( gdi_display, (XID)hwnd, win_data_context );
     release_win_data( data );
-    HeapFree( GetProcessHeap(), 0, data );
-    destroy_gl_drawable( hwnd );
+    heap_free( data );
 }
 
 
@@ -1738,6 +1665,22 @@ BOOL X11DRV_DestroyNotify( HWND hwnd, XEvent *event )
     release_win_data( data );
     if (embedded) SendMessageW( hwnd, WM_CLOSE, 0, 0 );
     return TRUE;
+}
+
+
+static struct x11drv_win_data *alloc_win_data( Display *display, HWND hwnd )
+{
+    struct x11drv_win_data *data;
+
+    if ((data = heap_alloc_zero(sizeof(*data))))
+    {
+        data->display = display;
+        data->vis = default_visual;
+        data->hwnd = hwnd;
+        EnterCriticalSection( &win_data_section );
+        XSaveContext( gdi_display, (XID)hwnd, win_data_context, (char *)data );
+    }
+    return data;
 }
 
 
@@ -2364,13 +2307,8 @@ void CDECL X11DRV_WindowPosChanged( HWND hwnd, HWND insert_after, UINT swp_flags
 
     if (!data->whole_window)
     {
-        BOOL needs_resize = (!data->client_window &&
-                             (data->client_rect.right - data->client_rect.left !=
-                              old_client_rect.right - old_client_rect.left ||
-                              data->client_rect.bottom - data->client_rect.top !=
-                              old_client_rect.bottom - old_client_rect.top));
         release_win_data( data );
-        if (needs_resize) sync_gl_drawable( hwnd );
+        sync_gl_drawable( hwnd, visible_rect, rectClient );
         return;
     }
 

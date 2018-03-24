@@ -33,6 +33,7 @@
 #include "gdi_private.h"
 
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(icm);
@@ -51,12 +52,12 @@ static INT CALLBACK enum_profiles_callbackA( LPWSTR filename, LPARAM lparam )
     char *filenameA;
 
     len = WideCharToMultiByte( CP_ACP, 0, filename, -1, NULL, 0, NULL, NULL );
-    filenameA = HeapAlloc( GetProcessHeap(), 0, len );
+    filenameA = heap_alloc( len );
     if (filenameA)
     {
         WideCharToMultiByte( CP_ACP, 0, filename, -1, filenameA, len, NULL, NULL );
         ret = ep->funcA( filenameA, ep->data );
-        HeapFree( GetProcessHeap(), 0, filenameA );
+        heap_free( filenameA );
     }
     return ret;
 }

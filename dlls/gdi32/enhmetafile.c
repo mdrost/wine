@@ -264,13 +264,13 @@ HENHMETAFILE EMF_Create_HENHMETAFILE(ENHMETAHEADER *emh, BOOL on_disk )
         return 0;
     }
 
-    if (!(metaObj = HeapAlloc( GetProcessHeap(), 0, sizeof(*metaObj) ))) return 0;
+    if (!(metaObj = heap_alloc( sizeof(*metaObj) ))) return 0;
 
     metaObj->emh = emh;
     metaObj->on_disk = on_disk;
 
     if (!(hmf = alloc_gdi_handle( metaObj, OBJ_ENHMETAFILE, NULL )))
-        HeapFree( GetProcessHeap(), 0, metaObj );
+        heap_free( metaObj );
     return hmf;
 }
 
@@ -286,8 +286,8 @@ static BOOL EMF_Delete_HENHMETAFILE( HENHMETAFILE hmf )
     if(metaObj->on_disk)
         UnmapViewOfFile( metaObj->emh );
     else
-        HeapFree( GetProcessHeap(), 0, metaObj->emh );
-    HeapFree( GetProcessHeap(), 0, metaObj );
+        heap_free( metaObj->emh );
+    heap_free( metaObj );
     return TRUE;
 }
 
@@ -465,12 +465,12 @@ UINT WINAPI GetEnhMetaFileDescriptionW(
  */
 HENHMETAFILE WINAPI SetEnhMetaFileBits(UINT bufsize, const BYTE *buf)
 {
-    ENHMETAHEADER *emh = HeapAlloc( GetProcessHeap(), 0, bufsize );
+    ENHMETAHEADER *emh = heap_alloc( bufsize );
     HENHMETAFILE hmf;
     memmove(emh, buf, bufsize);
     hmf = EMF_Create_HENHMETAFILE( emh, FALSE );
     if (!hmf)
-        HeapFree( GetProcessHeap(), 0, emh );
+        heap_free( emh );
     return hmf;
 }
 
@@ -544,7 +544,7 @@ static void EMF_Update_MF_Xform(HDC hdc, const enum_emh_data *info)
 
     CombineTransform(&final_trans, &info->state.world_transform, &mapping_mode_trans);
     CombineTransform(&final_trans, &final_trans, &info->init_transform);
- 
+
     if (!SetWorldTransform(hdc, &final_trans))
     {
         ERR("World transform failed!\n");
@@ -564,13 +564,13 @@ static void EMF_RestoreDC( enum_emh_data *info, INT level )
         state->next = NULL;
         if (--info->save_level < level)
             info->state = *state;
-        HeapFree( GetProcessHeap(), 0, state );
+        heap_free( state );
     }
 }
 
 static void EMF_SaveDC( enum_emh_data *info )
 {
-    EMF_dc_state *state = HeapAlloc( GetProcessHeap(), 0, sizeof(*state));
+    EMF_dc_state *state = heap_alloc( sizeof(*state));
     if (state)
     {
         *state = info->state;
@@ -900,7 +900,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
     case EMR_SETWINDOWEXTEX:
       {
 	const EMRSETWINDOWEXTEX *pSetWindowExtEx = (const EMRSETWINDOWEXTEX *)mr;
-	
+
         if (info->state.mode != MM_ISOTROPIC && info->state.mode != MM_ANISOTROPIC)
 	    break;
         info->state.wndExtX = pSetWindowExtEx->szlExtent.cx;
@@ -1015,7 +1015,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
       {
 	const EMRPOLYGON16 *pPoly = (const EMRPOLYGON16 *)mr;
 	/* Shouldn't use Polygon16 since pPoly->cpts is DWORD */
-	POINT *pts = HeapAlloc( GetProcessHeap(), 0,
+	POINT *pts = heap_alloc(
 				pPoly->cpts * sizeof(POINT) );
 	DWORD i;
 	for(i = 0; i < pPoly->cpts; i++)
@@ -1024,14 +1024,14 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 	    pts[i].y = pPoly->apts[i].y;
 	}
 	Polygon(hdc, pts, pPoly->cpts);
-	HeapFree( GetProcessHeap(), 0, pts );
+	heap_free( pts );
 	break;
       }
     case EMR_POLYLINE16:
       {
 	const EMRPOLYLINE16 *pPoly = (const EMRPOLYLINE16 *)mr;
 	/* Shouldn't use Polyline16 since pPoly->cpts is DWORD */
-	POINT *pts = HeapAlloc( GetProcessHeap(), 0,
+	POINT *pts = heap_alloc(
 				pPoly->cpts * sizeof(POINT) );
 	DWORD i;
 	for(i = 0; i < pPoly->cpts; i++)
@@ -1040,14 +1040,14 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 	    pts[i].y = pPoly->apts[i].y;
 	}
 	Polyline(hdc, pts, pPoly->cpts);
-	HeapFree( GetProcessHeap(), 0, pts );
+	heap_free( pts );
 	break;
       }
     case EMR_POLYLINETO16:
       {
 	const EMRPOLYLINETO16 *pPoly = (const EMRPOLYLINETO16 *)mr;
 	/* Shouldn't use PolylineTo16 since pPoly->cpts is DWORD */
-	POINT *pts = HeapAlloc( GetProcessHeap(), 0,
+	POINT *pts = heap_alloc(
 				pPoly->cpts * sizeof(POINT) );
 	DWORD i;
 	for(i = 0; i < pPoly->cpts; i++)
@@ -1056,14 +1056,14 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 	    pts[i].y = pPoly->apts[i].y;
 	}
 	PolylineTo(hdc, pts, pPoly->cpts);
-	HeapFree( GetProcessHeap(), 0, pts );
+	heap_free( pts );
 	break;
       }
     case EMR_POLYBEZIER16:
       {
 	const EMRPOLYBEZIER16 *pPoly = (const EMRPOLYBEZIER16 *)mr;
 	/* Shouldn't use PolyBezier16 since pPoly->cpts is DWORD */
-	POINT *pts = HeapAlloc( GetProcessHeap(), 0,
+	POINT *pts = heap_alloc(
 				pPoly->cpts * sizeof(POINT) );
 	DWORD i;
 	for(i = 0; i < pPoly->cpts; i++)
@@ -1072,14 +1072,14 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 	    pts[i].y = pPoly->apts[i].y;
 	}
 	PolyBezier(hdc, pts, pPoly->cpts);
-	HeapFree( GetProcessHeap(), 0, pts );
+	heap_free( pts );
 	break;
       }
     case EMR_POLYBEZIERTO16:
       {
 	const EMRPOLYBEZIERTO16 *pPoly = (const EMRPOLYBEZIERTO16 *)mr;
 	/* Shouldn't use PolyBezierTo16 since pPoly->cpts is DWORD */
-	POINT *pts = HeapAlloc( GetProcessHeap(), 0,
+	POINT *pts = heap_alloc(
 				pPoly->cpts * sizeof(POINT) );
 	DWORD i;
 	for(i = 0; i < pPoly->cpts; i++)
@@ -1088,7 +1088,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 	    pts[i].y = pPoly->apts[i].y;
 	}
 	PolyBezierTo(hdc, pts, pPoly->cpts);
-	HeapFree( GetProcessHeap(), 0, pts );
+	heap_free( pts );
 	break;
       }
     case EMR_POLYPOLYGON16:
@@ -1098,7 +1098,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 	   pPolyPoly->aPolyCounts + pPolyPoly->nPolys */
 
         const POINTS *pts = (const POINTS *)(pPolyPoly->aPolyCounts + pPolyPoly->nPolys);
-        POINT *pt = HeapAlloc( GetProcessHeap(), 0, pPolyPoly->cpts * sizeof(POINT) );
+        POINT *pt = heap_alloc( pPolyPoly->cpts * sizeof(POINT) );
 	DWORD i;
 	for(i = 0; i < pPolyPoly->cpts; i++)
         {
@@ -1106,7 +1106,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
             pt[i].y = pts[i].y;
         }
 	PolyPolygon(hdc, pt, (const INT*)pPolyPoly->aPolyCounts, pPolyPoly->nPolys);
-	HeapFree( GetProcessHeap(), 0, pt );
+	heap_free( pt );
 	break;
       }
     case EMR_POLYPOLYLINE16:
@@ -1116,7 +1116,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 	   pPolyPoly->aPolyCounts + pPolyPoly->nPolys */
 
         const POINTS *pts = (const POINTS *)(pPolyPoly->aPolyCounts + pPolyPoly->nPolys);
-        POINT *pt = HeapAlloc( GetProcessHeap(), 0, pPolyPoly->cpts * sizeof(POINT) );
+        POINT *pt = heap_alloc( pPolyPoly->cpts * sizeof(POINT) );
 	DWORD i;
 	for(i = 0; i < pPolyPoly->cpts; i++)
         {
@@ -1124,7 +1124,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
             pt[i].y = pts[i].y;
         }
 	PolyPolyline(hdc, pt, pPolyPoly->aPolyCounts, pPolyPoly->nPolys);
-	HeapFree( GetProcessHeap(), 0, pt );
+	heap_free( pt );
 	break;
       }
 
@@ -1415,7 +1415,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 
         if ((info->state.mode != MM_ISOTROPIC) && (info->state.mode != MM_ANISOTROPIC))
 	    break;
-        if (!lpScaleViewportExtEx->xNum || !lpScaleViewportExtEx->xDenom || 
+        if (!lpScaleViewportExtEx->xNum || !lpScaleViewportExtEx->xDenom ||
             !lpScaleViewportExtEx->yNum || !lpScaleViewportExtEx->yDenom)
             break;
         info->state.vportExtX = MulDiv(info->state.vportExtX, lpScaleViewportExtEx->xNum,
@@ -1443,7 +1443,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 
         if ((info->state.mode != MM_ISOTROPIC) && (info->state.mode != MM_ANISOTROPIC))
 	    break;
-        if (!lpScaleWindowExtEx->xNum || !lpScaleWindowExtEx->xDenom || 
+        if (!lpScaleWindowExtEx->xNum || !lpScaleWindowExtEx->xDenom ||
             !lpScaleWindowExtEx->yNum || !lpScaleWindowExtEx->yDenom)
             break;
         info->state.wndExtX = MulDiv(info->state.wndExtX, lpScaleWindowExtEx->xNum,
@@ -1723,6 +1723,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
         break;
       }
 
+#if 0
     case EMR_PIXELFORMAT:
       {
         INT iPixelFormat;
@@ -1733,6 +1734,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 
         break;
       }
+#endif
 
     case EMR_SETPALETTEENTRIES:
       {
@@ -1774,7 +1776,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
         }
 
         /* This is a BITMAPINFO struct followed directly by bitmap bits */
-        lpPackedStruct = HeapAlloc( GetProcessHeap(), 0,
+        lpPackedStruct = heap_alloc(
                                     lpCreate->cbBmi + lpCreate->cbBits );
         if(!lpPackedStruct)
         {
@@ -1794,7 +1796,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
            CreateDIBPatternBrushPt( lpPackedStruct,
                                     (UINT)lpCreate->iUsage );
 
-        HeapFree(GetProcessHeap(), 0, lpPackedStruct);
+        heap_free(lpPackedStruct);
         break;
       }
 
@@ -2082,7 +2084,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
     case EMR_POLYTEXTOUTA:
     {
 	const EMRPOLYTEXTOUTA *pPolyTextOutA = (const EMRPOLYTEXTOUTA *)mr;
-	POLYTEXTA *polytextA = HeapAlloc(GetProcessHeap(), 0, pPolyTextOutA->cStrings * sizeof(POLYTEXTA));
+	POLYTEXTA *polytextA = heap_alloc(pPolyTextOutA->cStrings * sizeof(POLYTEXTA));
 	LONG i;
 	XFORM xform, xformOld;
 	int gModeOld;
@@ -2113,7 +2115,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 	    polytextA[i].pdx = (int *)((BYTE *)mr + pPolyTextOutA->aemrtext[i].offDx);
 	}
 	PolyTextOutA(hdc, polytextA, pPolyTextOutA->cStrings);
-	HeapFree(GetProcessHeap(), 0, polytextA);
+	heap_free(polytextA);
 
 	SetWorldTransform(hdc, &xformOld);
 	SetGraphicsMode(hdc, gModeOld);
@@ -2123,7 +2125,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
     case EMR_POLYTEXTOUTW:
     {
 	const EMRPOLYTEXTOUTW *pPolyTextOutW = (const EMRPOLYTEXTOUTW *)mr;
-	POLYTEXTW *polytextW = HeapAlloc(GetProcessHeap(), 0, pPolyTextOutW->cStrings * sizeof(POLYTEXTW));
+	POLYTEXTW *polytextW = heap_alloc(pPolyTextOutW->cStrings * sizeof(POLYTEXTW));
 	LONG i;
 	XFORM xform, xformOld;
 	int gModeOld;
@@ -2154,7 +2156,7 @@ BOOL WINAPI PlayEnhMetaFileRecord(
 	    polytextW[i].pdx = (int *)((BYTE *)mr + pPolyTextOutW->aemrtext[i].offDx);
 	}
 	PolyTextOutW(hdc, polytextW, pPolyTextOutW->cStrings);
-	HeapFree(GetProcessHeap(), 0, polytextW);
+	heap_free(polytextW);
 
 	SetWorldTransform(hdc, &xformOld);
 	SetGraphicsMode(hdc, gModeOld);
@@ -2329,7 +2331,7 @@ BOOL WINAPI EnumEnhMetaFile(
         return FALSE;
     }
 
-    info = HeapAlloc( GetProcessHeap(), 0,
+    info = heap_alloc(
 		    sizeof (enum_emh_data) + sizeof(HANDLETABLE) * emh->nHandles );
     if(!info)
     {
@@ -2501,9 +2503,9 @@ BOOL WINAPI EnumEnhMetaFile(
     {
         EMF_dc_state *state = info->saved_state;
         info->saved_state = info->saved_state->next;
-        HeapFree( GetProcessHeap(), 0, state );
+        heap_free( state );
     }
-    HeapFree( GetProcessHeap(), 0, info );
+    heap_free( info );
     return ret;
 }
 
@@ -2560,11 +2562,11 @@ HENHMETAFILE WINAPI CopyEnhMetaFileA(
 
     if(!emrSrc) return FALSE;
     if (!file) {
-        emrDst = HeapAlloc( GetProcessHeap(), 0, emrSrc->nBytes );
+        emrDst = heap_alloc( emrSrc->nBytes );
 	memcpy( emrDst, emrSrc, emrSrc->nBytes );
 	hmfDst = EMF_Create_HENHMETAFILE( emrDst, FALSE );
 	if (!hmfDst)
-		HeapFree( GetProcessHeap(), 0, emrDst );
+		heap_free( emrDst );
     } else {
         HANDLE hFile;
         DWORD w;
@@ -2602,11 +2604,11 @@ HENHMETAFILE WINAPI CopyEnhMetaFileW(
 
     if(!emrSrc) return FALSE;
     if (!file) {
-        emrDst = HeapAlloc( GetProcessHeap(), 0, emrSrc->nBytes );
+        emrDst = heap_alloc( emrSrc->nBytes );
 	memcpy( emrDst, emrSrc, emrSrc->nBytes );
 	hmfDst = EMF_Create_HENHMETAFILE( emrDst, FALSE );
 	if (!hmfDst)
-		HeapFree( GetProcessHeap(), 0, emrDst );
+		heap_free( emrDst );
     } else {
         HANDLE hFile;
         DWORD w;
@@ -2748,7 +2750,7 @@ static HENHMETAFILE extract_emf_from_comment( const BYTE *buf, UINT mf_size )
         {
             size = remaining = chunk->emf_size;
             chunks = chunk->num_chunks;
-            emf_bits = ptr = HeapAlloc( GetProcessHeap(), 0, size );
+            emf_bits = ptr = heap_alloc( size );
             if (!emf_bits) goto done;
         }
         if (chunk->chunk_size > remaining) goto done;
@@ -2766,7 +2768,7 @@ static HENHMETAFILE extract_emf_from_comment( const BYTE *buf, UINT mf_size )
     emf = SetEnhMetaFileBits( size, emf_bits );
 
 done:
-    HeapFree( GetProcessHeap(), 0, emf_bits );
+    heap_free( emf_bits );
     return emf;
 }
 
@@ -2865,7 +2867,7 @@ HENHMETAFILE WINAPI SetWinMetaFileBits(UINT cbBuffer, const BYTE *lpbBuffer, HDC
         UINT mfcomment_size;
 
         mfcomment_size = sizeof (*mfcomment) + cbBuffer;
-        mfcomment = HeapAlloc(GetProcessHeap(), 0, mfcomment_size);
+        mfcomment = heap_alloc(mfcomment_size);
         if (mfcomment)
         {
             mfcomment->ident = GDICOMMENT_IDENTIFIER;
@@ -2876,7 +2878,7 @@ HENHMETAFILE WINAPI SetWinMetaFileBits(UINT cbBuffer, const BYTE *lpbBuffer, HDC
             mfcomment->cbWinMetaFile = cbBuffer;
             memcpy(&mfcomment[1], lpbBuffer, cbBuffer);
             GdiComment(hdc, mfcomment_size, (BYTE*) mfcomment);
-            HeapFree(GetProcessHeap(), 0, mfcomment);
+            heap_free(mfcomment);
         }
         SetMapMode(hdc, mm);
     }

@@ -185,7 +185,7 @@ static int TIME_MMSysTimeCallback(void)
             }
             break;
         }
-        HeapFree( GetProcessHeap(), 0, to_free );
+        heap_free( to_free );
     }
     return delta_time;
 }
@@ -319,7 +319,7 @@ MMRESULT WINAPI timeSetEvent(UINT wDelay, UINT wResol, LPTIMECALLBACK lpFunc,
     if (wDelay < MMSYSTIME_MININTERVAL || wDelay > MMSYSTIME_MAXINTERVAL)
 	return 0;
 
-    lpNewTimer = HeapAlloc(GetProcessHeap(), 0, sizeof(WINE_TIMERENTRY));
+    lpNewTimer = heap_alloc(sizeof(WINE_TIMERENTRY));
     if (lpNewTimer == NULL)
 	return 0;
 
@@ -387,7 +387,7 @@ MMRESULT WINAPI timeKillEvent(UINT wID)
     wFlags = lpSelf->wFlags;
     if (wFlags & TIME_KILL_SYNCHRONOUS)
         EnterCriticalSection(&TIME_cbcrst);
-    HeapFree(GetProcessHeap(), 0, lpSelf);
+    heap_free(lpSelf);
     if (wFlags & TIME_KILL_SYNCHRONOUS)
         LeaveCriticalSection(&TIME_cbcrst);
     return TIMERR_NOERROR;

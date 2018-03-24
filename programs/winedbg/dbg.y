@@ -469,7 +469,7 @@ int      input_fetch_entire_line(const char* pfx, char** line)
      */
     WriteFile(dbg_parser_output, pfx, strlen(pfx), &nread, NULL);
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, alloc = 16);
+    buffer = heap_alloc(alloc = 16);
     assert(buffer != NULL);
 
     len = 0;
@@ -477,7 +477,7 @@ int      input_fetch_entire_line(const char* pfx, char** line)
     {
         if (!ReadFile(dbg_parser_input, &ch, 1, &nread, NULL) || nread == 0)
         {
-            HeapFree(GetProcessHeap(), 0, buffer);
+            heap_free(buffer);
             return -1;
         }
 
@@ -506,7 +506,7 @@ int input_read_line(const char* pfx, char* buf, int size)
     len = min(size - 1, len);
     memcpy(buf, line, len);
     buf[len] = '\0';
-    HeapFree(GetProcessHeap(), 0, line);
+    heap_free(line);
     return 1;
 }
 

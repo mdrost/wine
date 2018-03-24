@@ -72,6 +72,7 @@ static inline int interlocked_dec_if_nonzero( int *dest )
     return val;
 }
 
+#if 0
 /* creates a struct security_descriptor and contained information in one contiguous piece of memory */
 NTSTATUS alloc_object_attributes( const OBJECT_ATTRIBUTES *attr, struct object_attributes **ret,
                                   data_size_t *ret_len )
@@ -114,7 +115,7 @@ NTSTATUS alloc_object_attributes( const OBJECT_ATTRIBUTES *attr, struct object_a
     }
     else if (attr->RootDirectory) return STATUS_OBJECT_NAME_INVALID;
 
-    *ret = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, len );
+    *ret = calloc( 1, len );
     if (!*ret) return STATUS_NO_MEMORY;
 
     (*ret)->rootdir = wine_server_obj_handle( attr->RootDirectory );
@@ -152,6 +153,7 @@ NTSTATUS alloc_object_attributes( const OBJECT_ATTRIBUTES *attr, struct object_a
     *ret_len = len;
     return STATUS_SUCCESS;
 }
+#endif
 
 NTSTATUS validate_open_object_attributes( const OBJECT_ATTRIBUTES *attr )
 {
@@ -179,6 +181,7 @@ NTSTATUS WINAPI NtCreateSemaphore( OUT PHANDLE SemaphoreHandle,
                                    IN LONG InitialCount,
                                    IN LONG MaximumCount )
 {
+#if 0
     NTSTATUS ret;
     data_size_t len;
     struct object_attributes *objattr;
@@ -199,8 +202,11 @@ NTSTATUS WINAPI NtCreateSemaphore( OUT PHANDLE SemaphoreHandle,
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -208,6 +214,7 @@ NTSTATUS WINAPI NtCreateSemaphore( OUT PHANDLE SemaphoreHandle,
  */
 NTSTATUS WINAPI NtOpenSemaphore( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr )
 {
+#if 0
     NTSTATUS ret;
 
     if ((ret = validate_open_object_attributes( attr ))) return ret;
@@ -224,6 +231,9 @@ NTSTATUS WINAPI NtOpenSemaphore( HANDLE *handle, ACCESS_MASK access, const OBJEC
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -245,6 +255,7 @@ NTSTATUS WINAPI NtQuerySemaphore( HANDLE handle, SEMAPHORE_INFORMATION_CLASS cla
 
     if (len != sizeof(SEMAPHORE_BASIC_INFORMATION)) return STATUS_INFO_LENGTH_MISMATCH;
 
+#if 0
     SERVER_START_REQ( query_semaphore )
     {
         req->handle = wine_server_obj_handle( handle );
@@ -258,6 +269,9 @@ NTSTATUS WINAPI NtQuerySemaphore( HANDLE handle, SEMAPHORE_INFORMATION_CLASS cla
     SERVER_END_REQ;
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -265,6 +279,7 @@ NTSTATUS WINAPI NtQuerySemaphore( HANDLE handle, SEMAPHORE_INFORMATION_CLASS cla
  */
 NTSTATUS WINAPI NtReleaseSemaphore( HANDLE handle, ULONG count, PULONG previous )
 {
+#if 0
     NTSTATUS ret;
     SERVER_START_REQ( release_semaphore )
     {
@@ -277,6 +292,9 @@ NTSTATUS WINAPI NtReleaseSemaphore( HANDLE handle, ULONG count, PULONG previous 
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /*
@@ -290,6 +308,7 @@ NTSTATUS WINAPI NtReleaseSemaphore( HANDLE handle, ULONG count, PULONG previous 
 NTSTATUS WINAPI NtCreateEvent( PHANDLE EventHandle, ACCESS_MASK DesiredAccess,
                                const OBJECT_ATTRIBUTES *attr, EVENT_TYPE type, BOOLEAN InitialState)
 {
+#if 0
     NTSTATUS ret;
     data_size_t len;
     struct object_attributes *objattr;
@@ -307,8 +326,11 @@ NTSTATUS WINAPI NtCreateEvent( PHANDLE EventHandle, ACCESS_MASK DesiredAccess,
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -317,6 +339,7 @@ NTSTATUS WINAPI NtCreateEvent( PHANDLE EventHandle, ACCESS_MASK DesiredAccess,
  */
 NTSTATUS WINAPI NtOpenEvent( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr )
 {
+#if 0
     NTSTATUS ret;
 
     if ((ret = validate_open_object_attributes( attr ))) return ret;
@@ -333,6 +356,9 @@ NTSTATUS WINAPI NtOpenEvent( HANDLE *handle, ACCESS_MASK access, const OBJECT_AT
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -342,6 +368,7 @@ NTSTATUS WINAPI NtOpenEvent( HANDLE *handle, ACCESS_MASK access, const OBJECT_AT
  */
 NTSTATUS WINAPI NtSetEvent( HANDLE handle, PULONG NumberOfThreadsReleased )
 {
+#if 0
     NTSTATUS ret;
 
     /* FIXME: set NumberOfThreadsReleased */
@@ -354,6 +381,9 @@ NTSTATUS WINAPI NtSetEvent( HANDLE handle, PULONG NumberOfThreadsReleased )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -361,6 +391,7 @@ NTSTATUS WINAPI NtSetEvent( HANDLE handle, PULONG NumberOfThreadsReleased )
  */
 NTSTATUS WINAPI NtResetEvent( HANDLE handle, PULONG NumberOfThreadsReleased )
 {
+#if 0
     NTSTATUS ret;
 
     /* resetting an event can't release any thread... */
@@ -374,6 +405,9 @@ NTSTATUS WINAPI NtResetEvent( HANDLE handle, PULONG NumberOfThreadsReleased )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -395,6 +429,7 @@ NTSTATUS WINAPI NtClearEvent ( HANDLE handle )
  */
 NTSTATUS WINAPI NtPulseEvent( HANDLE handle, PULONG PulseCount )
 {
+#if 0
     NTSTATUS ret;
 
     if (PulseCount)
@@ -408,6 +443,9 @@ NTSTATUS WINAPI NtPulseEvent( HANDLE handle, PULONG PulseCount )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -430,6 +468,7 @@ NTSTATUS WINAPI NtQueryEvent( HANDLE handle, EVENT_INFORMATION_CLASS class,
 
     if (len != sizeof(EVENT_BASIC_INFORMATION)) return STATUS_INFO_LENGTH_MISMATCH;
 
+#if 0
     SERVER_START_REQ( query_event )
     {
         req->handle = wine_server_obj_handle( handle );
@@ -443,6 +482,9 @@ NTSTATUS WINAPI NtQueryEvent( HANDLE handle, EVENT_INFORMATION_CLASS class,
     SERVER_END_REQ;
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /*
@@ -458,6 +500,7 @@ NTSTATUS WINAPI NtCreateMutant(OUT HANDLE* MutantHandle,
                                IN const OBJECT_ATTRIBUTES* attr OPTIONAL,
                                IN BOOLEAN InitialOwner)
 {
+#if 0
     NTSTATUS status;
     data_size_t len;
     struct object_attributes *objattr;
@@ -474,8 +517,11 @@ NTSTATUS WINAPI NtCreateMutant(OUT HANDLE* MutantHandle,
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /**************************************************************************
@@ -484,6 +530,7 @@ NTSTATUS WINAPI NtCreateMutant(OUT HANDLE* MutantHandle,
  */
 NTSTATUS WINAPI NtOpenMutant( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr )
 {
+#if 0
     NTSTATUS    status;
 
     if ((status = validate_open_object_attributes( attr ))) return status;
@@ -500,6 +547,9 @@ NTSTATUS WINAPI NtOpenMutant( HANDLE *handle, ACCESS_MASK access, const OBJECT_A
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /**************************************************************************
@@ -508,6 +558,7 @@ NTSTATUS WINAPI NtOpenMutant( HANDLE *handle, ACCESS_MASK access, const OBJECT_A
  */
 NTSTATUS WINAPI NtReleaseMutant( IN HANDLE handle, OUT PLONG prev_count OPTIONAL)
 {
+#if 0
     NTSTATUS    status;
 
     SERVER_START_REQ( release_mutex )
@@ -518,6 +569,9 @@ NTSTATUS WINAPI NtReleaseMutant( IN HANDLE handle, OUT PLONG prev_count OPTIONAL
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -541,6 +595,7 @@ NTSTATUS WINAPI NtQueryMutant( HANDLE handle, MUTANT_INFORMATION_CLASS class,
 
     if (len != sizeof(MUTANT_BASIC_INFORMATION)) return STATUS_INFO_LENGTH_MISMATCH;
 
+#if 0
     SERVER_START_REQ( query_mutex )
     {
         req->handle = wine_server_obj_handle( handle );
@@ -555,6 +610,9 @@ NTSTATUS WINAPI NtQueryMutant( HANDLE handle, MUTANT_INFORMATION_CLASS class,
     SERVER_END_REQ;
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /*
@@ -567,6 +625,7 @@ NTSTATUS WINAPI NtQueryMutant( HANDLE handle, MUTANT_INFORMATION_CLASS class,
  */
 NTSTATUS WINAPI NtCreateJobObject( PHANDLE handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr )
 {
+#if 0
     NTSTATUS ret;
     data_size_t len;
     struct object_attributes *objattr;
@@ -582,8 +641,11 @@ NTSTATUS WINAPI NtCreateJobObject( PHANDLE handle, ACCESS_MASK access, const OBJ
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -592,6 +654,7 @@ NTSTATUS WINAPI NtCreateJobObject( PHANDLE handle, ACCESS_MASK access, const OBJ
  */
 NTSTATUS WINAPI NtOpenJobObject( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr )
 {
+#if 0
     NTSTATUS ret;
 
     if ((ret = validate_open_object_attributes( attr ))) return ret;
@@ -608,6 +671,9 @@ NTSTATUS WINAPI NtOpenJobObject( HANDLE *handle, ACCESS_MASK access, const OBJEC
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -620,6 +686,7 @@ NTSTATUS WINAPI NtTerminateJobObject( HANDLE handle, NTSTATUS status )
 
     TRACE( "(%p, %d)\n", handle, status );
 
+#if 0
     SERVER_START_REQ( terminate_job )
     {
         req->handle = wine_server_obj_handle( handle );
@@ -629,6 +696,9 @@ NTSTATUS WINAPI NtTerminateJobObject( HANDLE handle, NTSTATUS status )
     SERVER_END_REQ;
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -729,6 +799,7 @@ NTSTATUS WINAPI NtSetInformationJobObject( HANDLE handle, JOBOBJECTINFOCLASS cla
         if (basic_limit->LimitFlags & ~limit_flags)
             return STATUS_INVALID_PARAMETER;
 
+#if 0
         SERVER_START_REQ( set_job_limits )
         {
             req->handle = wine_server_obj_handle( handle );
@@ -737,11 +808,15 @@ NTSTATUS WINAPI NtSetInformationJobObject( HANDLE handle, JOBOBJECTINFOCLASS cla
         }
         SERVER_END_REQ;
         break;
+#else
+        return STATUS_NOT_IMPLEMENTED;
+#endif
 
     case JobObjectAssociateCompletionPortInformation:
         if (len != sizeof(JOBOBJECT_ASSOCIATE_COMPLETION_PORT))
             return STATUS_INVALID_PARAMETER;
 
+#if 0
         SERVER_START_REQ( set_job_completion_port )
         {
             JOBOBJECT_ASSOCIATE_COMPLETION_PORT *port_info = info;
@@ -752,6 +827,9 @@ NTSTATUS WINAPI NtSetInformationJobObject( HANDLE handle, JOBOBJECTINFOCLASS cla
         }
         SERVER_END_REQ;
         break;
+#else
+        return STATUS_NOT_IMPLEMENTED;
+#endif
 
     case JobObjectBasicUIRestrictions:
         status = STATUS_SUCCESS;
@@ -773,6 +851,7 @@ NTSTATUS WINAPI NtIsProcessInJob( HANDLE process, HANDLE job )
 
     TRACE( "(%p %p)\n", job, process );
 
+#if 0
     SERVER_START_REQ( process_in_job )
     {
         req->job     = wine_server_obj_handle( job );
@@ -782,6 +861,9 @@ NTSTATUS WINAPI NtIsProcessInJob( HANDLE process, HANDLE job )
     SERVER_END_REQ;
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -794,6 +876,7 @@ NTSTATUS WINAPI NtAssignProcessToJobObject( HANDLE job, HANDLE process )
 
     TRACE( "(%p %p)\n", job, process );
 
+#if 0
     SERVER_START_REQ( assign_job )
     {
         req->job     = wine_server_obj_handle( job );
@@ -803,6 +886,9 @@ NTSTATUS WINAPI NtAssignProcessToJobObject( HANDLE job, HANDLE process )
     SERVER_END_REQ;
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /*
@@ -825,6 +911,7 @@ NTSTATUS WINAPI NtCreateTimer(OUT HANDLE *handle,
     if (timer_type != NotificationTimer && timer_type != SynchronizationTimer)
         return STATUS_INVALID_PARAMETER;
 
+#if 0
     if ((status = alloc_object_attributes( attr, &objattr, &len ))) return status;
 
     SERVER_START_REQ( create_timer )
@@ -837,8 +924,11 @@ NTSTATUS WINAPI NtCreateTimer(OUT HANDLE *handle,
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 
 }
 
@@ -848,6 +938,7 @@ NTSTATUS WINAPI NtCreateTimer(OUT HANDLE *handle,
  */
 NTSTATUS WINAPI NtOpenTimer( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr )
 {
+#if 0
     NTSTATUS status;
 
     if ((status = validate_open_object_attributes( attr ))) return status;
@@ -864,6 +955,9 @@ NTSTATUS WINAPI NtOpenTimer( HANDLE *handle, ACCESS_MASK access, const OBJECT_AT
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /**************************************************************************
@@ -883,6 +977,7 @@ NTSTATUS WINAPI NtSetTimer(IN HANDLE handle,
     TRACE("(%p,%p,%p,%p,%08x,0x%08x,%p)\n",
           handle, when, callback, callback_arg, resume, period, state);
 
+#if 0
     SERVER_START_REQ( set_timer )
     {
         req->handle   = wine_server_obj_handle( handle );
@@ -898,6 +993,9 @@ NTSTATUS WINAPI NtSetTimer(IN HANDLE handle,
     /* set error but can still succeed */
     if (resume && status == STATUS_SUCCESS) return STATUS_TIMER_RESUME_IGNORED;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /**************************************************************************
@@ -906,6 +1004,7 @@ NTSTATUS WINAPI NtSetTimer(IN HANDLE handle,
  */
 NTSTATUS WINAPI NtCancelTimer(IN HANDLE handle, OUT BOOLEAN* state)
 {
+#if 0
     NTSTATUS    status;
 
     SERVER_START_REQ( cancel_timer )
@@ -916,6 +1015,9 @@ NTSTATUS WINAPI NtCancelTimer(IN HANDLE handle, OUT BOOLEAN* state)
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -958,6 +1060,7 @@ NTSTATUS WINAPI NtQueryTimer(
         if (Length < sizeof(TIMER_BASIC_INFORMATION))
             return STATUS_INFO_LENGTH_MISMATCH;
 
+#if 0
         SERVER_START_REQ(get_timer_info)
         {
             req->handle = wine_server_obj_handle( TimerHandle );
@@ -979,6 +1082,9 @@ NTSTATUS WINAPI NtQueryTimer(
         if (ReturnLength) *ReturnLength = sizeof(TIMER_BASIC_INFORMATION);
 
         return status;
+#else
+        return STATUS_NOT_IMPLEMENTED;
+#endif
     }
 
     FIXME("Unhandled class %d\n", TimerInformationClass);
@@ -1020,6 +1126,7 @@ static NTSTATUS wait_objects( DWORD count, const HANDLE *handles,
                               BOOLEAN wait_any, BOOLEAN alertable,
                               const LARGE_INTEGER *timeout )
 {
+#if 0
     select_op_t select_op;
     UINT i, flags = SELECT_INTERRUPTIBLE;
 
@@ -1029,6 +1136,9 @@ static NTSTATUS wait_objects( DWORD count, const HANDLE *handles,
     select_op.wait.op = wait_any ? SELECT_WAIT : SELECT_WAIT_ALL;
     for (i = 0; i < count; i++) select_op.wait.handles[i] = wine_server_obj_handle( handles[i] );
     return server_select( &select_op, offsetof( select_op_t, wait.handles[count] ), flags, timeout );
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -1058,6 +1168,7 @@ NTSTATUS WINAPI NtWaitForSingleObject(HANDLE handle, BOOLEAN alertable, const LA
 NTSTATUS WINAPI NtSignalAndWaitForSingleObject( HANDLE hSignalObject, HANDLE hWaitObject,
                                                 BOOLEAN alertable, const LARGE_INTEGER *timeout )
 {
+#if 0
     select_op_t select_op;
     UINT flags = SELECT_INTERRUPTIBLE;
 
@@ -1068,6 +1179,9 @@ NTSTATUS WINAPI NtSignalAndWaitForSingleObject( HANDLE hSignalObject, HANDLE hWa
     select_op.signal_and_wait.wait = wine_server_obj_handle( hWaitObject );
     select_op.signal_and_wait.signal = wine_server_obj_handle( hSignalObject );
     return server_select( &select_op, sizeof(select_op.signal_and_wait), flags, timeout );
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -1092,7 +1206,11 @@ NTSTATUS WINAPI NtDelayExecution( BOOLEAN alertable, const LARGE_INTEGER *timeou
 {
     /* if alertable, we need to query the server */
     if (alertable)
+#if 0
         return server_select( NULL, 0, SELECT_INTERRUPTIBLE | SELECT_ALERTABLE, timeout );
+#else
+        return STATUS_NOT_IMPLEMENTED;
+#endif
 
     if (!timeout || timeout->QuadPart == TIMEOUT_INFINITE)  /* sleep forever */
     {
@@ -1134,6 +1252,7 @@ NTSTATUS WINAPI NtDelayExecution( BOOLEAN alertable, const LARGE_INTEGER *timeou
 NTSTATUS WINAPI NtCreateKeyedEvent( HANDLE *handle, ACCESS_MASK access,
                                     const OBJECT_ATTRIBUTES *attr, ULONG flags )
 {
+#if 0
     NTSTATUS ret;
     data_size_t len;
     struct object_attributes *objattr;
@@ -1149,8 +1268,11 @@ NTSTATUS WINAPI NtCreateKeyedEvent( HANDLE *handle, ACCESS_MASK access,
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -1162,6 +1284,7 @@ NTSTATUS WINAPI NtOpenKeyedEvent( HANDLE *handle, ACCESS_MASK access, const OBJE
 
     if ((ret = validate_open_object_attributes( attr ))) return ret;
 
+#if 0
     SERVER_START_REQ( open_keyed_event )
     {
         req->access     = access;
@@ -1174,6 +1297,9 @@ NTSTATUS WINAPI NtOpenKeyedEvent( HANDLE *handle, ACCESS_MASK access, const OBJE
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -1182,6 +1308,7 @@ NTSTATUS WINAPI NtOpenKeyedEvent( HANDLE *handle, ACCESS_MASK access, const OBJE
 NTSTATUS WINAPI NtWaitForKeyedEvent( HANDLE handle, const void *key,
                                      BOOLEAN alertable, const LARGE_INTEGER *timeout )
 {
+#if 0
     select_op_t select_op;
     UINT flags = SELECT_INTERRUPTIBLE;
 
@@ -1191,6 +1318,9 @@ NTSTATUS WINAPI NtWaitForKeyedEvent( HANDLE handle, const void *key,
     select_op.keyed_event.handle = wine_server_obj_handle( handle );
     select_op.keyed_event.key    = wine_server_client_ptr( key );
     return server_select( &select_op, sizeof(select_op.keyed_event), flags, timeout );
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -1199,6 +1329,7 @@ NTSTATUS WINAPI NtWaitForKeyedEvent( HANDLE handle, const void *key,
 NTSTATUS WINAPI NtReleaseKeyedEvent( HANDLE handle, const void *key,
                                      BOOLEAN alertable, const LARGE_INTEGER *timeout )
 {
+#if 0
     select_op_t select_op;
     UINT flags = SELECT_INTERRUPTIBLE;
 
@@ -1208,6 +1339,9 @@ NTSTATUS WINAPI NtReleaseKeyedEvent( HANDLE handle, const void *key,
     select_op.keyed_event.handle = wine_server_obj_handle( handle );
     select_op.keyed_event.key    = wine_server_client_ptr( key );
     return server_select( &select_op, sizeof(select_op.keyed_event), flags, timeout );
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -1235,6 +1369,7 @@ NTSTATUS WINAPI NtCreateIoCompletion( PHANDLE CompletionPort, ACCESS_MASK Desire
     if (!CompletionPort)
         return STATUS_INVALID_PARAMETER;
 
+#if 0
     if ((status = alloc_object_attributes( attr, &objattr, &len ))) return status;
 
     SERVER_START_REQ( create_completion )
@@ -1247,8 +1382,11 @@ NTSTATUS WINAPI NtCreateIoCompletion( PHANDLE CompletionPort, ACCESS_MASK Desire
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -1273,6 +1411,7 @@ NTSTATUS WINAPI NtSetIoCompletion( HANDLE CompletionPort, ULONG_PTR CompletionKe
     TRACE("(%p, %lx, %lx, %x, %lx)\n", CompletionPort, CompletionKey,
           CompletionValue, Status, NumberOfBytesTransferred);
 
+#if 0
     SERVER_START_REQ( add_completion )
     {
         req->handle      = wine_server_obj_handle( CompletionPort );
@@ -1284,6 +1423,9 @@ NTSTATUS WINAPI NtSetIoCompletion( HANDLE CompletionPort, ULONG_PTR CompletionKe
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -1309,6 +1451,7 @@ NTSTATUS WINAPI NtRemoveIoCompletion( HANDLE CompletionPort, PULONG_PTR Completi
     TRACE("(%p, %p, %p, %p, %p)\n", CompletionPort, CompletionKey,
           CompletionValue, iosb, WaitTime);
 
+#if 0
     for(;;)
     {
         SERVER_START_REQ( remove_completion )
@@ -1329,6 +1472,9 @@ NTSTATUS WINAPI NtRemoveIoCompletion( HANDLE CompletionPort, PULONG_PTR Completi
         if (status != WAIT_OBJECT_0) break;
     }
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -1350,6 +1496,7 @@ NTSTATUS WINAPI NtOpenIoCompletion( HANDLE *handle, ACCESS_MASK access, const OB
     if (!handle) return STATUS_INVALID_PARAMETER;
     if ((status = validate_open_object_attributes( attr ))) return status;
 
+#if 0
     SERVER_START_REQ( open_completion )
     {
         req->access     = access;
@@ -1362,6 +1509,9 @@ NTSTATUS WINAPI NtOpenIoCompletion( HANDLE *handle, ACCESS_MASK access, const OB
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -1398,6 +1548,7 @@ NTSTATUS WINAPI NtQueryIoCompletion( HANDLE CompletionPort, IO_COMPLETION_INFORM
                     status = STATUS_INFO_LENGTH_MISMATCH;
                 else
                 {
+#if 0
                     SERVER_START_REQ( query_completion )
                     {
                         req->handle = wine_server_obj_handle( CompletionPort );
@@ -1405,6 +1556,9 @@ NTSTATUS WINAPI NtQueryIoCompletion( HANDLE CompletionPort, IO_COMPLETION_INFORM
                             *info = reply->depth;
                     }
                     SERVER_END_REQ;
+#else
+                    status = STATUS_NOT_IMPLEMENTED;
+#endif
                 }
             }
             break;
@@ -1418,6 +1572,7 @@ NTSTATUS WINAPI NtQueryIoCompletion( HANDLE CompletionPort, IO_COMPLETION_INFORM
 NTSTATUS NTDLL_AddCompletion( HANDLE hFile, ULONG_PTR CompletionValue,
                               NTSTATUS CompletionStatus, ULONG Information )
 {
+#if 0
     NTSTATUS status;
 
     SERVER_START_REQ( add_fd_completion )
@@ -1430,6 +1585,9 @@ NTSTATUS NTDLL_AddCompletion( HANDLE hFile, ULONG_PTR CompletionValue,
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************

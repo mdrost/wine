@@ -2346,16 +2346,12 @@ void WINAPI glViewport( GLint x, GLint y, GLsizei width, GLsizei height )
   funcs->gl.p_glViewport( x, y, width, height );
 }
 
-static BOOL null_wglCopyContext( struct wgl_context * hglrcSrc, struct wgl_context * hglrcDst, UINT mask ) { return 0; }
-static struct wgl_context * null_wglCreateContext( HDC hDc ) { return 0; }
-static BOOL null_wglDeleteContext( struct wgl_context * oldContext ) { return 0; }
-static int null_wglDescribePixelFormat( HDC hdc, int ipfd, UINT cjpfd, PIXELFORMATDESCRIPTOR *ppfd ) { return 0; }
-static int null_wglGetPixelFormat( HDC hdc ) { return 0; }
-static PROC null_wglGetProcAddress( LPCSTR lpszProc ) { return 0; }
-static BOOL null_wglMakeCurrent( HDC hDc, struct wgl_context * newContext ) { return 0; }
-static BOOL null_wglSetPixelFormat( HDC hdc, int ipfd, const PIXELFORMATDESCRIPTOR *ppfd ) { return 0; }
-static BOOL null_wglShareLists( struct wgl_context * hrcSrvShare, struct wgl_context * hrcSrvSource ) { return 0; }
-static BOOL null_wglSwapBuffers( HDC hdc ) { return 0; }
+static void null_glXCopyContext( Display *dpy, GLXContext src, GLXContext dst, unsigned long mask ) { }
+static GLXContext null_glXCreateContext( Display *dpy, XVisualInfo *vis, GLXContext shareList, Bool direct ) { return 0; }
+static void null_glXDestroyContext( Display *dpy, GLXContext ctx ) { }
+static __GLXextFuncPtr null_glXGetProcAddress( const GLubyte *procName ) { return 0; }
+static Bool null_glXMakeCurrent( Display *dpy, GLXDrawable drawable, GLXContext ctx ) { return 0; }
+static void null_glXSwapBuffers( Display *dpy, GLXDrawable drawable ) { }
 static void null_glAccum( GLenum op, GLfloat value ) { }
 static void null_glAlphaFunc( GLenum func, GLfloat ref ) { }
 static GLboolean null_glAreTexturesResident( GLsizei n, const GLuint *textures, GLboolean *residences ) { return 0; }
@@ -5322,45 +5318,18 @@ static void null_glWindowPos4sMESA( GLshort x, GLshort y, GLshort z, GLshort w )
 static void null_glWindowPos4svMESA( const GLshort *v ) { }
 static void null_glWindowRectanglesEXT( GLenum mode, GLsizei count, const GLint *box ) { }
 static void null_glWriteMaskEXT( GLuint res, GLuint in, GLenum outX, GLenum outY, GLenum outZ, GLenum outW ) { }
-static void * null_wglAllocateMemoryNV( GLsizei size, GLfloat readfreq, GLfloat writefreq, GLfloat priority ) { return 0; }
-static BOOL null_wglBindTexImageARB( struct wgl_pbuffer * hPbuffer, int iBuffer ) { return 0; }
-static BOOL null_wglChoosePixelFormatARB( HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats ) { return 0; }
-static struct wgl_context * null_wglCreateContextAttribsARB( HDC hDC, struct wgl_context * hShareContext, const int *attribList ) { return 0; }
-static struct wgl_pbuffer * null_wglCreatePbufferARB( HDC hDC, int iPixelFormat, int iWidth, int iHeight, const int *piAttribList ) { return 0; }
-static BOOL null_wglDestroyPbufferARB( struct wgl_pbuffer * hPbuffer ) { return 0; }
-static void null_wglFreeMemoryNV( void *pointer ) { }
-static HDC null_wglGetCurrentReadDCARB(void) { return 0; }
-static const char * null_wglGetExtensionsStringARB( HDC hdc ) { return 0; }
-static const char * null_wglGetExtensionsStringEXT(void) { return 0; }
-static HDC null_wglGetPbufferDCARB( struct wgl_pbuffer * hPbuffer ) { return 0; }
-static BOOL null_wglGetPixelFormatAttribfvARB( HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, FLOAT *pfValues ) { return 0; }
-static BOOL null_wglGetPixelFormatAttribivARB( HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues ) { return 0; }
-static int null_wglGetSwapIntervalEXT(void) { return 0; }
-static BOOL null_wglMakeContextCurrentARB( HDC hDrawDC, HDC hReadDC, struct wgl_context * hglrc ) { return 0; }
-static BOOL null_wglQueryCurrentRendererIntegerWINE( GLenum attribute, GLuint *value ) { return 0; }
-static const GLchar * null_wglQueryCurrentRendererStringWINE( GLenum attribute ) { return 0; }
-static BOOL null_wglQueryPbufferARB( struct wgl_pbuffer * hPbuffer, int iAttribute, int *piValue ) { return 0; }
-static BOOL null_wglQueryRendererIntegerWINE( HDC dc, GLint renderer, GLenum attribute, GLuint *value ) { return 0; }
-static const GLchar * null_wglQueryRendererStringWINE( HDC dc, GLint renderer, GLenum attribute ) { return 0; }
-static int null_wglReleasePbufferDCARB( struct wgl_pbuffer * hPbuffer, HDC hDC ) { return 0; }
-static BOOL null_wglReleaseTexImageARB( struct wgl_pbuffer * hPbuffer, int iBuffer ) { return 0; }
-static BOOL null_wglSetPbufferAttribARB( struct wgl_pbuffer * hPbuffer, const int *piAttribList ) { return 0; }
-static BOOL null_wglSetPixelFormatWINE( HDC hdc, int format ) { return 0; }
-static BOOL null_wglSwapIntervalEXT( int interval ) { return 0; }
+static GLXContext null_glXCreateContextAttribsARB( Display *dpy, GLXFBConfig config, GLXContext share_context, Bool direct, const int *attrib_list ) { return 0; }
+static void null_glXSwapIntervalEXT( Display *dpy, GLXDrawable drawable, int interval ) { }
 
 struct opengl_funcs null_opengl_funcs =
 {
     {
-        null_wglCopyContext,
-        null_wglCreateContext,
-        null_wglDeleteContext,
-        null_wglDescribePixelFormat,
-        null_wglGetPixelFormat,
-        null_wglGetProcAddress,
-        null_wglMakeCurrent,
-        null_wglSetPixelFormat,
-        null_wglShareLists,
-        null_wglSwapBuffers,
+        null_glXCopyContext,
+        null_glXCreateContext,
+        null_glXDestroyContext,
+        null_glXGetProcAddress,
+        null_glXMakeCurrent,
+        null_glXSwapBuffers,
     },
     {
         null_glAccum,
@@ -8331,30 +8300,7 @@ struct opengl_funcs null_opengl_funcs =
         null_glWindowPos4svMESA,
         null_glWindowRectanglesEXT,
         null_glWriteMaskEXT,
-        null_wglAllocateMemoryNV,
-        null_wglBindTexImageARB,
-        null_wglChoosePixelFormatARB,
-        null_wglCreateContextAttribsARB,
-        null_wglCreatePbufferARB,
-        null_wglDestroyPbufferARB,
-        null_wglFreeMemoryNV,
-        null_wglGetCurrentReadDCARB,
-        null_wglGetExtensionsStringARB,
-        null_wglGetExtensionsStringEXT,
-        null_wglGetPbufferDCARB,
-        null_wglGetPixelFormatAttribfvARB,
-        null_wglGetPixelFormatAttribivARB,
-        null_wglGetSwapIntervalEXT,
-        null_wglMakeContextCurrentARB,
-        null_wglQueryCurrentRendererIntegerWINE,
-        null_wglQueryCurrentRendererStringWINE,
-        null_wglQueryPbufferARB,
-        null_wglQueryRendererIntegerWINE,
-        null_wglQueryRendererStringWINE,
-        null_wglReleasePbufferDCARB,
-        null_wglReleaseTexImageARB,
-        null_wglSetPbufferAttribARB,
-        null_wglSetPixelFormatWINE,
-        null_wglSwapIntervalEXT,
+        null_glXCreateContextAttribsARB,
+        null_glXSwapIntervalEXT,
     }
 };

@@ -264,7 +264,7 @@ void	break_add_break_from_id(const char *name, int lineno, BOOL swbp)
 
     dbg_curr_process->delayed_bp[dbg_curr_process->num_delayed_bp - 1].is_symbol       = TRUE;
     dbg_curr_process->delayed_bp[dbg_curr_process->num_delayed_bp - 1].software_bp     = swbp;
-    dbg_curr_process->delayed_bp[dbg_curr_process->num_delayed_bp - 1].u.symbol.name   = strcpy(HeapAlloc(GetProcessHeap(), 0, strlen(name) + 1), name);
+    dbg_curr_process->delayed_bp[dbg_curr_process->num_delayed_bp - 1].u.symbol.name   = strcpy(heap_alloc(strlen(name) + 1), name);
     dbg_curr_process->delayed_bp[dbg_curr_process->num_delayed_bp - 1].u.symbol.lineno = lineno;
 }
 

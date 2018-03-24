@@ -100,6 +100,7 @@ static ULONG WINAPI IEnumFORMATETC_fnRelease(LPENUMFORMATETC iface)
 	  TRACE(" destroying IEnumFORMATETC(%p)\n",This);
 	  SHFree (This->pFmt);
 	  heap_free(This);
+	  return 0;
 	}
 	return refCount;
 }
@@ -172,7 +173,7 @@ LPENUMFORMATETC IEnumFORMATETC_Constructor(UINT cfmt, const FORMATETC afmt[])
     IEnumFORMATETCImpl* ef;
     DWORD size=cfmt * sizeof(FORMATETC);
 
-    ef = heap_alloc_zero(sizeof(*ef));
+    ef = heap_alloc_zero(sizeof(IEnumFORMATETCImpl));
 
     if(ef)
     {
@@ -431,7 +432,7 @@ IDataObject* IDataObject_Constructor(HWND hwndOwner,
 {
     IDataObjectImpl* dto;
 
-    dto = heap_alloc_zero(sizeof(*dto));
+    dto = heap_alloc_zero(sizeof(IDataObjectImpl));
 
     if (dto)
     {

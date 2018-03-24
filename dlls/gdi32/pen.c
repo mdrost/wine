@@ -87,7 +87,7 @@ HPEN WINAPI CreatePenIndirect( const LOGPEN * pen )
         if (hpen) return hpen;
     }
 
-    if (!(penPtr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*penPtr) ))) return 0;
+    if (!(penPtr = heap_alloc_zero( sizeof(*penPtr) ))) return 0;
 
     penPtr->logpen.elpPenStyle = pen->lopnStyle;
     penPtr->logpen.elpWidth = abs(pen->lopnWidth.x);
@@ -113,7 +113,7 @@ HPEN WINAPI CreatePenIndirect( const LOGPEN * pen )
     }
 
     if (!(hpen = alloc_gdi_handle( penPtr, OBJ_PEN, &pen_funcs )))
-        HeapFree( GetProcessHeap(), 0, penPtr );
+        heap_free( penPtr );
     return hpen;
 }
 
@@ -187,7 +187,7 @@ HPEN WINAPI ExtCreatePen( DWORD style, DWORD width,
         if (brush->lbStyle != BS_SOLID) goto invalid;
     }
 
-    if (!(penPtr = HeapAlloc(GetProcessHeap(), 0, FIELD_OFFSET(PENOBJ,logpen.elpStyleEntry[style_count]))))
+    if (!(penPtr = heap_alloc(FIELD_OFFSET(PENOBJ,logpen.elpStyleEntry[style_count]))))
         return 0;
 
     logbrush = *brush;
@@ -205,12 +205,12 @@ HPEN WINAPI ExtCreatePen( DWORD style, DWORD width,
     if (!(hpen = alloc_gdi_handle( penPtr, OBJ_EXTPEN, &pen_funcs )))
     {
         free_brush_pattern( &penPtr->pattern );
-        HeapFree( GetProcessHeap(), 0, penPtr );
+        heap_free( penPtr );
     }
     return hpen;
 
 invalid:
-    HeapFree( GetProcessHeap(), 0, penPtr );
+    heap_free( penPtr );
     SetLastError( ERROR_INVALID_PARAMETER );
     return 0;
 }
@@ -279,7 +279,7 @@ static BOOL PEN_DeleteObject( HGDIOBJ handle )
 
     if (!pen) return FALSE;
     free_brush_pattern( &pen->pattern );
-    HeapFree( GetProcessHeap(), 0, pen );
+    heap_free( pen );
     return TRUE;
 }
 

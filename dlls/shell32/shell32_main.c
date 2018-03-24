@@ -1148,13 +1148,13 @@ BOOL WINAPI ShellAboutA( HWND hWnd, LPCSTR szApp, LPCSTR szOtherStuff, HICON hIc
     if (szApp)
     {
         len = MultiByteToWideChar(CP_ACP, 0, szApp, -1, NULL, 0);
-        appW = heap_alloc( len * sizeof(WCHAR));
+        appW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, szApp, -1, appW, len);
     }
     if (szOtherStuff)
     {
         len = MultiByteToWideChar(CP_ACP, 0, szOtherStuff, -1, NULL, 0);
-        otherW = heap_alloc( len * sizeof(WCHAR));
+        otherW = heap_alloc(len * sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, szOtherStuff, -1, otherW, len);
     }
 

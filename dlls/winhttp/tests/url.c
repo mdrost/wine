@@ -174,7 +174,7 @@ static void WinHttpCreateUrl_test( void )
 
     /* valid components, allocated url, short length */
     SetLastError( 0xdeadbeef );
-    url = HeapAlloc( GetProcessHeap(), 0, 256 * sizeof(WCHAR) );
+    url = heap_alloc( 256 * sizeof(WCHAR) );
     url[0] = 0;
     len = 2;
     ret = WinHttpCreateUrl( &uc, 0, url, &len );
@@ -316,7 +316,7 @@ static void WinHttpCreateUrl_test( void )
     ok( len == 58, "expected len 58 got %u\n", len );
     ok( !lstrcmpW( url, url8 ), "url doesn't match\n" );
 
-    HeapFree( GetProcessHeap(), 0, url );
+    heap_free( url );
 }
 
 static void reset_url_components( URL_COMPONENTS *uc )

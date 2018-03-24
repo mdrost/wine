@@ -549,7 +549,7 @@ static void test_CopyImage_Bitmap(int depth)
     unsigned int i;
 
     /* Create a device-independent bitmap (DIB) */
-    info = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
+    info = heap_alloc_zero(sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
     info->bmiHeader.biSize = sizeof(info->bmiHeader);
     info->bmiHeader.biWidth = 2;
     info->bmiHeader.biHeight = 2;
@@ -689,7 +689,7 @@ static void test_CopyImage_Bitmap(int depth)
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
 }
 
 static void test_initial_cursor(void)
@@ -895,7 +895,7 @@ static void test_CreateIcon(void)
 
     /* test creating an icon from a DIB section */
 
-    bmpinfo = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, FIELD_OFFSET(BITMAPINFO,bmiColors[256]));
+    bmpinfo = heap_alloc_zero( FIELD_OFFSET(BITMAPINFO,bmiColors[256]));
     bmpinfo->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmpinfo->bmiHeader.biWidth = 32;
     bmpinfo->bmiHeader.biHeight = 32;
@@ -961,7 +961,7 @@ static void test_CreateIcon(void)
 
     DeleteObject(hbmMask);
     DeleteObject(hbmColor);
-    HeapFree( GetProcessHeap(), 0, bmpinfo );
+    heap_free( bmpinfo );
 
     ReleaseDC(0, hdc);
 }
@@ -1163,7 +1163,7 @@ static void create_ico_file(const char *filename, const test_icon_entries_t *tes
     for(i=0; i<entry_cnt; i++)
         icon_size += icon_bpp * test_icon_entries[i].width * test_icon_entries[i].height / 8;
 
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, icon_size);
+    buf = heap_alloc_zero(icon_size);
     dir = (CURSORICONFILEDIR*)buf;
 
     dir->idReserved = 0;
@@ -1202,7 +1202,7 @@ static void create_ico_file(const char *filename, const test_icon_entries_t *tes
     ok(ret && bytes_written == icon_size, "icon.ico created improperly.\n");
     CloseHandle(file);
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 }
 
 static void test_LoadImage(void)
@@ -1350,7 +1350,7 @@ static void test_CreateIconFromResource(void)
 #define CRSR_RES_SIZE (2*sizeof(INT16) + ICON_RES_SIZE)
 
     /* Set icon data. */
-    hotspot = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, CRSR_RES_SIZE);
+    hotspot = heap_alloc_zero(CRSR_RES_SIZE);
 
     /* Cursor resources have an extra hotspot, icon resources not. */
     hotspot[0] = 3;
@@ -1439,7 +1439,7 @@ static void test_CreateIconFromResource(void)
      * handle = CreateIconFromResource(NULL, ICON_RES_SIZE, TRUE, 0x00030000);
      * ok(handle == NULL, "Invalid pointer accepted (%p)\n", handle);
      */
-    HeapFree(GetProcessHeap(), 0, hotspot);
+    heap_free(hotspot);
 
     /* Test creating an animated cursor. */
     empty_anicursor.frames[0].data.icon_info.idType = 2; /* type: cursor */
@@ -1485,7 +1485,7 @@ static int check_cursor_data( HDC hdc, HCURSOR hCursor, void *data, int length)
     ok(ret, "GetIconInfo() failed\n");
     if (!ret) return 0;
     ret = 0;
-    info = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( BITMAPINFO, bmiColors[256] ));
+    info = heap_alloc( FIELD_OFFSET( BITMAPINFO, bmiColors[256] ));
     ok(info != NULL, "HeapAlloc() failed\n");
     if (!info) return 0;
 
@@ -1500,7 +1500,7 @@ static int check_cursor_data( HDC hdc, HCURSOR hCursor, void *data, int length)
     info->bmiHeader.biYPelsPerMeter = 0;
     info->bmiHeader.biClrUsed = 0;
     info->bmiHeader.biClrImportant = 0;
-    image = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage );
+    image = heap_alloc( info->bmiHeader.biSizeImage );
     ok(image != NULL, "HeapAlloc() failed\n");
     if (!image) goto cleanup;
     ret = GetDIBits( hdc, iinfo.hbmColor, 0, 32, image, info, DIB_RGB_COLORS );
@@ -1511,8 +1511,8 @@ static int check_cursor_data( HDC hdc, HCURSOR hCursor, void *data, int length)
         ok(ret, "%04x: Expected 0x%x, actually 0x%x\n", i, ((COLORREF *)data)[i], ((COLORREF *)image)[i] );
     }
 cleanup:
-    HeapFree( GetProcessHeap(), 0, image );
-    HeapFree( GetProcessHeap(), 0, info );
+    heap_free( image );
+    heap_free( info );
     return ret;
 }
 
@@ -1565,7 +1565,7 @@ static void test_GetCursorFrameInfo(void)
 #define CRSR_RES_SIZE (2*sizeof(INT16) + ICON_RES_SIZE)
 
     /* Set icon data. */
-    hotspot = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, CRSR_RES_SIZE);
+    hotspot = heap_alloc_zero(CRSR_RES_SIZE);
 
     /* Cursor resources have an extra hotspot, icon resources not. */
     hotspot[0] = 3;
@@ -1757,7 +1757,7 @@ static void test_GetCursorFrameInfo(void)
     ret = DestroyCursor(h1);
     ok(ret, "DestroyCursor() failed (error = %d).\n", GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, hotspot);
+    heap_free(hotspot);
 cleanup:
     if(bmpOld) SelectObject(hdc, bmpOld);
     if(bmp) DeleteObject(bmp);
@@ -2562,7 +2562,7 @@ static void test_monochrome_icon(void)
     ULONG icon_size;
     BOOL monochrome, use_core_info;
 
-    icon_data = HeapAlloc(GetProcessHeap(), 0, sizeof(CURSORICONFILEDIR) + sizeof(BITMAPINFOHEADER) +
+    icon_data = heap_alloc(sizeof(CURSORICONFILEDIR) + sizeof(BITMAPINFOHEADER) +
                                                2 * sizeof(RGBQUAD) + sizeof(ULONG));
 
     for (monochrome = FALSE; monochrome <= TRUE; monochrome++)
@@ -2663,7 +2663,7 @@ static void test_monochrome_icon(void)
         DeleteFileA("icon.ico");
     }
 
-    HeapFree(GetProcessHeap(), 0, icon_data);
+    heap_free(icon_data);
 }
 
 START_TEST(cursoricon)

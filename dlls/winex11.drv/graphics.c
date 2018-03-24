@@ -164,10 +164,10 @@ RGNDATA *X11DRV_GetRegionData( HRGN hrgn, HDC hdc_lptodp )
         int count = (size - sizeof(RGNDATAHEADER)) / sizeof(RECT);
         size += count * (sizeof(XRectangle) - sizeof(RECT));
     }
-    if (!(data = HeapAlloc( GetProcessHeap(), 0, size ))) return NULL;
+    if (!(data = heap_alloc( size ))) return NULL;
     if (!GetRegionData( hrgn, size, data ))
     {
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
         return NULL;
     }
 
@@ -253,7 +253,7 @@ static void update_x11_clipping( X11DRV_PDEVICE *physDev, HRGN rgn )
     {
         XSetClipRectangles( gdi_display, physDev->gc, physDev->dc_rect.left, physDev->dc_rect.top,
                             (XRectangle *)data->Buffer, data->rdh.nCount, YXBanded );
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
 }
 
@@ -1061,7 +1061,7 @@ BOOL X11DRV_PaintRgn( PHYSDEV dev, HRGN hrgn )
         }
 
         XFillRectangles( gdi_display, physDev->drawable, physDev->gc, rect, data->rdh.nCount );
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
     if (GetRgnBox( hrgn, &rc ))
     {
@@ -1081,15 +1081,15 @@ BOOL X11DRV_Polygon( PHYSDEV dev, const POINT* pt, INT count )
     POINT *points;
     XPoint *xpoints;
 
-    points = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*pt) );
+    points = heap_alloc( count * sizeof(*pt) );
     if (!points) return FALSE;
     memcpy( points, pt, count * sizeof(*pt) );
     LPtoDP( dev->hdc, points, count );
     add_pen_device_bounds( physDev, points, count );
 
-    if (!(xpoints = HeapAlloc( GetProcessHeap(), 0, sizeof(XPoint) * (count+1) )))
+    if (!(xpoints = heap_alloc( sizeof(XPoint) * (count+1) )))
     {
-        HeapFree( GetProcessHeap(), 0, points );
+        heap_free( points );
         return FALSE;
     }
     for (i = 0; i < count; i++)
@@ -1107,8 +1107,8 @@ BOOL X11DRV_Polygon( PHYSDEV dev, const POINT* pt, INT count )
         XDrawLines( gdi_display, physDev->drawable, physDev->gc,
                     xpoints, count+1, CoordModeOrigin );
 
-    HeapFree( GetProcessHeap(), 0, xpoints );
-    HeapFree( GetProcessHeap(), 0, points );
+    heap_free( xpoints );
+    heap_free( points );
     return TRUE;
 }
 
@@ -1130,7 +1130,7 @@ BOOL X11DRV_PolyPolygon( PHYSDEV dev, const POINT* pt, const INT* counts, UINT p
         total += counts[i];
     }
 
-    points = HeapAlloc( GetProcessHeap(), 0, total * sizeof(*pt) );
+    points = heap_alloc( total * sizeof(*pt) );
     if (!points) return FALSE;
     memcpy( points, pt, total * sizeof(*pt) );
     LPtoDP( dev->hdc, points, total );
@@ -1152,7 +1152,7 @@ BOOL X11DRV_PolyPolygon( PHYSDEV dev, const POINT* pt, const INT* counts, UINT p
         }
 
         XFillRectangles( gdi_display, physDev->drawable, physDev->gc, rect, data->rdh.nCount );
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
 
     if (X11DRV_SetupGCForPen ( physDev ))
@@ -1160,7 +1160,7 @@ BOOL X11DRV_PolyPolygon( PHYSDEV dev, const POINT* pt, const INT* counts, UINT p
         XPoint *xpoints;
         int j;
 
-        if (!(xpoints = HeapAlloc( GetProcessHeap(), 0, sizeof(XPoint) * (max + 1) ))) goto done;
+        if (!(xpoints = heap_alloc( sizeof(XPoint) * (max + 1) ))) goto done;
         for (i = pos = 0; i < polygons; pos += counts[i++])
         {
             for (j = 0; j < counts[i]; j++)
@@ -1171,12 +1171,12 @@ BOOL X11DRV_PolyPolygon( PHYSDEV dev, const POINT* pt, const INT* counts, UINT p
 	    xpoints[j] = xpoints[0];
             XDrawLines( gdi_display, physDev->drawable, physDev->gc, xpoints, j + 1, CoordModeOrigin );
         }
-        HeapFree( GetProcessHeap(), 0, xpoints );
+        heap_free( xpoints );
     }
     ret = TRUE;
 
 done:
-    HeapFree( GetProcessHeap(), 0, points );
+    heap_free( points );
     return ret;
 }
 
@@ -1197,7 +1197,7 @@ BOOL X11DRV_PolyPolyline( PHYSDEV dev, const POINT* pt, const DWORD* counts, DWO
         total += counts[i];
     }
 
-    points = HeapAlloc( GetProcessHeap(), 0, total * sizeof(*pt) );
+    points = heap_alloc( total * sizeof(*pt) );
     if (!points) return FALSE;
     memcpy( points, pt, total * sizeof(*pt) );
     LPtoDP( dev->hdc, points, total );
@@ -1207,9 +1207,9 @@ BOOL X11DRV_PolyPolyline( PHYSDEV dev, const POINT* pt, const DWORD* counts, DWO
     {
         XPoint *xpoints;
 
-        if (!(xpoints = HeapAlloc( GetProcessHeap(), 0, sizeof(XPoint) * max )))
+        if (!(xpoints = heap_alloc( sizeof(XPoint) * max )))
         {
-            HeapFree( GetProcessHeap(), 0, points );
+            heap_free( points );
             return FALSE;
         }
         for (i = pos = 0; i < polylines; pos += counts[i++])
@@ -1221,9 +1221,9 @@ BOOL X11DRV_PolyPolyline( PHYSDEV dev, const POINT* pt, const DWORD* counts, DWO
             }
             XDrawLines( gdi_display, physDev->drawable, physDev->gc, xpoints, j, CoordModeOrigin );
         }
-        HeapFree( GetProcessHeap(), 0, xpoints );
+        heap_free( xpoints );
     }
-    HeapFree( GetProcessHeap(), 0, points );
+    heap_free( points );
     return TRUE;
 }
 
@@ -1244,9 +1244,9 @@ static BOOL x11drv_stroke_and_fill_path( PHYSDEV dev, BOOL stroke, BOOL fill )
         AbortPath( dev->hdc );
         return TRUE;
     }
-    xpoints = HeapAlloc( GetProcessHeap(), 0, (size + 1) * sizeof(*xpoints) );
-    points = HeapAlloc( GetProcessHeap(), 0, size * sizeof(*points) );
-    flags = HeapAlloc( GetProcessHeap(), 0, size * sizeof(*flags) );
+    xpoints = heap_alloc( (size + 1) * sizeof(*xpoints) );
+    points = heap_alloc( size * sizeof(*points) );
+    flags = heap_alloc( size * sizeof(*flags) );
     if (!points || !flags || !xpoints) goto done;
     if (GetPath( dev->hdc, points, flags, size ) == -1) goto done;
     LPtoDP( dev->hdc, points, size );
@@ -1267,7 +1267,7 @@ static BOOL x11drv_stroke_and_fill_path( PHYSDEV dev, BOOL stroke, BOOL fill )
         }
 
         XFillRectangles( gdi_display, physDev->drawable, physDev->gc, rect, data->rdh.nCount );
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
 
     if (stroke && X11DRV_SetupGCForPen ( physDev ))
@@ -1298,9 +1298,9 @@ static BOOL x11drv_stroke_and_fill_path( PHYSDEV dev, BOOL stroke, BOOL fill )
     ret = TRUE;
 
 done:
-    HeapFree( GetProcessHeap(), 0, xpoints );
-    HeapFree( GetProcessHeap(), 0, points );
-    HeapFree( GetProcessHeap(), 0, flags );
+    heap_free( xpoints );
+    heap_free( points );
+    heap_free( flags );
     return ret;
 }
 
@@ -1608,7 +1608,7 @@ static unsigned char *get_icm_profile( unsigned long *size )
     *size = get_property_size( format, count );
     if (format && count)
     {
-        if ((ret = HeapAlloc( GetProcessHeap(), 0, *size ))) memcpy( ret, profile, *size );
+        if ((ret = heap_alloc( *size ))) memcpy( ret, profile, *size );
         XFree( profile );
     }
     return ret;
@@ -1687,7 +1687,7 @@ BOOL X11DRV_GetICMProfile( PHYSDEV dev, LPDWORD size, LPWSTR filename )
                 ERR( "Unable to write color profile\n" );
             CloseHandle( file );
         }
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
     }
     else strcatW( fullname, srgb );
 
@@ -1730,7 +1730,7 @@ INT X11DRV_EnumICMProfiles( PHYSDEV dev, ICMENUMPROCW proc, LPARAM lparam )
     len = 64;
     for (;;)
     {
-        if (!(profile = HeapAlloc( GetProcessHeap(), 0, (len_path + len) * sizeof(WCHAR) )))
+        if (!(profile = heap_alloc( (len_path + len) * sizeof(WCHAR) )))
         {
             RegCloseKey( hkey );
             return -1;
@@ -1739,8 +1739,8 @@ INT X11DRV_EnumICMProfiles( PHYSDEV dev, ICMENUMPROCW proc, LPARAM lparam )
         while (res == ERROR_MORE_DATA)
         {
             len *= 2;
-            HeapFree( GetProcessHeap(), 0, profile );
-            if (!(profile = HeapAlloc( GetProcessHeap(), 0, (len_path + len) * sizeof(WCHAR) )))
+            heap_free( profile );
+            if (!(profile = heap_alloc( (len_path + len) * sizeof(WCHAR) )))
             {
                 RegCloseKey( hkey );
                 return -1;
@@ -1749,13 +1749,13 @@ INT X11DRV_EnumICMProfiles( PHYSDEV dev, ICMENUMPROCW proc, LPARAM lparam )
         }
         if (res != ERROR_SUCCESS)
         {
-            HeapFree( GetProcessHeap(), 0, profile );
+            heap_free( profile );
             break;
         }
         memcpy( profile, sysdir, len_sysdir * sizeof(WCHAR) );
         memcpy( profile + len_sysdir, color_path, sizeof(color_path) - sizeof(WCHAR) );
         ret = proc( profile, lparam );
-        HeapFree( GetProcessHeap(), 0, profile );
+        heap_free( profile );
         if (!ret) break;
         index++;
     }

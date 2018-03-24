@@ -133,13 +133,13 @@ static BOOL grow_region( WINEREGION *rgn, int size )
 
     if (rgn->rects == rgn->rects_buf)
     {
-        new_rects = HeapAlloc( GetProcessHeap(), 0, size * sizeof(RECT) );
+        new_rects = heap_alloc( size * sizeof(RECT) );
         if (!new_rects) return FALSE;
         memcpy( new_rects, rgn->rects, rgn->numRects * sizeof(RECT) );
     }
     else
     {
-        new_rects = HeapReAlloc( GetProcessHeap(), 0, rgn->rects, size * sizeof(RECT) );
+        new_rects = heap_realloc( rgn->rects, size * sizeof(RECT) );
         if (!new_rects) return FALSE;
     }
     rgn->rects = new_rects;
@@ -190,7 +190,7 @@ static struct point_block *add_point( struct point_block *block, int x, int y )
     {
         struct point_block *new;
         int size = block->size * 2;
-        new = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( struct point_block, pts[size] ) );
+        new = heap_alloc( FIELD_OFFSET( struct point_block, pts[size] ) );
         if (!new) return NULL;
         block->next = new;
         new->count = 0;
@@ -209,7 +209,7 @@ static void free_point_blocks( struct point_block *block )
     while (block)
     {
 	struct point_block *tmp = block->next;
-	HeapFree( GetProcessHeap(), 0, block );
+	heap_free( block );
 	block = tmp;
     }
 }
@@ -452,7 +452,7 @@ static BOOL init_region( WINEREGION *pReg, INT n )
 
     if (n > RGN_DEFAULT_RECTS)
     {
-        if (!(pReg->rects = HeapAlloc( GetProcessHeap(), 0, n * sizeof( RECT ) )))
+        if (!(pReg->rects = heap_alloc( n * sizeof( RECT ) )))
             return FALSE;
     }
     else
@@ -469,7 +469,7 @@ static BOOL init_region( WINEREGION *pReg, INT n )
 static void destroy_region( WINEREGION *pReg )
 {
     if (pReg->rects != pReg->rects_buf)
-        HeapFree( GetProcessHeap(), 0, pReg->rects );
+        heap_free( pReg->rects );
 }
 
 /***********************************************************************
@@ -478,7 +478,7 @@ static void destroy_region( WINEREGION *pReg )
 static void free_region( WINEREGION *rgn )
 {
     destroy_region( rgn );
-    HeapFree( GetProcessHeap(), 0, rgn );
+    heap_free( rgn );
 }
 
 /***********************************************************************
@@ -486,7 +486,7 @@ static void free_region( WINEREGION *rgn )
  */
 static WINEREGION *alloc_region( INT n )
 {
-    WINEREGION *rgn = HeapAlloc( GetProcessHeap(), 0, sizeof(*rgn) );
+    WINEREGION *rgn = heap_alloc( sizeof(*rgn) );
 
     if (rgn && !init_region( rgn, n ))
     {
@@ -1643,7 +1643,7 @@ static void REGION_compact( WINEREGION *reg )
 {
     if ((reg->numRects < reg->size / 2) && (reg->numRects > RGN_DEFAULT_RECTS))
     {
-        RECT *new_rects = HeapReAlloc( GetProcessHeap(), 0, reg->rects, reg->numRects * sizeof(RECT) );
+        RECT *new_rects = heap_realloc( reg->rects, reg->numRects * sizeof(RECT) );
         if (new_rects)
         {
             reg->rects = new_rects;
@@ -2372,7 +2372,7 @@ static void REGION_InsertEdgeInET(EdgeTable *ET, EdgeTableEntry *ETE,
     {
         if (*iSLLBlock > SLLSPERBLOCK-1)
         {
-            tmpSLLBlock = HeapAlloc( GetProcessHeap(), 0, sizeof(ScanLineListBlock));
+            tmpSLLBlock = heap_alloc( sizeof(ScanLineListBlock));
 	    if(!tmpSLLBlock)
 	    {
 	        WARN("Can't alloc SLLB\n");
@@ -2611,7 +2611,7 @@ static void REGION_FreeStorage(ScanLineListBlock *pSLLBlock)
     while (pSLLBlock)
     {
         tmpSLLBlock = pSLLBlock->next;
-        HeapFree( GetProcessHeap(), 0, pSLLBlock );
+        heap_free( pSLLBlock );
         pSLLBlock = tmpSLLBlock;
     }
 }
@@ -2716,7 +2716,7 @@ HRGN WINAPI CreatePolyPolygonRgn(const POINT *Pts, const INT *Count,
 
     for(poly = total = 0; poly < nbpolygons; poly++)
         total += Count[poly];
-    if (! (pETEs = HeapAlloc( GetProcessHeap(), 0, sizeof(EdgeTableEntry) * total )))
+    if (! (pETEs = heap_alloc( sizeof(EdgeTableEntry) * total )))
 	return 0;
 
     REGION_CreateEdgeTable(Count, nbpolygons, Pts, &ET, pETEs, &SLLBlock);
@@ -2811,7 +2811,7 @@ HRGN WINAPI CreatePolyPolygonRgn(const POINT *Pts, const INT *Count,
 done:
     REGION_FreeStorage(SLLBlock.next);
     free_point_blocks( first_block->next );
-    HeapFree( GetProcessHeap(), 0, pETEs );
+    heap_free( pETEs );
     return hrgn;
 }
 

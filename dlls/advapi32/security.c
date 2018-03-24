@@ -401,6 +401,7 @@ static inline BOOL set_ntstatus( NTSTATUS status )
 /* helper function for SE_FILE_OBJECT objects in [Get|Set]NamedSecurityInfo */
 static inline DWORD get_security_file( LPCWSTR full_file_name, DWORD access, HANDLE *file )
 {
+#if 0
     UNICODE_STRING file_nameW;
     OBJECT_ATTRIBUTES attr;
     IO_STATUS_BLOCK io;
@@ -418,6 +419,9 @@ static inline DWORD get_security_file( LPCWSTR full_file_name, DWORD access, HAN
                            FILE_OPEN_FOR_BACKUP_INTENT, NULL, 0 );
     RtlFreeUnicodeString( &file_nameW );
     return RtlNtStatusToDosError( status );
+#else
+    return ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 }
 
 /* helper function for SE_SERVICE objects in [Get|Set]NamedSecurityInfo */
@@ -435,6 +439,7 @@ static inline DWORD get_security_service( LPWSTR full_service_name, DWORD access
     return err;
 }
 
+#if 0
 /* helper function for SE_REGISTRY_KEY objects in [Get|Set]NamedSecurityInfo */
 static inline DWORD get_security_regkey( LPWSTR full_key_name, DWORD access, HANDLE *key )
 {
@@ -459,6 +464,7 @@ static inline DWORD get_security_regkey( LPWSTR full_key_name, DWORD access, HAN
         return ERROR_INVALID_PARAMETER;
     return RegOpenKeyExW( hParent, p+1, 0, access, (HKEY *)key );
 }
+#endif
 
 #define	WINE_SIZE_OF_WORLD_ACCESS_ACL	(sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + sizeof(sidWorld) - sizeof(DWORD))
 
@@ -586,9 +592,9 @@ AdjustTokenGroups( HANDLE TokenHandle, BOOL ResetToDefault, PTOKEN_GROUPS NewSta
  * AdjustTokenPrivileges [ADVAPI32.@]
  *
  * Adjust the privileges of an open token handle.
- * 
+ *
  * PARAMS
- *  TokenHandle          [I]   Handle from OpenProcessToken() or OpenThreadToken() 
+ *  TokenHandle          [I]   Handle from OpenProcessToken() or OpenThreadToken()
  *  DisableAllPrivileges [I]   TRUE=Remove all privileges, FALSE=Use NewState
  *  NewState             [I]   Desired new privileges of the token
  *  BufferLength         [I]   Length of NewState
@@ -627,7 +633,7 @@ AdjustTokenPrivileges( HANDLE TokenHandle, BOOL DisableAllPrivileges,
  * CheckTokenMembership [ADVAPI32.@]
  *
  * Determine if an access token is a member of a SID.
- * 
+ *
  * PARAMS
  *   TokenHandle [I] Handle from OpenProcessToken() or OpenThreadToken()
  *   SidToCheck  [I] SID that possibly contains the token
@@ -805,12 +811,13 @@ SetTokenInformation( HANDLE token, TOKEN_INFORMATION_CLASS tokeninfoclass,
     return set_ntstatus( NtSetInformationToken( token, tokeninfoclass, tokeninfo, tokeninfolength ));
 }
 
+#if 0
 /*************************************************************************
  * SetThreadToken [ADVAPI32.@]
  *
  * Assigns an 'impersonation token' to a thread so it can assume the
  * security privileges of another thread or process.  Can also remove
- * a previously assigned token. 
+ * a previously assigned token.
  *
  * PARAMS
  *   thread          [O] Handle to thread to set the token for
@@ -829,6 +836,7 @@ BOOL WINAPI SetThreadToken(PHANDLE thread, HANDLE token)
     return set_ntstatus( NtSetInformationThread( thread ? *thread : GetCurrentThread(),
                                                  ThreadImpersonationToken, &token, sizeof token ));
 }
+#endif
 
 /*************************************************************************
  * CreateRestrictedToken [ADVAPI32.@]
@@ -1045,28 +1053,28 @@ IsTokenRestricted( HANDLE TokenHandle )
     BOOL restricted;
 
     TRACE("(%p)\n", TokenHandle);
- 
+
     status = NtQueryInformationToken(TokenHandle, TokenRestrictedSids, NULL, 0, &size);
     if (status != STATUS_BUFFER_TOO_SMALL)
         return FALSE;
- 
+
     groups = heap_alloc(size);
     if (!groups)
     {
         SetLastError(ERROR_OUTOFMEMORY);
         return FALSE;
     }
- 
+
     status = NtQueryInformationToken(TokenHandle, TokenRestrictedSids, groups, size, &size);
     if (status != STATUS_SUCCESS)
     {
         heap_free(groups);
         return set_ntstatus(status);
     }
- 
+
     restricted = groups->GroupCount > 0;
     heap_free(groups);
- 
+
     return restricted;
 }
 
@@ -1206,10 +1214,10 @@ GetLengthSid (PSID pSid)
 	##############################################
 */
 
- /****************************************************************************** 
+ /******************************************************************************
  * BuildSecurityDescriptorA [ADVAPI32.@]
  *
- * Builds a SD from 
+ * Builds a SD from
  *
  * PARAMS
  *  pOwner                [I]
@@ -1236,14 +1244,14 @@ DWORD WINAPI BuildSecurityDescriptorA(
     IN PSECURITY_DESCRIPTOR pOldSD,
     IN OUT PULONG lpdwBufferLength,
     OUT PSECURITY_DESCRIPTOR* pNewSD)
-{ 
+{
     FIXME("(%p,%p,%d,%p,%d,%p,%p,%p,%p) stub!\n",pOwner,pGroup,
           cCountOfAccessEntries,pListOfAccessEntries,cCountOfAuditEntries,
           pListofAuditEntries,pOldSD,lpdwBufferLength,pNewSD);
- 
+
     return ERROR_CALL_NOT_IMPLEMENTED;
-} 
- 
+}
+
 /******************************************************************************
  * BuildSecurityDescriptorW [ADVAPI32.@]
  *
@@ -1259,13 +1267,13 @@ DWORD WINAPI BuildSecurityDescriptorW(
     IN PSECURITY_DESCRIPTOR pOldSD,
     IN OUT PULONG lpdwBufferLength,
     OUT PSECURITY_DESCRIPTOR* pNewSD)
-{ 
+{
     FIXME("(%p,%p,%d,%p,%d,%p,%p,%p,%p) stub!\n",pOwner,pGroup,
           cCountOfAccessEntries,pListOfAccessEntries,cCountOfAuditEntries,
           pListofAuditEntries,pOldSD,lpdwBufferLength,pNewSD);
- 
+
     return ERROR_CALL_NOT_IMPLEMENTED;
-} 
+}
 
 /******************************************************************************
  * InitializeSecurityDescriptor [ADVAPI32.@]
@@ -2088,7 +2096,7 @@ LookupPrivilegeNameW( LPCWSTR lpSystemName, PLUID lpLuid, LPWSTR lpName,
  *
  * RETURNS
  *  Success: TRUE. pSecurityDescriptor contains the requested information.
- *  Failure: FALSE. lpnLengthNeeded contains the required space to return the info. 
+ *  Failure: FALSE. lpnLengthNeeded contains the required space to return the info.
  *
  * NOTES
  *  The information returned is constrained by the callers access rights and
@@ -2491,6 +2499,7 @@ NotifyBootConfigStatus( BOOL x1 )
 	return TRUE;
 }
 
+#if 0
 /******************************************************************************
  * RevertToSelf [ADVAPI32.@]
  *
@@ -2598,6 +2607,7 @@ BOOL WINAPI ImpersonateAnonymousToken( HANDLE thread )
     TRACE("(%p)\n", thread);
     return set_ntstatus( NtImpersonateAnonymousToken( thread ) );
 }
+#endif
 
 /******************************************************************************
  * AccessCheck [ADVAPI32.@]
@@ -2626,15 +2636,15 @@ AccessCheck(
  * AccessCheckByType [ADVAPI32.@]
  */
 BOOL WINAPI AccessCheckByType(
-    PSECURITY_DESCRIPTOR pSecurityDescriptor, 
+    PSECURITY_DESCRIPTOR pSecurityDescriptor,
     PSID PrincipalSelfSid,
-    HANDLE ClientToken, 
-    DWORD DesiredAccess, 
+    HANDLE ClientToken,
+    DWORD DesiredAccess,
     POBJECT_TYPE_LIST ObjectTypeList,
     DWORD ObjectTypeListLength,
     PGENERIC_MAPPING GenericMapping,
     PPRIVILEGE_SET PrivilegeSet,
-    LPDWORD PrivilegeSetLength, 
+    LPDWORD PrivilegeSetLength,
     LPDWORD GrantedAccess,
     LPBOOL AccessStatus)
 {
@@ -2679,15 +2689,15 @@ BOOL WINAPI SetKernelObjectSecurity (
  *  AddAuditAccessAce [ADVAPI32.@]
  */
 BOOL WINAPI AddAuditAccessAce(
-    IN OUT PACL pAcl, 
-    IN DWORD dwAceRevision, 
-    IN DWORD dwAccessMask, 
-    IN PSID pSid, 
-    IN BOOL bAuditSuccess, 
-    IN BOOL bAuditFailure) 
+    IN OUT PACL pAcl,
+    IN DWORD dwAceRevision,
+    IN DWORD dwAccessMask,
+    IN PSID pSid,
+    IN BOOL bAuditSuccess,
+    IN BOOL bAuditFailure)
 {
-    return set_ntstatus( RtlAddAuditAccessAce(pAcl, dwAceRevision, dwAccessMask, pSid, 
-                                              bAuditSuccess, bAuditFailure) ); 
+    return set_ntstatus( RtlAddAuditAccessAce(pAcl, dwAceRevision, dwAccessMask, pSid,
+                                              bAuditSuccess, bAuditFailure) );
 }
 
 /******************************************************************************
@@ -3332,14 +3342,14 @@ DWORD WINAPI GetSecurityInfoExA(
  * GetSecurityInfoExW [ADVAPI32.@]
  */
 DWORD WINAPI GetSecurityInfoExW(
-	HANDLE hObject, SE_OBJECT_TYPE ObjectType, 
+	HANDLE hObject, SE_OBJECT_TYPE ObjectType,
 	SECURITY_INFORMATION SecurityInfo, LPCWSTR lpProvider,
-	LPCWSTR lpProperty, PACTRL_ACCESSW *ppAccessList, 
+	LPCWSTR lpProperty, PACTRL_ACCESSW *ppAccessList,
 	PACTRL_AUDITW *ppAuditList, LPWSTR *lppOwner, LPWSTR *lppGroup
 )
 {
   FIXME("stub!\n");
-  return ERROR_BAD_PROVIDER; 
+  return ERROR_BAD_PROVIDER;
 }
 
 /******************************************************************************
@@ -3600,84 +3610,84 @@ VOID WINAPI BuildTrusteeWithNameW(PTRUSTEEW pTrustee, LPWSTR name)
     pTrustee->ptstrName = name;
 }
 
-/****************************************************************************** 
- * GetTrusteeFormA [ADVAPI32.@] 
- */ 
-TRUSTEE_FORM WINAPI GetTrusteeFormA(PTRUSTEEA pTrustee) 
-{  
-    TRACE("(%p)\n", pTrustee); 
-  
-    if (!pTrustee) 
-        return TRUSTEE_BAD_FORM; 
-  
-    return pTrustee->TrusteeForm; 
-}  
-  
-/****************************************************************************** 
- * GetTrusteeFormW [ADVAPI32.@] 
- */ 
-TRUSTEE_FORM WINAPI GetTrusteeFormW(PTRUSTEEW pTrustee) 
-{  
-    TRACE("(%p)\n", pTrustee); 
-  
-    if (!pTrustee) 
-        return TRUSTEE_BAD_FORM; 
-  
-    return pTrustee->TrusteeForm; 
-}  
-  
-/****************************************************************************** 
- * GetTrusteeNameA [ADVAPI32.@] 
- */ 
-LPSTR WINAPI GetTrusteeNameA(PTRUSTEEA pTrustee) 
-{  
-    TRACE("(%p)\n", pTrustee); 
-  
-    if (!pTrustee) 
-        return NULL; 
-  
-    return pTrustee->ptstrName; 
-}  
-  
-/****************************************************************************** 
- * GetTrusteeNameW [ADVAPI32.@] 
- */ 
-LPWSTR WINAPI GetTrusteeNameW(PTRUSTEEW pTrustee) 
-{  
-    TRACE("(%p)\n", pTrustee); 
-  
-    if (!pTrustee) 
-        return NULL; 
-  
-    return pTrustee->ptstrName; 
-}  
-  
-/****************************************************************************** 
- * GetTrusteeTypeA [ADVAPI32.@] 
- */ 
-TRUSTEE_TYPE WINAPI GetTrusteeTypeA(PTRUSTEEA pTrustee) 
-{  
-    TRACE("(%p)\n", pTrustee); 
-  
-    if (!pTrustee) 
-        return TRUSTEE_IS_UNKNOWN; 
-  
-    return pTrustee->TrusteeType; 
-}  
-  
-/****************************************************************************** 
- * GetTrusteeTypeW [ADVAPI32.@] 
- */ 
-TRUSTEE_TYPE WINAPI GetTrusteeTypeW(PTRUSTEEW pTrustee) 
-{  
-    TRACE("(%p)\n", pTrustee); 
-  
-    if (!pTrustee) 
-        return TRUSTEE_IS_UNKNOWN; 
-  
-    return pTrustee->TrusteeType; 
-} 
- 
+/******************************************************************************
+ * GetTrusteeFormA [ADVAPI32.@]
+ */
+TRUSTEE_FORM WINAPI GetTrusteeFormA(PTRUSTEEA pTrustee)
+{
+    TRACE("(%p)\n", pTrustee);
+
+    if (!pTrustee)
+        return TRUSTEE_BAD_FORM;
+
+    return pTrustee->TrusteeForm;
+}
+
+/******************************************************************************
+ * GetTrusteeFormW [ADVAPI32.@]
+ */
+TRUSTEE_FORM WINAPI GetTrusteeFormW(PTRUSTEEW pTrustee)
+{
+    TRACE("(%p)\n", pTrustee);
+
+    if (!pTrustee)
+        return TRUSTEE_BAD_FORM;
+
+    return pTrustee->TrusteeForm;
+}
+
+/******************************************************************************
+ * GetTrusteeNameA [ADVAPI32.@]
+ */
+LPSTR WINAPI GetTrusteeNameA(PTRUSTEEA pTrustee)
+{
+    TRACE("(%p)\n", pTrustee);
+
+    if (!pTrustee)
+        return NULL;
+
+    return pTrustee->ptstrName;
+}
+
+/******************************************************************************
+ * GetTrusteeNameW [ADVAPI32.@]
+ */
+LPWSTR WINAPI GetTrusteeNameW(PTRUSTEEW pTrustee)
+{
+    TRACE("(%p)\n", pTrustee);
+
+    if (!pTrustee)
+        return NULL;
+
+    return pTrustee->ptstrName;
+}
+
+/******************************************************************************
+ * GetTrusteeTypeA [ADVAPI32.@]
+ */
+TRUSTEE_TYPE WINAPI GetTrusteeTypeA(PTRUSTEEA pTrustee)
+{
+    TRACE("(%p)\n", pTrustee);
+
+    if (!pTrustee)
+        return TRUSTEE_IS_UNKNOWN;
+
+    return pTrustee->TrusteeType;
+}
+
+/******************************************************************************
+ * GetTrusteeTypeW [ADVAPI32.@]
+ */
+TRUSTEE_TYPE WINAPI GetTrusteeTypeW(PTRUSTEEW pTrustee)
+{
+    TRACE("(%p)\n", pTrustee);
+
+    if (!pTrustee)
+        return TRUSTEE_IS_UNKNOWN;
+
+    return pTrustee->TrusteeType;
+}
+
 BOOL WINAPI SetAclInformation( PACL pAcl, LPVOID pAclInformation,
                                DWORD nAclInformationLength,
                                ACL_INFORMATION_CLASS dwAclInformationClass )
@@ -3818,6 +3828,7 @@ cleanup:
 DWORD WINAPI SetEntriesInAclW( ULONG count, PEXPLICIT_ACCESSW pEntries,
                                PACL OldAcl, PACL* NewAcl )
 {
+#if 0
     ULONG i;
     PSID *ppsid;
     DWORD ret = ERROR_SUCCESS;
@@ -4073,6 +4084,10 @@ DWORD WINAPI SetEntriesInAclW( ULONG count, PEXPLICIT_ACCESSW pEntries,
 exit:
     heap_free(ppsid);
     return ret;
+#else
+    FIXME("%d %p %p %p\n", count, pEntries, OldAcl, NewAcl);
+    return ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -4166,6 +4181,7 @@ DWORD WINAPI SetNamedSecurityInfoW(LPWSTR pObjectName,
             CloseServiceHandle( handle );
         }
         break;
+#if 0
     case SE_REGISTRY_KEY:
         if (!(err = get_security_regkey( pObjectName, access, &handle )))
         {
@@ -4173,6 +4189,7 @@ DWORD WINAPI SetNamedSecurityInfoW(LPWSTR pObjectName,
             RegCloseKey( handle );
         }
         break;
+#endif
     case SE_FILE_OBJECT:
         if (SecurityInfo & DACL_SECURITY_INFORMATION)
             access |= READ_CONTROL;
@@ -4204,6 +4221,7 @@ DWORD WINAPI GetExplicitEntriesFromAclA( PACL pacl, PULONG pcCountOfExplicitEntr
  */
 DWORD WINAPI GetExplicitEntriesFromAclW( PACL pacl, PULONG count, PEXPLICIT_ACCESSW *list )
 {
+#if 0
     ACL_SIZE_INFORMATION sizeinfo;
     EXPLICIT_ACCESSW *entries;
     MAX_SID *sid_entries;
@@ -4283,6 +4301,10 @@ DWORD WINAPI GetExplicitEntriesFromAclW( PACL pacl, PULONG count, PEXPLICIT_ACCE
 error:
     LocalFree(entries);
     return RtlNtStatusToDosError(status);
+#else
+    FIXME("%p %p %p\n",pacl, count, list);
+    return ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -4515,10 +4537,10 @@ static DWORD ParseAceStringRights(LPCWSTR* StringAcl)
 
 /******************************************************************************
  * ParseStringAclToAcl
- * 
- * dacl_flags(string_ace1)(string_ace2)... (string_acen) 
+ *
+ * dacl_flags(string_ace1)(string_ace2)... (string_acen)
  */
-static BOOL ParseStringAclToAcl(LPCWSTR StringAcl, LPDWORD lpdwFlags, 
+static BOOL ParseStringAclToAcl(LPCWSTR StringAcl, LPDWORD lpdwFlags,
     PACL pAcl, LPDWORD cBytes)
 {
     DWORD val;
@@ -4846,6 +4868,8 @@ BOOL WINAPI ConvertStringSecurityDescriptorToSecurityDescriptorW(
         NULL, &cBytes))
 	goto lend;
 
+    goto lend;
+#if 0
     psd = *SecurityDescriptor = LocalAlloc(GMEM_ZEROINIT, cBytes);
     if (!psd) goto lend;
 
@@ -4863,7 +4887,8 @@ BOOL WINAPI ConvertStringSecurityDescriptorToSecurityDescriptorW(
         *SecurityDescriptorSize = cBytes;
 
     bret = TRUE;
- 
+#endif
+
 lend:
     TRACE(" ret=%d\n", bret);
     return bret;
@@ -5213,6 +5238,8 @@ BOOL WINAPI ConvertSecurityDescriptorToStringSecurityDescriptorW(PSECURITY_DESCR
         if (!DumpSacl(SecurityDescriptor, NULL, &len))
             return FALSE;
 
+    return FALSE;
+#if 0
     wstr = wptr = LocalAlloc(0, (len + 1)*sizeof(WCHAR));
     if (RequestedInformation & OWNER_SECURITY_INFORMATION)
         if (!DumpOwner(SecurityDescriptor, &wptr, NULL)) {
@@ -5241,6 +5268,7 @@ BOOL WINAPI ConvertSecurityDescriptorToStringSecurityDescriptorW(PSECURITY_DESCR
     if (OutputLen)
         *OutputLen = strlenW(*OutputString)+1;
     return TRUE;
+#endif
 }
 
 /******************************************************************************
@@ -5248,6 +5276,7 @@ BOOL WINAPI ConvertSecurityDescriptorToStringSecurityDescriptorW(PSECURITY_DESCR
  */
 BOOL WINAPI ConvertSecurityDescriptorToStringSecurityDescriptorA(PSECURITY_DESCRIPTOR SecurityDescriptor, DWORD SDRevision, SECURITY_INFORMATION Information, LPSTR *OutputString, PULONG OutputLen)
 {
+#if 0
     LPWSTR wstr;
     ULONG len;
     if (ConvertSecurityDescriptorToStringSecurityDescriptorW(SecurityDescriptor, SDRevision, Information, &wstr, &len))
@@ -5264,6 +5293,7 @@ BOOL WINAPI ConvertSecurityDescriptorToStringSecurityDescriptorA(PSECURITY_DESCR
         return TRUE;
     }
     else
+#endif
     {
         *OutputString = NULL;
         if (OutputLen)
@@ -5281,6 +5311,7 @@ BOOL WINAPI ConvertStringSidToSidW(LPCWSTR StringSid, PSID* Sid)
     DWORD cBytes;
 
     TRACE("%s, %p\n", debugstr_w(StringSid), Sid);
+#if 0
     if (GetVersion() & 0x80000000)
         SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
     else if (!StringSid || !Sid)
@@ -5291,8 +5322,11 @@ BOOL WINAPI ConvertStringSidToSidW(LPCWSTR StringSid, PSID* Sid)
 
         bret = ParseStringSidToSid(StringSid, pSid, &cBytes);
         if (!bret)
-            LocalFree(*Sid); 
+            LocalFree(*Sid);
     }
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+#endif
     return bret;
 }
 
@@ -5334,6 +5368,7 @@ BOOL WINAPI ConvertSidToStringSidW( PSID pSid, LPWSTR *pstr )
 
     TRACE("%p %p\n", pSid, pstr );
 
+#if 0
     len = 0;
     if (!DumpSidNumeric(pSid, NULL, &len))
         return FALSE;
@@ -5343,6 +5378,9 @@ BOOL WINAPI ConvertSidToStringSidW( PSID pSid, LPWSTR *pstr )
 
     *pstr = wstr;
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 /******************************************************************************
@@ -5356,6 +5394,7 @@ BOOL WINAPI ConvertSidToStringSidA(PSID pSid, LPSTR *pstr)
 
     TRACE("%p %p\n", pSid, pstr );
 
+#if 0
     if( !ConvertSidToStringSidW( pSid, &wstr ) )
         return FALSE;
 
@@ -5367,6 +5406,9 @@ BOOL WINAPI ConvertSidToStringSidA(PSID pSid, LPSTR *pstr)
     *pstr = str;
 
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 BOOL WINAPI ConvertToAutoInheritPrivateObjectSecurity(
@@ -5521,7 +5563,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessAsUserW(
 {
     FIXME("%p %s %s %p %p %d 0x%08x %p %s %p %p - semi-stub\n", hToken,
           debugstr_w(lpApplicationName), debugstr_w(lpCommandLine), lpProcessAttributes,
-          lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, 
+          lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment,
           debugstr_w(lpCurrentDirectory), lpStartupInfo, lpProcessInformation);
 
     /* We should create the process with a suspended main thread */
@@ -5834,6 +5876,7 @@ DWORD WINAPI GetNamedSecurityInfoW( LPWSTR name, SE_OBJECT_TYPE type,
             CloseServiceHandle( handle );
         }
         break;
+#if 0
     case SE_REGISTRY_KEY:
         if (!(err = get_security_regkey( name, access, &handle )))
         {
@@ -5841,6 +5884,7 @@ DWORD WINAPI GetNamedSecurityInfoW( LPWSTR name, SE_OBJECT_TYPE type,
             RegCloseKey( handle );
         }
         break;
+#endif
     case SE_FILE_OBJECT:
         if (!(err = get_security_file( name, access, &handle )))
         {
@@ -5947,10 +5991,11 @@ BOOL WINAPI FileEncryptionStatusA(LPCSTR lpFileName, LPDWORD lpStatus)
 /******************************************************************************
  * SetSecurityInfo [ADVAPI32.@]
  */
-DWORD WINAPI SetSecurityInfo(HANDLE handle, SE_OBJECT_TYPE ObjectType, 
+DWORD WINAPI SetSecurityInfo(HANDLE handle, SE_OBJECT_TYPE ObjectType,
                       SECURITY_INFORMATION SecurityInfo, PSID psidOwner,
                       PSID psidGroup, PACL pDacl, PACL pSacl)
 {
+#if 0
     SECURITY_DESCRIPTOR sd;
     PACL dacl = pDacl;
     NTSTATUS status;
@@ -6103,6 +6148,9 @@ DWORD WINAPI SetSecurityInfo(HANDLE handle, SE_OBJECT_TYPE ObjectType,
     if (dacl != pDacl)
         heap_free(dacl);
     return RtlNtStatusToDosError(status);
+#else
+    return ERROR_CALL_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************

@@ -4168,13 +4168,13 @@ static void get_stgdef(struct storage_def *stg_def, CLIPFORMAT cf, STGMEDIUM *st
         if (!strcmp(stg_def->stream[stm_idx].name, "CONTENTS"))
         {
             data_size += sizeof(dib_inf);
-            data = HeapAlloc(GetProcessHeap(), 0, data_size);
+            data = heap_alloc(data_size);
             memcpy(data, dib_inf, sizeof(dib_inf));
             memcpy(data + sizeof(dib_inf), dib, sizeof(dib));
         }
         else
         {
-            data = HeapAlloc(GetProcessHeap(), 0, data_size);
+            data = heap_alloc(data_size);
             memcpy(data, dib, sizeof(dib));
         }
         stg_def->stream[stm_idx].data = data;
@@ -4185,14 +4185,14 @@ static void get_stgdef(struct storage_def *stg_def, CLIPFORMAT cf, STGMEDIUM *st
         data_size = GetMetaFileBitsEx(mfpict->hMF, 0, NULL);
         if (!strcmp(stg_def->stream[stm_idx].name, "CONTENTS"))
         {
-            data = HeapAlloc(GetProcessHeap(), 0, data_size + sizeof(mf_rec));
+            data = heap_alloc(data_size + sizeof(mf_rec));
             memcpy(data, mf_rec, sizeof(mf_rec));
             GetMetaFileBitsEx(mfpict->hMF, data_size, data + sizeof(mf_rec));
             data_size += sizeof(mf_rec);
         }
         else
         {
-            data = HeapAlloc(GetProcessHeap(), 0, data_size);
+            data = heap_alloc(data_size);
             GetMetaFileBitsEx(mfpict->hMF, data_size, data);
         }
         GlobalUnlock(U(stg_med)->hMetaFilePict);
@@ -4203,7 +4203,7 @@ static void get_stgdef(struct storage_def *stg_def, CLIPFORMAT cf, STGMEDIUM *st
         if (!strcmp(stg_def->stream[stm_idx].name, "CONTENTS"))
         {
             data_size = GetEnhMetaFileBits(U(stg_med)->hEnhMetaFile, 0, NULL);
-            data = HeapAlloc(GetProcessHeap(), 0, sizeof(DWORD) + sizeof(ENHMETAHEADER) + data_size);
+            data = heap_alloc(sizeof(DWORD) + sizeof(ENHMETAHEADER) + data_size);
             *((DWORD *)data) = sizeof(ENHMETAHEADER);
             GetEnhMetaFileBits(U(stg_med)->hEnhMetaFile, data_size, data + sizeof(DWORD) + sizeof(ENHMETAHEADER));
             memcpy(data + sizeof(DWORD), data + sizeof(DWORD) + sizeof(ENHMETAHEADER), sizeof(ENHMETAHEADER));
@@ -4213,7 +4213,7 @@ static void get_stgdef(struct storage_def *stg_def, CLIPFORMAT cf, STGMEDIUM *st
         {
             hdc = GetDC(NULL);
             data_size = GetWinMetaFileBits(U(stg_med)->hEnhMetaFile, 0, NULL, MM_ANISOTROPIC, hdc);
-            data = HeapAlloc(GetProcessHeap(), 0, data_size);
+            data = heap_alloc(data_size);
             GetWinMetaFileBits(U(stg_med)->hEnhMetaFile, data_size, data, MM_ANISOTROPIC, hdc);
             ReleaseDC(NULL, hdc);
         }
@@ -4400,7 +4400,7 @@ static void test_data_cache_save_data(void)
            enumerated_streams, pdata->stg_def.stream_count);
 
         for (i = 0; i < pdata->num_set; i++)
-            HeapFree(GetProcessHeap(), 0, (void *)pdata->stg_def.stream[i].data);
+            heap_free((void *)pdata->stg_def.stream[i].data);
 
         IPersistStorage_Release(persist);
         IStorage_Release(doc);

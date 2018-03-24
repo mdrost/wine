@@ -5034,7 +5034,7 @@ HRESULT WINAPI SHGetFolderPathEx(REFKNOWNFOLDERID rfid, DWORD flags, HANDLE toke
  *  rfid            [I] pointer to known folder identifier (may be NULL)
  *  lpStringGuid    [I] string with known folder identifier (used when rfid is NULL)
  *  lpPath          [O] place to store string address. String should be
- *                      later freed using HeapFree(GetProcessHeap(),0, ... )
+ *                      later freed using heap_free( ... )
  */
 static HRESULT get_known_folder_registry_path(
     REFKNOWNFOLDERID rfid,
@@ -5263,7 +5263,7 @@ static ULONG WINAPI knownfolder_Release(
     if (!refs)
     {
         TRACE("destroying %p\n", knownfolder);
-        heap_free( knownfolder->registryPath );
+        heap_free( knownfolder->registryPath);
         heap_free( knownfolder );
     }
     return refs;

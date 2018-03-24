@@ -42,7 +42,7 @@ static const char* convert_input_data(const char *data, DWORD size, DWORD *new_s
     for (i = 0; i < size; i++)
         if (data[i] == '\n') eol_count++;
 
-    ptr = new_data = HeapAlloc(GetProcessHeap(), 0, size + eol_count + 1);
+    ptr = new_data = heap_alloc(size + eol_count + 1);
 
     for (i = 0; i < size; i++) {
         switch (data[i]) {
@@ -361,7 +361,7 @@ static void run_test(const char *cmd_data, DWORD cmd_size, const char *exp_data,
     DeleteFileA("test.err");
 
 cleanup:
-    HeapFree(GetProcessHeap(), 0, (LPVOID)actual_cmd_data);
+    heap_free((LPVOID)actual_cmd_data);
 }
 
 static void run_from_file(const char *file_name)

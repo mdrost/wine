@@ -80,14 +80,18 @@ xbuf_resize(marshal_state *buf, DWORD newsize)
     if(buf->base)
     {
         newsize = max(newsize, buf->size * 2);
+#if 0
         buf->base = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, buf->base, newsize);
+#else
+        buf->base = NULL;
+#endif
         if(!buf->base)
             return E_OUTOFMEMORY;
     }
     else
     {
         newsize = max(newsize, 256);
-        buf->base = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, newsize);
+        buf->base = heap_alloc_zero(newsize);
         if(!buf->base)
             return E_OUTOFMEMORY;
     }
@@ -219,7 +223,7 @@ _marshal_interface(marshal_state *buf, REFIID riid, LPUNKNOWN pUnk) {
         goto fail;
     }
     
-    tempbuf = HeapAlloc(GetProcessHeap(), 0, ststg.cbSize.u.LowPart);
+    tempbuf = heap_alloc(ststg.cbSize.u.LowPart);
     memset(&seekto,0,sizeof(seekto));
     hres = IStream_Seek(pStm,seekto,SEEK_SET,&newpos);
     if (hres) {
@@ -237,7 +241,7 @@ _marshal_interface(marshal_state *buf, REFIID riid, LPUNKNOWN pUnk) {
     xbuf_add(buf,(LPBYTE)&xsize,sizeof(xsize));
     hres = xbuf_add(buf,tempbuf,ststg.cbSize.u.LowPart);
     
-    HeapFree(GetProcessHeap(),0,tempbuf);
+    heap_free(tempbuf);
     IStream_Release(pStm);
     
     return hres;
@@ -246,7 +250,7 @@ fail:
     xsize = 0;
     xbuf_add(buf,(LPBYTE)&xsize,sizeof(xsize));
     if (pStm) IStream_Release(pStm);
-    HeapFree(GetProcessHeap(), 0, tempbuf);
+    heap_free(tempbuf);
     return hres;
 }
 
@@ -572,7 +576,7 @@ TMProxyImpl_Release(LPRPCPROXYBUFFER iface)
         DeleteCriticalSection(&This->crit);
         if (This->chanbuf) IRpcChannelBuffer_Release(This->chanbuf);
         VirtualFree(This->asmstubs, 0, MEM_RELEASE);
-        HeapFree(GetProcessHeap(), 0, This->lpvtbl);
+        heap_free(This->lpvtbl);
         ITypeInfo_Release(This->tinfo);
         CoTaskMemFree(This);
     }
@@ -884,7 +888,7 @@ serialize_param(
 	    return S_OK;
 	}
 	hres = serialize_param(tinfo,writeit,debugout,dealloc,tdesc->u.lptdesc,(DWORD*)*arg,buf);
-	if (derefhere && dealloc) HeapFree(GetProcessHeap(),0,(LPVOID)*arg);
+	if (derefhere && dealloc) heap_free((LPVOID)*arg);
 	return hres;
     }
     case VT_UNKNOWN:
@@ -993,7 +997,7 @@ serialize_param(
 	}
 	if (debugout) TRACE_(olerelay)("]");
 	if (dealloc)
-	    HeapFree(GetProcessHeap(), 0, *(void **)arg);
+	    heap_free(*(void **)arg);
 	return S_OK;
     }
     case VT_SAFEARRAY: {
@@ -1167,7 +1171,7 @@ deserialize_param(
 	    if (alloc) {
 		/* Allocate space for the referenced struct */
 		if (derefhere)
-		    *arg=(DWORD)HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,_xsize(tdesc->u.lptdesc, tinfo));
+		    *arg=(DWORD)heap_alloc_zero(_xsize(tdesc->u.lptdesc, tinfo));
 	    }
 	    if (derefhere)
 		return deserialize_param(tinfo, readit, debugout, alloc, tdesc->u.lptdesc, (LPDWORD)*arg, buf);
@@ -1177,7 +1181,7 @@ deserialize_param(
 	case VT_UNKNOWN:
 	    /* FIXME: UNKNOWN is unknown ..., but allocate 4 byte for it */
 	    if (alloc)
-	        *arg=(DWORD)HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(DWORD));
+	        *arg=(DWORD)heap_alloc_zero(sizeof(DWORD));
 	    hres = S_OK;
 	    if (readit)
 		hres = _unmarshal_interface(buf,&IID_IUnknown,(LPUNKNOWN*)arg);
@@ -1275,7 +1279,7 @@ deserialize_param(
 		arrsize *= adesc->rgbounds[i].cElements;
             if (_passbyref(&adesc->tdescElem, tinfo))
             {
-	        base = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,_xsize(tdesc->u.lptdesc, tinfo) * arrsize);
+	        base = heap_alloc_zero(_xsize(tdesc->u.lptdesc, tinfo) * arrsize);
                 *arg = (DWORD) base;
             }
 	    for (i=0;i<arrsize;i++)
@@ -1534,9 +1538,9 @@ static DWORD WINAPI xCall(int method, void **args)
 
     TRACE_(olerelay)(" status = %08x (",status);
     if (buf.base)
-	buf.base = HeapReAlloc(GetProcessHeap(),0,buf.base,msg.cbBuffer);
+	buf.base = heap_realloc(buf.base,msg.cbBuffer);
     else
-	buf.base = HeapAlloc(GetProcessHeap(),0,msg.cbBuffer);
+	buf.base = heap_alloc(msg.cbBuffer);
     buf.size = msg.cbBuffer;
     memcpy(buf.base,msg.Buffer,buf.size);
     buf.curoff = 0;
@@ -1584,7 +1588,7 @@ exit:
     IRpcChannelBuffer_FreeBuffer(chanbuf,&msg);
     for (i = 0; i < nrofnames; i++)
         SysFreeString(names[i]);
-    HeapFree(GetProcessHeap(),0,buf.base);
+    heap_free(buf.base);
     IRpcChannelBuffer_Release(chanbuf);
     ITypeInfo_Release(tinfo);
     TRACE("-- 0x%08x\n", hres);
@@ -1713,7 +1717,7 @@ static ULONG WINAPI TMarshalDispatchChannel_Release(LPRPCCHANNELBUFFER iface)
         return ref;
 
     IRpcChannelBuffer_Release(This->pDelegateChannel);
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
     return 0;
 }
 
@@ -1771,7 +1775,7 @@ static HRESULT TMarshalDispatchChannel_Create(
     IRpcChannelBuffer *pDelegateChannel, REFIID tmarshal_riid,
     IRpcChannelBuffer **ppChannel)
 {
-    TMarshalDispatchChannel *This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    TMarshalDispatchChannel *This = heap_alloc(sizeof(*This));
     if (!This)
         return E_OUTOFMEMORY;
 
@@ -1895,7 +1899,7 @@ PSFacBuf_CreateProxy(
     InitializeCriticalSection(&proxy->crit);
     proxy->crit.DebugInfo->Spare[0] = (DWORD_PTR)(__FILE__ ": TMProxyImpl.crit");
 
-    proxy->lpvtbl = HeapAlloc(GetProcessHeap(), 0, vtbl_size);
+    proxy->lpvtbl = heap_alloc(vtbl_size);
 
     /* if we derive from IDispatch then defer to its proxy for its methods */
     hres = ITypeInfo_GetTypeAttr(tinfo, &typeattr);
@@ -2103,7 +2107,7 @@ TMStubImpl_Invoke(
 
     memset(&buf,0,sizeof(buf));
     buf.size	= xmsg->cbBuffer;
-    buf.base	= HeapAlloc(GetProcessHeap(), 0, xmsg->cbBuffer);
+    buf.base	= heap_alloc(xmsg->cbBuffer);
     memcpy(buf.base, xmsg->Buffer, xmsg->cbBuffer);
     buf.curoff	= 0;
 
@@ -2134,7 +2138,7 @@ TMStubImpl_Invoke(
     nrofargs = 0;
     for (i=0;i<fdesc->cParams;i++)
 	nrofargs += _argsize(&fdesc->lprgelemdescParam[i].tdesc, tinfo);
-    args = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,(nrofargs+1)*sizeof(DWORD));
+    args = heap_alloc_zero((nrofargs+1)*sizeof(DWORD));
     if (!args)
     {
         hres = E_OUTOFMEMORY;
@@ -2226,9 +2230,9 @@ exit:
         SysFreeString(names[i]);
 
     ITypeInfo_Release(tinfo);
-    HeapFree(GetProcessHeap(), 0, args);
+    heap_free(args);
 
-    HeapFree(GetProcessHeap(), 0, buf.base);
+    heap_free(buf.base);
 
     TRACE("returning\n");
     return hres;

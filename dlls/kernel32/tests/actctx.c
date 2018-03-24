@@ -533,7 +533,7 @@ static BOOL create_manifest_file(const char *filename, const char *manifest, int
 
 static BOOL create_wide_manifest(const char *filename, const char *manifest, BOOL fBOM, BOOL fReverse)
 {
-    WCHAR *wmanifest = HeapAlloc(GetProcessHeap(), 0, (strlen(manifest)+2) * sizeof(WCHAR));
+    WCHAR *wmanifest = heap_alloc((strlen(manifest)+2) * sizeof(WCHAR));
     BOOL ret;
     int offset = (fBOM ? 0 : 1);
 
@@ -546,7 +546,7 @@ static BOOL create_wide_manifest(const char *filename, const char *manifest, BOO
             wmanifest[i] = (wmanifest[i] << 8) | ((wmanifest[i] >> 8) & 0xff);
     }
     ret = create_manifest_file(filename, (char *)&wmanifest[offset], (strlen(manifest)+1-offset) * sizeof(WCHAR), NULL, NULL);
-    HeapFree(GetProcessHeap(), 0, wmanifest);
+    heap_free(wmanifest);
     return ret;
 }
 
@@ -606,7 +606,7 @@ static void test_detailed_info(HANDLE handle, const detailed_info_t *exinfo, int
         size = sizeof(ACTIVATION_CONTEXT_DETAILED_INFORMATION);
     }
 
-    detailed_info = HeapAlloc(GetProcessHeap(), 0, size);
+    detailed_info = heap_alloc(size);
     memset(detailed_info, 0xfe, size);
     b = pQueryActCtxW(0, handle, NULL,
                       ActivationContextDetailedInformation, detailed_info,
@@ -660,7 +660,7 @@ static void test_detailed_info(HANDLE handle, const detailed_info_t *exinfo, int
         ok_(__FILE__, line)(detailed_info->lpAppDirPath == NULL, "detailed_info->lpAppDirPath != NULL\n");
     }
 
-    HeapFree(GetProcessHeap(), 0, detailed_info);
+    heap_free(detailed_info);
 }
 
 typedef struct {
@@ -751,7 +751,7 @@ static void test_info_in_assembly(HANDLE handle, DWORD id, const info_in_assembl
         return;
     }
 
-    info = HeapAlloc(GetProcessHeap(), 0, size);
+    info = heap_alloc(size);
     memset(info, 0xfe, size);
 
     size = 0xdeadbeef;
@@ -835,7 +835,7 @@ static void test_info_in_assembly(HANDLE handle, DWORD id, const info_in_assembl
     else
         ok_(__FILE__, line)(info->lpAssemblyDirectoryName == NULL, "info->lpAssemblyDirectoryName = %s\n",
            strw(info->lpAssemblyDirectoryName));
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
 }
 
 static void test_file_info(HANDLE handle, ULONG assid, ULONG fileid, LPCWSTR filename, int line)
@@ -862,7 +862,7 @@ static void test_file_info(HANDLE handle, ULONG assid, ULONG fileid, LPCWSTR fil
         return;
     }
 
-    info = HeapAlloc(GetProcessHeap(), 0, size);
+    info = heap_alloc(size);
     memset(info, 0xfe, size);
 
     b = pQueryActCtxW(0, handle, &index,
@@ -879,7 +879,7 @@ static void test_file_info(HANDLE handle, ULONG assid, ULONG fileid, LPCWSTR fil
     if(info->lpFileName)
         ok_(__FILE__, line)(!lstrcmpiW(info->lpFileName, filename), "unexpected info->lpFileName\n");
     ok_(__FILE__, line)(info->lpFilePath == NULL, "info->lpFilePath != NULL\n");
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
 }
 
 typedef struct {

@@ -751,7 +751,7 @@ void close_preview(HWND hMainWnd)
     preview.window.right = 0;
     preview.window.bottom = 0;
     preview.page = 0;
-    HeapFree(GetProcessHeap(), 0, preview.pageEnds);
+    heap_free(preview.pageEnds);
     preview.pageEnds = NULL;
     preview.pageCapacity = 0;
     if (preview.zoomlevel > 0)
@@ -790,7 +790,7 @@ static void draw_preview(HWND hEditorWnd, FORMATRANGE* lpFr, RECT* paper, int pa
         if (!preview.pageEnds) return;
     } else if (page >= preview.pageCapacity) {
         int *new_buffer;
-        new_buffer = HeapReAlloc(GetProcessHeap(), 0, preview.pageEnds,
+        new_buffer = heap_realloc(preview.pageEnds,
                                  sizeof(int) * preview.pageCapacity * 2);
         if (!new_buffer) return;
         preview.pageCapacity *= 2;

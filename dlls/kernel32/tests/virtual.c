@@ -1468,6 +1468,7 @@ static void test_NtMapViewOfSection(void)
     CloseHandle(hProcess);
 }
 
+#if 0
 static void test_NtAreMappedFilesTheSame(void)
 {
     static const char testfile[] = "testfile.xxx";
@@ -1756,6 +1757,7 @@ static void test_CreateFileMapping(void)
     CloseHandle( file[2] );
     DeleteFileA( filename );
 }
+#endif
 
 static void test_IsBadReadPtr(void)
 {
@@ -2306,6 +2308,7 @@ static void test_write_watch(void)
 
 #if defined(__i386__) || defined(__x86_64__)
 
+#if 0
 static DWORD WINAPI stack_commit_func( void *arg )
 {
     volatile char *p = (char *)&p;
@@ -2389,6 +2392,7 @@ static void test_stack_commit(void)
     VirtualFree( new_stack, 0, MEM_RELEASE );
     VirtualFree( call_on_stack, 0, MEM_RELEASE );
 }
+#endif
 
 #endif  /* defined(__i386__) || defined(__x86_64__) */
 #ifdef __i386__
@@ -4212,6 +4216,7 @@ static void test_mapping( HANDLE hfile, DWORD sec_flags )
     }
 }
 
+#if 0
 static void test_mappings(void)
 {
     char temp_path[MAX_PATH];
@@ -4245,6 +4250,7 @@ static void test_mappings(void)
     /* now anonymous mappings */
     test_mapping( INVALID_HANDLE_VALUE, SEC_COMMIT );
 }
+#endif
 
 static void test_shared_memory(BOOL is_child)
 {
@@ -4394,26 +4400,32 @@ START_TEST(virtual)
     GetSystemInfo(&si);
     trace("system page size %#x\n", si.dwPageSize);
 
+#if 0
     test_shared_memory(FALSE);
     test_shared_memory_ro(FALSE, FILE_MAP_READ|FILE_MAP_WRITE);
     test_shared_memory_ro(FALSE, FILE_MAP_COPY);
     test_shared_memory_ro(FALSE, FILE_MAP_COPY|FILE_MAP_WRITE);
     test_mappings();
     test_CreateFileMapping_protection();
+#endif
     test_VirtualAlloc_protection();
     test_VirtualProtect();
     test_VirtualAllocEx();
     test_VirtualAlloc();
     test_MapViewOfFile();
     test_NtMapViewOfSection();
+#if 0
     test_NtAreMappedFilesTheSame();
     test_CreateFileMapping();
+#endif
     test_IsBadReadPtr();
     test_IsBadWritePtr();
     test_IsBadCodePtr();
     test_write_watch();
 #if defined(__i386__) || defined(__x86_64__)
+#if 0
     test_stack_commit();
+#endif
 #endif
 #ifdef __i386__
     test_guard_page();

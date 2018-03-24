@@ -52,6 +52,7 @@
 #include "winbase.h"
 #include "winnls.h"
 #include "winuser.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 #include "dictionary.h"
@@ -236,7 +237,7 @@ static ULONG WINAPI IPropertyStorage_fnRelease(
         This->cs.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->cs);
         PropertyStorage_DestroyDictionaries(This);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -401,7 +402,7 @@ static HRESULT PropertyStorage_StringCopy(LPCSTR src, LCID srcCP, LPSTR *dst,
             else
             {
                 len = MultiByteToWideChar(srcCP, 0, src, -1, NULL, 0);
-                wideStr_tmp = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+                wideStr_tmp = heap_alloc(len * sizeof(WCHAR));
                 if (wideStr_tmp)
                 {
                     MultiByteToWideChar(srcCP, 0, src, -1, wideStr_tmp, len);
@@ -430,7 +431,7 @@ static HRESULT PropertyStorage_StringCopy(LPCSTR src, LCID srcCP, LPSTR *dst,
                     }
                 }
             }
-            HeapFree(GetProcessHeap(), 0, wideStr_tmp);
+            heap_free(wideStr_tmp);
         }
     }
     TRACE("returning 0x%08x (%s)\n", hr,
@@ -491,8 +492,7 @@ static HRESULT PropertyStorage_StorePropWithId(PropertyStorage_impl *This,
     }
     else
     {
-        prop = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-         sizeof(PROPVARIANT));
+        prop = heap_alloc_zero(sizeof(PROPVARIANT));
         if (prop)
         {
             hr = PropertyStorage_PropVariantCopy(prop, propvar, This->codePage,
@@ -504,7 +504,7 @@ static HRESULT PropertyStorage_StorePropWithId(PropertyStorage_impl *This,
                     This->highestProp = propid;
             }
             else
-                HeapFree(GetProcessHeap(), 0, prop);
+                heap_free(prop);
         }
         else
             hr = STG_E_INSUFFICIENTMEMORY;
@@ -968,7 +968,7 @@ static int PropertyStorage_PropCompare(const void *a, const void *b,
 static void PropertyStorage_PropertyDestroy(void *k, void *d, void *extra)
 {
     PropVariantClear(d);
-    HeapFree(GetProcessHeap(), 0, d);
+    heap_free(d);
 }
 
 #ifdef WORDS_BIGENDIAN
@@ -1401,7 +1401,7 @@ static HRESULT PropertyStorage_ReadFromStream(PropertyStorage_impl *This)
         hr = STG_E_INVALIDHEADER;
         goto end;
     }
-    buf = HeapAlloc(GetProcessHeap(), 0, sectionHdr.cbSection -
+    buf = heap_alloc(sectionHdr.cbSection -
      sizeof(PROPERTYSECTIONHEADER));
     if (!buf)
     {
@@ -1488,7 +1488,7 @@ static HRESULT PropertyStorage_ReadFromStream(PropertyStorage_impl *This)
          buf + dictOffset - sizeof(PROPERTYSECTIONHEADER));
 
 end:
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     if (FAILED(hr))
     {
         dictionary_destroy(This->name_to_propid);
@@ -1544,7 +1544,7 @@ static inline HRESULT PropertStorage_WriteWStringToStream(IStream *stm,
  LPCWSTR str, DWORD len, DWORD *written)
 {
 #ifdef WORDS_BIGENDIAN
-    WCHAR *leStr = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    WCHAR *leStr = heap_alloc(len * sizeof(WCHAR));
     HRESULT hr;
 
     if (!leStr)
@@ -1552,7 +1552,7 @@ static inline HRESULT PropertStorage_WriteWStringToStream(IStream *stm,
     memcpy(leStr, str, len * sizeof(WCHAR));
     PropertyStorage_ByteSwapString(leStr, len);
     hr = IStream_Write(stm, leStr, len, written);
-    HeapFree(GetProcessHeap(), 0, leStr);
+    heap_free(leStr);
     return hr;
 #else
     return IStream_Write(stm, str, len, written);
@@ -2048,7 +2048,7 @@ static HRESULT PropertyStorage_BaseConstruct(IStream *stm,
 
     assert(pps);
     assert(rfmtid);
-    *pps = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof **pps);
+    *pps = heap_alloc_zero(sizeof **pps);
     if (!*pps)
         return E_OUTOFMEMORY;
 
@@ -2065,7 +2065,7 @@ static HRESULT PropertyStorage_BaseConstruct(IStream *stm,
     {
         (*pps)->cs.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&(*pps)->cs);
-        HeapFree(GetProcessHeap(), 0, *pps);
+        heap_free(*pps);
         *pps = NULL;
     }
     else IStream_AddRef( stm );

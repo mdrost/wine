@@ -38,6 +38,7 @@
 
 #include "gdi_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(gdi);
 
@@ -640,6 +641,7 @@ BOOL GDI_dec_ref_count( HGDIOBJ handle )
     return entry != NULL;
 }
 
+#if 0
 static const WCHAR dpi_key_name[] = {'C','o','n','t','r','o','l',' ','P','a','n','e','l','\\','D','e','s','k','t','o','p','\0'};
 static const WCHAR def_dpi_key_name[] = {'S','o','f','t','w','a','r','e','\\','F','o','n','t','s','\0'};
 static const WCHAR dpi_value_name[] = {'L','o','g','P','i','x','e','l','s','\0'};
@@ -667,6 +669,7 @@ static BOOL get_reg_dword(HKEY base, const WCHAR *key_name, const WCHAR *value_n
     }
     return ret;
 }
+#endif
 
 /******************************************************************************
  *              get_dpi
@@ -675,12 +678,14 @@ static BOOL get_reg_dword(HKEY base, const WCHAR *key_name, const WCHAR *value_n
  */
 DWORD get_dpi(void)
 {
+#if 0
     DWORD dpi;
 
     if (get_reg_dword(HKEY_CURRENT_USER, dpi_key_name, dpi_value_name, &dpi))
         return dpi;
     if (get_reg_dword(HKEY_CURRENT_CONFIG, def_dpi_key_name, dpi_value_name, &dpi))
         return dpi;
+#endif
     return 0;
 }
 
@@ -703,20 +708,26 @@ static HFONT create_scaled_font( const LOGFONTW *deffont )
     return CreateFontIndirectW( &lf );
 }
 
+#if 0
 /***********************************************************************
  *           DllMain
  *
  * GDI initialization.
  */
 BOOL WINAPI DllMain( HINSTANCE inst, DWORD reason, LPVOID reserved )
+#else
+void gdi32_init(void)
+#endif
 {
     const struct DefaultFontInfo* deffonts;
     int i;
 
+#if 0
     if (reason != DLL_PROCESS_ATTACH) return TRUE;
 
     gdi32_module = inst;
     DisableThreadLibraryCalls( inst );
+#endif
     WineEngInit();
 
     /* create stock objects */
@@ -756,12 +767,18 @@ BOOL WINAPI DllMain( HINSTANCE inst, DWORD reason, LPVOID reserved )
         {
             if (i == 9) continue;  /* there's no stock object 9 */
             ERR( "could not create stock object %d\n", i );
+#if 0
             return FALSE;
+#else
+            return;
+#endif
         }
         __wine_make_gdi_object_system( stock_objects[i], TRUE );
     }
 
+#if 0
     return TRUE;
+#endif
 }
 
 static const char *gdi_obj_type( unsigned type )
@@ -943,7 +960,6 @@ void *get_any_obj_ptr( HGDIOBJ handle, WORD *type )
 #else
     pthread_mutex_lock( &gdi_section );
 #endif
-
     if ((entry = handle_entry( handle )))
     {
         ptr = entry->obj;
@@ -1082,7 +1098,7 @@ BOOL WINAPI DeleteObject( HGDIOBJ obj )
             physdev->funcs->pDeleteObject( physdev, obj );
             release_dc_ptr( dc );
         }
-        HeapFree(GetProcessHeap(), 0, hdcs_head);
+        heap_free(hdcs_head);
         hdcs_head = next;
     }
 
@@ -1116,7 +1132,7 @@ void GDI_hdc_using_object(HGDIOBJ obj, HDC hdc)
 
         if (!phdc)
         {
-            phdc = HeapAlloc(GetProcessHeap(), 0, sizeof(*phdc));
+            phdc = heap_alloc(sizeof(*phdc));
             phdc->hdc = hdc;
             phdc->next = entry->hdcs;
             entry->hdcs = phdc;
@@ -1152,7 +1168,7 @@ void GDI_hdc_not_using_object(HGDIOBJ obj, HDC hdc)
             {
                 struct hdc_list *phdc = *pphdc;
                 *pphdc = phdc->next;
-                HeapFree(GetProcessHeap(), 0, phdc);
+                heap_free(phdc);
                 break;
             }
     }

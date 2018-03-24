@@ -26,6 +26,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include <errno.h>
+
 #include "ntstatus.h"
 #define WIN32_NO_STATUS
 #include "windef.h"
@@ -33,6 +35,8 @@
 #include "winerror.h"
 #include "wine/library.h"
 #include "winternl.h"
+#include "wine/error.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -70,8 +74,9 @@ static STARTUPINFOA startup_infoA;
  */
 LPSTR WINAPI GetCommandLineA(void)
 {
+#if 0
     static char *cmdlineA;  /* ASCII command line */
-    
+
     if (!cmdlineA) /* make an ansi version if we don't have it */
     {
         ANSI_STRING     ansi;
@@ -82,6 +87,9 @@ LPSTR WINAPI GetCommandLineA(void)
         RtlReleasePebLock();
     }
     return cmdlineA;
+#else
+    return NULL;
+#endif
 }
 
 /***********************************************************************
@@ -89,7 +97,11 @@ LPSTR WINAPI GetCommandLineA(void)
  */
 LPWSTR WINAPI GetCommandLineW(void)
 {
+#if 0
     return NtCurrentTeb()->Peb->ProcessParameters->CommandLine.Buffer;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -99,6 +111,7 @@ LPWSTR WINAPI GetCommandLineW(void)
  */
 LPSTR WINAPI GetEnvironmentStringsA(void)
 {
+#if 0
     LPWSTR      ptrW;
     unsigned    len, slen;
     LPSTR       ret, ptrA;
@@ -115,7 +128,7 @@ LPSTR WINAPI GetEnvironmentStringsA(void)
         ptrW += slen;
     }
 
-    if ((ret = HeapAlloc( GetProcessHeap(), 0, len )) != NULL)
+    if ((ret = heap_alloc( len )) != NULL)
     {
         ptrW = NtCurrentTeb()->Peb->ProcessParameters->Environment;
         ptrA = ret;
@@ -131,6 +144,9 @@ LPSTR WINAPI GetEnvironmentStringsA(void)
 
     RtlReleasePebLock();
     return ret;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -139,7 +155,11 @@ LPSTR WINAPI GetEnvironmentStringsA(void)
  */
 LPWSTR WINAPI GetEnvironmentStringsW(void)
 {
+#if 0
     return NtCurrentTeb()->Peb->ProcessParameters->Environment;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -148,7 +168,7 @@ LPWSTR WINAPI GetEnvironmentStringsW(void)
  */
 BOOL WINAPI FreeEnvironmentStringsA( LPSTR ptr )
 {
-    return HeapFree( GetProcessHeap(), 0, ptr );
+    return heap_free( ptr );
 }
 
 
@@ -157,7 +177,11 @@ BOOL WINAPI FreeEnvironmentStringsA( LPSTR ptr )
  */
 BOOL WINAPI FreeEnvironmentStringsW( LPWSTR ptr )
 {
+#if 0
     return TRUE;
+#else
+    return heap_free( ptr );
+#endif
 }
 
 
@@ -166,6 +190,7 @@ BOOL WINAPI FreeEnvironmentStringsW( LPWSTR ptr )
  */
 DWORD WINAPI GetEnvironmentVariableA( LPCSTR name, LPSTR value, DWORD size )
 {
+#if 0
     UNICODE_STRING      us_name;
     PWSTR               valueW;
     DWORD               ret;
@@ -178,7 +203,7 @@ DWORD WINAPI GetEnvironmentVariableA( LPCSTR name, LPSTR value, DWORD size )
 
     /* limit the size to sane values */
     size = min(size, 32767);
-    if (!(valueW = HeapAlloc(GetProcessHeap(), 0, size * sizeof(WCHAR))))
+    if (!(valueW = heap_alloc(size * sizeof(WCHAR))))
         return 0;
 
     RtlCreateUnicodeStringFromAsciiz( &us_name, name );
@@ -196,7 +221,37 @@ DWORD WINAPI GetEnvironmentVariableA( LPCSTR name, LPSTR value, DWORD size )
         value[0] = '\0';
 
     RtlFreeUnicodeString( &us_name );
-    HeapFree(GetProcessHeap(), 0, valueW);
+    heap_free(valueW);
+#else
+    LPCSTR              env;
+    DWORD               ret;
+    
+    TRACE("(%s %p %u)\n", name, value, size);
+
+    if (!name || !*name)
+    {
+        SetLastError(ERROR_ENVVAR_NOT_FOUND);
+        return 0;
+    }
+
+    env = getenv(name);
+
+    if (!env)
+    {
+        SetLastError(ERROR_ENVVAR_NOT_FOUND);
+        return 0;
+    }
+
+    ret = strlen(env);
+
+    if (ret >= size)
+    {
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return (ret + 1);
+    }
+    
+    memcpy(value, env, ret + 1);
+#endif
 
     return ret;
 }
@@ -207,6 +262,7 @@ DWORD WINAPI GetEnvironmentVariableA( LPCSTR name, LPSTR value, DWORD size )
  */
 DWORD WINAPI GetEnvironmentVariableW( LPCWSTR name, LPWSTR val, DWORD size )
 {
+#if 0
     UNICODE_STRING      us_name;
     UNICODE_STRING      us_value;
     NTSTATUS            status;
@@ -235,6 +291,41 @@ DWORD WINAPI GetEnvironmentVariableW( LPCWSTR name, LPWSTR val, DWORD size )
     if (size) val[len] = '\0';
 
     return us_value.Length / sizeof(WCHAR);
+#else
+    LPSTR               nameA;
+    int                 len;
+    LPSTR               value;
+    DWORD               ret;
+
+    if (!name || !*name)
+    {
+        SetLastError(ERROR_ENVVAR_NOT_FOUND);
+        return 0;
+    }
+    
+    len = strlenW(name) + 1;
+    if (!(nameA = heap_alloc(len * sizeof(WCHAR))))
+        return 0;
+
+    WideCharToMultiByte(CP_UNIXCP, 0, name, len, nameA, len, NULL, NULL);
+
+    /* limit the size to sane values */
+    size = min(size, 32767);
+    if (!(value = heap_alloc(size * sizeof(char))))
+    {
+        heap_free(nameA);
+        return 0;
+    }
+
+    ret = GetEnvironmentVariableA(nameA, value, size);
+    if (ret < size)
+        MultiByteToWideChar(CP_UNIXCP, 0, value, ret + 1, val, ret + 1);
+
+    heap_free(nameA);
+    heap_free(value);
+
+    return ret;
+#endif
 }
 
 
@@ -243,6 +334,7 @@ DWORD WINAPI GetEnvironmentVariableW( LPCWSTR name, LPWSTR val, DWORD size )
  */
 BOOL WINAPI SetEnvironmentVariableA( LPCSTR name, LPCSTR value )
 {
+#if 0
     UNICODE_STRING      us_name;
     BOOL                ret;
 
@@ -266,6 +358,26 @@ BOOL WINAPI SetEnvironmentVariableA( LPCSTR name, LPCSTR value )
     RtlFreeUnicodeString( &us_name );
 
     return ret;
+#else
+    int err;
+
+    if (value && value[0] != '\0')
+    {
+        err = setenv( name, value, 1 );
+    }
+    else
+    {
+        err = unsetenv( name );
+    }
+
+    if (err)
+    {
+        SetLastError( wine_errno_to_error(errno) );
+        return FALSE;
+    }
+
+    return TRUE;
+#endif
 }
 
 
@@ -274,6 +386,7 @@ BOOL WINAPI SetEnvironmentVariableA( LPCSTR name, LPCSTR value )
  */
 BOOL WINAPI SetEnvironmentVariableW( LPCWSTR name, LPCWSTR value )
 {
+#if 0
     UNICODE_STRING      us_name;
     NTSTATUS            status;
 
@@ -301,6 +414,34 @@ BOOL WINAPI SetEnvironmentVariableW( LPCWSTR name, LPCWSTR value )
         return FALSE;
     }
     return TRUE;
+#else
+    UNICODE_STRING      us;
+    ANSI_STRING         as_name;
+    BOOL                ret;
+
+    if (!name)
+    {
+        SetLastError(ERROR_ENVVAR_NOT_FOUND);
+        return FALSE;
+    }
+
+    RtlInitUnicodeString( &us, name );
+    RtlUnicodeStringToAnsiString( &as_name, &us, TRUE );
+    if (value)
+    {
+        ANSI_STRING         as_value;
+
+        RtlInitUnicodeString( &us, value );
+        RtlUnicodeStringToAnsiString( &as_value, &us, TRUE );
+        ret = SetEnvironmentVariableA( as_name.Buffer, as_value.Buffer );
+        RtlFreeAnsiString( &as_value );
+    }
+    else ret = SetEnvironmentVariableA( as_name.Buffer, NULL );
+
+    RtlFreeAnsiString( &as_name );
+
+    return ret;
+#endif
 }
 
 
@@ -314,6 +455,7 @@ BOOL WINAPI SetEnvironmentVariableW( LPCWSTR name, LPCWSTR value )
  */
 DWORD WINAPI ExpandEnvironmentStringsA( LPCSTR src, LPSTR dst, DWORD count )
 {
+#if 0
     UNICODE_STRING      us_src;
     PWSTR               dstW = NULL;
     DWORD               ret;
@@ -321,7 +463,7 @@ DWORD WINAPI ExpandEnvironmentStringsA( LPCSTR src, LPSTR dst, DWORD count )
     RtlCreateUnicodeStringFromAsciiz( &us_src, src );
     if (count)
     {
-        if (!(dstW = HeapAlloc(GetProcessHeap(), 0, count * sizeof(WCHAR))))
+        if (!(dstW = heap_alloc(count * sizeof(WCHAR))))
             return 0;
         ret = ExpandEnvironmentStringsW( us_src.Buffer, dstW, count);
         if (ret)
@@ -330,9 +472,39 @@ DWORD WINAPI ExpandEnvironmentStringsA( LPCSTR src, LPSTR dst, DWORD count )
     else ret = ExpandEnvironmentStringsW( us_src.Buffer, NULL, 0);
 
     RtlFreeUnicodeString( &us_src );
-    HeapFree(GetProcessHeap(), 0, dstW);
+    heap_free(dstW);
 
     return ret;
+#else
+    ANSI_STRING         as_src;
+    ANSI_STRING         as_dst;
+    NTSTATUS            status;
+    DWORD               res;
+
+    TRACE("(%s %p %u)\n", src, dst, count);
+
+    RtlInitAnsiString(&as_src, src);
+
+    /* make sure we don't overflow the maximum ANSI_STRING size */
+    if (count > UNICODE_STRING_MAX_CHARS)
+        count = UNICODE_STRING_MAX_CHARS;
+
+    as_dst.Length = 0;
+    as_dst.MaximumLength = count * sizeof(CHAR);
+    as_dst.Buffer = dst;
+
+    res = 0;
+    status = RtlExpandEnvironmentStrings_A(NULL, &as_src, &as_dst, &res);
+    res /= sizeof(CHAR);
+    if (status != STATUS_SUCCESS)
+    {
+        SetLastError( RtlNtStatusToDosError(status) );
+        if (status != STATUS_BUFFER_TOO_SMALL) return 0;
+        if (count && dst) dst[count - 1] = '\0';
+    }
+
+    return res;
+#endif
 }
 
 
@@ -356,6 +528,7 @@ DWORD WINAPI ExpandEnvironmentStringsA( LPCSTR src, LPSTR dst, DWORD count )
  */
 DWORD WINAPI ExpandEnvironmentStringsW( LPCWSTR src, LPWSTR dst, DWORD len )
 {
+#if 0
     UNICODE_STRING      us_src;
     UNICODE_STRING      us_dst;
     NTSTATUS            status;
@@ -384,6 +557,29 @@ DWORD WINAPI ExpandEnvironmentStringsW( LPCWSTR src, LPWSTR dst, DWORD len )
     }
 
     return res;
+#else
+    UNICODE_STRING      us;
+    ANSI_STRING         as_src;
+    PSTR                dstA = NULL;
+    DWORD               ret;
+
+    RtlInitUnicodeString( &us, src );
+    RtlUnicodeStringToAnsiString( &as_src, &us, TRUE );
+    if (len)
+    {
+        if (!(dstA = heap_alloc(len * sizeof(CHAR))))
+            return 0;
+        ret = ExpandEnvironmentStringsA( as_src.Buffer, dstA, len);
+        if (ret)
+            MultiByteToWideChar( CP_UNIXCP, 0, dstA, ret, dst, len );
+    }
+    else ret = ExpandEnvironmentStringsA( as_src.Buffer, NULL, 0);
+
+    RtlFreeAnsiString( &as_src );
+    heap_free(dstA);
+
+    return ret;
+#endif
 }
 
 
@@ -392,6 +588,7 @@ DWORD WINAPI ExpandEnvironmentStringsW( LPCWSTR src, LPWSTR dst, DWORD len )
  */
 HANDLE WINAPI GetStdHandle( DWORD std_handle )
 {
+#if 0
     switch (std_handle)
     {
         case STD_INPUT_HANDLE:  return NtCurrentTeb()->Peb->ProcessParameters->hStdInput;
@@ -400,6 +597,10 @@ HANDLE WINAPI GetStdHandle( DWORD std_handle )
     }
     SetLastError( ERROR_INVALID_HANDLE );
     return INVALID_HANDLE_VALUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return INVALID_HANDLE_VALUE;
+#endif
 }
 
 
@@ -408,6 +609,7 @@ HANDLE WINAPI GetStdHandle( DWORD std_handle )
  */
 BOOL WINAPI SetStdHandle( DWORD std_handle, HANDLE handle )
 {
+#if 0
     switch (std_handle)
     {
         case STD_INPUT_HANDLE:  NtCurrentTeb()->Peb->ProcessParameters->hStdInput = handle;  return TRUE;
@@ -416,6 +618,10 @@ BOOL WINAPI SetStdHandle( DWORD std_handle, HANDLE handle )
     }
     SetLastError( ERROR_INVALID_HANDLE );
     return FALSE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -423,7 +629,9 @@ BOOL WINAPI SetStdHandle( DWORD std_handle, HANDLE handle )
  */
 VOID WINAPI GetStartupInfoA( LPSTARTUPINFOA info )
 {
+#if 0
     *info = startup_infoA;
+#endif
 }
 
 
@@ -432,9 +640,12 @@ VOID WINAPI GetStartupInfoA( LPSTARTUPINFOA info )
  */
 VOID WINAPI GetStartupInfoW( LPSTARTUPINFOW info )
 {
+#if 0
     *info = startup_infoW;
+#endif
 }
 
+#if 0
 /******************************************************************
  *		ENV_CopyStartupInformation (internal)
  *
@@ -446,7 +657,7 @@ void ENV_CopyStartupInformation(void)
     ANSI_STRING         ansi;
 
     RtlAcquirePebLock();
-    
+
     rupp = NtCurrentTeb()->Peb->ProcessParameters;
 
     startup_infoW.cb                   = sizeof(startup_infoW);
@@ -491,6 +702,7 @@ void ENV_CopyStartupInformation(void)
 
     RtlReleasePebLock();
 }
+#endif
 
 /***********************************************************************
  *              GetFirmwareEnvironmentVariableA         (KERNEL32.@)

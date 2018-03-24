@@ -36,6 +36,7 @@
 #include "ole2.h"
 #include "olectl.h"
 #include "connpt.h"
+#include "wine/heap.h"
 
 #include "wine/debug.h"
 
@@ -113,8 +114,8 @@ static void ConnectionPointImpl_Destroy(ConnectionPointImpl *Obj)
       Obj->sinks[i] = NULL;
     }
   }
-  HeapFree(GetProcessHeap(), 0, Obj->sinks);
-  HeapFree(GetProcessHeap(), 0, Obj);
+  heap_free(Obj->sinks);
+  heap_free(Obj);
   return;
 }
 
@@ -238,6 +239,7 @@ static HRESULT WINAPI ConnectionPointImpl_Advise(IConnectionPoint *iface,
   IUnknown *lpSink;
   TRACE("(%p)->(%p, %p)\n", This, lpUnk, pdwCookie);
 
+#if 0
   *pdwCookie = 0;
   if(FAILED(IUnknown_QueryInterface(lpUnk, &This->iid, (void**)&lpSink)))
     return CONNECT_E_CANNOTCONNECT;
@@ -255,6 +257,9 @@ static HRESULT WINAPI ConnectionPointImpl_Advise(IConnectionPoint *iface,
   This->nSinks++;
   *pdwCookie = i + 1;
   return S_OK;
+#else
+  return E_NOTIMPL;
+#endif
 }
 
 
@@ -298,7 +303,7 @@ static HRESULT WINAPI ConnectionPointImpl_EnumConnections(
 
   if(This->nSinks == 0) return OLE_E_NOCONNECTION;
 
-  pCD = HeapAlloc(GetProcessHeap(), 0, sizeof(CONNECTDATA) * This->nSinks);
+  pCD = heap_alloc(sizeof(CONNECTDATA) * This->nSinks);
 
   for(i = 0, nextslot = 0; i < This->maxSinks; i++) {
     if(This->sinks[i] != NULL) {
@@ -318,7 +323,7 @@ static HRESULT WINAPI ConnectionPointImpl_EnumConnections(
                                        &IID_IEnumConnections, (void**)ppEnum);
   IEnumConnections_Release(&EnumObj->IEnumConnections_iface);
 
-  HeapFree(GetProcessHeap(), 0, pCD);
+  heap_free(pCD);
   return hr;
 }
 
@@ -344,13 +349,13 @@ static EnumConnectionsImpl *EnumConnectionsImpl_Construct(IUnknown *pUnk,
 							  DWORD nSinks,
 							  CONNECTDATA *pCD)
 {
-  EnumConnectionsImpl *Obj = HeapAlloc(GetProcessHeap(), 0, sizeof(*Obj));
+  EnumConnectionsImpl *Obj = heap_alloc(sizeof(*Obj));
   DWORD i;
 
   Obj->IEnumConnections_iface.lpVtbl = &EnumConnectionsImpl_VTable;
   Obj->ref = 1;
   Obj->pUnk = pUnk;
-  Obj->pCD = HeapAlloc(GetProcessHeap(), 0, nSinks * sizeof(CONNECTDATA));
+  Obj->pCD = heap_alloc(nSinks * sizeof(CONNECTDATA));
   Obj->nConns = nSinks;
   Obj->nCur = 0;
 
@@ -371,8 +376,8 @@ static void EnumConnectionsImpl_Destroy(EnumConnectionsImpl *Obj)
   for(i = 0; i < Obj->nConns; i++)
     IUnknown_Release(Obj->pCD[i].pUnk);
 
-  HeapFree(GetProcessHeap(), 0, Obj->pCD);
-  HeapFree(GetProcessHeap(), 0, Obj);
+  heap_free(Obj->pCD);
+  heap_free(Obj);
   return;
 }
 
@@ -577,7 +582,7 @@ HRESULT CreateConnectionPoint(IUnknown *pUnk, REFIID riid,
   TRACE("(%p %s %p)\n", pUnk, debugstr_guid(riid), pCP);
 
   *pCP = NULL;
-  Obj = HeapAlloc(GetProcessHeap(), 0, sizeof(*Obj));
+  Obj = heap_alloc(sizeof(*Obj));
   if (!Obj)
     return E_OUTOFMEMORY;
 
@@ -586,7 +591,7 @@ HRESULT CreateConnectionPoint(IUnknown *pUnk, REFIID riid,
   Obj->ref = 1;
   Obj->iid = *riid;
   Obj->maxSinks = MAXSINKS;
-  Obj->sinks = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IUnknown*) * MAXSINKS);
+  Obj->sinks = heap_alloc_zero(sizeof(IUnknown*) * MAXSINKS);
   Obj->nSinks = 0;
 
   *pCP = &Obj->IConnectionPoint_iface;

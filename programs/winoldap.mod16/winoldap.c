@@ -84,6 +84,6 @@ WORD WINAPI WinMain16( HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline, WORD s
         CloseHandle( info.hProcess );
     }
 
-    HeapFree( GetProcessHeap(), 0, cmdline );
+    heap_free( cmdline );
     ExitThread( exit_code );
 }

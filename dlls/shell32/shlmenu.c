@@ -197,7 +197,7 @@ static int FM_InitMenuPopup(HMENU hmenu, LPCITEMIDLIST pAlternatePidl)
 		    MENUINFO MenuInfo;
 		    HMENU hMenuPopup = CreatePopupMenu();
 
-		    lpFmMi = heap_alloc_zero(sizeof(*lpFmMi));
+		    lpFmMi = heap_alloc_zero(sizeof(FMINFO));
 
 		    lpFmMi->pidl = ILCombine(pidl, pidlTemp);
 		    lpFmMi->uEnumFlags = SHCONTF_FOLDERS | SHCONTF_NONFOLDERS;
@@ -268,7 +268,7 @@ HMENU WINAPI FileMenu_Create (
 	TRACE("0x%08x 0x%08x %p 0x%08x 0x%08x  hMenu=%p\n",
 	crBorderColor, nBorderWidth, hBorderBmp, nSelHeight, uFlags, hMenu);
 
-	menudata = heap_alloc_zero(sizeof(*menudata));
+	menudata = heap_alloc_zero(sizeof(FMINFO));
 	menudata->crBorderColor = crBorderColor;
 	menudata->nBorderWidth = nBorderWidth;
 	menudata->hBorderBmp = hBorderBmp;
@@ -401,7 +401,7 @@ BOOL WINAPI FileMenu_AppendItemAW(
         else
 	{
 	  DWORD len = MultiByteToWideChar( CP_ACP, 0, lpText, -1, NULL, 0 );
-	  LPWSTR lpszText = heap_alloc( len*sizeof(WCHAR) );
+	  LPWSTR lpszText = HeapAlloc ( GetProcessHeap(), 0, len*sizeof(WCHAR) );
 	  if (!lpszText) return FALSE;
 	  MultiByteToWideChar( CP_ACP, 0, lpText, -1, lpszText, len );
 	  ret = FileMenu_AppendItemW(hMenu, lpszText, uID, icon, hMenuPopup, nItemHeight);
@@ -1020,12 +1020,9 @@ static CompositeCMenu* impl_from_IContextMenu3(IContextMenu3* iface)
 
 static HRESULT CompositeCMenu_Constructor(IContextMenu **menus,UINT menu_count, REFIID riid, void **ppv)
 {
-    CompositeCMenu *ret;
+    CompositeCMenu *ret = heap_alloc(sizeof(CompositeCMenu));
     UINT i;
-
     TRACE("(%p,%u,%s,%p)\n",menus,menu_count,shdebugstr_guid(riid),ppv);
-
-    ret = heap_alloc(sizeof(*ret));
     if(!ret)
         return E_OUTOFMEMORY;
     ret->IContextMenu3_iface.lpVtbl = &CompositeCMenuVtbl;

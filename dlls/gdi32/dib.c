@@ -20,28 +20,28 @@
 
 /*
   Important information:
-  
+
   * Current Windows versions support two different DIB structures:
 
     - BITMAPCOREINFO / BITMAPCOREHEADER (legacy structures; used in OS/2)
     - BITMAPINFO / BITMAPINFOHEADER
-  
+
     Most Windows API functions taking a BITMAPINFO* / BITMAPINFOHEADER* also
     accept the old "core" structures, and so must WINE.
     You can distinguish them by looking at the first member (bcSize/biSize).
 
-    
+
   * The palettes are stored in different formats:
 
     - BITMAPCOREINFO: Array of RGBTRIPLE
     - BITMAPINFO:     Array of RGBQUAD
 
-    
+
   * There are even more DIB headers, but they all extend BITMAPINFOHEADER:
-    
+
     - BITMAPV4HEADER: Introduced in Windows 95 / NT 4.0
     - BITMAPV5HEADER: Introduced in Windows 98 / 2000
-    
+
     If biCompression is BI_BITFIELDS, the color masks are at the same position
     in all the headers (they start at bmiColors of BITMAPINFOHEADER), because
     the new headers have structure members for the masks.
@@ -50,11 +50,11 @@
   * You should never access the color table using the bmiColors member,
     because the passed structure may have one of the extended headers
     mentioned above. Use this to calculate the location:
-    
+
     BITMAPINFO* info;
     void* colorPtr = (LPBYTE) info + (WORD) info->bmiHeader.biSize;
 
-    
+
   * More information:
     Search for "Bitmap Structures" in MSDN
 */
@@ -76,6 +76,7 @@
 
 #include "gdi_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(bitmap);
 
@@ -329,7 +330,7 @@ static BOOL build_rle_bitmap( BITMAPINFO *info, struct gdi_image_bits *bits, HRG
 
     assert( info->bmiHeader.biBitCount == 4 || info->bmiHeader.biBitCount == 8 );
 
-    out_bits = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, get_dib_image_size( info ) );
+    out_bits = heap_alloc_zero( get_dib_image_size( info ) );
     if (!out_bits) goto fail;
 
     if (clip)
@@ -456,7 +457,7 @@ done:
 fail:
     if (run) DeleteObject( run );
     if (clip && *clip) DeleteObject( *clip );
-    HeapFree( GetProcessHeap(), 0, out_bits );
+    heap_free( out_bits );
     return FALSE;
 }
 
@@ -1190,7 +1191,7 @@ BITMAPINFO *copy_packed_dib( const BITMAPINFO *src_info, UINT usage )
     if (!bitmapinfo_from_user_bitmapinfo( info, src_info, usage, FALSE )) return NULL;
 
     info_size = get_dib_info_size( info, usage );
-    if ((ret = HeapAlloc( GetProcessHeap(), 0, info_size + info->bmiHeader.biSizeImage )))
+    if ((ret = heap_alloc( info_size + info->bmiHeader.biSizeImage )))
     {
         memcpy( ret, info, info_size );
         memcpy( (char *)ret + info_size, (char *)src_info + bitmap_info_size( src_info, usage ),
@@ -1504,7 +1505,7 @@ HBITMAP WINAPI DECLSPEC_HOTPATCH CreateDIBSection(HDC hdc, const BITMAPINFO *bmi
         WARN( "%u planes not properly supported\n", info->bmiHeader.biPlanes );
     }
 
-    if (!(bmp = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*bmp) ))) return 0;
+    if (!(bmp = heap_alloc_zero( sizeof(*bmp) ))) return 0;
 
     TRACE("format (%d,%d), planes %d, bpp %d, %s, size %d %s\n",
           info->bmiHeader.biWidth, info->bmiHeader.biHeight,
@@ -1525,7 +1526,7 @@ HBITMAP WINAPI DECLSPEC_HOTPATCH CreateDIBSection(HDC hdc, const BITMAPINFO *bmi
         if (usage == DIB_PAL_COLORS && !fill_color_table_from_pal_colors( info, hdc ))
             goto error;
         bmp->dib.dsBmih.biClrUsed = info->bmiHeader.biClrUsed;
-        if (!(bmp->color_table = HeapAlloc( GetProcessHeap(), 0,
+        if (!(bmp->color_table = heap_alloc(
                                             bmp->dib.dsBmih.biClrUsed * sizeof(RGBQUAD) )))
             goto error;
         memcpy( bmp->color_table, info->bmiColors, bmp->dib.dsBmih.biClrUsed * sizeof(RGBQUAD) );
@@ -1582,8 +1583,8 @@ HBITMAP WINAPI DECLSPEC_HOTPATCH CreateDIBSection(HDC hdc, const BITMAPINFO *bmi
 error:
     if (section) UnmapViewOfFile( mapBits );
     else VirtualFree( bmp->dib.dsBm.bmBits, 0, MEM_RELEASE );
-    HeapFree( GetProcessHeap(), 0, bmp->color_table );
-    HeapFree( GetProcessHeap(), 0, bmp );
+    heap_free( bmp->color_table );
+    heap_free( bmp );
     return 0;
 }
 
@@ -1643,7 +1644,7 @@ NTSTATUS WINAPI D3DKMTCreateDCFromMemory( D3DKMT_CREATEDCFROMMEMORY *desc )
 
     if (!desc->hDeviceDc || !(dc = CreateCompatibleDC( desc->hDeviceDc ))) return STATUS_INVALID_PARAMETER;
 
-    if (!(bmp = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*bmp) ))) goto error;
+    if (!(bmp = heap_alloc_zero( sizeof(*bmp) ))) goto error;
 
     bmp->dib.dsBm.bmWidth      = desc->Width;
     bmp->dib.dsBm.bmHeight     = desc->Height;
@@ -1667,7 +1668,7 @@ NTSTATUS WINAPI D3DKMTCreateDCFromMemory( D3DKMT_CREATEDCFROMMEMORY *desc )
 
     if (format->palette_size)
     {
-        if (!(bmp->color_table = HeapAlloc( GetProcessHeap(), 0, format->palette_size * sizeof(*bmp->color_table) )))
+        if (!(bmp->color_table = heap_alloc( format->palette_size * sizeof(*bmp->color_table) )))
             goto error;
         if (desc->pColorTable)
         {
@@ -1694,8 +1695,8 @@ NTSTATUS WINAPI D3DKMTCreateDCFromMemory( D3DKMT_CREATEDCFROMMEMORY *desc )
     return STATUS_SUCCESS;
 
 error:
-    if (bmp) HeapFree( GetProcessHeap(), 0, bmp->color_table );
-    HeapFree( GetProcessHeap(), 0, bmp );
+    if (bmp) heap_free( bmp->color_table );
+    heap_free( bmp );
     DeleteDC( dc );
     return STATUS_INVALID_PARAMETER;
 }
@@ -1830,7 +1831,7 @@ static BOOL DIB_DeleteObject( HGDIOBJ handle )
     }
     else VirtualFree( bmp->dib.dsBm.bmBits, 0, MEM_RELEASE );
 
-    HeapFree(GetProcessHeap(), 0, bmp->color_table);
-    HeapFree( GetProcessHeap(), 0, bmp );
+    heap_free( bmp->color_table );
+    heap_free( bmp );
     return TRUE;
 }

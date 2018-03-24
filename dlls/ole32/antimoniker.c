@@ -30,6 +30,7 @@
 #include "winerror.h"
 #include "objbase.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "moniker.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
@@ -128,7 +129,7 @@ AntiMonikerImpl_Release(IMoniker* iface)
     if (ref == 0)
     {
         if (This->pMarshal) IUnknown_Release(This->pMarshal);
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     }
 
     return ref;
@@ -612,7 +613,7 @@ HRESULT WINAPI CreateAntiMoniker(IMoniker **ppmk)
 
     TRACE("(%p)\n",ppmk);
 
-    newAntiMoniker = HeapAlloc(GetProcessHeap(), 0, sizeof(AntiMonikerImpl));
+    newAntiMoniker = heap_alloc(sizeof(AntiMonikerImpl));
 
     if (newAntiMoniker == 0)
         return STG_E_INSUFFICIENTMEMORY;
@@ -620,7 +621,7 @@ HRESULT WINAPI CreateAntiMoniker(IMoniker **ppmk)
     hr = AntiMonikerImpl_Construct(newAntiMoniker);
     if (FAILED(hr))
     {
-        HeapFree(GetProcessHeap(),0,newAntiMoniker);
+        heap_free(newAntiMoniker);
         return hr;
     }
 

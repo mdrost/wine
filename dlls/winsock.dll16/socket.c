@@ -109,7 +109,7 @@ static ws_fd_set16 *ws_fdset_32_to_16( const fd_set *set32, ws_fd_set16 *set16 )
 static DWORD finish_query( struct async_query_header *query, LPARAM lparam )
 {
     PostMessageW( query->hWnd, query->uMsg, (WPARAM)query->handle, lparam );
-    HeapFree( GetProcessHeap(), 0, query );
+    heap_free( query );
     return 0;
 }
 
@@ -151,9 +151,9 @@ static SEGPTR get_buffer_he(int size)
     {
         if (he_len >= size ) return he_buffer_seg;
         UnMapLS( he_buffer_seg );
-        HeapFree( GetProcessHeap(), 0, he_buffer );
+        heap_free( he_buffer );
     }
-    he_buffer = HeapAlloc( GetProcessHeap(), 0, (he_len = size) );
+    he_buffer = heap_alloc( (he_len = size) );
     he_buffer_seg = MapLS( he_buffer );
     return he_buffer_seg;
 }
@@ -165,9 +165,9 @@ static SEGPTR get_buffer_se(int size)
     {
         if (se_len >= size ) return se_buffer_seg;
         UnMapLS( se_buffer_seg );
-        HeapFree( GetProcessHeap(), 0, se_buffer );
+        heap_free( se_buffer );
     }
-    se_buffer = HeapAlloc( GetProcessHeap(), 0, (se_len = size) );
+    se_buffer = heap_alloc( (se_len = size) );
     se_buffer_seg = MapLS( se_buffer );
     return se_buffer_seg;
 }
@@ -179,9 +179,9 @@ static SEGPTR get_buffer_pe(int size)
     {
         if (pe_len >= size ) return pe_buffer_seg;
         UnMapLS( pe_buffer_seg );
-        HeapFree( GetProcessHeap(), 0, pe_buffer );
+        heap_free( pe_buffer );
     }
-    pe_buffer = HeapAlloc( GetProcessHeap(), 0, (pe_len = size) );
+    pe_buffer = heap_alloc( (pe_len = size) );
     pe_buffer_seg = MapLS( pe_buffer );
     return pe_buffer_seg;
 }
@@ -768,7 +768,7 @@ HANDLE16 WINAPI WSAAsyncGetHostByAddr16(HWND16 hWnd, UINT16 uMsg, LPCSTR addr,
 
     TRACE("hwnd %04x, msg %04x, addr %p[%i]\n", hWnd, uMsg, addr, len );
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -791,7 +791,7 @@ HANDLE16 WINAPI WSAAsyncGetHostByName16(HWND16 hWnd, UINT16 uMsg, LPCSTR name,
 
     TRACE("hwnd %04x, msg %04x, host %s, buffer %i\n", hWnd, uMsg, debugstr_a(name), buflen );
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -811,7 +811,7 @@ HANDLE16 WINAPI WSAAsyncGetProtoByNumber16(HWND16 hWnd,UINT16 uMsg,INT16 number,
 
     TRACE("hwnd %04x, msg %04x, num %i\n", hWnd, uMsg, number );
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) )))
+    if (!(aq = heap_alloc( sizeof(*aq) )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -831,7 +831,7 @@ HANDLE16 WINAPI WSAAsyncGetProtoByName16(HWND16 hWnd, UINT16 uMsg, LPCSTR name,
 
     TRACE("hwnd %04x, msg %04x, proto %s, buffer %i\n", hWnd, uMsg, debugstr_a(name), buflen );
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -852,7 +852,7 @@ HANDLE16 WINAPI WSAAsyncGetServByPort16(HWND16 hWnd, UINT16 uMsg, INT16 port,
 
     TRACE("hwnd %04x, msg %04x, port %i, proto %s\n", hWnd, uMsg, port, debugstr_a(proto));
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -875,7 +875,7 @@ HANDLE16 WINAPI WSAAsyncGetServByName16(HWND16 hWnd, UINT16 uMsg, LPCSTR name,
 
     TRACE("hwnd %04x, msg %04x, name %s, proto %s\n", hWnd, uMsg, debugstr_a(name), debugstr_a(proto));
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len1 + len2 )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len1 + len2 )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -988,9 +988,9 @@ INT WINAPI WSACleanup16(void)
             se_buffer_seg = 0;
             pe_buffer_seg = 0;
             dbuffer_seg = 0;
-            HeapFree( GetProcessHeap(), 0, he_buffer );
-            HeapFree( GetProcessHeap(), 0, se_buffer );
-            HeapFree( GetProcessHeap(), 0, pe_buffer );
+            heap_free( he_buffer );
+            heap_free( se_buffer );
+            heap_free( pe_buffer );
             he_buffer = NULL;
             se_buffer = NULL;
             pe_buffer = NULL;

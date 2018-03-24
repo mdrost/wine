@@ -39,6 +39,7 @@
 #include "rpcproxy.h"
 #include "wine/rpcfc.h"
 #include "cpsf.h"
+#include "wine/heap.h"
 
 #include "wine/debug.h"
 
@@ -118,7 +119,7 @@ static ULONG WINAPI RpcStream_Release(LPSTREAM iface)
   if (!ref) {
     TRACE("size=%d\n", *This->size);
     This->pMsg->Buffer = This->data + *This->size;
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
   }
   return ref;
 }
@@ -267,7 +268,7 @@ static HRESULT RpcStream_Create(PMIDL_STUB_MESSAGE pStubMsg, BOOL init, ULONG *s
   RpcStreamImpl *This;
 
   *stream = NULL;
-  This = HeapAlloc(GetProcessHeap(), 0, sizeof(RpcStreamImpl));
+  This = heap_alloc(sizeof(RpcStreamImpl));
   if (!This) return E_OUTOFMEMORY;
   This->IStream_iface.lpVtbl = &RpcStream_Vtbl;
   This->RefCount = 1;

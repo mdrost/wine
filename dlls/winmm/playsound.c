@@ -211,8 +211,8 @@ static void     PlaySound_Free(WINE_PLAYSOUND* wps)
     PlaySoundCurrent = NULL;
     SetEvent(psLastEvent);
     LeaveCriticalSection(&WINMM_cs);
-    if (wps->bAlloc) HeapFree(GetProcessHeap(), 0, (void*)wps->pszSound);
-    HeapFree(GetProcessHeap(), 0, wps);
+    if (wps->bAlloc) heap_free((void*)wps->pszSound);
+    heap_free(wps);
 }
 
 static WINE_PLAYSOUND*  PlaySound_Alloc(const void* pszSound, HMODULE hmod,
@@ -220,7 +220,7 @@ static WINE_PLAYSOUND*  PlaySound_Alloc(const void* pszSound, HMODULE hmod,
 {
     WINE_PLAYSOUND* wps;
 
-    wps = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*wps));
+    wps = heap_alloc_zero(sizeof(*wps));
     if (!wps) return NULL;
 
     wps->hMod = hmod;
@@ -254,8 +254,8 @@ static WINE_PLAYSOUND*  PlaySound_Alloc(const void* pszSound, HMODULE hmod,
 
     return wps;
  oom_error:
-    if (wps->bAlloc) HeapFree(GetProcessHeap(), 0, (void*)wps->pszSound);
-    HeapFree(GetProcessHeap(), 0, wps);
+    if (wps->bAlloc) heap_free((void*)wps->pszSound);
+    heap_free(wps);
     return NULL;
 }
 
@@ -378,7 +378,7 @@ static DWORD WINAPI proc_PlaySound(LPVOID arg)
     TRACE("Chunk Found ckid=%.4s fccType=%08x cksize=%08X\n",
 	  (LPSTR)&mmckInfo.ckid, mmckInfo.fccType, mmckInfo.cksize);
 
-    lpWaveFormat = HeapAlloc(GetProcessHeap(), 0, mmckInfo.cksize);
+    lpWaveFormat = heap_alloc(mmckInfo.cksize);
     if (!lpWaveFormat)
 	goto errCleanUp;
     if (mmioRead(hmmio, (HPSTR)lpWaveFormat, mmckInfo.cksize) < sizeof(PCMWAVEFORMAT))
@@ -412,7 +412,7 @@ static DWORD WINAPI proc_PlaySound(LPVOID arg)
     /* make it so that 3 buffers per second are needed */
     bufsize = (((lpWaveFormat->nAvgBytesPerSec / 3) - 1) / lpWaveFormat->nBlockAlign + 1) *
 	lpWaveFormat->nBlockAlign;
-    waveHdr = HeapAlloc(GetProcessHeap(), 0, 2 * sizeof(WAVEHDR) + 2 * bufsize);
+    waveHdr = heap_alloc(2 * sizeof(WAVEHDR) + 2 * bufsize);
     if (!waveHdr)
 	goto errCleanUp;
     waveHdr[0].lpData = (char*)waveHdr + 2 * sizeof(WAVEHDR);
@@ -466,7 +466,7 @@ static DWORD WINAPI proc_PlaySound(LPVOID arg)
 
 errCleanUp:
     TRACE("Done playing=%s => %s!\n", debugstr_w(wps->pszSound), bRet ? "ok" : "ko");
-    HeapFree(GetProcessHeap(), 0, lpWaveFormat);
+    heap_free(lpWaveFormat);
     if (hWave)
     {
         EnterCriticalSection(&WINMM_cs);
@@ -477,7 +477,7 @@ errCleanUp:
             Sleep(100);
     }
     CloseHandle(s.hEvent);
-    HeapFree(GetProcessHeap(), 0, waveHdr);
+    heap_free(waveHdr);
     if (hmmio) 		mmioClose(hmmio, 0);
 
     PlaySound_Free(wps);

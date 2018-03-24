@@ -200,7 +200,7 @@ static struct class_categories *COMCAT_PrepareClassCategories(
     ULONG size;
 
     size = sizeof(struct class_categories) + ((impl_count + req_count)*CHARS_IN_GUID + 2)*sizeof(WCHAR);
-    categories = HeapAlloc(GetProcessHeap(), 0, size);
+    categories = heap_alloc(size);
     if (categories == NULL) return categories;
 
     categories->size = size;
@@ -573,7 +573,7 @@ static HRESULT WINAPI COMCAT_ICatInformation_EnumClassesOfCategories(
     hr = CLSIDEnumGUID_Construct(categories, ppenumCLSID);
     if (FAILED(hr))
     {
-	HeapFree(GetProcessHeap(), 0, categories);
+	heap_free(categories);
 	return hr;
     }
 
@@ -622,7 +622,7 @@ static HRESULT WINAPI COMCAT_ICatInformation_IsClassOfCategories(
 	RegCloseKey(key);
     } else res = S_FALSE;
 
-    HeapFree(GetProcessHeap(), 0, categories);
+    heap_free(categories);
 
     return res;
 }
@@ -777,7 +777,7 @@ static ULONG WINAPI COMCAT_IEnumCATEGORYINFO_Release(IEnumCATEGORYINFO *iface)
     ref = InterlockedDecrement(&This->ref);
     if (ref == 0) {
 	if (This->key) RegCloseKey(This->key);
-	HeapFree(GetProcessHeap(), 0, This);
+	heap_free(This);
 	return 0;
     }
     return ref;
@@ -865,7 +865,7 @@ static HRESULT WINAPI COMCAT_IEnumCATEGORYINFO_Clone(
 
     if (ppenum == NULL) return E_POINTER;
 
-    new_this = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IEnumCATEGORYINFOImpl));
+    new_this = heap_alloc_zero(sizeof(IEnumCATEGORYINFOImpl));
     if (new_this == NULL) return E_OUTOFMEMORY;
 
     new_this->IEnumCATEGORYINFO_iface = This->IEnumCATEGORYINFO_iface;
@@ -897,7 +897,7 @@ static HRESULT EnumCATEGORYINFO_Construct(LCID lcid, IEnumCATEGORYINFO **ret)
 
     *ret = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(IEnumCATEGORYINFOImpl));
+    This = heap_alloc_zero(sizeof(IEnumCATEGORYINFOImpl));
     if (!This) return E_OUTOFMEMORY;
 
     This->IEnumCATEGORYINFO_iface.lpVtbl = &COMCAT_IEnumCATEGORYINFO_Vtbl;
@@ -967,8 +967,8 @@ static ULONG WINAPI CLSIDEnumGUID_Release(IEnumGUID *iface)
     ref = InterlockedDecrement(&This->ref);
     if (ref == 0) {
 	if (This->key) RegCloseKey(This->key);
-        HeapFree(GetProcessHeap(), 0, This->categories);
-	HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->categories);
+	heap_free(This);
 	return 0;
     }
     return ref;
@@ -1054,15 +1054,15 @@ static HRESULT WINAPI CLSIDEnumGUID_Clone(
 
     *ppenum = NULL;
 
-    cloned = HeapAlloc(GetProcessHeap(), 0, sizeof(CLSID_IEnumGUIDImpl));
+    cloned = heap_alloc(sizeof(CLSID_IEnumGUIDImpl));
     if (cloned == NULL) return E_OUTOFMEMORY;
 
     cloned->IEnumGUID_iface.lpVtbl = This->IEnumGUID_iface.lpVtbl;
     cloned->ref = 1;
 
-    cloned->categories = HeapAlloc(GetProcessHeap(), 0, This->categories->size);
+    cloned->categories = heap_alloc(This->categories->size);
     if (cloned->categories == NULL) {
-	HeapFree(GetProcessHeap(), 0, cloned);
+	heap_free(cloned);
 	return E_OUTOFMEMORY;
     }
     memcpy(cloned->categories, This->categories, This->categories->size);
@@ -1093,7 +1093,7 @@ static HRESULT CLSIDEnumGUID_Construct(struct class_categories *categories, IEnu
 
     *ret = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(CLSID_IEnumGUIDImpl));
+    This = heap_alloc_zero(sizeof(CLSID_IEnumGUIDImpl));
     if (!This) return E_OUTOFMEMORY;
 
     This->IEnumGUID_iface.lpVtbl = &CLSIDEnumGUIDVtbl;
@@ -1164,7 +1164,7 @@ static ULONG WINAPI CATIDEnumGUID_Release(IEnumGUID *iface)
     ref = InterlockedDecrement(&This->ref);
     if (ref == 0) {
 	if (This->key) RegCloseKey(This->key);
-	HeapFree(GetProcessHeap(), 0, This);
+	heap_free(This);
 	return 0;
     }
     return ref;
@@ -1239,7 +1239,7 @@ static HRESULT WINAPI CATIDEnumGUID_Clone(
 
     if (ppenum == NULL) return E_POINTER;
 
-    new_this = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(CATID_IEnumGUIDImpl));
+    new_this = heap_alloc_zero(sizeof(CATID_IEnumGUIDImpl));
     if (new_this == NULL) return E_OUTOFMEMORY;
 
     new_this->IEnumGUID_iface.lpVtbl = This->IEnumGUID_iface.lpVtbl;
@@ -1272,7 +1272,7 @@ static HRESULT CATIDEnumGUID_Construct(REFCLSID rclsid, LPCWSTR postfix, IEnumGU
 
     *ret = NULL;
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(CATID_IEnumGUIDImpl));
+    This = heap_alloc_zero(sizeof(CATID_IEnumGUIDImpl));
     if (!This) return E_OUTOFMEMORY;
 
     StringFromGUID2(rclsid, clsidW, CHARS_IN_GUID);

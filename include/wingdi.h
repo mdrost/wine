@@ -40,8 +40,13 @@ typedef struct _ABCFLOAT {
 
 typedef struct
 {
+#if 0
     WORD   wFirst;
     WORD   wSecond;
+#else
+    DWORD   wFirst;
+    DWORD   wSecond;
+#endif
     INT  iKernAmount;
 } KERNINGPAIR, *LPKERNINGPAIR;
 
@@ -3699,7 +3704,11 @@ WINGDIAPI BOOL        WINAPI GetCharABCWidthsW(HDC,UINT,UINT,LPABC);
 WINGDIAPI BOOL        WINAPI GetCharABCWidthsFloatA(HDC,UINT,UINT,LPABCFLOAT);
 WINGDIAPI BOOL        WINAPI GetCharABCWidthsFloatW(HDC,UINT,UINT,LPABCFLOAT);
 #define                      GetCharABCWidthsFloat WINELIB_NAME_AW(GetCharABCWidthsFloat)
+#if 0
 WINGDIAPI BOOL        WINAPI GetCharABCWidthsI(HDC,UINT,UINT,LPWORD,LPABC);
+#else
+WINGDIAPI BOOL        WINAPI GetCharABCWidthsI(HDC,UINT,UINT,LPDWORD,LPABC);
+#endif
 WINGDIAPI DWORD       WINAPI GetCharacterPlacementA(HDC,LPCSTR,INT,INT,GCP_RESULTSA*,DWORD);
 WINGDIAPI DWORD       WINAPI GetCharacterPlacementW(HDC,LPCWSTR,INT,INT,GCP_RESULTSW*,DWORD);
 #define                      GetCharacterPlacement WINELIB_NAME_AW(GetCharacterPlacement)
@@ -3707,7 +3716,11 @@ WINGDIAPI BOOL        WINAPI GetCharWidth32A(HDC,UINT,UINT,LPINT);
 WINGDIAPI BOOL        WINAPI GetCharWidth32W(HDC,UINT,UINT,LPINT);
 #define                      GetCharWidth32 WINELIB_NAME_AW(GetCharWidth32)
 WINGDIAPI BOOL        WINAPI GetCharWidthA(HDC,UINT,UINT,LPINT);
+#if 0
 WINGDIAPI BOOL        WINAPI GetCharWidthI(HDC,UINT,UINT,LPWORD,LPINT);
+#else
+WINGDIAPI BOOL        WINAPI GetCharWidthI(HDC,UINT,UINT,LPDWORD,LPINT);
+#endif
 WINGDIAPI BOOL        WINAPI GetCharWidthW(HDC,UINT,UINT,LPINT);
 #define                      GetCharWidth WINELIB_NAME_AW(GetCharWidth)
 WINGDIAPI BOOL        WINAPI GetCharWidthFloatA(HDC,UINT,UINT,PFLOAT);
@@ -3738,8 +3751,13 @@ WINGDIAPI UINT        WINAPI GetEnhMetaFilePaletteEntries(HENHMETAFILE,UINT,LPPA
 WINGDIAPI DWORD       WINAPI GetFontData(HDC,DWORD,DWORD,LPVOID,DWORD);
 WINGDIAPI DWORD       WINAPI GetFontLanguageInfo(HDC);
 WINGDIAPI DWORD       WINAPI GetFontUnicodeRanges(HDC,LPGLYPHSET);
+#if 0
 WINGDIAPI DWORD       WINAPI GetGlyphIndicesA(HDC,LPCSTR,INT,LPWORD,DWORD);
 WINGDIAPI DWORD       WINAPI GetGlyphIndicesW(HDC,LPCWSTR,INT,LPWORD,DWORD);
+#else
+WINGDIAPI DWORD       WINAPI GetGlyphIndicesA(HDC,LPCSTR,INT,LPDWORD,DWORD);
+WINGDIAPI DWORD       WINAPI GetGlyphIndicesW(HDC,LPCWSTR,INT,LPDWORD,DWORD);
+#endif
 #define                    GetGlyphIndices WINELIB_NAME_AW(GetGlyphIndices)
 WINGDIAPI DWORD       WINAPI GetGlyphOutlineA(HDC,UINT,UINT,LPGLYPHMETRICS,DWORD,LPVOID,const MAT2*);
 WINGDIAPI DWORD       WINAPI GetGlyphOutlineW(HDC,UINT,UINT,LPGLYPHMETRICS,DWORD,LPVOID,const MAT2*);
@@ -3800,8 +3818,13 @@ WINGDIAPI BOOL        WINAPI GetTextExtentPointW(HDC,LPCWSTR,INT,LPSIZE);
 WINGDIAPI BOOL        WINAPI GetTextExtentPoint32A(HDC,LPCSTR,INT,LPSIZE);
 WINGDIAPI BOOL        WINAPI GetTextExtentPoint32W(HDC,LPCWSTR,INT,LPSIZE);
 #define                      GetTextExtentPoint32 WINELIB_NAME_AW(GetTextExtentPoint32)
+#if 0
 WINGDIAPI BOOL        WINAPI GetTextExtentExPointI(HDC,const WORD*,INT,INT,LPINT,LPINT,LPSIZE);
 WINGDIAPI BOOL        WINAPI GetTextExtentPointI(HDC,const WORD*,INT,LPSIZE);
+#else
+WINGDIAPI BOOL        WINAPI GetTextExtentExPointI(HDC,const DWORD*,INT,INT,LPINT,LPINT,LPSIZE);
+WINGDIAPI BOOL        WINAPI GetTextExtentPointI(HDC,const DWORD*,INT,LPSIZE);
+#endif
 WINGDIAPI INT         WINAPI GetTextFaceA(HDC,INT,LPSTR);
 WINGDIAPI INT         WINAPI GetTextFaceW(HDC,INT,LPWSTR);
 #define                      GetTextFace WINELIB_NAME_AW(GetTextFace)
@@ -3945,6 +3968,7 @@ WINGDIAPI BOOL        WINAPI PolyTextOutA(HDC,const POLYTEXTA*,INT);
 WINGDIAPI BOOL        WINAPI PolyTextOutW(HDC,const POLYTEXTW*,INT);
 #define                      PolyTextOut WINELIB_NAME_AW(PolyTextOut)
 
+#if 0
 /* These defines are used by wglSwapLayerBuffers */
 #define WGL_SWAP_MAIN_PLANE (1 <<  0)
 #define WGL_SWAP_OVERLAY1   (1 <<  1)
@@ -4002,6 +4026,7 @@ WINGDIAPI BOOL    WINAPI wglUseFontBitmapsW(HDC,DWORD,DWORD,DWORD);
 WINGDIAPI BOOL    WINAPI wglUseFontOutlinesA(HDC,DWORD,DWORD,DWORD,FLOAT,FLOAT,INT,LPGLYPHMETRICSFLOAT);
 WINGDIAPI BOOL    WINAPI wglUseFontOutlinesW(HDC,DWORD,DWORD,DWORD,FLOAT,FLOAT,INT,LPGLYPHMETRICSFLOAT);
 #define                  wglUseFontOutlines WINELIB_NAME_AW(wglUseFontOutlines)
+#endif
 
 #ifdef __cplusplus
 }

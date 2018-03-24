@@ -27,6 +27,7 @@
 #include "wingdi.h"
 #include "mfdrv/metafiledrv.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(metafile);
 
@@ -125,7 +126,7 @@ static BOOL MFDRV_MetaPoly(PHYSDEV dev, short func, POINTS *pt, short count)
     METARECORD *mr;
 
     len = sizeof(METARECORD) + (count * 4);
-    if (!(mr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, len )))
+    if (!(mr = heap_alloc_zero( len )))
 	return FALSE;
 
     mr->rdSize = len / 2;
@@ -133,7 +134,7 @@ static BOOL MFDRV_MetaPoly(PHYSDEV dev, short func, POINTS *pt, short count)
     *(mr->rdParm) = count;
     memcpy(mr->rdParm + 1, pt, count * 4);
     ret = MFDRV_WriteRecord( dev, mr, mr->rdSize * 2);
-    HeapFree( GetProcessHeap(), 0, mr);
+    heap_free(mr);
     return ret;
 }
 
@@ -147,7 +148,7 @@ BOOL MFDRV_Polyline( PHYSDEV dev, const POINT* pt, INT count )
     POINTS *pts;
     BOOL ret;
 
-    pts = HeapAlloc( GetProcessHeap(), 0, sizeof(POINTS)*count );
+    pts = heap_alloc( sizeof(POINTS)*count );
     if(!pts) return FALSE;
     for (i=count;i--;)
     {
@@ -156,7 +157,7 @@ BOOL MFDRV_Polyline( PHYSDEV dev, const POINT* pt, INT count )
     }
     ret = MFDRV_MetaPoly(dev, META_POLYLINE, pts, count);
 
-    HeapFree( GetProcessHeap(), 0, pts );
+    heap_free( pts );
     return ret;
 }
 
@@ -170,7 +171,7 @@ BOOL MFDRV_Polygon( PHYSDEV dev, const POINT* pt, INT count )
     POINTS *pts;
     BOOL ret;
 
-    pts = HeapAlloc( GetProcessHeap(), 0, sizeof(POINTS)*count );
+    pts = heap_alloc( sizeof(POINTS)*count );
     if(!pts) return FALSE;
     for (i=count;i--;)
     {
@@ -179,7 +180,7 @@ BOOL MFDRV_Polygon( PHYSDEV dev, const POINT* pt, INT count )
     }
     ret = MFDRV_MetaPoly(dev, META_POLYGON, pts, count);
 
-    HeapFree( GetProcessHeap(), 0, pts );
+    heap_free( pts );
     return ret;
 }
 
@@ -202,8 +203,8 @@ BOOL MFDRV_PolyPolygon( PHYSDEV dev, const POINT* pt, const INT* counts, UINT po
     }
 
     /* allocate space for all points */
-    pts=HeapAlloc( GetProcessHeap(), 0, sizeof(POINTS) * totalpoint16 );
-    pointcounts = HeapAlloc( GetProcessHeap(), 0, sizeof(INT16) * totalpoint16 );
+    pts=heap_alloc( sizeof(POINTS) * totalpoint16 );
+    pointcounts = heap_alloc( sizeof(INT16) * totalpoint16 );
 
     /* copy point counts */
     for (i=0;i<polygons;i++) {
@@ -218,9 +219,9 @@ BOOL MFDRV_PolyPolygon( PHYSDEV dev, const POINT* pt, const INT* counts, UINT po
 
     len = sizeof(METARECORD) + sizeof(WORD) + polygons*sizeof(INT16) + totalpoint16*sizeof(*pts);
 
-    if (!(mr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, len ))) {
-         HeapFree( GetProcessHeap(), 0, pts );
-         HeapFree( GetProcessHeap(), 0, pointcounts );
+    if (!(mr = heap_alloc_zero( len ))) {
+         heap_free( pts );
+         heap_free( pointcounts );
          return FALSE;
     }
 
@@ -231,9 +232,9 @@ BOOL MFDRV_PolyPolygon( PHYSDEV dev, const POINT* pt, const INT* counts, UINT po
     memcpy(mr->rdParm + 1+polygons, pts , totalpoint16*sizeof(*pts));
     ret = MFDRV_WriteRecord( dev, mr, mr->rdSize * 2);
 
-    HeapFree( GetProcessHeap(), 0, pts );
-    HeapFree( GetProcessHeap(), 0, pointcounts );
-    HeapFree( GetProcessHeap(), 0, mr);
+    heap_free( pts );
+    heap_free( pointcounts );
+    heap_free( mr);
     return ret;
 }
 
@@ -265,7 +266,7 @@ static INT16 MFDRV_CreateRegion(PHYSDEV dev, HRGN hrgn)
     BOOL ret;
 
     if (!(len = GetRegionData( hrgn, 0, NULL ))) return -1;
-    if( !(rgndata = HeapAlloc( GetProcessHeap(), 0, len )) ) {
+    if( !(rgndata = heap_alloc( len )) ) {
         WARN("Can't alloc rgndata buffer\n");
 	return -1;
     }
@@ -275,9 +276,9 @@ static INT16 MFDRV_CreateRegion(PHYSDEV dev, HRGN hrgn)
      * Assume every rect is a separate band -> 6 WORDs per rect
      */
     len = sizeof(METARECORD) + 20 + (rgndata->rdh.nCount * 12);
-    if( !(mr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, len )) ) {
+    if( !(mr = heap_alloc_zero( len )) ) {
         WARN("Can't alloc METARECORD buffer\n");
-	HeapFree( GetProcessHeap(), 0, rgndata );
+	heap_free( rgndata );
 	return -1;
     }
 
@@ -333,8 +334,8 @@ static INT16 MFDRV_CreateRegion(PHYSDEV dev, HRGN hrgn)
     mr->rdFunction = META_CREATEREGION;
     mr->rdSize = Param - (WORD *)mr;
     ret = MFDRV_WriteRecord( dev, mr, mr->rdSize * 2 );
-    HeapFree( GetProcessHeap(), 0, mr );
-    HeapFree( GetProcessHeap(), 0, rgndata );
+    heap_free( mr );
+    heap_free( rgndata );
     if(!ret)
     {
         WARN("MFDRV_WriteRecord failed\n");

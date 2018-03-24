@@ -299,7 +299,7 @@ static void init_pixmap_formats( Display *display )
                formats[i].depth, formats[i].bits_per_pixel, formats[i].scanline_pad );
         if (formats[i].depth > max) max = formats[i].depth;
     }
-    pixmap_formats = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*pixmap_formats) * (max + 1) );
+    pixmap_formats = heap_alloc_zero( sizeof(*pixmap_formats) * (max + 1) );
     for (i = 0; i < count; i++) pixmap_formats[formats[i].depth] = &formats[i];
 }
 
@@ -345,7 +345,7 @@ static void setup_options(void)
         if ((p = strrchrW( appname, '\\' ))) appname = p + 1;
         CharLowerW(appname);
         len = WideCharToMultiByte( CP_UNIXCP, 0, appname, -1, NULL, 0, NULL, NULL );
-        if ((process_name = HeapAlloc( GetProcessHeap(), 0, len )))
+        if ((process_name = heap_alloc( len )))
             WideCharToMultiByte( CP_UNIXCP, 0, appname, -1, process_name, len, NULL, NULL );
         strcatW( appname, x11driverW );
         /* @@ Wine registry key: HKCU\Software\Wine\AppDefaults\app.exe\X11 Driver */
@@ -613,7 +613,7 @@ void CDECL X11DRV_ThreadDetach(void)
         if (data->xim) XCloseIM( data->xim );
         if (data->font_set) XFreeFontSet( data->display, data->font_set );
         XCloseDisplay( data->display );
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
         /* clear data in case we get re-entered from user32 before the thread is truly dead */
         TlsSetValue( thread_data_tls_index, NULL );
     }
@@ -655,7 +655,7 @@ struct x11drv_thread_data *x11drv_init_thread_data(void)
 
     if (data) return data;
 
-    if (!(data = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data) )))
+    if (!(data = heap_alloc_zero( sizeof(*data) )))
     {
         ERR( "could not create data\n" );
         ExitProcess(1);

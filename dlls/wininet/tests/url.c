@@ -177,7 +177,7 @@ static WCHAR *a2w(const char *str)
     int len;
 
     len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-    ret = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+    ret = heap_alloc(len*sizeof(WCHAR));
     MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
     return ret;
 }
@@ -186,7 +186,7 @@ static int strcmp_wa(const WCHAR *str1, const char *str2)
 {
     WCHAR *str2w = a2w(str2);
     int ret = lstrcmpW(str1, str2w);
-    HeapFree(GetProcessHeap(), 0, str2w);
+    heap_free(str2w);
     return ret;
 }
 
@@ -278,7 +278,7 @@ static void test_crack_url(const crack_url_test_t *test)
     b = InternetCrackUrlW(buf, lstrlenW(buf), 0, &urlw);
     if(!b && GetLastError() == ERROR_CALL_NOT_IMPLEMENTED) {
         win_skip("InternetCrackUrlW is not implemented\n");
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
         return;
     }
     ok(b, "InternetCrackUrl failed with error %d\n", GetLastError());
@@ -348,12 +348,12 @@ static void test_crack_url(const crack_url_test_t *test)
     }
 
     /* test InternetCrackUrlA with valid buffers */
-    scheme_a = (char*)(scheme_w = HeapAlloc(GetProcessHeap(), 0, buf_len*sizeof(WCHAR)));
-    hostname_a = (char*)(hostname_w = HeapAlloc(GetProcessHeap(), 0, buf_len*sizeof(WCHAR)));
-    username_a = (char*)(username_w = HeapAlloc(GetProcessHeap(), 0, buf_len*sizeof(WCHAR)));
-    password_a = (char*)(password_w = HeapAlloc(GetProcessHeap(), 0, buf_len*sizeof(WCHAR)));
-    urlpath_a = (char*)(urlpath_w = HeapAlloc(GetProcessHeap(), 0, buf_len*sizeof(WCHAR)));
-    extrainfo_a = (char*)(extrainfo_w = HeapAlloc(GetProcessHeap(), 0, buf_len*sizeof(WCHAR)));
+    scheme_a = (char*)(scheme_w = heap_alloc(buf_len*sizeof(WCHAR)));
+    hostname_a = (char*)(hostname_w = heap_alloc(buf_len*sizeof(WCHAR)));
+    username_a = (char*)(username_w = heap_alloc(buf_len*sizeof(WCHAR)));
+    password_a = (char*)(password_w = heap_alloc(buf_len*sizeof(WCHAR)));
+    urlpath_a = (char*)(urlpath_w = heap_alloc(buf_len*sizeof(WCHAR)));
+    extrainfo_a = (char*)(extrainfo_w = heap_alloc(buf_len*sizeof(WCHAR)));
     memset(&url, 0, sizeof(URL_COMPONENTSA));
     url.dwStructSize = sizeof(URL_COMPONENTSA);
     url.lpszScheme = scheme_a;
@@ -463,13 +463,13 @@ static void test_crack_url(const crack_url_test_t *test)
     ok(!strcmp_wa(extrainfo_w, test->exp_extrainfo), "[%s] Got wrong extrainfo, expected: %s, got: %s\n",
        test->url, test->exp_extrainfo, wine_dbgstr_w(extrainfo_w));
 
-    HeapFree(GetProcessHeap(), 0, scheme_w);
-    HeapFree(GetProcessHeap(), 0, hostname_w);
-    HeapFree(GetProcessHeap(), 0, username_w);
-    HeapFree(GetProcessHeap(), 0, password_w);
-    HeapFree(GetProcessHeap(), 0, urlpath_w);
-    HeapFree(GetProcessHeap(), 0, extrainfo_w);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(scheme_w);
+    heap_free(hostname_w);
+    heap_free(username_w);
+    heap_free(password_w);
+    heap_free(urlpath_w);
+    heap_free(extrainfo_w);
+    heap_free(buf);
 }
 
 static void test_long_url(void)
@@ -915,7 +915,7 @@ static void InternetCreateUrlA_test(void)
 
 	/* test valid lpUrlComponents, alloc-ed szUrl, small size */
 	SetLastError(0xdeadbeef);
-	szUrl = HeapAlloc(GetProcessHeap(), 0, len);
+	szUrl = heap_alloc(len);
 	len -= 2;
 	ret = InternetCreateUrlA(&urlComp, 0, szUrl, &len);
 	ok(!ret, "Expected failure\n");
@@ -1018,29 +1018,29 @@ static void InternetCreateUrlA_test(void)
 	 * depends on lpszScheme and the string copied depends on lpszScheme.
 	 */
 	fill_url_components(&urlComp);
-	HeapFree(GetProcessHeap(), 0, szUrl);
+	heap_free(szUrl);
 	urlComp.lpszScheme = nhttp;
 	urlComp.dwSchemeLength = strlen(urlComp.lpszScheme);
 	len = strlen(CREATE_URL6) + 1;
-	szUrl = HeapAlloc(GetProcessHeap(), 0, len);
+	szUrl = heap_alloc(len);
 	ret = InternetCreateUrlA(&urlComp, ICU_ESCAPE, szUrl, &len);
 	ok(ret, "Expected success\n");
 	ok(len == strlen(CREATE_URL6), "Expected len %d, got %d\n", lstrlenA(CREATE_URL6) + 1, len);
 	ok(!strcmp(szUrl, CREATE_URL6), "Expected %s, got %s\n", CREATE_URL6, szUrl);
 
 	/* if lpszScheme != "http" or nPort != 80, display nPort */
-	HeapFree(GetProcessHeap(), 0, szUrl);
+	heap_free(szUrl);
         urlComp.lpszScheme = http;
 	urlComp.dwSchemeLength = strlen(urlComp.lpszScheme);
 	urlComp.nPort = 42;
-	szUrl = HeapAlloc(GetProcessHeap(), 0, ++len);
+	szUrl = heap_alloc(++len);
 	ret = InternetCreateUrlA(&urlComp, ICU_ESCAPE, szUrl, &len);
 	ok(ret, "Expected success\n");
 	ok(len == 53, "Expected len 53, got %d\n", len);
 	ok(strstr(szUrl, "42") != NULL, "Expected to find 42 in szUrl\n");
 	ok(!strcmp(szUrl, CREATE_URL7), "Expected %s, got %s\n", CREATE_URL7, szUrl);
 
-	HeapFree(GetProcessHeap(), 0, szUrl);
+	heap_free(szUrl);
 
 	memset(&urlComp, 0, sizeof(urlComp));
 	urlComp.dwStructSize = sizeof(urlComp);
@@ -1059,13 +1059,13 @@ static void InternetCreateUrlA_test(void)
 	urlComp.lpszExtraInfo = empty;
 	urlComp.dwExtraInfoLength = 0;
 	len = strlen(CREATE_URL1);
-	szUrl = HeapAlloc(GetProcessHeap(), 0, ++len);
+	szUrl = heap_alloc(++len);
 	ret = InternetCreateUrlA(&urlComp, ICU_ESCAPE, szUrl, &len);
 	ok(ret, "Expected success\n");
 	ok(len == strlen(CREATE_URL1), "Expected len %d, got %d\n", lstrlenA(CREATE_URL1), len);
 	ok(!strcmp(szUrl, CREATE_URL1), "Expected %s, got %s\n", CREATE_URL1, szUrl);
 
-	HeapFree(GetProcessHeap(), 0, szUrl);
+	heap_free(szUrl);
 
 	memset(&urlComp, 0, sizeof(urlComp));
 	urlComp.dwStructSize = sizeof(urlComp);
@@ -1084,13 +1084,13 @@ static void InternetCreateUrlA_test(void)
 	urlComp.lpszExtraInfo = empty;
 	urlComp.dwExtraInfoLength = 0;
 	len = strlen(CREATE_URL8);
-	szUrl = HeapAlloc(GetProcessHeap(), 0, ++len);
+	szUrl = heap_alloc(++len);
 	ret = InternetCreateUrlA(&urlComp, ICU_ESCAPE, szUrl, &len);
 	ok(ret, "Expected success\n");
 	ok(len == strlen(CREATE_URL8), "Expected len %d, got %d\n", lstrlenA(CREATE_URL8), len);
 	ok(!strcmp(szUrl, CREATE_URL8), "Expected %s, got %s\n", CREATE_URL8, szUrl);
 
-	HeapFree(GetProcessHeap(), 0, szUrl);
+	heap_free(szUrl);
 
 	memset(&urlComp, 0, sizeof(urlComp));
 	urlComp.dwStructSize = sizeof(urlComp);
@@ -1100,13 +1100,13 @@ static void InternetCreateUrlA_test(void)
 	urlComp.dwUrlPathLength = 5;
 	len = strlen(CREATE_URL9);
 	len++; /* work around bug in native wininet */
-	szUrl = HeapAlloc(GetProcessHeap(), 0, ++len);
+	szUrl = heap_alloc(++len);
 	ret = InternetCreateUrlA(&urlComp, ICU_ESCAPE, szUrl, &len);
 	ok(ret, "Expected success\n");
 	ok(len == strlen(CREATE_URL9), "Expected len %d, got %d\n", lstrlenA(CREATE_URL9), len);
 	ok(!strcmp(szUrl, CREATE_URL9), "Expected %s, got %s\n", CREATE_URL9, szUrl);
 
-	HeapFree(GetProcessHeap(), 0, szUrl);
+	heap_free(szUrl);
 
 	memset(&urlComp, 0, sizeof(urlComp));
 	urlComp.dwStructSize = sizeof(urlComp);
@@ -1115,26 +1115,26 @@ static void InternetCreateUrlA_test(void)
 	urlComp.lpszUrlPath = blank;
 	len = strlen(CREATE_URL10);
 	len++; /* work around bug in native wininet */
-	szUrl = HeapAlloc(GetProcessHeap(), 0, ++len);
+	szUrl = heap_alloc(++len);
 	ret = InternetCreateUrlA(&urlComp, ICU_ESCAPE, szUrl, &len);
 	ok(ret, "Expected success\n");
 	ok(len == strlen(CREATE_URL10), "Expected len %d, got %d\n", lstrlenA(CREATE_URL10), len);
 	ok(!strcmp(szUrl, CREATE_URL10), "Expected %s, got %s\n", CREATE_URL10, szUrl);
 
-	HeapFree(GetProcessHeap(), 0, szUrl);
+	heap_free(szUrl);
 
 	memset(&urlComp, 0, sizeof(urlComp));
 	urlComp.dwStructSize = sizeof(urlComp);
 	urlComp.nPort = 8080;
 	urlComp.lpszScheme = about;
 	len = strlen(CREATE_URL11);
-	szUrl = HeapAlloc(GetProcessHeap(), 0, ++len);
+	szUrl = heap_alloc(++len);
 	ret = InternetCreateUrlA(&urlComp, ICU_ESCAPE, szUrl, &len);
 	ok(ret, "Expected success\n");
 	ok(len == strlen(CREATE_URL11), "Expected len %d, got %d\n", lstrlenA(CREATE_URL11), len);
 	ok(!strcmp(szUrl, CREATE_URL11), "Expected %s, got %s\n", CREATE_URL11, szUrl);
 
-	HeapFree(GetProcessHeap(), 0, szUrl);
+	heap_free(szUrl);
 
 	memset(&urlComp, 0, sizeof(urlComp));
 	urlComp.dwStructSize = sizeof(urlComp);
@@ -1145,13 +1145,13 @@ static void InternetCreateUrlA_test(void)
 	urlComp.dwHostNameLength = 0;
 	urlComp.nPort = 65535;
 	len = strlen(CREATE_URL12);
-	szUrl = HeapAlloc(GetProcessHeap(), 0, ++len);
+	szUrl = heap_alloc(++len);
 	ret = InternetCreateUrlA(&urlComp, ICU_ESCAPE, szUrl, &len);
 	ok(ret, "Expected success\n");
 	ok(len == strlen(CREATE_URL12), "Expected len %d, got %d\n", lstrlenA(CREATE_URL12), len);
 	ok(!strcmp(szUrl, CREATE_URL12), "Expected %s, got %s\n", CREATE_URL12, szUrl);
 
-	HeapFree(GetProcessHeap(), 0, szUrl);
+	heap_free(szUrl);
 
     memset(&urlComp, 0, sizeof(urlComp));
     urlComp.dwStructSize = sizeof(urlComp);
@@ -1165,13 +1165,13 @@ static void InternetCreateUrlA_test(void)
     urlComp.lpszExtraInfo = extra_info;
     urlComp.dwExtraInfoLength = strlen(urlComp.lpszExtraInfo);
     len = 256;
-    szUrl = HeapAlloc(GetProcessHeap(), 0, len);
+    szUrl = heap_alloc(len);
     InternetCreateUrlA(&urlComp, ICU_ESCAPE, szUrl, &len);
     ok(ret, "Expected success\n");
     ok(len == strlen(CREATE_URL13), "Got len %u\n", len);
     ok(!strcmp(szUrl, CREATE_URL13), "Expected \"%s\", got \"%s\"\n", CREATE_URL13, szUrl);
 
-    HeapFree(GetProcessHeap(), 0, szUrl);
+    heap_free(szUrl);
 }
 
 static void InternetCanonicalizeUrl_test(void)

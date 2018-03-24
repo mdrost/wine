@@ -378,18 +378,18 @@ static void test_getroletext(void)
 
     /* use bigger buffer */
     ret = GetRoleTextA(ROLE_SYSTEM_TITLEBAR, NULL, 0);
-    buff = HeapAlloc(GetProcessHeap(), 0, 2*ret);
+    buff = heap_alloc(2*ret);
     buff[2*ret-1] = '*';
     ret = GetRoleTextA(ROLE_SYSTEM_TITLEBAR, buff, 2*ret);
     ok(buff[2*ret-1] == '*', "GetRoleTextA shouldn't modify this part of buffer\n");
-    HeapFree(GetProcessHeap(), 0, buff);
+    heap_free(buff);
 
     ret = GetRoleTextW(ROLE_SYSTEM_TITLEBAR, NULL, 0);
-    buffW = HeapAlloc(GetProcessHeap(), 0, 2*ret*sizeof(WCHAR));
+    buffW = heap_alloc(2*ret*sizeof(WCHAR));
     buffW[2*ret-1] = '*';
     ret = GetRoleTextW(ROLE_SYSTEM_TITLEBAR, buffW, 2*ret);
     ok(buffW[2*ret-1] == '*', "GetRoleTextW shouldn't modify this part of buffer\n");
-    HeapFree(GetProcessHeap(), 0, buffW);
+    heap_free(buffW);
 
     /* check returned length for all roles */
     for(role = 0; role <= ROLE_SYSTEM_OUTLINEBUTTON; role++){

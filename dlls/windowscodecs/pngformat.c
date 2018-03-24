@@ -65,7 +65,7 @@ static HRESULT read_png_chunk(IStream *stream, BYTE *type, BYTE **data, ULONG *d
 
     if (data)
     {
-        *data = HeapAlloc(GetProcessHeap(), 0, *data_size);
+        *data = heap_alloc(*data_size);
         if (!*data)
             return E_OUTOFMEMORY;
 
@@ -75,7 +75,7 @@ static HRESULT read_png_chunk(IStream *stream, BYTE *type, BYTE **data, ULONG *d
         {
             if (SUCCEEDED(hr))
                 hr = E_FAIL;
-            HeapFree(GetProcessHeap(), 0, *data);
+            heap_free(*data);
             *data = NULL;
             return hr;
         }
@@ -107,21 +107,21 @@ static HRESULT LoadTextMetadata(IStream *stream, const GUID *preferred_vendor,
 
     if (!name_end_ptr || name_len > 79)
     {
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return E_FAIL;
     }
 
     value_len = data_size - name_len - 1;
 
-    result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MetadataItem));
-    name = HeapAlloc(GetProcessHeap(), 0, name_len + 1);
-    value = HeapAlloc(GetProcessHeap(), 0, value_len + 1);
+    result = heap_alloc_zero(sizeof(MetadataItem));
+    name = heap_alloc(name_len + 1);
+    value = heap_alloc(value_len + 1);
     if (!result || !name || !value)
     {
-        HeapFree(GetProcessHeap(), 0, data);
-        HeapFree(GetProcessHeap(), 0, result);
-        HeapFree(GetProcessHeap(), 0, name);
-        HeapFree(GetProcessHeap(), 0, value);
+        heap_free(data);
+        heap_free(result);
+        heap_free(name);
+        heap_free(value);
         return E_OUTOFMEMORY;
     }
 
@@ -141,7 +141,7 @@ static HRESULT LoadTextMetadata(IStream *stream, const GUID *preferred_vendor,
     *items = result;
     *item_count = 1;
 
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     return S_OK;
 }
@@ -174,20 +174,20 @@ static HRESULT LoadGamaMetadata(IStream *stream, const GUID *preferred_vendor,
 
     if (data_size < 4)
     {
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return E_FAIL;
     }
 
     gamma = read_ulong_be(data);
 
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
-    result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MetadataItem));
-    name = HeapAlloc(GetProcessHeap(), 0, sizeof(ImageGamma));
+    result = heap_alloc_zero(sizeof(MetadataItem));
+    name = heap_alloc(sizeof(ImageGamma));
     if (!result || !name)
     {
-        HeapFree(GetProcessHeap(), 0, result);
-        HeapFree(GetProcessHeap(), 0, name);
+        heap_free(result);
+        heap_free(name);
         return E_OUTOFMEMORY;
     }
 
@@ -245,22 +245,22 @@ static HRESULT LoadChrmMetadata(IStream *stream, const GUID *preferred_vendor,
 
     if (data_size < 32)
     {
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return E_FAIL;
     }
 
-    result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MetadataItem)*8);
+    result = heap_alloc_zero(sizeof(MetadataItem)*8);
     for (i=0; i<8; i++)
     {
-        dyn_names[i] = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR)*(lstrlenW(names[i])+1));
+        dyn_names[i] = heap_alloc(sizeof(WCHAR)*(lstrlenW(names[i])+1));
         if (!dyn_names[i]) break;
     }
     if (!result || i < 8)
     {
-        HeapFree(GetProcessHeap(), 0, result);
+        heap_free(result);
         for (i=0; i<8; i++)
-            HeapFree(GetProcessHeap(), 0, dyn_names[i]);
-        HeapFree(GetProcessHeap(), 0, data);
+            heap_free(dyn_names[i]);
+        heap_free(data);
         return E_OUTOFMEMORY;
     }
 
@@ -281,7 +281,7 @@ static HRESULT LoadChrmMetadata(IStream *stream, const GUID *preferred_vendor,
     *items = result;
     *item_count = 8;
 
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     return S_OK;
 }
@@ -522,14 +522,14 @@ static ULONG WINAPI PngDecoder_Release(IWICBitmapDecoder *iface)
             ppng_destroy_read_struct(&This->png_ptr, &This->info_ptr, &This->end_info);
         This->lock.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, This->image_bits);
+        heap_free(This->image_bits);
         for (i=0; i<This->metadata_count; i++)
         {
             if (This->metadata_blocks[i].reader)
                 IWICMetadataReader_Release(This->metadata_blocks[i].reader);
         }
-        HeapFree(GetProcessHeap(), 0, This->metadata_blocks);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->metadata_blocks);
+        heap_free(This);
     }
 
     return ref;
@@ -620,7 +620,7 @@ static HRESULT WINAPI PngDecoder_Initialize(IWICBitmapDecoder *iface, IStream *p
     if (setjmp(jmpbuf))
     {
         ppng_destroy_read_struct(&This->png_ptr, &This->info_ptr, &This->end_info);
-        HeapFree(GetProcessHeap(), 0, row_pointers);
+        heap_free(row_pointers);
         This->png_ptr = NULL;
         hr = E_FAIL;
         goto end;
@@ -737,14 +737,14 @@ static HRESULT WINAPI PngDecoder_Initialize(IWICBitmapDecoder *iface, IStream *p
     This->stride = (This->width * This->bpp + 7) / 8;
     image_size = This->stride * This->height;
 
-    This->image_bits = HeapAlloc(GetProcessHeap(), 0, image_size);
+    This->image_bits = heap_alloc(image_size);
     if (!This->image_bits)
     {
         hr = E_OUTOFMEMORY;
         goto end;
     }
 
-    row_pointers = HeapAlloc(GetProcessHeap(), 0, sizeof(png_bytep)*This->height);
+    row_pointers = heap_alloc(sizeof(png_bytep)*This->height);
     if (!row_pointers)
     {
         hr = E_OUTOFMEMORY;
@@ -756,7 +756,7 @@ static HRESULT WINAPI PngDecoder_Initialize(IWICBitmapDecoder *iface, IStream *p
 
     ppng_read_image(This->png_ptr, row_pointers);
 
-    HeapFree(GetProcessHeap(), 0, row_pointers);
+    heap_free(row_pointers);
     row_pointers = NULL;
 
     ppng_read_end(This->png_ptr, This->end_info);
@@ -794,7 +794,7 @@ static HRESULT WINAPI PngDecoder_Initialize(IWICBitmapDecoder *iface, IStream *p
                 memcpy(new_metadata_blocks, This->metadata_blocks,
                     This->metadata_count * sizeof(*new_metadata_blocks));
 
-                HeapFree(GetProcessHeap(), 0, This->metadata_blocks);
+                heap_free(This->metadata_blocks);
                 This->metadata_blocks = new_metadata_blocks;
                 metadata_blocks_size = new_metadata_blocks_size;
             }
@@ -1310,7 +1310,7 @@ HRESULT PngDecoder_CreateInstance(REFIID iid, void** ppv)
         return E_FAIL;
     }
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(PngDecoder));
+    This = heap_alloc(sizeof(PngDecoder));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapDecoder_iface.lpVtbl = &PngDecoder_Vtbl;
@@ -1630,7 +1630,7 @@ static HRESULT WINAPI PngFrameEncode_WritePixels(IWICBitmapFrameEncode *iface,
     if (setjmp(jmpbuf))
     {
         LeaveCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, row_pointers);
+        heap_free(row_pointers);
         return E_FAIL;
     }
     ppng_set_error_fn(This->png_ptr, jmpbuf, user_error_fn, user_warning_fn);
@@ -1641,7 +1641,7 @@ static HRESULT WINAPI PngFrameEncode_WritePixels(IWICBitmapFrameEncode *iface,
         {
             /* libpng requires us to write all data multiple times in this case. */
             This->stride = (This->format->bpp * This->width + 7)/8;
-            This->data = HeapAlloc(GetProcessHeap(), 0, This->height * This->stride);
+            This->data = heap_alloc(This->height * This->stride);
             if (!This->data)
             {
                 LeaveCriticalSection(&This->lock);
@@ -1731,7 +1731,7 @@ static HRESULT WINAPI PngFrameEncode_WritePixels(IWICBitmapFrameEncode *iface,
         return S_OK;
     }
 
-    row_pointers = HeapAlloc(GetProcessHeap(), 0, lineCount * sizeof(png_byte*));
+    row_pointers = heap_alloc(lineCount * sizeof(png_byte*));
     if (!row_pointers)
     {
         LeaveCriticalSection(&This->lock);
@@ -1746,7 +1746,7 @@ static HRESULT WINAPI PngFrameEncode_WritePixels(IWICBitmapFrameEncode *iface,
 
     LeaveCriticalSection(&This->lock);
 
-    HeapFree(GetProcessHeap(), 0, row_pointers);
+    heap_free(row_pointers);
 
     return S_OK;
 }
@@ -1793,7 +1793,7 @@ static HRESULT WINAPI PngFrameEncode_Commit(IWICBitmapFrameEncode *iface)
     if (setjmp(jmpbuf))
     {
         LeaveCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, row_pointers);
+        heap_free(row_pointers);
         return E_FAIL;
     }
     ppng_set_error_fn(This->png_ptr, jmpbuf, user_error_fn, user_warning_fn);
@@ -1802,7 +1802,7 @@ static HRESULT WINAPI PngFrameEncode_Commit(IWICBitmapFrameEncode *iface)
     {
         int i;
 
-        row_pointers = HeapAlloc(GetProcessHeap(), 0, This->height * sizeof(png_byte*));
+        row_pointers = heap_alloc(This->height * sizeof(png_byte*));
         if (!row_pointers)
         {
             LeaveCriticalSection(&This->lock);
@@ -1820,7 +1820,7 @@ static HRESULT WINAPI PngFrameEncode_Commit(IWICBitmapFrameEncode *iface)
 
     This->frame_committed = TRUE;
 
-    HeapFree(GetProcessHeap(), 0, row_pointers);
+    heap_free(row_pointers);
 
     LeaveCriticalSection(&This->lock);
 
@@ -1899,8 +1899,8 @@ static ULONG WINAPI PngEncoder_Release(IWICBitmapEncoder *iface)
             ppng_destroy_write_struct(&This->png_ptr, &This->info_ptr);
         if (This->stream)
             IStream_Release(This->stream);
-        HeapFree(GetProcessHeap(), 0, This->data);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->data);
+        heap_free(This);
     }
 
     return ref;
@@ -2133,7 +2133,7 @@ HRESULT PngEncoder_CreateInstance(REFIID iid, void** ppv)
         return E_FAIL;
     }
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(PngEncoder));
+    This = heap_alloc(sizeof(PngEncoder));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapEncoder_iface.lpVtbl = &PngEncoder_Vtbl;

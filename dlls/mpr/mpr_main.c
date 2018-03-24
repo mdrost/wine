@@ -25,6 +25,7 @@
 #include "objbase.h"
 #include "winnetwk.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "wnetpriv.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(mpr);
@@ -38,7 +39,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(mpr);
  */
 LPVOID WINAPI MPR_Alloc( DWORD dwSize )
 {
-    return HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwSize );
+    return heap_alloc_zero( dwSize );
 }
 
 /*****************************************************************
@@ -47,9 +48,13 @@ LPVOID WINAPI MPR_Alloc( DWORD dwSize )
 LPVOID WINAPI MPR_ReAlloc( LPVOID lpSrc, DWORD dwSize )
 {
     if ( lpSrc )
+#if 0
         return HeapReAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, lpSrc, dwSize );
+#else
+        return NULL;
+#endif
     else
-        return HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, dwSize );
+        return heap_alloc_zero( dwSize );
 }
 
 /*****************************************************************
@@ -58,7 +63,7 @@ LPVOID WINAPI MPR_ReAlloc( LPVOID lpSrc, DWORD dwSize )
 BOOL WINAPI MPR_Free( LPVOID lpMem )
 {
     if ( lpMem )
-        return HeapFree( GetProcessHeap(), 0, lpMem );
+        return heap_free( lpMem );
     else
         return FALSE;
 }

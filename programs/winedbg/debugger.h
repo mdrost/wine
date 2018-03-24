@@ -491,8 +491,8 @@ static inline BOOL dbg_write_memory(void* addr, const void* buffer, size_t len)
 
 static inline void* dbg_heap_realloc(void* buffer, size_t size)
 {
-    return (buffer) ? HeapReAlloc(GetProcessHeap(), 0, buffer, size) :
-        HeapAlloc(GetProcessHeap(), 0, size);
+    return (buffer) ? heap_realloc(buffer, size) :
+        heap_alloc(size);
 }
 
 extern struct dbg_internal_var          dbg_internal_vars[];

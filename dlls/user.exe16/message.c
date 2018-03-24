@@ -405,12 +405,12 @@ static EDITWORDBREAKPROC16 get_word_break_thunk( EDITWORDBREAKPROCA proc )
 static inline void *get_buffer( void *static_buffer, size_t size, size_t need )
 {
     if (size >= need) return static_buffer;
-    return HeapAlloc( GetProcessHeap(), 0, need );
+    return heap_alloc( need );
 }
 
 static inline void free_buffer( void *static_buffer, void *buffer )
 {
-    if (buffer != static_buffer) HeapFree( GetProcessHeap(), 0, buffer );
+    if (buffer != static_buffer) heap_free( buffer );
 }
 
 static void RECT16to32( const RECT16 *from, RECT *to )
@@ -2341,11 +2341,11 @@ static LRESULT edit_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, B
         INT i, count = wParam, *tabs = NULL;
         if (count > 0)
         {
-            if (!(tabs = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*tabs) ))) return 0;
+            if (!(tabs = heap_alloc( count * sizeof(*tabs) ))) return 0;
             for (i = 0; i < count; i++) tabs[i] = tabs16[i];
         }
         result = wow_handlers32.edit_proc( hwnd, msg - msg16_offset, count, (LPARAM)tabs, FALSE );
-        HeapFree( GetProcessHeap(), 0, tabs );
+        heap_free( tabs );
         break;
     }
     case EM_GETFIRSTVISIBLELINE16:
@@ -2489,10 +2489,10 @@ static LRESULT listbox_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
     {
         INT16 *array16 = MapSL( lParam );
         INT i, count = (INT16)wParam, *array;
-        if (!(array = HeapAlloc( GetProcessHeap(), 0, wParam * sizeof(*array) ))) return LB_ERRSPACE;
+        if (!(array = heap_alloc( wParam * sizeof(*array) ))) return LB_ERRSPACE;
         ret = wow_handlers32.listbox_proc( hwnd, LB_GETSELITEMS, count, (LPARAM)array, FALSE );
         for (i = 0; i < ret; i++) array16[i] = array[i];
-        HeapFree( GetProcessHeap(), 0, array );
+        heap_free( array );
         return ret;
     }
     case LB_DIR16:
@@ -2509,11 +2509,11 @@ static LRESULT listbox_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 
         if ((count = (INT16)wParam) > 0)
         {
-            if (!(tabs = HeapAlloc( GetProcessHeap(), 0, wParam * sizeof(*tabs) ))) return LB_ERRSPACE;
+            if (!(tabs = heap_alloc( wParam * sizeof(*tabs) ))) return LB_ERRSPACE;
             for (i = 0; i < count; i++) tabs[i] = tabs16[i] << 1; /* FIXME */
         }
         ret = wow_handlers32.listbox_proc( hwnd, LB_SETTABSTOPS, count, (LPARAM)tabs, FALSE );
-        HeapFree( GetProcessHeap(), 0, tabs );
+        heap_free( tabs );
         return ret;
     }
     default:

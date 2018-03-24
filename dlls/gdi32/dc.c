@@ -128,7 +128,7 @@ DC *alloc_dc_ptr( WORD magic )
 {
     DC *dc;
 
-    if (!(dc = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*dc) ))) return NULL;
+    if (!(dc = heap_alloc_zero( sizeof(*dc) ))) return NULL;
 
     dc->nulldrv.funcs       = &null_driver;
     dc->physDev             = &dc->nulldrv;
@@ -143,7 +143,7 @@ DC *alloc_dc_ptr( WORD magic )
 
     if (!(dc->hSelf = alloc_gdi_handle( dc, magic, &dc_funcs )))
     {
-        HeapFree( GetProcessHeap(), 0, dc );
+        heap_free( dc );
         return NULL;
     }
     dc->nulldrv.hdc = dc->hSelf;
@@ -168,7 +168,7 @@ static void free_dc_state( DC *dc )
     if (dc->hVisRgn) DeleteObject( dc->hVisRgn );
     if (dc->region) DeleteObject( dc->region );
     if (dc->path) free_gdi_path( dc->path );
-    HeapFree( GetProcessHeap(), 0, dc );
+    heap_free( dc );
 }
 
 
@@ -383,7 +383,7 @@ INT nulldrv_SaveDC( PHYSDEV dev )
 {
     DC *newdc, *dc = get_nulldrv_dc( dev );
 
-    if (!(newdc = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*newdc )))) return 0;
+    if (!(newdc = heap_alloc_zero( sizeof(*newdc) ))) return 0;
     newdc->layout           = dc->layout;
     newdc->hPen             = dc->hPen;
     newdc->hBrush           = dc->hBrush;
@@ -710,7 +710,7 @@ HDC WINAPI CreateDCA( LPCSTR driver, LPCSTR device, LPCSTR output,
     RtlFreeUnicodeString(&driverW);
     RtlFreeUnicodeString(&deviceW);
     RtlFreeUnicodeString(&outputW);
-    HeapFree(GetProcessHeap(), 0, initDataW);
+    heap_free(initDataW);
     return ret;
 }
 
@@ -865,7 +865,7 @@ HDC WINAPI ResetDCA( HDC hdc, const DEVMODEA *devmode )
 
     ret = ResetDCW(hdc, devmodeW);
 
-    HeapFree(GetProcessHeap(), 0, devmodeW);
+    heap_free(devmodeW);
     return ret;
 }
 

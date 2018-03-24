@@ -383,7 +383,7 @@ static void repaint_tray_icon( struct tray_icon *icon )
     pos.x = (size.cx - width) / 2;
     pos.y = (size.cy - height) / 2;
 
-    info = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, FIELD_OFFSET( BITMAPINFO, bmiColors[2] ));
+    info = heap_alloc_zero( FIELD_OFFSET( BITMAPINFO, bmiColors[2] ));
     if (!info) return;
     info->bmiHeader.biSize = sizeof(info->bmiHeader);
     info->bmiHeader.biWidth = size.cx;
@@ -431,7 +431,7 @@ static void repaint_tray_icon( struct tray_icon *icon )
 
     UpdateLayeredWindow( icon->window, 0, NULL, NULL, hdc, NULL, 0, &blend, ULW_ALPHA );
 done:
-    HeapFree (GetProcessHeap(), 0, info);
+    heap_free(info);
     if (hdc) DeleteDC( hdc );
     if (dib) DeleteObject( dib );
 }
@@ -802,7 +802,7 @@ static BOOL add_icon(NOTIFYICONDATAW *nid)
         return FALSE;
     }
 
-    if (!(icon = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*icon))))
+    if (!(icon = heap_alloc_zero(sizeof(*icon))))
     {
         ERR("out of memory\n");
         return FALSE;
@@ -824,7 +824,7 @@ static BOOL delete_icon( struct tray_icon *icon )
     hide_icon( icon );
     list_remove( &icon->entry );
     DestroyIcon( icon->image );
-    HeapFree( GetProcessHeap(), 0, icon );
+    heap_free( icon );
     return TRUE;
 }
 

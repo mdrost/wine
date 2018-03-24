@@ -348,14 +348,14 @@ static BOOL TERM_AddKeyDescr(const char* string, const struct dbkey_descr* descr
     if (!TERM_dbkey)
     {
         TERM_dbkey_size = 32;
-        TERM_dbkey = HeapAlloc(GetProcessHeap(), 0, TERM_dbkey_size * sizeof(struct dbkey_pair));
+        TERM_dbkey = heap_alloc(TERM_dbkey_size * sizeof(struct dbkey_pair));
         if (!TERM_dbkey) return FALSE;
     }
     if (TERM_dbkey_index == TERM_dbkey_size)
     {
         struct dbkey_pair*      new;
 
-        new = HeapReAlloc(GetProcessHeap(), 0, TERM_dbkey, (2 * TERM_dbkey_size) * sizeof(struct dbkey_pair));
+        new = heap_realloc(TERM_dbkey, (2 * TERM_dbkey_size) * sizeof(struct dbkey_pair));
         if (!new) return FALSE;
         TERM_dbkey = new;
         TERM_dbkey_size *= 2;

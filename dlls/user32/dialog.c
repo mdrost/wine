@@ -34,6 +34,7 @@
 #include "wingdi.h"
 #include "winuser.h"
 #include "winnls.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "controls.h"
 #include "win.h"
@@ -166,7 +167,7 @@ static const WORD *DIALOG_GetControl32( const WORD *p, DLG_CONTROL_INFO *info,
     }
     else
     {
-        info->className = p;
+        info->className = (const WCHAR *)p;
         p += strlenW( info->className ) + 1;
     }
 
@@ -177,7 +178,7 @@ static const WORD *DIALOG_GetControl32( const WORD *p, DLG_CONTROL_INFO *info,
     }
     else
     {
-        info->windowName = p;
+        info->windowName = (const WCHAR *)p;
         p += strlenW( info->windowName ) + 1;
     }
 
@@ -256,14 +257,14 @@ static BOOL DIALOG_CreateControls32( HWND hwnd, LPCSTR template, const DLG_TEMPL
             if (!IS_INTRESOURCE(class))
             {
                 DWORD len = WideCharToMultiByte( CP_ACP, 0, info.className, -1, NULL, 0, NULL, NULL );
-                class_tmp = HeapAlloc( GetProcessHeap(), 0, len );
+                class_tmp = heap_alloc( len );
                 WideCharToMultiByte( CP_ACP, 0, info.className, -1, class_tmp, len, NULL, NULL );
                 class = class_tmp;
             }
             if (!IS_INTRESOURCE(caption))
             {
                 DWORD len = WideCharToMultiByte( CP_ACP, 0, info.windowName, -1, NULL, 0, NULL, NULL );
-                caption_tmp = HeapAlloc( GetProcessHeap(), 0, len );
+                caption_tmp = heap_alloc( len );
                 WideCharToMultiByte( CP_ACP, 0, info.windowName, -1, caption_tmp, len, NULL, NULL );
                 caption = caption_tmp;
             }
@@ -275,8 +276,8 @@ static BOOL DIALOG_CreateControls32( HWND hwnd, LPCSTR template, const DLG_TEMPL
                                         MulDiv(info.cy, dlgInfo->yBaseUnit, 8),
                                         hwnd, (HMENU)info.id,
                                         hInst, (LPVOID)info.data );
-            HeapFree( GetProcessHeap(), 0, class_tmp );
-            HeapFree( GetProcessHeap(), 0, caption_tmp );
+            heap_free( class_tmp );
+            heap_free( caption_tmp );
         }
         if (!hwndCtrl)
         {
@@ -359,7 +360,7 @@ static LPCSTR DIALOG_ParseTemplate32( LPCSTR template, DLG_TEMPLATE * result )
         TRACE(" MENU %04x\n", LOWORD(result->menuName) );
         break;
     default:
-        result->menuName = p;
+        result->menuName = (const WCHAR *)p;
         TRACE(" MENU %s\n", debugstr_w(result->menuName) );
         p += strlenW( result->menuName ) + 1;
         break;
@@ -379,7 +380,7 @@ static LPCSTR DIALOG_ParseTemplate32( LPCSTR template, DLG_TEMPLATE * result )
         TRACE(" CLASS %04x\n", LOWORD(result->className) );
         break;
     default:
-        result->className = p;
+        result->className = (const WCHAR *)p;
         TRACE(" CLASS %s\n", debugstr_w( result->className ));
         p += strlenW( result->className ) + 1;
         break;
@@ -387,7 +388,7 @@ static LPCSTR DIALOG_ParseTemplate32( LPCSTR template, DLG_TEMPLATE * result )
 
     /* Get the window caption */
 
-    result->caption = p;
+    result->caption = (const WCHAR *)p;
     p += strlenW( result->caption ) + 1;
     TRACE(" CAPTION %s\n", debugstr_w( result->caption ) );
 
@@ -422,7 +423,7 @@ static LPCSTR DIALOG_ParseTemplate32( LPCSTR template, DLG_TEMPLATE * result )
                 result->weight = GET_WORD(p); p++;
                 result->italic = LOBYTE(GET_WORD(p)); p++;
             }
-            result->faceName = p;
+            result->faceName = (const WCHAR *)p;
             p += strlenW( result->faceName ) + 1;
 
             TRACE(" FONT %d, %s, %d, %s\n",
@@ -622,22 +623,22 @@ static HWND DIALOG_CreateIndirect( HINSTANCE hInst, LPCVOID dlgTemplate,
         if (!IS_INTRESOURCE(class))
         {
             DWORD len = WideCharToMultiByte( CP_ACP, 0, template.className, -1, NULL, 0, NULL, NULL );
-            class_tmp = HeapAlloc( GetProcessHeap(), 0, len );
+            class_tmp = heap_alloc( len );
             WideCharToMultiByte( CP_ACP, 0, template.className, -1, class_tmp, len, NULL, NULL );
             class = class_tmp;
         }
         if (!IS_INTRESOURCE(caption))
         {
             DWORD len = WideCharToMultiByte( CP_ACP, 0, template.caption, -1, NULL, 0, NULL, NULL );
-            caption_tmp = HeapAlloc( GetProcessHeap(), 0, len );
+            caption_tmp = heap_alloc( len );
             WideCharToMultiByte( CP_ACP, 0, template.caption, -1, caption_tmp, len, NULL, NULL );
             caption = caption_tmp;
         }
         hwnd = CreateWindowExA(template.exStyle, class, caption,
                                template.style & ~WS_VISIBLE, pos.x, pos.y, size.cx, size.cy,
                                owner, hMenu, hInst, NULL );
-        HeapFree( GetProcessHeap(), 0, class_tmp );
-        HeapFree( GetProcessHeap(), 0, caption_tmp );
+        heap_free( class_tmp );
+        heap_free( caption_tmp );
     }
 
     if (!hwnd)
@@ -1144,7 +1145,7 @@ static HWND DIALOG_IdToHwnd( HWND hwndDlg, INT id )
         if ((ret = DIALOG_IdToHwnd( list[i], id ))) break;
     }
 
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return ret;
 }
 
@@ -1210,13 +1211,13 @@ BOOL WINAPI IsDialogMessageW( HWND hwndDlg, LPMSG msg )
                         if (dlgCode & DLGC_HASSETSEL)
                         {
                             INT maxlen = 1 + SendMessageW (hwndNext, WM_GETTEXTLENGTH, 0, 0);
-                            WCHAR *buffer = HeapAlloc (GetProcessHeap(), 0, maxlen * sizeof(WCHAR));
+                            WCHAR *buffer = heap_alloc(maxlen * sizeof(WCHAR));
                             if (buffer)
                             {
                                 INT length;
                                 SendMessageW (hwndNext, WM_GETTEXT, maxlen, (LPARAM) buffer);
                                 length = strlenW (buffer);
-                                HeapFree (GetProcessHeap(), 0, buffer);
+                                heap_free(buffer);
                                 SendMessageW (hwndNext, EM_SETSEL, 0, length);
                             }
                         }
@@ -1319,7 +1320,7 @@ HWND WINAPI GetDlgItem( HWND hwndDlg, INT id )
 
     for (i = 0; list[i]; i++) if (GetWindowLongPtrW( list[i], GWLP_ID ) == id) break;
     ret = list[i];
-    HeapFree( GetProcessHeap(), 0, list );
+    heap_free( list );
     return ret;
 }
 
@@ -1756,7 +1757,7 @@ static BOOL DIALOG_DlgDirSelect( HWND hwnd, LPWSTR str, INT len,
     size = SendMessageW(listbox, combo ? CB_GETLBTEXTLEN : LB_GETTEXTLEN, item, 0 );
     if (size == LB_ERR) return FALSE;
 
-    if (!(buffer = HeapAlloc( GetProcessHeap(), 0, (size+2) * sizeof(WCHAR) ))) return FALSE;
+    if (!(buffer = heap_alloc( (size+2) * sizeof(WCHAR) ))) return FALSE;
 
     SendMessageW( listbox, combo ? CB_GETLBTEXT : LB_GETTEXT, item, (LPARAM)buffer );
 
@@ -1791,7 +1792,7 @@ static BOOL DIALOG_DlgDirSelect( HWND hwnd, LPWSTR str, INT len,
             ((LPSTR)str)[len-1] = 0;
     }
     else lstrcpynW( str, ptr, len );
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     TRACE("Returning %d %s\n", ret, unicode ? debugstr_w(str) : debugstr_a((LPSTR)str) );
     return ret;
 }
@@ -1897,11 +1898,11 @@ static INT DIALOG_DlgDirListA( HWND hDlg, LPSTR spec, INT idLBox,
     if (spec)
     {
         INT ret, len = MultiByteToWideChar( CP_ACP, 0, spec, -1, NULL, 0 );
-        LPWSTR specW = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        LPWSTR specW = heap_alloc( len * sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, spec, -1, specW, len );
         ret = DIALOG_DlgDirListW( hDlg, specW, idLBox, idStatic, attrib, combo );
         WideCharToMultiByte( CP_ACP, 0, specW, -1, spec, 0x7fffffff, NULL, NULL );
-        HeapFree( GetProcessHeap(), 0, specW );
+        heap_free( specW );
         return ret;
     }
     return DIALOG_DlgDirListW( hDlg, NULL, idLBox, idStatic, attrib, combo );

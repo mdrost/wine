@@ -124,7 +124,7 @@ static LSTATUS devinst_RegDeleteTreeW(HKEY hKey, LPCWSTR lpszSubKey)
     if (dwMaxLen > sizeof(szNameBuf)/sizeof(WCHAR))
     {
         /* Name too big: alloc a buffer for it */
-        if (!(lpszName = HeapAlloc( GetProcessHeap(), 0, dwMaxLen*sizeof(WCHAR))))
+        if (!(lpszName = heap_alloc( dwMaxLen*sizeof(WCHAR))))
         {
             ret = ERROR_NOT_ENOUGH_MEMORY;
             goto cleanup;
@@ -159,7 +159,7 @@ static LSTATUS devinst_RegDeleteTreeW(HKEY hKey, LPCWSTR lpszSubKey)
 cleanup:
     /* Free buffer if allocated */
     if (lpszName != szNameBuf)
-        HeapFree( GetProcessHeap(), 0, lpszName);
+        heap_free( lpszName);
     if(lpszSubKey)
         RegCloseKey(hSubKey);
     return ret;
@@ -673,7 +673,7 @@ static void testGetDeviceInterfaceDetail(void)
              "\\\\?\\root#legacy_bogus#0000#{6a55b5a4-3f65-11db-b704-0011955c2bdb}";
             static const char path_w2k[] =
              "\\\\?\\root#legacy_bogus#0000#{6a55b5a4-3f65-11db-b704-0011955c2bdb}\\";
-            LPBYTE buf = HeapAlloc(GetProcessHeap(), 0, size);
+            LPBYTE buf = heap_alloc(size);
             SP_DEVICE_INTERFACE_DETAIL_DATA_A *detail =
                 (SP_DEVICE_INTERFACE_DETAIL_DATA_A *)buf;
             DWORD expectedsize = FIELD_OFFSET(SP_DEVICE_INTERFACE_DETAIL_DATA_W, DevicePath) + sizeof(WCHAR)*(1 + strlen(path));
@@ -708,7 +708,7 @@ static void testGetDeviceInterfaceDetail(void)
              "SetupDiGetDeviceInterfaceDetailW returned wrong reqsize, got %d\n",
              size);
 
-            HeapFree(GetProcessHeap(), 0, buf);
+            heap_free(buf);
         }
 
         ret = pSetupDiEnumDeviceInterfaces(set, &devInfo, &guid, 0, &interfaceData);
@@ -933,7 +933,7 @@ static void testRegisterAndGetDetail(void)
             "\\\\?\\root#legacy_bogus#0000#{6a55b5a4-3f65-11db-b704-0011955c2bdb}\\";
         PSP_DEVICE_INTERFACE_DETAIL_DATA_A detail = NULL;
 
-        detail = HeapAlloc(GetProcessHeap(), 0, dwSize);
+        detail = heap_alloc(dwSize);
         if (detail)
         {
             detail->cbSize = sizeof(*detail);
@@ -945,7 +945,7 @@ static void testRegisterAndGetDetail(void)
                !lstrcmpiA(path_w10, detail->DevicePath) ||
                !lstrcmpiA(path_w2k, detail->DevicePath),
                "Unexpected path %s\n", detail->DevicePath);
-            HeapFree(GetProcessHeap(), 0, detail);
+            heap_free(detail);
         }
     }
 

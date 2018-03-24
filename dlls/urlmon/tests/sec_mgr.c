@@ -35,7 +35,6 @@
 #include "urlmon.h"
 
 #include "initguid.h"
-#include <wine/heap.h>
 
 #define URLZONE_CUSTOM  URLZONE_USER_MIN+1
 #define URLZONE_CUSTOM2 URLZONE_CUSTOM+1
@@ -177,13 +176,18 @@ static int strcmp_w(const WCHAR *str1, const WCHAR *str2)
     return memcmp(str1, str2, len1*sizeof(WCHAR));
 }
 
+static inline void heap_free(void *mem)
+{
+    heap_free(mem);
+}
+
 static inline LPWSTR a2w(LPCSTR str)
 {
     LPWSTR ret = NULL;
 
     if(str) {
         DWORD len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-        ret = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+        ret = heap_alloc(len*sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
     }
 
@@ -224,7 +228,7 @@ static LONG myRegDeleteTreeA(HKEY hKey, LPCSTR lpszSubKey)
     if (dwMaxLen > sizeof(szNameBuf)/sizeof(CHAR))
     {
         /* Name too big: alloc a buffer for it */
-        if (!(lpszName = HeapAlloc( GetProcessHeap(), 0, dwMaxLen*sizeof(CHAR))))
+        if (!(lpszName = heap_alloc( dwMaxLen*sizeof(CHAR))))
         {
             ret = ERROR_NOT_ENOUGH_MEMORY;
             goto cleanup;

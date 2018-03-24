@@ -28,6 +28,7 @@
 #include "oleauto.h"
 #include "variant.h"
 
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -180,9 +181,9 @@ static ULONG WINAPI IRecordInfoImpl_Release(IRecordInfo *iface)
         for(i=0; i<This->n_vars; i++)
             SysFreeString(This->fields[i].name);
         SysFreeString(This->name);
-        HeapFree(GetProcessHeap(), 0, This->fields);
+        heap_free(This->fields);
         ITypeInfo_Release(This->pTypeInfo);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -526,7 +527,7 @@ static PVOID WINAPI IRecordInfoImpl_RecordCreate(IRecordInfo *iface)
 
     TRACE("(%p)\n", This);
 
-    record = HeapAlloc(GetProcessHeap(), 0, This->size);
+    record = heap_alloc(This->size);
     IRecordInfo_RecordInit(iface, record);
     TRACE("created record at %p\n", record);
     return record;
@@ -557,7 +558,7 @@ static HRESULT WINAPI IRecordInfoImpl_RecordDestroy(IRecordInfo *iface, PVOID pv
     if(FAILED(hres))
         return hres;
 
-    if(!HeapFree(GetProcessHeap(), 0, pvRecord))
+    if(!heap_free(pvRecord))
         return E_INVALIDARG;
 
     return S_OK;
@@ -669,7 +670,7 @@ HRESULT WINAPI GetRecordInfoFromTypeInfo(ITypeInfo* pTI, IRecordInfo** ppRecInfo
         return E_INVALIDARG;
     }
 
-    ret = HeapAlloc(GetProcessHeap(), 0, sizeof(*ret));
+    ret = heap_alloc(sizeof(*ret));
     ret->IRecordInfo_iface.lpVtbl = &IRecordInfoImplVtbl;
     ret->ref = 1;
     ret->pTypeInfo = pTypeInfo;
@@ -689,7 +690,7 @@ HRESULT WINAPI GetRecordInfoFromTypeInfo(ITypeInfo* pTI, IRecordInfo** ppRecInfo
         ret->name = NULL;
     }
 
-    ret->fields = HeapAlloc(GetProcessHeap(), 0, ret->n_vars*sizeof(fieldstr));
+    ret->fields = heap_alloc(ret->n_vars*sizeof(fieldstr));
     for(i = 0; i<ret->n_vars; i++) {
         VARDESC *vardesc;
         hres = ITypeInfo_GetVarDesc(pTypeInfo, i, &vardesc);

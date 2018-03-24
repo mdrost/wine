@@ -216,7 +216,7 @@ static void travellog_add_entry(ExplorerBrowserImpl *This, LPITEMIDLIST pidl)
     }
 
     /* Create and add the new entry */
-    new = heap_alloc(sizeof(*new));
+    new = heap_alloc(sizeof(travellog_entry));
     new->pidl = ILClone(pidl);
     list_add_tail(&This->travellog, &new->entry);
     This->travellog_cursor = new;
@@ -852,6 +852,7 @@ static ULONG WINAPI IExplorerBrowser_fnRelease(IExplorerBrowser *iface)
         IObjectWithSite_SetSite(&This->IObjectWithSite_iface, NULL);
 
         heap_free(This);
+        return 0;
     }
 
     return ref;
@@ -1016,7 +1017,7 @@ static HRESULT WINAPI IExplorerBrowser_fnAdvise(IExplorerBrowser *iface,
     event_client *client;
     TRACE("%p (%p, %p)\n", This, psbe, pdwCookie);
 
-    client = heap_alloc(sizeof(*client));
+    client = heap_alloc(sizeof(event_client));
     client->pebe = psbe;
     client->cookie = ++This->events_next_cookie;
 
@@ -2078,7 +2079,7 @@ HRESULT WINAPI ExplorerBrowser_Constructor(IUnknown *pUnkOuter, REFIID riid, voi
     if(pUnkOuter)
         return CLASS_E_NOAGGREGATION;
 
-    eb = heap_alloc_zero(sizeof(*eb));
+    eb = heap_alloc_zero(sizeof(ExplorerBrowserImpl));
     eb->ref = 1;
     eb->IExplorerBrowser_iface.lpVtbl = &vt_IExplorerBrowser;
     eb->IShellBrowser_iface.lpVtbl    = &vt_IShellBrowser;

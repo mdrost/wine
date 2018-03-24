@@ -38,6 +38,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(metafile);
  */
 UINT MFDRV_AddHandle( PHYSDEV dev, HGDIOBJ obj )
 {
+#if 0
     METAFILEDRV_PDEVICE *physDev = (METAFILEDRV_PDEVICE *)dev;
     UINT16 index;
 
@@ -56,6 +57,9 @@ UINT MFDRV_AddHandle( PHYSDEV dev, HGDIOBJ obj )
         physDev->mh->mtNoObjects++;
 
     return index ; /* index 0 is not reserved for metafiles */
+#else
+    return -1;
+#endif
 }
 
 /******************************************************************
@@ -167,7 +171,7 @@ INT16 MFDRV_CreateBrushIndirect(PHYSDEV dev, HBRUSH hBrush )
 	    lb16.lbColor = logbrush.lbColor;
 	    lb16.lbHatch = logbrush.lbHatch;
 	    size = sizeof(METARECORD) + sizeof(LOGBRUSH16) - 2;
-	    mr = HeapAlloc( GetProcessHeap(), 0, size );
+	    mr = heap_alloc( size );
 	    mr->rdSize = size / 2;
 	    mr->rdFunction = META_CREATEBRUSHINDIRECT;
 	    memcpy( mr->rdParm, &lb16, sizeof(LOGBRUSH16));
@@ -188,7 +192,7 @@ INT16 MFDRV_CreateBrushIndirect(PHYSDEV dev, HBRUSH hBrush )
             info_size = get_dib_info_size( src_info, usage );
 	    size = FIELD_OFFSET( METARECORD, rdParm[2] ) + info_size + src_info->bmiHeader.biSizeImage;
 
-            if (!(mr = HeapAlloc( GetProcessHeap(), 0, size ))) goto done;
+            if (!(mr = heap_alloc( size ))) goto done;
 	    mr->rdFunction = META_DIBCREATEPATTERNBRUSH;
 	    mr->rdSize = size / 2;
 	    mr->rdParm[0] = logbrush.lbStyle;
@@ -218,7 +222,7 @@ INT16 MFDRV_CreateBrushIndirect(PHYSDEV dev, HBRUSH hBrush )
 	    return 0;
     }
     r = MFDRV_WriteRecord( dev, mr, mr->rdSize * 2);
-    HeapFree(GetProcessHeap(), 0, mr);
+    heap_free(mr);
     if( !r )
         return -1;
 done:
@@ -349,7 +353,7 @@ HPEN MFDRV_SelectPen( PHYSDEV dev, HPEN hpen, const struct brush_pattern *patter
         }
         else  /* must be an extended pen */
         {
-            EXTLOGPEN *elp = HeapAlloc( GetProcessHeap(), 0, size );
+            EXTLOGPEN *elp = heap_alloc( size );
 
             GetObjectW( hpen, size, elp );
             /* FIXME: add support for user style pens */
@@ -358,7 +362,7 @@ HPEN MFDRV_SelectPen( PHYSDEV dev, HPEN hpen, const struct brush_pattern *patter
             logpen.lopnWidth.y = 0;
             logpen.lopnColor = elp->elpColor;
 
-            HeapFree( GetProcessHeap(), 0, elp );
+            heap_free( elp );
         }
 
         index = MFDRV_CreatePenIndirect( dev, hpen, &logpen );
@@ -379,13 +383,13 @@ static BOOL MFDRV_CreatePalette(PHYSDEV dev, HPALETTE hPalette, LOGPALETTE* logP
     BOOL ret;
     METARECORD *mr;
 
-    mr = HeapAlloc( GetProcessHeap(), 0, sizeof(METARECORD) + sizeofPalette - sizeof(WORD) );
+    mr = heap_alloc( sizeof(METARECORD) + sizeofPalette - sizeof(WORD) );
     mr->rdSize = (sizeof(METARECORD) + sizeofPalette - sizeof(WORD)) / sizeof(WORD);
     mr->rdFunction = META_CREATEPALETTE;
     memcpy(&(mr->rdParm), logPalette, sizeofPalette);
     if (!(MFDRV_WriteRecord( dev, mr, mr->rdSize * sizeof(WORD))))
     {
-        HeapFree(GetProcessHeap(), 0, mr);
+        heap_free(mr);
         return FALSE;
     }
 
@@ -398,7 +402,7 @@ static BOOL MFDRV_CreatePalette(PHYSDEV dev, HPALETTE hPalette, LOGPALETTE* logP
         *(mr->rdParm) = index;
         ret = MFDRV_WriteRecord( dev, mr, mr->rdSize * sizeof(WORD));
     }
-    HeapFree(GetProcessHeap(), 0, mr);
+    heap_free(mr);
     return ret;
 }
 
@@ -420,7 +424,7 @@ HPALETTE MFDRV_SelectPalette( PHYSDEV dev, HPALETTE hPalette, BOOL bForceBackgro
     if (wNumEntries == 0) return 0;
 
     sizeofPalette = sizeof(LOGPALETTE) + ((wNumEntries-1) * sizeof(PALETTEENTRY));
-    logPalette = HeapAlloc( GetProcessHeap(), 0, sizeofPalette );
+    logPalette = heap_alloc( sizeofPalette );
 
     if (logPalette == NULL) return 0;
 
@@ -431,7 +435,7 @@ HPALETTE MFDRV_SelectPalette( PHYSDEV dev, HPALETTE hPalette, BOOL bForceBackgro
 
     creationSucceed = MFDRV_CreatePalette( dev, hPalette, logPalette, sizeofPalette );
 
-    HeapFree( GetProcessHeap(), 0, logPalette );
+    heap_free( logPalette );
 
     if (creationSucceed)
         return hPalette;

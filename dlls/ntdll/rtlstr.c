@@ -171,7 +171,7 @@ void WINAPI RtlFreeAnsiString( PSTRING str )
 {
     if (str->Buffer)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, str->Buffer );
+        free( str->Buffer );
         RtlZeroMemory( str, sizeof(*str) );
     }
 }
@@ -279,7 +279,7 @@ NTSTATUS WINAPI RtlInitUnicodeStringEx(
 BOOLEAN WINAPI RtlCreateUnicodeString( PUNICODE_STRING target, LPCWSTR src )
 {
     int len = (strlenW(src) + 1) * sizeof(WCHAR);
-    if (!(target->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, len ))) return FALSE;
+    if (!(target->Buffer = malloc( len ))) return FALSE;
     memcpy( target->Buffer, src, len );
     target->MaximumLength = len;
     target->Length = len - sizeof(WCHAR);
@@ -317,7 +317,7 @@ void WINAPI RtlFreeUnicodeString( PUNICODE_STRING str )
 {
     if (str->Buffer)
     {
-        RtlFreeHeap( GetProcessHeap(), 0, str->Buffer );
+        free( str->Buffer );
         RtlZeroMemory( str, sizeof(*str) );
     }
 }
@@ -384,7 +384,7 @@ NTSTATUS WINAPI RtlDuplicateUnicodeString(
             if (add_nul) {
                 destination_max_len += sizeof(WCHAR);
             } /* if */
-            destination->Buffer = RtlAllocateHeap(GetProcessHeap(), 0, destination_max_len);
+            destination->Buffer = malloc(destination_max_len);
             if (destination->Buffer == NULL) {
                 return STATUS_NO_MEMORY;
             } else {
@@ -693,7 +693,7 @@ NTSTATUS WINAPI RtlAnsiStringToUnicodeString(
     if (doalloc)
     {
         uni->MaximumLength = total;
-        if (!(uni->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, total )))
+        if (!(uni->Buffer = malloc( total )))
             return STATUS_NO_MEMORY;
     }
     else if (total > uni->MaximumLength) return STATUS_BUFFER_OVERFLOW;
@@ -730,7 +730,7 @@ NTSTATUS WINAPI RtlOemStringToUnicodeString(
     if (doalloc)
     {
         uni->MaximumLength = total;
-        if (!(uni->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, total )))
+        if (!(uni->Buffer = malloc( total )))
             return STATUS_NO_MEMORY;
     }
     else if (total > uni->MaximumLength) return STATUS_BUFFER_OVERFLOW;
@@ -767,7 +767,7 @@ NTSTATUS WINAPI RtlUnicodeStringToAnsiString(
     if (doalloc)
     {
         ansi->MaximumLength = len;
-        if (!(ansi->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, len )))
+        if (!(ansi->Buffer = malloc( len )))
             return STATUS_NO_MEMORY;
     }
     else if (ansi->MaximumLength < len)
@@ -813,7 +813,7 @@ NTSTATUS WINAPI RtlUnicodeStringToOemString( STRING *oem,
     if (doalloc)
     {
         oem->MaximumLength = len;
-        if (!(oem->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, len )))
+        if (!(oem->Buffer = malloc( len )))
             return STATUS_NO_MEMORY;
     }
     else if (oem->MaximumLength < len)
@@ -1028,7 +1028,7 @@ NTSTATUS WINAPI RtlUpcaseUnicodeString( UNICODE_STRING *dest,
     if (doalloc)
     {
         dest->MaximumLength = len;
-        if (!(dest->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, len )))
+        if (!(dest->Buffer = malloc( len )))
             return STATUS_NO_MEMORY;
     }
     else if (len > dest->MaximumLength) return STATUS_BUFFER_OVERFLOW;
@@ -1068,7 +1068,7 @@ NTSTATUS WINAPI RtlDowncaseUnicodeString(
 
     if (doalloc) {
         dest->MaximumLength = len;
-        if (!(dest->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, len ))) {
+        if (!(dest->Buffer = malloc( len ))) {
             return STATUS_NO_MEMORY;
         } /* if */
     } else if (len > dest->MaximumLength) {
@@ -1170,7 +1170,7 @@ NTSTATUS WINAPI RtlUpcaseUnicodeStringToCountedOemString( STRING *oem,
         if (doalloc)
         {
             oem->MaximumLength = len;
-            if (!(oem->Buffer = RtlAllocateHeap( GetProcessHeap(), 0, len )))
+            if (!(oem->Buffer = malloc( len )))
             {
                 ret = STATUS_NO_MEMORY;
                 goto done;
@@ -1205,10 +1205,10 @@ NTSTATUS WINAPI RtlUpcaseUnicodeToMultiByteN( LPSTR dst, DWORD dstlen, LPDWORD r
     LPWSTR upcase;
     DWORD i;
 
-    if (!(upcase = RtlAllocateHeap( GetProcessHeap(), 0, srclen ))) return STATUS_NO_MEMORY;
+    if (!(upcase = malloc( srclen ))) return STATUS_NO_MEMORY;
     for (i = 0; i < srclen/sizeof(WCHAR); i++) upcase[i] = toupperW(src[i]);
     ret = RtlUnicodeToMultiByteN( dst, dstlen, reslen, upcase, srclen );
-    RtlFreeHeap( GetProcessHeap(), 0, upcase );
+    free( upcase );
     return ret;
 }
 
@@ -1228,10 +1228,10 @@ NTSTATUS WINAPI RtlUpcaseUnicodeToOemN( LPSTR dst, DWORD dstlen, LPDWORD reslen,
     LPWSTR upcase;
     DWORD i;
 
-    if (!(upcase = RtlAllocateHeap( GetProcessHeap(), 0, srclen ))) return STATUS_NO_MEMORY;
+    if (!(upcase = malloc( srclen ))) return STATUS_NO_MEMORY;
     for (i = 0; i < srclen/sizeof(WCHAR); i++) upcase[i] = toupperW(src[i]);
     ret = RtlUnicodeToOemN( dst, dstlen, reslen, upcase, srclen );
-    RtlFreeHeap( GetProcessHeap(), 0, upcase );
+    free( upcase );
     return ret;
 }
 
@@ -2133,7 +2133,7 @@ NTSTATUS WINAPI RtlStringFromGUID(const GUID* guid, UNICODE_STRING *str)
 
   str->Length = GUID_STRING_LENGTH * sizeof(WCHAR);
   str->MaximumLength = str->Length + sizeof(WCHAR);
-  str->Buffer = RtlAllocateHeap(GetProcessHeap(), 0, str->MaximumLength);
+  str->Buffer = malloc(str->MaximumLength);
   if (!str->Buffer)
   {
     str->Length = str->MaximumLength = 0;

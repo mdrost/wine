@@ -45,6 +45,7 @@
 #include "fileapi.h"
 
 #include "wine/exception.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -129,7 +130,7 @@ static BOOL check_dir_symlink( FIND_FIRST_INFO *info, const FILE_BOTH_DIR_INFORM
     DWORD len;
 
     str.MaximumLength = info->path.Length + sizeof(WCHAR) + file_info->FileNameLength;
-    if (!(str.Buffer = HeapAlloc( GetProcessHeap(), 0, str.MaximumLength ))) return TRUE;
+    if (!(str.Buffer = heap_alloc( str.MaximumLength ))) return TRUE;
     memcpy( str.Buffer, info->path.Buffer, info->path.Length );
     len = info->path.Length / sizeof(WCHAR);
     if (!len || str.Buffer[len-1] != '\\') str.Buffer[len++] = '\\';
@@ -250,7 +251,17 @@ WCHAR *FILE_name_AtoW( LPCSTR name, BOOL alloc )
     NTSTATUS status;
 
     RtlInitAnsiString( &str, name );
+#if 0
     pstrW = alloc ? &strW : &NtCurrentTeb()->StaticUnicodeString;
+#else
+    if (!alloc)
+    {  
+        static __thread WCHAR StaticUnicodeBuffer[261];
+        StaticUnicodeBuffer[0] = '\0';
+        RtlInitUnicodeString(&strW, StaticUnicodeBuffer);
+    }
+    pstrW = &strW;
+#endif
     if (oem_file_apis)
         status = RtlOemStringToUnicodeString( pstrW, &str, alloc );
     else
@@ -971,7 +982,7 @@ BOOL WINAPI GetFileInformationByHandleEx( HANDLE handle, FILE_INFO_BY_HANDLE_CLA
         SetLastError( RtlNtStatusToDosError( status ) );
         return FALSE;
     }
-    return TRUE;
+return TRUE;
 }
 
 
@@ -1339,7 +1350,7 @@ BOOL WINAPI LockFileEx( HANDLE hFile, DWORD flags, DWORD reserved,
     }
 
     TRACE( "%p %x%08x %x%08x flags %x\n",
-           hFile, overlapped->u.s.OffsetHigh, overlapped->u.s.Offset, 
+           hFile, overlapped->u.s.OffsetHigh, overlapped->u.s.Offset,
            count_high, count_low, flags );
 
     count.u.LowPart = count_low;
@@ -1910,7 +1921,7 @@ BOOL WINAPI ReplaceFileA(LPCSTR lpReplacedFileName,LPCSTR lpReplacementFileName,
     }
     if (!lpReplacementFileName || !(replacementW = FILE_name_AtoW( lpReplacementFileName, TRUE )))
     {
-        HeapFree( GetProcessHeap(), 0, replacedW );
+        heap_free( replacedW );
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
@@ -1919,16 +1930,16 @@ BOOL WINAPI ReplaceFileA(LPCSTR lpReplacedFileName,LPCSTR lpReplacementFileName,
     {
         if (!(backupW = FILE_name_AtoW( lpBackupFileName, TRUE )))
         {
-            HeapFree( GetProcessHeap(), 0, replacedW );
-            HeapFree( GetProcessHeap(), 0, replacementW );
+            heap_free( replacedW );
+            heap_free( replacementW );
             SetLastError(ERROR_INVALID_PARAMETER);
             return FALSE;
         }
     }
     ret = ReplaceFileW( replacedW, replacementW, backupW, dwReplaceFlags, lpExclude, lpReserved );
-    HeapFree( GetProcessHeap(), 0, replacedW );
-    HeapFree( GetProcessHeap(), 0, replacementW );
-    HeapFree( GetProcessHeap(), 0, backupW );
+    heap_free( replacedW );
+    heap_free( replacementW );
+    heap_free( backupW );
     return ret;
 }
 
@@ -1986,7 +1997,7 @@ HANDLE WINAPI FindFirstFileExW( LPCWSTR filename, FINDEX_INFO_LEVELS level,
 
         if (HIWORD(device))
         {
-            if (!(dir = HeapAlloc( GetProcessHeap(), 0, HIWORD(device) + sizeof(WCHAR) )))
+            if (!(dir = heap_alloc( HIWORD(device) + sizeof(WCHAR) )))
             {
                 SetLastError( ERROR_NOT_ENOUGH_MEMORY );
                 goto error;
@@ -1997,11 +2008,11 @@ HANDLE WINAPI FindFirstFileExW( LPCWSTR filename, FINDEX_INFO_LEVELS level,
         RtlFreeUnicodeString( &nt_name );
         if (!RtlDosPathNameToNtPathName_U( dir ? dir : dotW, &nt_name, &mask, NULL ))
         {
-            HeapFree( GetProcessHeap(), 0, dir );
+            heap_free( dir );
             SetLastError( ERROR_PATH_NOT_FOUND );
             goto error;
         }
-        HeapFree( GetProcessHeap(), 0, dir );
+        heap_free( dir );
         size = 0;
     }
     else if (!mask || !*mask)
@@ -2016,7 +2027,7 @@ HANDLE WINAPI FindFirstFileExW( LPCWSTR filename, FINDEX_INFO_LEVELS level,
         size = has_wildcard ? 8192 : max_entry_size;
     }
 
-    if (!(info = HeapAlloc( GetProcessHeap(), 0, offsetof( FIND_FIRST_INFO, data[size] ))))
+    if (!(info = heap_alloc( offsetof( FIND_FIRST_INFO, data[size] ))))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         goto error;
@@ -2051,7 +2062,7 @@ HANDLE WINAPI FindFirstFileExW( LPCWSTR filename, FINDEX_INFO_LEVELS level,
         goto error;
     }
 
-    RtlInitializeCriticalSection( &info->cs );
+    InitializeCriticalSection( &info->cs );
     info->cs.DebugInfo->Spare[0] = (DWORD_PTR)(__FILE__ ": FIND_FIRST_INFO.cs");
     info->path     = nt_name;
     info->magic    = FIND_FIRST_MAGIC;
@@ -2111,7 +2122,7 @@ HANDLE WINAPI FindFirstFileExW( LPCWSTR filename, FINDEX_INFO_LEVELS level,
     return info;
 
 error:
-    HeapFree( GetProcessHeap(), 0, info );
+    heap_free( info );
     RtlFreeUnicodeString( &nt_name );
     return INVALID_HANDLE_VALUE;
 }
@@ -2141,7 +2152,7 @@ BOOL WINAPI FindNextFileW( HANDLE handle, WIN32_FIND_DATAW *data )
         return ret;
     }
 
-    RtlEnterCriticalSection( &info->cs );
+    EnterCriticalSection( &info->cs );
 
     if (!info->handle) SetLastError( ERROR_NO_MORE_FILES );
     else for (;;)
@@ -2218,7 +2229,7 @@ BOOL WINAPI FindNextFileW( HANDLE handle, WIN32_FIND_DATAW *data )
         break;
     }
 
-    RtlLeaveCriticalSection( &info->cs );
+    LeaveCriticalSection( &info->cs );
     return ret;
 }
 
@@ -2240,7 +2251,7 @@ BOOL WINAPI FindClose( HANDLE handle )
     {
         if (info->magic == FIND_FIRST_MAGIC)
         {
-            RtlEnterCriticalSection( &info->cs );
+            EnterCriticalSection( &info->cs );
             if (info->magic == FIND_FIRST_MAGIC)  /* in case someone else freed it in the meantime */
             {
                 info->magic = 0;
@@ -2249,10 +2260,10 @@ BOOL WINAPI FindClose( HANDLE handle )
                 RtlFreeUnicodeString( &info->path );
                 info->data_pos = 0;
                 info->data_len = 0;
-                RtlLeaveCriticalSection( &info->cs );
+                LeaveCriticalSection( &info->cs );
                 info->cs.DebugInfo->Spare[0] = 0;
-                RtlDeleteCriticalSection( &info->cs );
-                HeapFree( GetProcessHeap(), 0, info );
+                DeleteCriticalSection( &info->cs );
+                heap_free( info );
             }
         }
     }
@@ -2456,7 +2467,7 @@ BOOL WINAPI GetFileAttributesExW( LPCWSTR name, GET_FILEEX_INFO_LEVELS level, LP
     UNICODE_STRING nt_name;
     OBJECT_ATTRIBUTES attr;
     NTSTATUS status;
-    
+
     TRACE("%s %d %p\n", debugstr_w(name), level, ptr);
 
     if (level != GetFileExInfoStandard)
@@ -3063,7 +3074,7 @@ DWORD WINAPI GetFinalPathNameByHandleA(HANDLE file, LPSTR path, DWORD charcount,
     if (len == 0)
         return 0;
 
-    str = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    str = heap_alloc(len * sizeof(WCHAR));
     if (!str)
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -3073,7 +3084,7 @@ DWORD WINAPI GetFinalPathNameByHandleA(HANDLE file, LPSTR path, DWORD charcount,
     result = GetFinalPathNameByHandleW(file, str, len, flags);
     if (result != len - 1)
     {
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
         WARN("GetFinalPathNameByHandleW failed unexpectedly: %u\n", result);
         return 0;
     }
@@ -3083,26 +3094,26 @@ DWORD WINAPI GetFinalPathNameByHandleA(HANDLE file, LPSTR path, DWORD charcount,
     len = WideCharToMultiByte(cp, 0, str, -1, NULL, 0, NULL, NULL);
     if (!len)
     {
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
         WARN("Failed to get multibyte length\n");
         return 0;
     }
 
     if (charcount < len)
     {
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
         return len - 1;
     }
 
     len = WideCharToMultiByte(cp, 0, str, -1, path, charcount, NULL, NULL);
     if (!len)
     {
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
         WARN("WideCharToMultiByte failed\n");
         return 0;
     }
 
-    HeapFree(GetProcessHeap(), 0, str);
+    heap_free(str);
 
     return len - 1;
 }

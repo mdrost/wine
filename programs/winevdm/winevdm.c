@@ -117,8 +117,8 @@ static char *find_dosbox(void)
     if (!envpath) return NULL;
 
     envpath_len = strlen( envpath );
-    path = HeapAlloc( GetProcessHeap(), 0, envpath_len + 1 );
-    buffer = HeapAlloc( GetProcessHeap(), 0, envpath_len + sizeof("/dosbox") );
+    path = heap_alloc( envpath_len + 1 );
+    buffer = heap_alloc( envpath_len + sizeof("/dosbox") );
     strcpy( path, envpath );
 
     p = path;
@@ -133,12 +133,12 @@ static char *find_dosbox(void)
         strcat( buffer, "/dosbox" );
         if (!stat( buffer, &st ))
         {
-            HeapFree( GetProcessHeap(), 0, path );
+            heap_free( path );
             return buffer;
         }
     }
-    HeapFree( GetProcessHeap(), 0, buffer );
-    HeapFree( GetProcessHeap(), 0, path );
+    heap_free( buffer );
+    heap_free( path );
     return NULL;
 }
 
@@ -167,7 +167,7 @@ static void start_dosbox( const char *appname, const char *args )
     file = CreateFileW( config, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, 0 );
     if (file == INVALID_HANDLE_VALUE) return;
 
-    buffer = HeapAlloc( GetProcessHeap(), 0, sizeof("[autoexec]") +
+    buffer = heap_alloc( sizeof("[autoexec]") +
                         sizeof("mount -z c") + sizeof("config -securemode") +
                         25 * (strlen(config_dir) + sizeof("mount c /dosdevices/c:")) +
                         4 * strlenW( path ) +
@@ -201,7 +201,7 @@ static void start_dosbox( const char *appname, const char *args )
     }
     CloseHandle( file );
     DeleteFileW( config );
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     ExitProcess( ret );
 }
 
@@ -404,7 +404,7 @@ static char *build_command_line( char **argv )
             len+=2; /* for the quotes */
     }
 
-    if (!(cmd_line = HeapAlloc( GetProcessHeap(), 0, len ? len + 1 : 2 ))) 
+    if (!(cmd_line = heap_alloc( len ? len + 1 : 2 ))) 
         return NULL;
 
     p = cmd_line;

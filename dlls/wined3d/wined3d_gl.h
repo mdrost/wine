@@ -24,7 +24,17 @@
 #ifndef __WINE_WINED3D_GL_H
 #define __WINE_WINED3D_GL_H
 
+#if 0
 #include "wine/wgl.h"
+#else
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include "wine/glx.h"
+
+WINE_GLAPI Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext ctx);
+WINE_GLAPI GLXContext glXGetCurrentContext(void);
+WINE_GLAPI Display *glXGetCurrentDisplay(void);
+#endif
 
 #define GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI 0x8837  /* not in the gl spec */
 
@@ -200,11 +210,15 @@ enum wined3d_gl_extension
     NV_VERTEX_PROGRAM2,
     NV_VERTEX_PROGRAM2_OPTION,
     NV_VERTEX_PROGRAM3,
+#if 0
     /* WGL extensions */
     WGL_ARB_PIXEL_FORMAT,
     WGL_EXT_SWAP_CONTROL,
     WGL_WINE_PIXEL_FORMAT_PASSTHROUGH,
     WGL_WINE_QUERY_RENDERER,
+#else
+    GLX_EXT_SWAP_CONTROL,
+#endif
     /* Internally used */
     WINED3D_GL_BLEND_EQUATION,
     WINED3D_GL_LEGACY_CONTEXT,

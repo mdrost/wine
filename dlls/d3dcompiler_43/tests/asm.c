@@ -1443,14 +1443,14 @@ static HRESULT WINAPI testD3DInclude_open(ID3DInclude *iface, D3D_INCLUDE_TYPE i
 
     if (!strcmp(filename, "incl.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(include));
+        buffer = heap_alloc(sizeof(include));
         CopyMemory(buffer, include, sizeof(include));
         *bytes = sizeof(include);
         ok(!parent_data, "Wrong parent_data value.\n");
     }
     else if (!strcmp(filename, "incl2.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(include2));
+        buffer = heap_alloc(sizeof(include2));
         CopyMemory(buffer, include2, sizeof(include2));
         *bytes = sizeof(include2);
         ok(!parent_data, "Wrong parent_data value.\n");
@@ -1458,7 +1458,7 @@ static HRESULT WINAPI testD3DInclude_open(ID3DInclude *iface, D3D_INCLUDE_TYPE i
     }
     else if (!strcmp(filename, "incl3.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(include3));
+        buffer = heap_alloc(sizeof(include3));
         CopyMemory(buffer, include3, sizeof(include3));
         *bytes = sizeof(include3);
         /* Also check for the correct parent_data content */
@@ -1469,7 +1469,7 @@ static HRESULT WINAPI testD3DInclude_open(ID3DInclude *iface, D3D_INCLUDE_TYPE i
     }
     else if (!strcmp(filename, "incl4.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(include4));
+        buffer = heap_alloc(sizeof(include4));
         CopyMemory(buffer, include4, sizeof(include4));
         *bytes = sizeof(include4);
         ok(parent_data == NULL, "Wrong parent_data value.\n");
@@ -1477,7 +1477,7 @@ static HRESULT WINAPI testD3DInclude_open(ID3DInclude *iface, D3D_INCLUDE_TYPE i
     }
     else if (!strcmp(filename, "includes/incl.vsh"))
     {
-        buffer = HeapAlloc(GetProcessHeap(), 0, sizeof(include));
+        buffer = heap_alloc(sizeof(include));
         CopyMemory(buffer, include, sizeof(include));
         *bytes = sizeof(include);
         ok(!parent_data, "Wrong parent_data value.\n");
@@ -1495,7 +1495,7 @@ static HRESULT WINAPI testD3DInclude_open(ID3DInclude *iface, D3D_INCLUDE_TYPE i
 
 static HRESULT WINAPI testD3DInclude_close(ID3DInclude *iface, const void *data)
 {
-    HeapFree(GetProcessHeap(), 0, (void *)data);
+    heap_free((void *)data);
     return S_OK;
 }
 

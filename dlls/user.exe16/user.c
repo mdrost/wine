@@ -365,13 +365,13 @@ HICON16 get_icon_16( HICON icon )
         if (!(GetIconInfo( icon, &info ))) return 0;
         GetObjectW( info.hbmMask, sizeof(bm), &bm );
         and_size = bm.bmHeight * bm.bmWidthBytes;
-        if (!(and_bits = HeapAlloc( GetProcessHeap(), 0, and_size ))) goto done;
+        if (!(and_bits = heap_alloc( and_size ))) goto done;
         GetBitmapBits( info.hbmMask, and_size, and_bits );
         if (info.hbmColor)
         {
             GetObjectW( info.hbmColor, sizeof(bm), &bm );
             xor_size = bm.bmHeight * bm.bmWidthBytes;
-            if (!(xor_bits = HeapAlloc( GetProcessHeap(), 0, xor_size ))) goto done;
+            if (!(xor_bits = heap_alloc( xor_size ))) goto done;
             GetBitmapBits( info.hbmColor, xor_size, xor_bits );
         }
         else
@@ -398,10 +398,10 @@ HICON16 get_icon_16( HICON icon )
     done:
         if (info.hbmColor)
         {
-            HeapFree( GetProcessHeap(), 0, xor_bits );
+            heap_free( xor_bits );
             DeleteObject( info.hbmColor );
         }
-        HeapFree( GetProcessHeap(), 0, and_bits );
+        heap_free( and_bits );
         DeleteObject( info.hbmMask );
     }
     return ret;
@@ -409,7 +409,7 @@ HICON16 get_icon_16( HICON icon )
 
 static void add_shared_icon( HINSTANCE16 inst, HRSRC16 rsrc, HRSRC16 group, HICON16 icon )
 {
-    struct cache_entry *cache = HeapAlloc( GetProcessHeap(), 0, sizeof(*cache) );
+    struct cache_entry *cache = heap_alloc( sizeof(*cache) );
 
     if (!cache) return;
     cache->inst  = inst;
@@ -455,7 +455,7 @@ static void free_module_icons( HINSTANCE16 inst )
         if (cache->inst != inst) continue;
         list_remove( &cache->entry );
         free_icon_handle( cache->icon );
-        HeapFree( GetProcessHeap(), 0, cache );
+        heap_free( cache );
     }
 }
 
@@ -485,7 +485,7 @@ static void set_clipboard_format( UINT format, HANDLE16 data )
         return;
     }
 
-    if ((fmt = HeapAlloc( GetProcessHeap(), 0, sizeof(*fmt) )))
+    if ((fmt = heap_alloc( sizeof(*fmt) )))
     {
         fmt->format = format;
         fmt->data = data;
@@ -502,7 +502,7 @@ static void free_clipboard_formats(void)
         struct clipboard_format *fmt = LIST_ENTRY( head, struct clipboard_format, entry );
         list_remove( &fmt->entry );
         GlobalFree16( fmt->data );
-        HeapFree( GetProcessHeap(), 0, fmt );
+        heap_free( fmt );
     }
 }
 
@@ -1247,7 +1247,7 @@ HACCEL16 WINAPI LoadAccelerators16(HINSTANCE16 instance, LPCSTR lpTableName)
     if ((table16 = LockResource16( hMem )))
     {
         DWORD i, count = SizeofResource16( instance, hRsrc ) / sizeof(*table16);
-        ACCEL *table = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*table) );
+        ACCEL *table = heap_alloc( count * sizeof(*table) );
         if (table)
         {
             for (i = 0; i < count; i++)
@@ -1257,7 +1257,7 @@ HACCEL16 WINAPI LoadAccelerators16(HINSTANCE16 instance, LPCSTR lpTableName)
                 table[i].cmd   = table16[i].cmd;
             }
             ret = CreateAcceleratorTableA( table, count );
-            HeapFree( GetProcessHeap(), 0, table );
+            heap_free( table );
         }
     }
     FreeResource16( hMem );
@@ -1289,11 +1289,11 @@ VOID WINAPI SetSysColors16( INT16 count, const INT16 *list16, const COLORREF *va
 {
     INT i, *list;
 
-    if ((list = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*list) )))
+    if ((list = heap_alloc( count * sizeof(*list) )))
     {
         for (i = 0; i < count; i++) list[i] = list16[i];
         SetSysColors( count, list, values );
-        HeapFree( GetProcessHeap(), 0, list );
+        heap_free( list );
     }
 }
 
@@ -1326,14 +1326,14 @@ BOOL16 WINAPI GrayString16( HDC16 hdc, HBRUSH16 hbr, GRAYSTRINGPROC16 gsprc,
         struct gray_string_info *info;
 
         if (!cch) cch = strlen(str16);
-        info = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( struct gray_string_info, str[cch] ));
+        info = heap_alloc( FIELD_OFFSET( struct gray_string_info, str[cch] ));
         if (!info) return FALSE;
         info->proc  = gsprc;
         info->param = lParam;
         memcpy( info->str, str16, cch );
         ret = GrayStringA( HDC_32(hdc), HBRUSH_32(hbr), gray_string_callback_ptr,
                            (LPARAM)info->str, cch, x, y, cx, cy );
-        HeapFree( GetProcessHeap(), 0, info );
+        heap_free( info );
     }
     return ret;
 }
@@ -1364,11 +1364,11 @@ LONG WINAPI TabbedTextOut16( HDC16 hdc, INT16 x, INT16 y, LPCSTR lpstr,
                              INT16 count, INT16 nb_tabs, const INT16 *tabs16, INT16 tab_org )
 {
     LONG ret;
-    INT i, *tabs = HeapAlloc( GetProcessHeap(), 0, nb_tabs * sizeof(*tabs) );
+    INT i, *tabs = heap_alloc( nb_tabs * sizeof(*tabs) );
     if (!tabs) return 0;
     for (i = 0; i < nb_tabs; i++) tabs[i] = tabs16[i];
     ret = TabbedTextOutA( HDC_32(hdc), x, y, lpstr, count, nb_tabs, tabs, tab_org );
-    HeapFree( GetProcessHeap(), 0, tabs );
+    heap_free( tabs );
     return ret;
 }
 
@@ -1380,11 +1380,11 @@ DWORD WINAPI GetTabbedTextExtent16( HDC16 hdc, LPCSTR lpstr, INT16 count,
                                     INT16 nb_tabs, const INT16 *tabs16 )
 {
     LONG ret;
-    INT i, *tabs = HeapAlloc( GetProcessHeap(), 0, nb_tabs * sizeof(*tabs) );
+    INT i, *tabs = heap_alloc( nb_tabs * sizeof(*tabs) );
     if (!tabs) return 0;
     for (i = 0; i < nb_tabs; i++) tabs[i] = tabs16[i];
     ret = GetTabbedTextExtentA( HDC_32(hdc), lpstr, count, nb_tabs, tabs );
-    HeapFree( GetProcessHeap(), 0, tabs );
+    heap_free( tabs );
     return ret;
 }
 
@@ -3186,7 +3186,7 @@ DWORD WINAPI FormatMessage16(
     if (dwFlags & FORMAT_MESSAGE_FROM_STRING)
     {
         char *source = MapSL(lpSource);
-        from = HeapAlloc( GetProcessHeap(), 0, strlen(source)+1 );
+        from = heap_alloc( strlen(source)+1 );
         strcpy( from, source );
     }
     else if (dwFlags & FORMAT_MESSAGE_FROM_SYSTEM) {
@@ -3200,11 +3200,11 @@ DWORD WINAPI FormatMessage16(
         dwMessageId &= 0xFFFF;
         bufsize=LoadString16(hinst16,dwMessageId,NULL,0);
         if (bufsize) {
-            from = HeapAlloc( GetProcessHeap(), 0, bufsize +1);
+            from = heap_alloc( bufsize +1);
             LoadString16(hinst16,dwMessageId,from,bufsize+1);
         }
     }
-    target      = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, 100);
+    target      = heap_alloc_zero( 100);
     t   = target;
     talloced= 100;
 
@@ -3253,11 +3253,11 @@ DWORD WINAPI FormatMessage16(
                         f++;
                         if (NULL!=(x=strchr(f,'!'))) {
                             *x='\0';
-                            fmtstr=HeapAlloc(GetProcessHeap(),0,strlen(f)+2);
+                            fmtstr=heap_alloc(strlen(f)+2);
                             sprintf(fmtstr,"%%%s",f);
                             f=x+1;
                         } else {
-                            fmtstr=HeapAlloc(GetProcessHeap(),0,strlen(f)+2);
+                            fmtstr=heap_alloc(strlen(f)+2);
                             sprintf(fmtstr,"%%%s",f);
                             f+=strlen(f); /*at \0*/
                         }
@@ -3265,13 +3265,13 @@ DWORD WINAPI FormatMessage16(
                     else
                     {
                         if(!args) break;
-                        fmtstr=HeapAlloc( GetProcessHeap(), 0, 3 );
+                        fmtstr=heap_alloc( 3 );
                         strcpy( fmtstr, "%s" );
                     }
                     if (args) {
                         int     ret;
                         int     sz;
-                        LPSTR   b = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sz = 100);
+                        LPSTR   b = heap_alloc_zero(sz = 100);
 
                         argliststart=args+insertnr-1;
 
@@ -3284,7 +3284,7 @@ DWORD WINAPI FormatMessage16(
                             b = new_b;
                         }
                         for (x=b; *x; x++) ADD_TO_T(*x);
-                        HeapFree(GetProcessHeap(), 0, b);
+                        heap_free(b);
                     } else {
                         /* NULL args - copy formatstr
                          * (probably wrong)
@@ -3293,7 +3293,7 @@ DWORD WINAPI FormatMessage16(
                             ADD_TO_T(*lastf++);
                         }
                     }
-                    HeapFree(GetProcessHeap(),0,fmtstr);
+                    heap_free(fmtstr);
                     break;
                 case '0': /* Just stop processing format string */
                     eos = TRUE;
@@ -3331,8 +3331,8 @@ DWORD WINAPI FormatMessage16(
         *((HLOCAL16*)lpBuffer) = h;
     } else
         lstrcpynA(lpBuffer,target,nSize);
-    HeapFree(GetProcessHeap(),0,target);
-    HeapFree(GetProcessHeap(),0,from);
+    heap_free(target);
+    heap_free(from);
     return (dwFlags & FORMAT_MESSAGE_ALLOCATE_BUFFER) ?
         strlen(allocstring):
         strlen(lpBuffer);

@@ -61,6 +61,7 @@ struct tz_name_map {
 
 static int init_tz_info(RTL_DYNAMIC_TIME_ZONE_INFORMATION *tzi);
 
+#if 0
 static RTL_CRITICAL_SECTION TIME_tz_section;
 static RTL_CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -69,6 +70,9 @@ static RTL_CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": TIME_tz_section") }
 };
 static RTL_CRITICAL_SECTION TIME_tz_section = { &critsect_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t TIME_tz_section = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 #define TICKSPERSEC        10000000
 #define TICKSPERMSEC       10000
@@ -123,7 +127,11 @@ static ULONGLONG monotonic_counter(void)
 #endif
 
     gettimeofday( &now, 0 );
+#if 0
     return now.tv_sec * (ULONGLONG)TICKSPERSEC + now.tv_usec * 10 + TICKS_1601_TO_1970 - server_start_time;
+#else
+    return now.tv_sec * (ULONGLONG)TICKSPERSEC + now.tv_usec * 10 + TICKS_1601_TO_1970;
+#endif
 }
 
 /******************************************************************************
@@ -274,7 +282,11 @@ static LONG TIME_GetBias(void)
 
     utc = time( NULL );
 
+#if 0
     RtlEnterCriticalSection( &TIME_tz_section );
+#else
+    pthread_mutex_lock( &TIME_tz_section );
+#endif
     if (utc != last_utc)
     {
         RTL_DYNAMIC_TIME_ZONE_INFORMATION tzi;
@@ -288,7 +300,11 @@ static LONG TIME_GetBias(void)
 
     ret = last_bias;
 
+#if 0
     RtlLeaveCriticalSection( &TIME_tz_section );
+#else
+    pthread_mutex_unlock( &TIME_tz_section );
+#endif
     return ret;
 }
 
@@ -613,6 +629,7 @@ static BOOL match_tz_name(const char* tz_name,
     return !strcmp(match->short_name, tz_name);
 }
 
+#if 0
 static BOOL reg_query_value(HKEY hkey, LPCWSTR name, DWORD type, void *data, DWORD count)
 {
     UNICODE_STRING nameW;
@@ -633,9 +650,11 @@ static BOOL reg_query_value(HKEY hkey, LPCWSTR name, DWORD type, void *data, DWO
     memcpy(data, info->Data, info->DataLength);
     return TRUE;
 }
+#endif
 
 static void find_reg_tz_info(RTL_DYNAMIC_TIME_ZONE_INFORMATION *tzi, const char* tz_name, int year)
 {
+#if 0
     static const WCHAR Time_ZonesW[] = { 'M','a','c','h','i','n','e','\\',
         'S','o','f','t','w','a','r','e','\\',
         'M','i','c','r','o','s','o','f','t','\\',
@@ -770,6 +789,7 @@ static void find_reg_tz_info(RTL_DYNAMIC_TIME_ZONE_INFORMATION *tzi, const char*
     }
 
     NtClose(hkey);
+#endif
 
     FIXME("Can't find matching timezone information in the registry for "
           "%s, bias %d, std (d/m/y): %u/%02u/%04u, dlt (d/m/y): %u/%02u/%04u\n",
@@ -810,7 +830,11 @@ static int init_tz_info(RTL_DYNAMIC_TIME_ZONE_INFORMATION *tzi)
     time_t year_start, year_end, tmp, dlt = 0, std = 0;
     int is_dst, current_is_dst, bias;
 
+#if 0
     RtlEnterCriticalSection( &TIME_tz_section );
+#else
+    pthread_mutex_lock( &TIME_tz_section );
+#endif
 
     year_start = time(NULL);
     tm = gmtime(&year_start);
@@ -821,7 +845,11 @@ static int init_tz_info(RTL_DYNAMIC_TIME_ZONE_INFORMATION *tzi)
     if (current_year == tm->tm_year && current_bias == bias)
     {
         *tzi = cached_tzi;
+#if 0
         RtlLeaveCriticalSection( &TIME_tz_section );
+#else
+        pthread_mutex_unlock( &TIME_tz_section );
+#endif
         return current_is_dst;
     }
 
@@ -915,7 +943,11 @@ static int init_tz_info(RTL_DYNAMIC_TIME_ZONE_INFORMATION *tzi)
     find_reg_tz_info(tzi, tz_name, current_year + 1900);
     cached_tzi = *tzi;
 
+#if 0
     RtlLeaveCriticalSection( &TIME_tz_section );
+#else
+    pthread_mutex_unlock( &TIME_tz_section );
+#endif
 
     return current_is_dst;
 }

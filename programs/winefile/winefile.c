@@ -292,7 +292,7 @@ static inline void choose_font(HWND hwnd)
 /* allocate and initialise a directory entry */
 static Entry* alloc_entry(void)
 {
-	Entry* entry = HeapAlloc(GetProcessHeap(), 0, sizeof(Entry));
+	Entry* entry = heap_alloc(sizeof(Entry));
 
 	entry->pidl = NULL;
 	entry->folder = NULL;
@@ -313,7 +313,7 @@ static void free_entry(Entry* entry)
 	if (entry->pidl)
 		IMalloc_Free(Globals.iMalloc, entry->pidl);
 
-	HeapFree(GetProcessHeap(), 0, entry);
+	heap_free(entry);
 }
 
 /* recursively free all child entries */
@@ -1132,7 +1132,7 @@ static void SortDirectory(Entry* dir, SORT_ORDER sortOrder)
 		len++;
 
 	if (len) {
-		array = HeapAlloc(GetProcessHeap(), 0, len*sizeof(Entry*));
+		array = heap_alloc(len*sizeof(Entry*));
 
 		p = array;
 		for(entry=dir->down; entry; entry=entry->next)
@@ -1148,7 +1148,7 @@ static void SortDirectory(Entry* dir, SORT_ORDER sortOrder)
 
 		(*p)->next = 0;
 
-                HeapFree(GetProcessHeap(), 0, array);
+                heap_free(array);
 	}
 }
 
@@ -1297,7 +1297,7 @@ static ChildWnd* alloc_child_window(LPCWSTR path, LPITEMIDLIST pidl, HWND hwnd)
 	static const WCHAR sAsterics[] = {'*', '\0'};
 	static const WCHAR sTitleFmt[] = {'%','s',' ','-',' ','%','s','\0'};
 
-	ChildWnd* child = HeapAlloc(GetProcessHeap(), 0, sizeof(ChildWnd));
+	ChildWnd* child = heap_alloc(sizeof(ChildWnd));
 	Root* root = &child->root;
 	Entry* entry;
 
@@ -1366,7 +1366,7 @@ static ChildWnd* alloc_child_window(LPCWSTR path, LPITEMIDLIST pidl, HWND hwnd)
 static void free_child_window(ChildWnd* child)
 {
 	free_entries(&child->root.entry);
-	HeapFree(GetProcessHeap(), 0, child);
+	heap_free(child);
 }
 
 
@@ -1775,7 +1775,7 @@ static void CheckForFileInfo(struct PropertiesDialog* dlg, HWND hwnd, LPCWSTR st
 	DWORD dwVersionDataLen = GetFileVersionInfoSizeW(strFilename, NULL);
 
 	if (dwVersionDataLen) {
-		dlg->pVersionData = HeapAlloc(GetProcessHeap(), 0, dwVersionDataLen);
+		dlg->pVersionData = heap_alloc(dwVersionDataLen);
 
 		if (GetFileVersionInfoW(strFilename, 0, dwVersionDataLen, dlg->pVersionData)) {
 			LPVOID pVal;
@@ -1885,7 +1885,7 @@ static INT_PTR CALLBACK PropertiesDialogDlgProc(HWND hwnd, UINT nmsg, WPARAM wpa
 			return 1;}
 
 		case WM_NCDESTROY:
-			HeapFree(GetProcessHeap(), 0, dlg->pVersionData);
+			heap_free(dlg->pVersionData);
 			dlg->pVersionData = NULL;
 			break;
 	}
@@ -2122,7 +2122,7 @@ static LRESULT CALLBACK FrameWndProc(HWND hwnd, UINT nmsg, WPARAM wparam, LPARAM
 				child = alloc_child_window(path, NULL, hwnd);
 
 				if (!create_child_window(child))
-					HeapFree(GetProcessHeap(), 0, child);
+					heap_free(child);
 			} else switch(cmd) {
 				case ID_FILE_EXIT:
 					SendMessageW(hwnd, WM_CLOSE, 0, 0);
@@ -2136,7 +2136,7 @@ static LRESULT CALLBACK FrameWndProc(HWND hwnd, UINT nmsg, WPARAM wparam, LPARAM
 					child = alloc_child_window(path, NULL, hwnd);
 
 					if (!create_child_window(child))
-						HeapFree(GetProcessHeap(), 0, child);
+						heap_free(child);
 					break;}
 
 				case ID_REFRESH:
@@ -2231,7 +2231,7 @@ static LRESULT CALLBACK FrameWndProc(HWND hwnd, UINT nmsg, WPARAM wparam, LPARAM
 					child = alloc_child_window(path, NULL, hwnd);
 
 					if (!create_child_window(child))
-						HeapFree(GetProcessHeap(), 0, child);
+						heap_free(child);
 					break;}
 #endif
 				case ID_DRIVE_SHELL_NS: {
@@ -2245,7 +2245,7 @@ static LRESULT CALLBACK FrameWndProc(HWND hwnd, UINT nmsg, WPARAM wparam, LPARAM
 					child = alloc_child_window(path, get_path_pidl(path,hwnd), hwnd);
 
 					if (!create_child_window(child))
-						HeapFree(GetProcessHeap(), 0, child);
+						heap_free(child);
 					break;}
 
 				/*TODO: There are even more menu items! */
@@ -3900,7 +3900,7 @@ static LRESULT CALLBACK ChildWndProc(HWND hwnd, UINT nmsg, WPARAM wparam, LPARAM
 					ChildWnd* new_child = alloc_child_window(child->path, NULL, hwnd);
 
 					if (!create_child_window(new_child))
-						HeapFree(GetProcessHeap(), 0, new_child);
+						heap_free(new_child);
 
 					break;}
 
@@ -4293,7 +4293,7 @@ static BOOL show_frame(HWND hwndParent, int cmdshow, LPCWSTR path)
 	child->pos.rcNormalPosition.bottom = 280;
 
 	if (!create_child_window(child)) {
-		HeapFree(GetProcessHeap(), 0, child);
+		heap_free(child);
 		return FALSE;
 	}
 

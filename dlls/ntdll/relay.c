@@ -113,7 +113,7 @@ static const WCHAR **build_list( const WCHAR *buffer )
         p++;
     }
     /* allocate count+1 pointers, plus the space for a copy of the string */
-    if ((ret = RtlAllocateHeap( GetProcessHeap(), 0,
+    if ((ret = malloc(
                                 (count+1) * sizeof(WCHAR*) + (strlenW(buffer)+1) * sizeof(WCHAR) )))
     {
         WCHAR *str = (WCHAR *)(ret + count + 1);
@@ -150,7 +150,7 @@ static const WCHAR **load_list( HKEY hkey, const WCHAR *value )
     status = NtQueryValueKey( hkey, &name, KeyValuePartialInformation, buffer, sizeof(initial_buffer), &count );
     if (status == STATUS_BUFFER_OVERFLOW)
     {
-        buffer = RtlAllocateHeap( GetProcessHeap(), 0, count );
+        buffer = malloc( count );
         status = NtQueryValueKey( hkey, &name, KeyValuePartialInformation, buffer, count, &count );
     }
     if (status == STATUS_SUCCESS)
@@ -160,7 +160,7 @@ static const WCHAR **load_list( HKEY hkey, const WCHAR *value )
         if (list) TRACE( "%s = %s\n", debugstr_w(value), debugstr_w(str) );
     }
 
-    if (buffer != initial_buffer) RtlFreeHeap( GetProcessHeap(), 0, buffer );
+    if (buffer != initial_buffer) free( buffer );
     return list;
 }
 
@@ -873,7 +873,7 @@ void RELAY_SetupDLL( HMODULE module )
     descr = (struct relay_descr *)((char *)exports + size);
     if (descr->magic != RELAY_DESCR_MAGIC) return;
 
-    if (!(data = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data) +
+    if (!(data = calloc( 1,  sizeof(*data) +
                                   (exports->NumberOfFunctions-1) * sizeof(data->entry_points) )))
         return;
 

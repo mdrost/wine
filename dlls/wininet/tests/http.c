@@ -663,7 +663,7 @@ static void InternetReadFile_test(int flags, const test_data_t *test)
     trace("HttpSendRequestA -->\n");
     if(test->post_data) {
         post_len = strlen(test->post_data);
-        post_data = HeapAlloc(GetProcessHeap(), 0, post_len);
+        post_data = heap_alloc(post_len);
         memcpy(post_data, test->post_data, post_len);
     }
     SetLastError(0xdeadbeef);
@@ -680,7 +680,7 @@ static void InternetReadFile_test(int flags, const test_data_t *test)
         WaitForSingleObject(complete_event, INFINITE);
         ok(req_error == ERROR_SUCCESS, "req_error = %u\n", req_error);
     }
-    HeapFree(GetProcessHeap(), 0, post_data);
+    heap_free(post_data);
 
     CLEAR_NOTIFIED(INTERNET_STATUS_COOKIE_SENT);
     CLEAR_NOTIFIED(INTERNET_STATUS_COOKIE_RECEIVED);
@@ -869,7 +869,7 @@ static void InternetReadFile_test(int flags, const test_data_t *test)
         if (length)
         {
             char *buffer;
-            buffer = HeapAlloc(GetProcessHeap(),0,length+1);
+            buffer = heap_alloc(length+1);
 
             res = InternetReadFile(hor,buffer,length,&length);
 
@@ -880,7 +880,7 @@ static void InternetReadFile_test(int flags, const test_data_t *test)
 
             if(test->content)
                 ok(!strcmp(buffer, test->content), "buffer = '%s', expected '%s'\n", buffer, test->content);
-            HeapFree(GetProcessHeap(),0,buffer);
+            heap_free(buffer);
         }else {
             ok(!on_async, "Returned zero size in response to request complete\n");
             break;
@@ -982,7 +982,7 @@ static void InternetReadFile_chunked_test(void)
         trace("got %u available\n",length);
         if (length)
         {
-            char *buffer = HeapAlloc(GetProcessHeap(),0,length+1);
+            char *buffer = heap_alloc(length+1);
 
             res = InternetReadFile(hor,buffer,length,&got);
 
@@ -991,7 +991,7 @@ static void InternetReadFile_chunked_test(void)
             ok( length == got, "only got %u of %u available\n", got, length );
             ok( buffer[got-1] == '\n', "received partial line '%s'\n", buffer );
 
-            HeapFree(GetProcessHeap(),0,buffer);
+            heap_free(buffer);
             if (!got) break;
         }
         if (length == 0)
@@ -1145,14 +1145,14 @@ static void InternetReadFileExA_test(int flags)
     inetbuffers.lpcszHeader = NULL;
     inetbuffers.dwHeadersLength = 0;
     inetbuffers.dwBufferLength = 10;
-    inetbuffers.lpvBuffer = HeapAlloc(GetProcessHeap(), 0, 10);
+    inetbuffers.lpvBuffer = heap_alloc(10);
     inetbuffers.dwOffsetHigh = 1234;
     inetbuffers.dwOffsetLow = 5678;
     rc = InternetReadFileExA(hor, &inetbuffers, 0, 0xdeadcafe);
     ok(!rc && (GetLastError() == ERROR_INVALID_PARAMETER),
         "InternetReadFileEx should have failed with ERROR_INVALID_PARAMETER instead of %s, %u\n",
         rc ? "TRUE" : "FALSE", GetLastError());
-    HeapFree(GetProcessHeap(), 0, inetbuffers.lpvBuffer);
+    heap_free(inetbuffers.lpvBuffer);
 
     test_request_flags(hor, 0);
 
@@ -1180,7 +1180,7 @@ static void InternetReadFileExA_test(int flags)
     {
         inetbuffers.dwStructSize = sizeof(inetbuffers);
         inetbuffers.dwBufferLength = 1024;
-        inetbuffers.lpvBuffer = HeapAlloc(GetProcessHeap(), 0, inetbuffers.dwBufferLength+1);
+        inetbuffers.lpvBuffer = heap_alloc(inetbuffers.dwBufferLength+1);
         inetbuffers.dwOffsetHigh = 1234;
         inetbuffers.dwOffsetLow = 5678;
 
@@ -1231,7 +1231,7 @@ static void InternetReadFileExA_test(int flags)
             "InternetReadFileEx sets offsets to 0x%x%08x\n",
             inetbuffers.dwOffsetHigh, inetbuffers.dwOffsetLow);
 
-        HeapFree(GetProcessHeap(), 0, inetbuffers.lpvBuffer);
+        heap_free(inetbuffers.lpvBuffer);
 
         if (!inetbuffers.dwBufferLength)
             break;
@@ -2142,7 +2142,7 @@ static DWORD CALLBACK server_thread(LPVOID param)
 
     sprintf(host_header, "Host: localhost:%d", si->port);
     sprintf(host_header_override, "Host: test.local:%d\r\n", si->port);
-    buffer = HeapAlloc(GetProcessHeap(), 0, buffer_size = 1000);
+    buffer = heap_alloc(buffer_size = 1000);
 
     do
     {
@@ -2153,7 +2153,7 @@ static DWORD CALLBACK server_thread(LPVOID param)
         for(i=0;; i++)
         {
             if(i == buffer_size)
-                buffer = HeapReAlloc(GetProcessHeap(), 0, buffer, buffer_size *= 2);
+                buffer = heap_realloc(buffer, buffer_size *= 2);
 
             r = recv(c, buffer+i, 1, 0);
             if (r != 1)
@@ -2452,7 +2452,7 @@ static DWORD CALLBACK server_thread(LPVOID param)
     } while (!last_request);
 
     closesocket(s);
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 
     return 0;
 }
@@ -2797,7 +2797,7 @@ static void test_proxy_direct(int port)
     ok(!lstrcmpW(bufferW, passwordW), "wrong password\n");
     ok(sz == lstrlenW(passwordW), "got %u\n", sz);
 
-    url = HeapAlloc(GetProcessHeap(), 0, strlen(url_fmt) + 11);
+    url = heap_alloc(strlen(url_fmt) + 11);
     sprintf(url, url_fmt, port);
     buffer[0] = 0;
     sz = 0;
@@ -2828,7 +2828,7 @@ static void test_proxy_direct(int port)
     ok(r, "failed to get url\n");
     ok(!strcmp_wa(bufferW, url), "wrong url\n");
     ok(sz == strlen(url), "got %u\n", sz);
-    HeapFree(GetProcessHeap(), 0, url);
+    heap_free(url);
 
     r = InternetSetOptionA(hr, INTERNET_OPTION_PROXY_PASSWORD, password, 4);
     ok(r, "failed to set password\n");
@@ -4832,11 +4832,11 @@ static void send_response_len_and_wait(unsigned len, BOOL close_connection, INTE
 {
     char *response;
 
-    response = HeapAlloc(GetProcessHeap(), 0, len+1);
+    response = heap_alloc(len+1);
     memset(response, 'x', len);
     response[len] = 0;
     send_response_ex_and_wait(response, close_connection, buf, NULL, 0, -1);
-    HeapFree(GetProcessHeap(), 0, response);
+    heap_free(response);
 }
 
 #define readex_expect_async(a,b,c,d,e) _readex_expect_async(__LINE__,a,b,c,d,e)
@@ -5790,7 +5790,7 @@ static void test_security_flags(void)
     res = InternetQueryOptionW(req, INTERNET_OPTION_SECURITY_CERTIFICATE_STRUCT, NULL, &size);
     ok(res || GetLastError() == ERROR_INSUFFICIENT_BUFFER, "InternetQueryOption failed: %d\n", GetLastError());
     ok(size == sizeof(INTERNET_CERTIFICATE_INFOA), "size = %u\n", size);
-    cert = HeapAlloc(GetProcessHeap(), 0, size);
+    cert = heap_alloc(size);
     cert->lpszSubjectInfo = NULL;
     cert->lpszIssuerInfo = NULL;
     cert->lpszSignatureAlgName = (char *)0xdeadbeef;
@@ -5808,7 +5808,7 @@ static void test_security_flags(void)
         ok(!cert->lpszProtocolName, "unexpected protocol name\n");
         ok(cert->dwKeySize != 0xdeadbeef, "unexpected key size\n");
     }
-    HeapFree(GetProcessHeap(), 0, cert);
+    heap_free(cert);
 
     CHECK_NOTIFIED2(INTERNET_STATUS_CONNECTING_TO_SERVER, 2);
     CHECK_NOTIFIED2(INTERNET_STATUS_CONNECTED_TO_SERVER, 2);
@@ -6035,7 +6035,7 @@ static void test_secure_connection(void)
                                NULL, &size);
     ok(ret || GetLastError() == ERROR_INSUFFICIENT_BUFFER, "InternetQueryOption failed: %d\n", GetLastError());
     ok(size == sizeof(INTERNET_CERTIFICATE_INFOW), "size = %d\n", size);
-    certificate_structW = HeapAlloc(GetProcessHeap(), 0, size);
+    certificate_structW = heap_alloc(size);
     ret = InternetQueryOptionA(req, INTERNET_OPTION_SECURITY_CERTIFICATE_STRUCT,
                               certificate_structW, &size);
     certificate_structA = (INTERNET_CERTIFICATE_INFOA *)certificate_structW;
@@ -6057,7 +6057,7 @@ static void test_secure_connection(void)
         ok(certificate_structA->dwKeySize, "expected a non-zero key size\n");
         release_cert_info(certificate_structA);
     }
-    HeapFree(GetProcessHeap(), 0, certificate_structW);
+    heap_free(certificate_structW);
 
     InternetCloseHandle(req);
     InternetCloseHandle(con);
@@ -6088,7 +6088,7 @@ static void test_secure_connection(void)
                                NULL, &size);
     ok(ret || GetLastError() == ERROR_INSUFFICIENT_BUFFER, "InternetQueryOption failed: %d\n", GetLastError());
     ok(size == sizeof(INTERNET_CERTIFICATE_INFOA), "size = %d\n", size);
-    certificate_structA = HeapAlloc(GetProcessHeap(), 0, size);
+    certificate_structA = heap_alloc(size);
     ret = InternetQueryOptionW(req, INTERNET_OPTION_SECURITY_CERTIFICATE_STRUCT,
                                certificate_structA, &size);
     ok(ret, "InternetQueryOption failed: %d\n", GetLastError());
@@ -6109,7 +6109,7 @@ static void test_secure_connection(void)
         ok(certificate_structA->dwKeySize, "expected a non-zero key size\n");
         release_cert_info(certificate_structA);
     }
-    HeapFree(GetProcessHeap(), 0, certificate_structA);
+    heap_free(certificate_structA);
 
     /* Again, querying the same option through InternetQueryOptionW still
      * results in ASCII strings being returned.
@@ -6119,7 +6119,7 @@ static void test_secure_connection(void)
                                NULL, &size);
     ok(ret || GetLastError() == ERROR_INSUFFICIENT_BUFFER, "InternetQueryOption failed: %d\n", GetLastError());
     ok(size == sizeof(INTERNET_CERTIFICATE_INFOW), "size = %d\n", size);
-    certificate_structW = HeapAlloc(GetProcessHeap(), 0, size);
+    certificate_structW = heap_alloc(size);
     ret = InternetQueryOptionW(req, INTERNET_OPTION_SECURITY_CERTIFICATE_STRUCT,
                                certificate_structW, &size);
     certificate_structA = (INTERNET_CERTIFICATE_INFOA *)certificate_structW;
@@ -6141,7 +6141,7 @@ static void test_secure_connection(void)
         ok(certificate_structA->dwKeySize, "expected a non-zero key size\n");
         release_cert_info(certificate_structA);
     }
-    HeapFree(GetProcessHeap(), 0, certificate_structW);
+    heap_free(certificate_structW);
 
 done:
     InternetCloseHandle(req);

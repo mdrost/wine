@@ -36,6 +36,7 @@
 
 #include "wine/debug.h"
 #include "wine/exception.h"
+#include "wine/heap.h"
 
 #include "cpsf.h"
 
@@ -85,7 +86,7 @@ HRESULT CStdStubBuffer_Construct(REFIID riid,
   if(FAILED(r))
     return r;
 
-  This = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(CStdStubBuffer));
+  This = heap_alloc_zero(sizeof(CStdStubBuffer));
   if (!This) {
     IUnknown_Release(pvServer);
     return E_OUTOFMEMORY;
@@ -270,8 +271,7 @@ static IUnknownVtbl *get_delegating_vtbl(DWORD num_methods)
 
     if(!current_vtbl || num_methods > current_vtbl->size)
     {
-        ref_counted_vtbl *table = HeapAlloc(GetProcessHeap(), 0,
-                                            FIELD_OFFSET(ref_counted_vtbl, vtbl) + num_methods * sizeof(void*));
+        ref_counted_vtbl *table = heap_alloc(FIELD_OFFSET(ref_counted_vtbl, vtbl) + num_methods * sizeof(void*));
         if (!table)
         {
             LeaveCriticalSection(&delegating_vtbl_section);
@@ -285,7 +285,7 @@ static IUnknownVtbl *get_delegating_vtbl(DWORD num_methods)
         if (current_vtbl && current_vtbl->ref == 0)
         {
             TRACE("freeing old table\n");
-            HeapFree(GetProcessHeap(), 0, current_vtbl);
+            heap_free(current_vtbl);
         }
         current_vtbl = table;
     }
@@ -306,7 +306,7 @@ static void release_delegating_vtbl(IUnknownVtbl *vtbl)
     if(table->ref == 0 && table != current_vtbl)
     {
         TRACE("... and we're not current so free'ing\n");
-        HeapFree(GetProcessHeap(), 0, table);
+        heap_free(table);
     }
     LeaveCriticalSection(&delegating_vtbl_section);
 }
@@ -336,7 +336,7 @@ HRESULT CStdStubBuffer_Delegating_Construct(REFIID riid,
     r = IUnknown_QueryInterface(pUnkServer, riid, (void**)&pvServer);
     if(FAILED(r)) return r;
 
-    This = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*This));
+    This = heap_alloc_zero(sizeof(*This));
     if (!This)
     {
         IUnknown_Release(pvServer);
@@ -348,7 +348,7 @@ HRESULT CStdStubBuffer_Delegating_Construct(REFIID riid,
     if(FAILED(r))
     {
         release_delegating_vtbl(This->base_obj);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
         IUnknown_Release(pvServer);
         return r;
     }
@@ -404,7 +404,7 @@ ULONG WINAPI NdrCStdStubBuffer_Release(LPRPCSTUBBUFFER iface,
     IRpcStubBuffer_Disconnect(iface);
 
     IPSFactoryBuffer_Release(pPSF);
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
   }
   return refs;
 }
@@ -428,7 +428,7 @@ ULONG WINAPI NdrCStdStubBuffer2_Release(LPRPCSTUBBUFFER iface,
         release_delegating_vtbl(This->base_obj);
 
         IPSFactoryBuffer_Release(pPSF);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return refs;
@@ -472,12 +472,15 @@ HRESULT WINAPI CStdStubBuffer_Invoke(LPRPCSTUBBUFFER iface,
 
   TRACE("(%p)->Invoke(%p,%p)\n",This,pMsg,pChannel);
 
+#if 0
   __TRY
   {
+#endif
     if (STUB_HEADER(This).pDispatchTable)
       STUB_HEADER(This).pDispatchTable[pMsg->iMethod](iface, pChannel, (PRPC_MESSAGE)pMsg, &dwPhase);
     else /* pure interpreted */
       NdrStubCall2(iface, pChannel, (PRPC_MESSAGE)pMsg, &dwPhase);
+#if 0
   }
   __EXCEPT(stub_filter)
   {
@@ -489,6 +492,7 @@ HRESULT WINAPI CStdStubBuffer_Invoke(LPRPCSTUBBUFFER iface,
       hr = HRESULT_FROM_WIN32(dwExceptionCode);
   }
   __ENDTRY
+#endif
 
   return hr;
 }

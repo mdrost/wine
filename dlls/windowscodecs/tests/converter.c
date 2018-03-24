@@ -193,7 +193,7 @@ static const IWICBitmapSourceVtbl BitmapTestSrc_Vtbl = {
 
 static void CreateTestBitmap(const bitmap_data *data, BitmapTestSrc **This)
 {
-    *This = HeapAlloc(GetProcessHeap(), 0, sizeof(**This));
+    *This = heap_alloc(sizeof(**This));
 
     if (*This)
     {
@@ -207,7 +207,7 @@ static void DeleteTestBitmap(BitmapTestSrc *This)
 {
     ok(This->IWICBitmapSource_iface.lpVtbl == &BitmapTestSrc_Vtbl, "test bitmap %p deleted with incorrect vtable\n", This);
     ok(This->ref == 1, "test bitmap %p deleted with %i references instead of 1\n", This, This->ref);
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
 }
 
 static BOOL compare_bits(const struct bitmap_data *expect, UINT buffersize, const BYTE *converted_bits)
@@ -293,7 +293,7 @@ static void compare_bitmap_data(const struct bitmap_data *expect, IWICBitmapSour
     stride = (expect->bpp * expect->width + 7) / 8;
     buffersize = stride * expect->height;
 
-    converted_bits = HeapAlloc(GetProcessHeap(), 0, buffersize);
+    converted_bits = heap_alloc(buffersize);
     hr = IWICBitmapSource_CopyPixels(source, &prc, stride, buffersize, converted_bits);
     ok(SUCCEEDED(hr), "CopyPixels(%s) failed, hr=%x\n", name, hr);
     ok(compare_bits(expect, buffersize, converted_bits), "unexpected pixel data (%s)\n", name);
@@ -304,7 +304,7 @@ static void compare_bitmap_data(const struct bitmap_data *expect, IWICBitmapSour
     ok(SUCCEEDED(hr), "CopyPixels(%s,rc=NULL) failed, hr=%x\n", name, hr);
     ok(compare_bits(expect, buffersize, converted_bits), "unexpected pixel data (%s)\n", name);
 
-    HeapFree(GetProcessHeap(), 0, converted_bits);
+    heap_free(converted_bits);
 }
 
 /* some encoders (like BMP) require data to be 4-bytes aligned */

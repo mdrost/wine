@@ -45,6 +45,7 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(reg);
 
+#if 0
 #define HKEY_SPECIAL_ROOT_FIRST   HKEY_CLASSES_ROOT
 #define HKEY_SPECIAL_ROOT_LAST    HKEY_DYN_DATA
 
@@ -513,7 +514,7 @@ LSTATUS WINAPI RegCreateKeyTransactedA( HKEY hkey, LPCSTR name, DWORD reserved, 
 
 /******************************************************************************
  * RegOpenKeyExW   [ADVAPI32.@]
- * 
+ *
  * See RegOpenKeyExA.
  */
 LSTATUS WINAPI RegOpenKeyExW( HKEY hkey, LPCWSTR name, DWORD options, REGSAM access, PHKEY retkey )
@@ -627,7 +628,7 @@ LSTATUS WINAPI RegOpenKeyW( HKEY hkey, LPCWSTR name, PHKEY retkey )
 
 /******************************************************************************
  * RegOpenKeyA   [ADVAPI32.@]
- *           
+ *
  * Open a registry key.
  *
  * PARAMS
@@ -671,7 +672,7 @@ static WCHAR *get_thread_token_user_sid(HANDLE token)
 /******************************************************************************
  * RegOpenCurrentUser   [ADVAPI32.@]
  *
- * Get a handle to the HKEY_CURRENT_USER key for the user 
+ * Get a handle to the HKEY_CURRENT_USER key for the user
  * the current thread is impersonating.
  *
  * PARAMS
@@ -1572,9 +1573,9 @@ LSTATUS WINAPI RegQueryValueExW( HKEY hkey, LPCWSTR name, LPDWORD reserved, LPDW
  *  Failure: ERROR_INVALID_HANDLE, if hkey is invalid.
  *           ERROR_INVALID_PARAMETER, if any other parameter is invalid.
  *           ERROR_MORE_DATA, if on input *count is too small to hold the contents.
- *                     
+ *
  * NOTES
- *   MSDN states that if data is too small it is partially filled. In reality 
+ *   MSDN states that if data is too small it is partially filled. In reality
  *   it remains untouched.
  */
 LSTATUS WINAPI DECLSPEC_HOTPATCH RegQueryValueExA( HKEY hkey, LPCSTR name, LPDWORD reserved,
@@ -1804,7 +1805,7 @@ static VOID ADVAPI_ApplyRestrictions( DWORD dwFlags, DWORD dwType,
  * NOTES
  *  - Unless RRF_NOEXPAND is specified, REG_EXPAND_SZ values are automatically
  *    expanded and pdwType is set to REG_SZ instead.
- *  - Restrictions are applied after expanding, using RRF_RT_REG_EXPAND_SZ 
+ *  - Restrictions are applied after expanding, using RRF_RT_REG_EXPAND_SZ
  *    without RRF_NOEXPAND is thus not allowed.
  *    An exception is the case where RRF_RT_ANY is specified, because then
  *    RRF_NOEXPAND is allowed.
@@ -1817,7 +1818,7 @@ LSTATUS WINAPI RegGetValueW( HKEY hKey, LPCWSTR pszSubKey, LPCWSTR pszValue,
     PVOID pvBuf = NULL;
     LONG ret;
 
-    TRACE("(%p,%s,%s,%d,%p,%p,%p=%d)\n", 
+    TRACE("(%p,%s,%s,%d,%p,%p,%p=%d)\n",
           hKey, debugstr_w(pszSubKey), debugstr_w(pszValue), dwFlags, pdwType,
           pvData, pcbData, cbData);
 
@@ -1834,7 +1835,7 @@ LSTATUS WINAPI RegGetValueW( HKEY hKey, LPCWSTR pszSubKey, LPCWSTR pszValue,
     }
 
     ret = RegQueryValueExW(hKey, pszValue, NULL, &dwType, pvData, &cbData);
-    
+
     /* If we are going to expand we need to read in the whole the value even
      * if the passed buffer was too small as the expanded string might be
      * smaller than the unexpanded one and could fit into cbData bytes. */
@@ -1843,7 +1844,7 @@ LSTATUS WINAPI RegGetValueW( HKEY hKey, LPCWSTR pszSubKey, LPCWSTR pszValue,
     {
         do {
             heap_free(pvBuf);
-            
+
             pvBuf = heap_alloc(cbData);
             if (!pvBuf)
             {
@@ -1852,11 +1853,11 @@ LSTATUS WINAPI RegGetValueW( HKEY hKey, LPCWSTR pszSubKey, LPCWSTR pszValue,
             }
 
             if (ret == ERROR_MORE_DATA || !pvData)
-                ret = RegQueryValueExW(hKey, pszValue, NULL, 
+                ret = RegQueryValueExW(hKey, pszValue, NULL,
                                        &dwType, pvBuf, &cbData);
             else
             {
-                /* Even if cbData was large enough we have to copy the 
+                /* Even if cbData was large enough we have to copy the
                  * string since ExpandEnvironmentStrings can't handle
                  * overlapping buffers. */
                 CopyMemory(pvBuf, pvData, cbData);
@@ -1906,14 +1907,14 @@ LSTATUS WINAPI RegGetValueW( HKEY hKey, LPCWSTR pszSubKey, LPCWSTR pszValue,
  * See RegGetValueW.
  */
 LSTATUS WINAPI RegGetValueA( HKEY hKey, LPCSTR pszSubKey, LPCSTR pszValue,
-                          DWORD dwFlags, LPDWORD pdwType, PVOID pvData, 
+                          DWORD dwFlags, LPDWORD pdwType, PVOID pvData,
                           LPDWORD pcbData )
 {
     DWORD dwType, cbData = pcbData ? *pcbData : 0;
     PVOID pvBuf = NULL;
     LONG ret;
 
-    TRACE("(%p,%s,%s,%d,%p,%p,%p=%d)\n", 
+    TRACE("(%p,%s,%s,%d,%p,%p,%p=%d)\n",
           hKey, debugstr_a(pszSubKey), debugstr_a(pszValue), dwFlags,
           pdwType, pvData, pcbData, cbData);
 
@@ -1948,11 +1949,11 @@ LSTATUS WINAPI RegGetValueA( HKEY hKey, LPCSTR pszSubKey, LPCSTR pszValue,
             }
 
             if (ret == ERROR_MORE_DATA || !pvData)
-                ret = RegQueryValueExA(hKey, pszValue, NULL, 
+                ret = RegQueryValueExA(hKey, pszValue, NULL,
                                        &dwType, pvBuf, &cbData);
             else
             {
-                /* Even if cbData was large enough we have to copy the 
+                /* Even if cbData was large enough we have to copy the
                  * string since ExpandEnvironmentStrings can't handle
                  * overlapping buffers. */
                 CopyMemory(pvBuf, pvData, cbData);
@@ -2664,7 +2665,7 @@ LSTATUS WINAPI RegGetKeySecurity( HKEY hkey, SECURITY_INFORMATION SecurityInform
 
 /******************************************************************************
  * RegFlushKey [ADVAPI32.@]
- * 
+ *
  * Immediately write a registry key to registry.
  *
  * PARAMS
@@ -2802,7 +2803,7 @@ LSTATUS WINAPI RegNotifyChangeKeyValue( HKEY hkey, BOOL fWatchSubTree,
  * RETURNS
  *  Success: ERROR_SUCCESS
  *  Failure: nonzero error code from Winerror.h
- * 
+ *
  * NOTES
  *  On Windows 2000 and upwards the HKEY_CLASSES_ROOT key is a view of the
  *  "HKEY_LOCAL_MACHINE\Software\Classes" and the
@@ -2866,14 +2867,14 @@ static int load_string(HINSTANCE hModule, UINT resId, LPWSTR pwszBuffer, INT cMa
 /******************************************************************************
  * RegLoadMUIStringW [ADVAPI32.@]
  *
- * Load the localized version of a string resource from some PE, respective 
- * id and path of which are given in the registry value in the format 
+ * Load the localized version of a string resource from some PE, respective
+ * id and path of which are given in the registry value in the format
  * @[path]\dllname,-resourceId
  *
  * PARAMS
  *  hKey       [I] Key, of which to load the string value from.
  *  pszValue   [I] The value to be loaded (Has to be of REG_EXPAND_SZ or REG_SZ type).
- *  pszBuffer  [O] Buffer to store the localized string in. 
+ *  pszBuffer  [O] Buffer to store the localized string in.
  *  cbBuffer   [I] Size of the destination buffer in bytes.
  *  pcbData    [O] Number of bytes written to pszBuffer (optional, may be NULL).
  *  dwFlags    [I] None supported yet.
@@ -2885,7 +2886,7 @@ static int load_string(HINSTANCE hModule, UINT resId, LPWSTR pwszBuffer, INT cMa
  *
  * NOTES
  *  This is an API of Windows Vista, which wasn't available at the time this code
- *  was written. We have to check for the correct behaviour once it's available. 
+ *  was written. We have to check for the correct behaviour once it's available.
  */
 LSTATUS WINAPI RegLoadMUIStringW(HKEY hKey, LPCWSTR pwszValue, LPWSTR pwszBuffer, DWORD cbBuffer,
     LPDWORD pcbData, DWORD dwFlags, LPCWSTR pwszBaseDir)
@@ -2893,7 +2894,7 @@ LSTATUS WINAPI RegLoadMUIStringW(HKEY hKey, LPCWSTR pwszValue, LPWSTR pwszBuffer
     DWORD dwValueType, cbData;
     LPWSTR pwszTempBuffer = NULL, pwszExpandedBuffer = NULL;
     LONG result;
-        
+
     TRACE("(hKey = %p, pwszValue = %s, pwszBuffer = %p, cbBuffer = %d, pcbData = %p, "
           "dwFlags = %d, pwszBaseDir = %s)\n", hKey, debugstr_w(pwszValue), pwszBuffer,
           cbBuffer, pcbData, dwFlags, debugstr_w(pwszBaseDir));
@@ -2952,7 +2953,7 @@ LSTATUS WINAPI RegLoadMUIStringW(HKEY hKey, LPCWSTR pwszValue, LPWSTR pwszBuffer
             result = ERROR_BADKEY;
             goto cleanup;
         }
- 
+
         uiStringId = atoiW(pComma+2);
         *pComma = '\0';
 
@@ -2961,7 +2962,7 @@ LSTATUS WINAPI RegLoadMUIStringW(HKEY hKey, LPCWSTR pwszValue, LPWSTR pwszBuffer
             result = ERROR_BADKEY;
         FreeLibrary(hModule);
     }
- 
+
 cleanup:
     heap_free(pwszTempBuffer);
     heap_free(pwszExpandedBuffer);
@@ -2990,9 +2991,9 @@ LSTATUS WINAPI RegLoadMUIStringA(HKEY hKey, LPCSTR pszValue, LPSTR pszBuffer, DW
         goto cleanup;
     }
 
-    result = RegLoadMUIStringW(hKey, valueW.Buffer, pwszBuffer, cbData, NULL, dwFlags, 
+    result = RegLoadMUIStringW(hKey, valueW.Buffer, pwszBuffer, cbData, NULL, dwFlags,
                                baseDirW.Buffer);
- 
+
     if (result == ERROR_SUCCESS) {
         cbData = WideCharToMultiByte(CP_ACP, 0, pwszBuffer, -1, pszBuffer, cbBuffer, NULL, NULL);
         if (pcbData)
@@ -3003,7 +3004,7 @@ cleanup:
     heap_free(pwszBuffer);
     RtlFreeUnicodeString(&baseDirW);
     RtlFreeUnicodeString(&valueW);
- 
+
     return result;
 }
 
@@ -3018,7 +3019,7 @@ cleanup:
  * RETURNS
  *  Success: ERROR_SUCCESS
  *  Failure: nonzero error code from Winerror.h
- * 
+ *
  * NOTES
  *  This is useful for services that use impersonation.
  */
@@ -3229,3 +3230,4 @@ LONG WINAPI RegDisableReflectionKey(HKEY base)
     FIXME("%p: stub\n", base);
     return ERROR_SUCCESS;
 }
+#endif

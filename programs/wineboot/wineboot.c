@@ -99,14 +99,14 @@ static char *get_wine_inf_path(void)
 
     if ((data_dir = wine_get_data_dir()))
     {
-        if (!(name = HeapAlloc( GetProcessHeap(), 0, strlen(data_dir) + sizeof("/wine.inf") )))
+        if (!(name = heap_alloc( strlen(data_dir) + sizeof("/wine.inf") )))
             return NULL;
         strcpy( name, data_dir );
         strcat( name, "/wine.inf" );
     }
     else if ((build_dir = wine_get_build_dir()))
     {
-        if (!(name = HeapAlloc( GetProcessHeap(), 0, strlen(build_dir) + sizeof("/loader/wine.inf") )))
+        if (!(name = heap_alloc( strlen(build_dir) + sizeof("/loader/wine.inf") )))
             return NULL;
         strcpy( name, build_dir );
         strcat( name, "/loader/wine.inf" );
@@ -120,7 +120,7 @@ static BOOL update_timestamp( const char *config_dir, unsigned long timestamp )
     BOOL ret = FALSE;
     int fd, count;
     char buffer[100];
-    char *file = HeapAlloc( GetProcessHeap(), 0, strlen(config_dir) + sizeof("/.update-timestamp") );
+    char *file = heap_alloc( strlen(config_dir) + sizeof("/.update-timestamp") );
 
     if (!file) return FALSE;
     strcpy( file, config_dir );
@@ -153,7 +153,7 @@ static BOOL update_timestamp( const char *config_dir, unsigned long timestamp )
 
 done:
     if (fd != -1) close( fd );
-    HeapFree( GetProcessHeap(), 0, file );
+    heap_free( file );
     return ret;
 }
 
@@ -196,7 +196,7 @@ static void create_hardware_registry_keys(void)
 
     NtQuerySystemInformation( SystemCpuInformation, &sci, sizeof(sci), NULL );
 
-    power_info = HeapAlloc( GetProcessHeap(), 0, sizeof_power_info );
+    power_info = heap_alloc( sizeof_power_info );
     if (power_info == NULL)
         return;
     if (NtPowerInformation( ProcessorInformation, NULL, 0, power_info, sizeof_power_info ))
@@ -218,7 +218,7 @@ static void create_hardware_registry_keys(void)
     if (RegCreateKeyExW( HKEY_LOCAL_MACHINE, SystemW, 0, NULL, REG_OPTION_VOLATILE,
                          KEY_ALL_ACCESS, NULL, &system_key, NULL ))
     {
-        HeapFree( GetProcessHeap(), 0, power_info );
+        heap_free( power_info );
         return;
     }
 
@@ -271,7 +271,7 @@ static void create_hardware_registry_keys(void)
     RegCloseKey( fpu_key );
     RegCloseKey( cpu_key );
     RegCloseKey( system_key );
-    HeapFree( GetProcessHeap(), 0, power_info );
+    heap_free( power_info );
 }
 
 
@@ -440,9 +440,9 @@ static BOOL wininit(void)
     {
         if (!(res = GetPrivateProfileSectionW( renameW, buffer, size, wininitW ))) return TRUE;
         if (res < size - 2) break;
-        if (buffer != initial_buffer) HeapFree( GetProcessHeap(), 0, buffer );
+        if (buffer != initial_buffer) heap_free( buffer );
         size *= 2;
-        if (!(buffer = HeapAlloc( GetProcessHeap(), 0, size * sizeof(WCHAR) ))) return FALSE;
+        if (!(buffer = heap_alloc( size * sizeof(WCHAR) ))) return FALSE;
     }
 
     for (str = buffer; *str; str += strlenW(str) + 1)
@@ -471,7 +471,7 @@ static BOOL wininit(void)
         str = value;
     }
 
-    if (buffer != initial_buffer) HeapFree( GetProcessHeap(), 0, buffer );
+    if (buffer != initial_buffer) heap_free( buffer );
 
     if( !MoveFileExW( wininitW, wininitbakW, MOVEFILE_REPLACE_EXISTING) )
     {
@@ -595,7 +595,7 @@ static BOOL pendingRename(void)
         res=TRUE;
     
 end:
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 
     if( hSession!=NULL )
         RegCloseKey( hSession );
@@ -702,7 +702,7 @@ static BOOL ProcessRunKeys( HKEY hkRoot, LPCWSTR szKeyName, BOOL bDelete,
         goto end;
     }
     
-    if( (szCmdLine=HeapAlloc(GetProcessHeap(),0,nMaxCmdLine))==NULL )
+    if( (szCmdLine=heap_alloc(nMaxCmdLine))==NULL )
     {
         WINE_ERR("Couldn't allocate memory for the commands to be executed\n");
 
@@ -710,7 +710,7 @@ static BOOL ProcessRunKeys( HKEY hkRoot, LPCWSTR szKeyName, BOOL bDelete,
         goto end;
     }
 
-    if( (szValue=HeapAlloc(GetProcessHeap(),0,(++nMaxValue)*sizeof(*szValue)))==NULL )
+    if( (szValue=heap_alloc((++nMaxValue)*sizeof(*szValue)))==NULL )
     {
         WINE_ERR("Couldn't allocate memory for the value names\n");
 
@@ -756,8 +756,8 @@ static BOOL ProcessRunKeys( HKEY hkRoot, LPCWSTR szKeyName, BOOL bDelete,
     res=ERROR_SUCCESS;
 
 end:
-    HeapFree( GetProcessHeap(), 0, szValue );
-    HeapFree( GetProcessHeap(), 0, szCmdLine );
+    heap_free( szValue );
+    heap_free( szCmdLine );
 
     if( hkRun!=NULL )
         RegCloseKey( hkRun );
@@ -799,7 +799,7 @@ static int ProcessWindowsFileProtection(void)
         if (!RegQueryValueExW( hkey, cachedirW, 0, NULL, NULL, &sz))
         {
             sz += sizeof(WCHAR);
-            dllcache = HeapAlloc(GetProcessHeap(),0,sz + sizeof(wildcardW));
+            dllcache = heap_alloc(sz + sizeof(wildcardW));
             RegQueryValueExW( hkey, cachedirW, 0, NULL, (LPBYTE)dllcache, &sz);
             strcatW( dllcache, wildcardW );
         }
@@ -809,7 +809,7 @@ static int ProcessWindowsFileProtection(void)
     if (!dllcache)
     {
         DWORD sz = GetSystemDirectoryW( NULL, 0 );
-        dllcache = HeapAlloc( GetProcessHeap(), 0, sz * sizeof(WCHAR) + sizeof(dllcacheW));
+        dllcache = heap_alloc( sz * sizeof(WCHAR) + sizeof(dllcacheW));
         GetSystemDirectoryW( dllcache, sz );
         strcatW( dllcache, dllcacheW );
     }
@@ -857,7 +857,7 @@ static int ProcessWindowsFileProtection(void)
         find_rc = FindNextFileW(find_handle,&finddata);
     }
     FindClose(find_handle);
-    HeapFree(GetProcessHeap(),0,dllcache);
+    heap_free(dllcache);
     return 1;
 }
 
@@ -912,10 +912,10 @@ static INT_PTR CALLBACK wait_dlgproc( HWND hwnd, UINT msg, WPARAM wp, LPARAM lp 
             HICON icon = LoadImageW( 0, (LPCWSTR)IDI_WINLOGO, IMAGE_ICON, 48, 48, LR_SHARED );
             SendDlgItemMessageW( hwnd, IDC_WAITICON, STM_SETICON, (WPARAM)icon, 0 );
             SendDlgItemMessageW( hwnd, IDC_WAITTEXT, WM_GETTEXT, 1024, (LPARAM)text );
-            buffer = HeapAlloc( GetProcessHeap(), 0, (strlenW(text) + strlenW(name) + 1) * sizeof(WCHAR) );
+            buffer = heap_alloc( (strlenW(text) + strlenW(name) + 1) * sizeof(WCHAR) );
             sprintfW( buffer, text, name );
             SendDlgItemMessageW( hwnd, IDC_WAITTEXT, WM_SETTEXT, 0, (LPARAM)buffer );
-            HeapFree( GetProcessHeap(), 0, buffer );
+            heap_free( buffer );
         }
         break;
     }
@@ -930,12 +930,12 @@ static HWND show_wait_window(void)
     DWORD len;
 
     len = MultiByteToWideChar( CP_UNIXCP, 0, config_dir, -1, NULL, 0 );
-    name = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+    name = heap_alloc( len * sizeof(WCHAR) );
     MultiByteToWideChar( CP_UNIXCP, 0, config_dir, -1, name, len );
     hwnd = CreateDialogParamW( GetModuleHandleW(0), MAKEINTRESOURCEW(IDD_WAITDLG), 0,
                                wait_dlgproc, (LPARAM)name );
     ShowWindow( hwnd, SW_SHOWNORMAL );
-    HeapFree( GetProcessHeap(), 0, name );
+    heap_free( name );
     return hwnd;
 }
 
@@ -968,7 +968,7 @@ static HANDLE start_rundll32( const char *inf_path, BOOL wow64 )
     cmd_len = strlenW(app) * sizeof(WCHAR) + sizeof(setupapi) + sizeof(definstall) + sizeof(inf);
     inf_len = MultiByteToWideChar( CP_UNIXCP, 0, inf_path, -1, NULL, 0 );
 
-    if (!(buffer = HeapAlloc( GetProcessHeap(), 0, cmd_len + inf_len * sizeof(WCHAR) ))) return 0;
+    if (!(buffer = heap_alloc( cmd_len + inf_len * sizeof(WCHAR) ))) return 0;
 
     strcpyW( buffer, app );
     strcatW( buffer, setupapi );
@@ -981,7 +981,7 @@ static HANDLE start_rundll32( const char *inf_path, BOOL wow64 )
     else
         pi.hProcess = 0;
 
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     return pi.hProcess;
 }
 
@@ -1032,7 +1032,7 @@ static void update_wineprefix( BOOL force )
     }
 
 done:
-    HeapFree( GetProcessHeap(), 0, inf_path );
+    heap_free( inf_path );
 }
 
 /* Process items in the StartUp group of the user's Programs under the Start Menu. Some installers put

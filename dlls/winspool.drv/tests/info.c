@@ -889,7 +889,7 @@ static void test_EnumForms(LPSTR pName)
             "(%d) returned %d with %d (expected '0' with "
             "ERROR_INSUFFICIENT_BUFFER)\n", level, res, GetLastError());
 
-        buffer = HeapAlloc(GetProcessHeap(), 0, cbBuf *2);
+        buffer = heap_alloc(cbBuf *2);
         if (buffer == NULL) continue;
 
         SetLastError(0xdeadbeef);
@@ -959,7 +959,7 @@ static void test_EnumForms(LPSTR pName)
             "(%d) returned %d with %d (expected '0' with "
             "ERROR_INVALID_HANDLE)\n", level, res, GetLastError());
 
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     } /* for(level ... */
 
     ClosePrinter(hprinter);
@@ -1012,7 +1012,7 @@ static void test_EnumMonitors(void)
             continue;
         }
 
-        buffer = HeapAlloc(GetProcessHeap(), 0, cbBuf *2);
+        buffer = heap_alloc(cbBuf *2);
         if (buffer == NULL) continue;
 
         SetLastError(MAGIC_DEAD);
@@ -1069,7 +1069,7 @@ static void test_EnumMonitors(void)
             "(%d) returned %d with %d (expected '!=0' or '0' with "
             "RPC_X_NULL_REF_POINTER)\n", level, res, GetLastError());
 
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     } /* for(level ... */
 }
 
@@ -1115,7 +1115,7 @@ static void test_EnumPorts(void)
             "(%d) returned %d with %d (expected '0' with "
             "ERROR_INSUFFICIENT_BUFFER)\n", level, res, GetLastError());
 
-        buffer = HeapAlloc(GetProcessHeap(), 0, cbBuf *2);
+        buffer = heap_alloc(cbBuf *2);
         if (buffer == NULL) continue;
 
         pcbNeeded = 0xdeadbeef;
@@ -1167,7 +1167,7 @@ static void test_EnumPorts(void)
             "RPC_X_NULL_REF_POINTER or '!=0' with NO_ERROR)\n",
             level, res, GetLastError());
 
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     }
 }
 
@@ -1229,7 +1229,7 @@ static void test_EnumPrinterDrivers(void)
             ok(double_needed == cbBuf, "level %d: EnumPrinterDriversA returned different size %d than EnumPrinterDriversW (%d)\n", level, cbBuf, double_needed);
         }
 
-        buffer = HeapAlloc(GetProcessHeap(), 0, cbBuf + 4);
+        buffer = heap_alloc(cbBuf + 4);
         if (buffer == NULL) continue;
 
         SetLastError(0xdeadbeef);
@@ -1287,7 +1287,7 @@ static void test_EnumPrinterDrivers(void)
             "(%u) got %u with %u (expected '!=0' or '0' with "
             "RPC_X_NULL_REF_POINTER)\n", level, res, GetLastError());
 
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
     } /* for(level ... */
 
     pcbNeeded = 0;
@@ -1306,7 +1306,7 @@ static void test_EnumPrinterDrivers(void)
     }
     ok(GetLastError() == ERROR_INSUFFICIENT_BUFFER, "unexpected error %u\n", GetLastError());
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, pcbNeeded);
+    buffer = heap_alloc(pcbNeeded);
     res = EnumPrinterDriversA(NULL, env_all, 1, buffer, pcbNeeded, &pcbNeeded, &pcReturned);
     ok(res, "EnumPrinterDriversA failed %u\n", GetLastError());
     if (res && pcReturned > 0)
@@ -1318,7 +1318,7 @@ static void test_EnumPrinterDrivers(void)
             di_1->pName, di_1 + pcReturned);
     }
 
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 }
 
 /* ########################### */
@@ -1347,7 +1347,7 @@ static void test_EnumPrintProcessors(void)
         "got %u with %u (expected '0' with ERROR_INSUFFICIENT_BUFFER)\n",
         res, GetLastError());
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, cbBuf + 4);
+    buffer = heap_alloc(cbBuf + 4);
     if (buffer == NULL)
         return;
 
@@ -1438,7 +1438,7 @@ static void test_EnumPrintProcessors(void)
         "got %u with %u (expected '0' with RPC_X_NULL_REF_POINTER)\n",
         res, GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 
 }
 
@@ -1544,7 +1544,7 @@ static void test_GetPrinterDriverDirectory(void)
         return;
     }
 
-    buffer = HeapAlloc( GetProcessHeap(), 0, cbBuf*2);
+    buffer = heap_alloc( cbBuf*2);
     if (buffer == NULL)  return ;
 
     res = GetPrinterDriverDirectoryA(NULL, NULL, 1, buffer, cbBuf, &pcbNeeded);
@@ -1622,7 +1622,7 @@ static void test_GetPrinterDriverDirectory(void)
 
     if(!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
         cbBuf = pcbNeeded;
-        buffer = HeapReAlloc(GetProcessHeap(), 0, buffer, cbBuf*2);
+        buffer = heap_realloc(buffer, cbBuf*2);
         if (buffer == NULL)  return ;
 
         SetLastError(MAGIC_DEAD);
@@ -1641,7 +1641,7 @@ static void test_GetPrinterDriverDirectory(void)
 
     if(!res && (GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
         cbBuf = pcbNeeded;
-        buffer = HeapReAlloc(GetProcessHeap(), 0, buffer, cbBuf*2);
+        buffer = heap_realloc(buffer, cbBuf*2);
         if (buffer == NULL)  return ;
 
         buffer[0] = '\0';
@@ -1670,7 +1670,7 @@ static void test_GetPrinterDriverDirectory(void)
     res = GetPrinterDriverDirectoryA(empty, NULL, 1, buffer, cbBuf*2, &pcbNeeded);
     ok(res, "returned %d with %d (expected '!=0')\n", res, GetLastError() );
 
-    HeapFree( GetProcessHeap(), 0, buffer);
+    heap_free( buffer);
 }
 
 /* ##### */
@@ -1691,7 +1691,7 @@ static void test_GetPrintProcessorDirectory(void)
         "returned %d with %d (expected '0' with ERROR_INSUFFICIENT_BUFFER)\n",
         res, GetLastError());
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, cbBuf*2);
+    buffer = heap_alloc(cbBuf*2);
     if(buffer == NULL)  return;
 
     buffer[0] = '\0';
@@ -1810,7 +1810,7 @@ static void test_GetPrintProcessorDirectory(void)
         GetLastError() == RPC_S_INVALID_NET_ADDR,     /* Some Vista */
         "unexpected last error %d\n", GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 }
 
 /* ##### */
@@ -2366,7 +2366,7 @@ static void test_GetPrinter(void)
             ok(double_needed == needed, "level %d: GetPrinterA returned different size %d than GetPrinterW (%d)\n", level, needed, double_needed);
         }
 
-        buf = HeapAlloc(GetProcessHeap(), 0, needed);
+        buf = heap_alloc(needed);
 
         SetLastError(0xdeadbeef);
         filled = -1;
@@ -2385,7 +2385,7 @@ static void test_GetPrinter(void)
             trace("pDriverName %s\n", pi_2->pDriverName);
         }
 
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
     }
 
     SetLastError(0xdeadbeef);
@@ -2603,7 +2603,7 @@ static void test_GetPrinterDriver(void)
             ok(double_needed == needed, "GetPrinterDriverA returned different size %d than GetPrinterDriverW (%d)\n", needed, double_needed);
         }
 
-        buf = HeapAlloc(GetProcessHeap(), 0, needed);
+        buf = heap_alloc(needed);
 
         SetLastError(0xdeadbeef);
         filled = -1;
@@ -2667,7 +2667,7 @@ static void test_GetPrinterDriver(void)
                "Even on failure, GetPrinterDriver clears the buffer to zeros\n");
         }
 
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
     }
 
     SetLastError(0xdeadbeef);
@@ -2717,7 +2717,7 @@ static void test_DocumentProperties(void)
     trace("DEVMODEA required size %d\n", dm_size);
     ok(dm_size >= sizeof(DEVMODEA), "unexpected DocumentPropertiesA ret value %d\n", dm_size);
 
-    dm = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dm_size);
+    dm = heap_alloc_zero(dm_size);
 
     ret = DocumentPropertiesA(0, hprn, NULL, dm, dm, DM_OUT_BUFFER);
     ok(ret == IDOK, "DocumentPropertiesA ret value %d != expected IDOK\n", ret);
@@ -2727,7 +2727,7 @@ static void test_DocumentProperties(void)
 
     test_DEVMODEA(dm, dm_size, default_printer);
 
-    HeapFree(GetProcessHeap(), 0, dm);
+    heap_free(dm);
 
     SetLastError(0xdeadbeef);
     ret = ClosePrinter(hprn);
@@ -2841,38 +2841,38 @@ static void test_DeviceCapabilities(void)
 
     n_papers = DeviceCapabilitiesA(device, port, DC_PAPERS, NULL, NULL);
     ok(n_papers > 0, "DeviceCapabilitiesA DC_PAPERS failed\n");
-    papers = HeapAlloc(GetProcessHeap(), 0, sizeof(*papers) * n_papers);
+    papers = heap_alloc(sizeof(*papers) * n_papers);
     ret = DeviceCapabilitiesA(device, port, DC_PAPERS, (LPSTR)papers, NULL);
     ok(ret == n_papers, "expected %d, got %d\n", n_papers, ret);
 #ifdef VERBOSE
     for (ret = 0; ret < n_papers; ret++)
         trace("papers[%d] = %d\n", ret, papers[ret]);
 #endif
-    HeapFree(GetProcessHeap(), 0, papers);
+    heap_free(papers);
 
     n_paper_size = DeviceCapabilitiesA(device, port, DC_PAPERSIZE, NULL, NULL);
     ok(n_paper_size > 0, "DeviceCapabilitiesA DC_PAPERSIZE failed\n");
     ok(n_paper_size == n_papers, "n_paper_size %d != n_papers %d\n", n_paper_size, n_papers);
-    paper_size = HeapAlloc(GetProcessHeap(), 0, sizeof(*paper_size) * n_paper_size);
+    paper_size = heap_alloc(sizeof(*paper_size) * n_paper_size);
     ret = DeviceCapabilitiesA(device, port, DC_PAPERSIZE, (LPSTR)paper_size, NULL);
     ok(ret == n_paper_size, "expected %d, got %d\n", n_paper_size, ret);
 #ifdef VERBOSE
     for (ret = 0; ret < n_paper_size; ret++)
         trace("paper_size[%d] = %d x %d\n", ret, paper_size[ret].x, paper_size[ret].y);
 #endif
-    HeapFree(GetProcessHeap(), 0, paper_size);
+    heap_free(paper_size);
 
     n_paper_names = DeviceCapabilitiesA(device, port, DC_PAPERNAMES, NULL, NULL);
     ok(n_paper_names > 0, "DeviceCapabilitiesA DC_PAPERNAMES failed\n");
     ok(n_paper_names == n_papers, "n_paper_names %d != n_papers %d\n", n_paper_names, n_papers);
-    paper_name = HeapAlloc(GetProcessHeap(), 0, sizeof(*paper_name) * n_paper_names);
+    paper_name = heap_alloc(sizeof(*paper_name) * n_paper_names);
     ret = DeviceCapabilitiesA(device, port, DC_PAPERNAMES, (LPSTR)paper_name, NULL);
     ok(ret == n_paper_names, "expected %d, got %d\n", n_paper_names, ret);
 #ifdef VERBOSE
     for (ret = 0; ret < n_paper_names; ret++)
         trace("paper_name[%u] = %s\n", ret, paper_name[ret].name);
 #endif
-    HeapFree(GetProcessHeap(), 0, paper_name);
+    heap_free(paper_name);
 
     n_copies = DeviceCapabilitiesA(device, port, DC_COPIES, NULL, dm);
     ok(n_copies > 0, "DeviceCapabilitiesA DC_COPIES failed\n");
@@ -2955,11 +2955,11 @@ static void test_OpenPrinter_defaults(void)
 
     ret = GetPrinterA( printer, 2, NULL, 0, &needed );
     ok( !ret, "got %d\n", ret );
-    pi = HeapAlloc( GetProcessHeap(), 0, needed );
+    pi = heap_alloc( needed );
     ret = GetPrinterA( printer, 2, (BYTE *)pi, needed, &needed );
     ok( ret, "GetPrinterA() failed le=%d\n", GetLastError() );
     default_size = pi->pDevMode->u1.s1.dmPaperSize;
-    HeapFree( GetProcessHeap(), 0, pi );
+    heap_free( pi );
 
     needed = 0;
     SetLastError( 0xdeadbeef );
@@ -2973,13 +2973,13 @@ static void test_OpenPrinter_defaults(void)
     }
     ok( GetLastError() == ERROR_INSUFFICIENT_BUFFER, "expected ERROR_INSUFFICIENT_BUFFER, got %d\n", GetLastError() );
     ok( needed > sizeof(ADDJOB_INFO_1A), "AddJob needs %u bytes\n", needed);
-    add_job = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, needed );
+    add_job = heap_alloc_zero( needed );
     ret = AddJobA( printer, 1, (BYTE *)add_job, needed, &needed );
     ok( ret, "AddJobA() failed le=%d\n", GetLastError() );
 
     ret = GetJobA( printer, add_job->JobId, 2, NULL, 0, &needed );
     ok( !ret, "got %d\n", ret );
-    job_info = HeapAlloc( GetProcessHeap(), 0, needed );
+    job_info = heap_alloc( needed );
     ret = GetJobA( printer, add_job->JobId, 2, (BYTE *)job_info, needed, &needed );
     ok( ret, "GetJobA() failed le=%d\n", GetLastError() );
 
@@ -2989,9 +2989,9 @@ todo_wine
         ok( job_info->pDevMode->u1.s1.dmPaperSize == default_size, "got %d default %d\n",
             job_info->pDevMode->u1.s1.dmPaperSize, default_size );
 
-    HeapFree( GetProcessHeap(), 0, job_info );
+    heap_free( job_info );
     ScheduleJob( printer, add_job->JobId ); /* remove the empty job */
-    HeapFree( GetProcessHeap(), 0, add_job );
+    heap_free( add_job );
     ClosePrinter( printer );
 
     /* Printer opened with something other than the default paper size. */
@@ -3011,24 +3011,24 @@ todo_wine
     /* GetPrinter stills returns default size */
     ret = GetPrinterA( printer, 2, NULL, 0, &needed );
     ok( !ret, "got %d\n", ret );
-    pi = HeapAlloc( GetProcessHeap(), 0, needed );
+    pi = heap_alloc( needed );
     ret = GetPrinterA( printer, 2, (BYTE *)pi, needed, &needed );
     ok( ret, "GetPrinterA() failed le=%d\n", GetLastError() );
     ok( pi->pDevMode->u1.s1.dmPaperSize == default_size, "got %d default %d\n",
         pi->pDevMode->u1.s1.dmPaperSize, default_size );
 
-    HeapFree( GetProcessHeap(), 0, pi );
+    heap_free( pi );
 
     /* However the GetJobA has the new size */
     ret = AddJobA( printer, 1, NULL, 0, &needed );
     ok( !ret, "got %d\n", ret );
-    add_job = HeapAlloc( GetProcessHeap(), 0, needed );
+    add_job = heap_alloc( needed );
     ret = AddJobA( printer, 1, (BYTE *)add_job, needed, &needed );
     ok( ret, "AddJobA() failed le=%d\n", GetLastError() );
 
     ret = GetJobA( printer, add_job->JobId, 2, NULL, 0, &needed );
     ok( !ret, "got %d\n", ret );
-    job_info = HeapAlloc( GetProcessHeap(), 0, needed );
+    job_info = heap_alloc( needed );
     ret = GetJobA( printer, add_job->JobId, 2, (BYTE *)job_info, needed, &needed );
     ok( ret, "GetJobA() failed le=%d\n", GetLastError() );
 
@@ -3038,9 +3038,9 @@ todo_wine
         "got %d new size %d\n",
         job_info->pDevMode->u1.s1.dmPaperSize, my_dm.u1.s1.dmPaperSize );
 
-    HeapFree( GetProcessHeap(), 0, job_info );
+    heap_free( job_info );
     ScheduleJob( printer, add_job->JobId ); /* remove the empty job */
-    HeapFree( GetProcessHeap(), 0, add_job );
+    heap_free( add_job );
     ClosePrinter( printer );
 }
 

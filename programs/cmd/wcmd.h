@@ -131,7 +131,7 @@ void *heap_alloc(size_t);
 
 static inline BOOL heap_free(void *mem)
 {
-    return HeapFree(GetProcessHeap(), 0, mem);
+    return heap_free(mem);
 }
 
 static inline WCHAR *heap_strdupW(const WCHAR *str)

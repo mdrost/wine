@@ -51,7 +51,7 @@ static unsigned         MACRO_NumLoaded /* = 0 */;
 static char* StrDup(const char* str)
 {
     char* dst;
-    dst=HeapAlloc(GetProcessHeap(),0,strlen(str)+1);
+    dst=heap_alloc(strlen(str)+1);
     strcpy(dst, str);
     return dst;
 }
@@ -81,7 +81,7 @@ void CALLBACK MACRO_CreateButton(LPCSTR id, LPCSTR name, LPCSTR macro)
 
     size = sizeof(WINHELP_BUTTON) + strlen(id) + strlen(name) + strlen(macro) + 3;
 
-    button = HeapAlloc(GetProcessHeap(), 0, size);
+    button = heap_alloc(size);
     if (!button) return;
 
     button->next  = 0;
@@ -239,7 +239,7 @@ static void CALLBACK MACRO_ChangeButtonBinding(LPCSTR id, LPCSTR macro)
     size = sizeof(WINHELP_BUTTON) + strlen(id) +
         strlen((*b)->lpszName) + strlen(macro) + 3;
 
-    button = HeapAlloc(GetProcessHeap(), 0, size);
+    button = heap_alloc(size);
     if (!button) return;
 
     button->next  = (*b)->next;
@@ -612,7 +612,7 @@ static void CALLBACK MACRO_JumpID(LPCSTR lpszPathWindow, LPCSTR topic_id)
         LPSTR   tmp;
         size_t  sz;
 
-        tmp = HeapAlloc(GetProcessHeap(), 0, strlen(lpszPathWindow) + 1);
+        tmp = heap_alloc(strlen(lpszPathWindow) + 1);
         if (tmp)
         {
             strcpy(tmp, lpszPathWindow);
@@ -622,7 +622,7 @@ static void CALLBACK MACRO_JumpID(LPCSTR lpszPathWindow, LPCSTR topic_id)
             /* FIXME: check if it has to be done in lexer rather than here */
             for (sz = strlen(ptr + 1); sz >= 1 && ptr[sz] == ' '; sz--) ptr[sz] = '\0';
             MACRO_JumpHash(tmp, ptr + 1, HLPFILE_Hash(topic_id));
-            HeapFree(GetProcessHeap(), 0, tmp);
+            heap_free(tmp);
         }
     }
     else
@@ -779,7 +779,7 @@ static void CALLBACK MACRO_RegisterRoutine(LPCSTR dll_name, LPCSTR proc, LPCSTR 
             /* FIXME: internationalisation for error messages */
             WINE_FIXME("Cannot find dll %s\n", debugstr_a(dll_name));
         }
-        else if ((dll = HeapAlloc(GetProcessHeap(), 0, sizeof(*dll))))
+        else if ((dll = heap_alloc(sizeof(*dll))))
         {
             dll->hLib = hLib;
             dll->name = StrDup(dll_name); /* FIXME: never freed */
@@ -800,8 +800,8 @@ static void CALLBACK MACRO_RegisterRoutine(LPCSTR dll_name, LPCSTR proc, LPCSTR 
     }
 
     size = ++MACRO_NumLoaded * sizeof(struct MacroDesc);
-    if (!MACRO_Loaded) MACRO_Loaded = HeapAlloc(GetProcessHeap(), 0, size);
-    else MACRO_Loaded = HeapReAlloc(GetProcessHeap(), 0, MACRO_Loaded, size);
+    if (!MACRO_Loaded) MACRO_Loaded = heap_alloc(size);
+    else MACRO_Loaded = heap_realloc(MACRO_Loaded, size);
     MACRO_Loaded[MACRO_NumLoaded - 1].name      = StrDup(proc); /* FIXME: never freed */
     MACRO_Loaded[MACRO_NumLoaded - 1].alias     = NULL;
     MACRO_Loaded[MACRO_NumLoaded - 1].isBool    = FALSE;
@@ -841,8 +841,8 @@ static void CALLBACK MACRO_SetHelpOnFile(LPCSTR str)
 
     WINE_TRACE("(%s)\n", debugstr_a(str));
 
-    HeapFree(GetProcessHeap(), 0, page->file->help_on_file);
-    page->file->help_on_file = HeapAlloc(GetProcessHeap(), 0, strlen(str) + 1);
+    heap_free(page->file->help_on_file);
+    page->file->help_on_file = heap_alloc(strlen(str) + 1);
     if (page->file->help_on_file)
         strcpy(page->file->help_on_file, str);
 }

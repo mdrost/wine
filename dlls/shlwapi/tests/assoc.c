@@ -167,7 +167,7 @@ static void test_getstring_basic(void)
        "Unexpected result : %08x\n", hr);
     if (hr != S_FALSE)
     {
-        HeapFree(GetProcessHeap(), 0, executableName);
+        heap_free(executableName);
         skip("failed to get initial len\n");
         return;
     }
@@ -176,7 +176,7 @@ static void test_getstring_basic(void)
                                len * sizeof(WCHAR));
     if (!friendlyName)
     {
-        HeapFree(GetProcessHeap(), 0, executableName);
+        heap_free(executableName);
         skip("failed to allocate memory\n");
         return;
     }
@@ -189,8 +189,8 @@ static void test_getstring_basic(void)
     expect(len, len2);
     expect(len, slen);
 
-    HeapFree(GetProcessHeap(), 0, executableName);
-    HeapFree(GetProcessHeap(), 0, friendlyName);
+    heap_free(executableName);
+    heap_free(friendlyName);
 }
 
 static void test_getstring_no_extra(void)

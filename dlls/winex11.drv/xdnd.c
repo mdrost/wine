@@ -521,7 +521,7 @@ static void X11DRV_XDND_ResolveProperty(Display *display, Window xwin, Time tm,
             {
                 list_remove(&current->entry);
                 GlobalFree(current->contents);
-                HeapFree(GetProcessHeap(), 0, current);
+                heap_free(current);
             }
         }
     }
@@ -535,7 +535,7 @@ static void X11DRV_XDND_ResolveProperty(Display *display, Window xwin, Time tm,
  */
 static void X11DRV_XDND_InsertXDNDData( Atom property, UINT format, HANDLE contents )
 {
-    LPXDNDDATA current = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(XDNDDATA));
+    LPXDNDDATA current = heap_alloc_zero(sizeof(XDNDDATA));
 
     if (current)
     {
@@ -645,7 +645,7 @@ static void X11DRV_XDND_FreeDragDropOp(void)
     {
         list_remove(&current->entry);
         GlobalFree(current->contents);
-        HeapFree(GetProcessHeap(), 0, current);
+        heap_free(current);
     }
 
     XDNDxy.x = XDNDxy.y = 0;
@@ -838,7 +838,7 @@ static HRESULT WINAPI XDNDDATAOBJECT_EnumFormatEtc(IDataObject *dataObject,
     }
 
     count = list_count(&xdndData);
-    formats = HeapAlloc(GetProcessHeap(), 0, count * sizeof(FORMATETC));
+    formats = heap_alloc(count * sizeof(FORMATETC));
     if (formats)
     {
         XDNDDATA *current;
@@ -854,7 +854,7 @@ static HRESULT WINAPI XDNDDATAOBJECT_EnumFormatEtc(IDataObject *dataObject,
             i++;
         }
         hr = SHCreateStdEnumFmtEtc(count, formats, ppEnumFormatEtc);
-        HeapFree(GetProcessHeap(), 0, formats);
+        heap_free(formats);
         return hr;
     }
     else

@@ -191,6 +191,7 @@ static NTSTATUS FILE_CreateFile( PHANDLE handle, ACCESS_MASK access, POBJECT_ATT
 
     if (alloc_size) FIXME( "alloc_size not supported\n" );
 
+#if 0
     if (options & FILE_OPEN_BY_FILE_ID)
         io->u.Status = file_id_to_unix_file_name( attr, &unix_name );
     else
@@ -248,7 +249,7 @@ static NTSTATUS FILE_CreateFile( PHANDLE handle, ACCESS_MASK access, POBJECT_ATT
             *handle = wine_server_ptr_handle( reply->handle );
         }
         SERVER_END_REQ;
-        RtlFreeHeap( GetProcessHeap(), 0, objattr );
+        free( objattr );
         RtlFreeAnsiString( &unix_name );
     }
     else WARN("%s not found (%x)\n", debugstr_us(attr->ObjectName), io->u.Status );
@@ -281,6 +282,9 @@ static NTSTATUS FILE_CreateFile( PHANDLE handle, ACCESS_MASK access, POBJECT_ATT
     }
 
     return io->u.Status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /**************************************************************************
@@ -401,11 +405,11 @@ static struct async_fileio *alloc_fileio( DWORD size, async_callback_t callback,
     while (io)
     {
         struct async_fileio *next = io->next;
-        RtlFreeHeap( GetProcessHeap(), 0, io );
+        free( io );
         io = next;
     }
 
-    if ((io = RtlAllocateHeap( GetProcessHeap(), 0, size )))
+    if ((io = malloc( size )))
     {
         io->callback = callback;
         io->handle   = handle;
@@ -413,6 +417,7 @@ static struct async_fileio *alloc_fileio( DWORD size, async_callback_t callback,
     return io;
 }
 
+#if 0
 static async_data_t server_async( HANDLE handle, struct async_fileio *user, HANDLE event,
                                   PIO_APC_ROUTINE apc, void *apc_context, IO_STATUS_BLOCK *io )
 {
@@ -425,10 +430,12 @@ static async_data_t server_async( HANDLE handle, struct async_fileio *user, HAND
     async.apc_context = wine_server_client_ptr( apc_context );
     return async;
 }
+#endif
 
 /* callback for irp async I/O completion */
 static NTSTATUS irp_completion( void *user, IO_STATUS_BLOCK *io, NTSTATUS status )
 {
+#if 0
     struct async_irp *async = user;
     ULONG information = 0;
 
@@ -450,6 +457,9 @@ static NTSTATUS irp_completion( void *user, IO_STATUS_BLOCK *io, NTSTATUS status
         release_fileio( &async->io );
     }
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /***********************************************************************
@@ -506,6 +516,7 @@ NTSTATUS FILE_GetNtStatus(void)
  */
 static NTSTATUS FILE_AsyncReadService( void *user, IO_STATUS_BLOCK *iosb, NTSTATUS status )
 {
+#if 0
     struct async_fileio_read *fileio = user;
     int fd, needs_close, result;
 
@@ -553,6 +564,9 @@ static NTSTATUS FILE_AsyncReadService( void *user, IO_STATUS_BLOCK *iosb, NTSTAT
         release_fileio( &fileio->io );
     }
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /* do a read call through the server */
@@ -560,6 +574,7 @@ static NTSTATUS server_read_file( HANDLE handle, HANDLE event, PIO_APC_ROUTINE a
                                   IO_STATUS_BLOCK *io, void *buffer, ULONG size,
                                   LARGE_INTEGER *offset, ULONG *key )
 {
+#if 0
     struct async_irp *async;
     NTSTATUS status;
     HANDLE wait_handle;
@@ -588,7 +603,7 @@ static NTSTATUS server_read_file( HANDLE handle, HANDLE event, PIO_APC_ROUTINE a
     }
     SERVER_END_REQ;
 
-    if (status != STATUS_PENDING) RtlFreeHeap( GetProcessHeap(), 0, async );
+    if (status != STATUS_PENDING) free( async );
 
     if (wait_handle)
     {
@@ -597,6 +612,9 @@ static NTSTATUS server_read_file( HANDLE handle, HANDLE event, PIO_APC_ROUTINE a
     }
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /* do a write call through the server */
@@ -604,6 +622,7 @@ static NTSTATUS server_write_file( HANDLE handle, HANDLE event, PIO_APC_ROUTINE 
                                    IO_STATUS_BLOCK *io, const void *buffer, ULONG size,
                                    LARGE_INTEGER *offset, ULONG *key )
 {
+#if 0
     struct async_irp *async;
     NTSTATUS status;
     HANDLE wait_handle;
@@ -632,7 +651,7 @@ static NTSTATUS server_write_file( HANDLE handle, HANDLE event, PIO_APC_ROUTINE 
     }
     SERVER_END_REQ;
 
-    if (status != STATUS_PENDING) RtlFreeHeap( GetProcessHeap(), 0, async );
+    if (status != STATUS_PENDING) free( async );
 
     if (wait_handle)
     {
@@ -641,6 +660,9 @@ static NTSTATUS server_write_file( HANDLE handle, HANDLE event, PIO_APC_ROUTINE 
     }
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 struct io_timeouts
@@ -650,6 +672,7 @@ struct io_timeouts
     int end_time;   /* absolute time of end of operation */
 };
 
+#if 0
 /* retrieve the I/O timeouts to use for a given handle */
 static NTSTATUS get_io_timeouts( HANDLE handle, enum server_fd_type type, ULONG count, BOOL is_read,
                                  struct io_timeouts *timeouts )
@@ -772,6 +795,7 @@ static NTSTATUS get_io_avail_mode( HANDLE handle, enum server_fd_type type, BOOL
     }
     return status;
 }
+#endif
 
 /* register an async I/O for a file read; helper for NtReadFile */
 static NTSTATUS register_async_file_read( HANDLE handle, HANDLE event,
@@ -779,6 +803,7 @@ static NTSTATUS register_async_file_read( HANDLE handle, HANDLE event,
                                           IO_STATUS_BLOCK *iosb, void *buffer,
                                           ULONG already, ULONG length, BOOL avail_mode )
 {
+#if 0
     struct async_fileio_read *fileio;
     NTSTATUS status;
 
@@ -799,8 +824,11 @@ static NTSTATUS register_async_file_read( HANDLE handle, HANDLE event,
     }
     SERVER_END_REQ;
 
-    if (status != STATUS_PENDING) RtlFreeHeap( GetProcessHeap(), 0, fileio );
+    if (status != STATUS_PENDING) free( fileio );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -831,6 +859,7 @@ NTSTATUS WINAPI NtReadFile(HANDLE hFile, HANDLE hEvent,
                            PIO_STATUS_BLOCK io_status, void* buffer, ULONG length,
                            PLARGE_INTEGER offset, PULONG key)
 {
+#if 0
     int result, unix_handle, needs_close;
     unsigned int options;
     struct io_timeouts timeouts;
@@ -1019,6 +1048,9 @@ err:
     if (send_completion) NTDLL_AddCompletion( hFile, cvalue, status, total );
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -1030,6 +1062,7 @@ NTSTATUS WINAPI NtReadFileScatter( HANDLE file, HANDLE event, PIO_APC_ROUTINE ap
                                    PIO_STATUS_BLOCK io_status, FILE_SEGMENT_ELEMENT *segments,
                                    ULONG length, PLARGE_INTEGER offset, PULONG key )
 {
+#if 0
     int result, unix_handle, needs_close;
     unsigned int options;
     NTSTATUS status;
@@ -1102,6 +1135,9 @@ error:
     if (event) NtResetEvent( event, NULL );
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -1110,6 +1146,7 @@ error:
  */
 static NTSTATUS FILE_AsyncWriteService( void *user, IO_STATUS_BLOCK *iosb, NTSTATUS status )
 {
+#if 0
     struct async_fileio_write *fileio = user;
     int result, fd, needs_close;
     enum server_fd_type type;
@@ -1153,10 +1190,14 @@ static NTSTATUS FILE_AsyncWriteService( void *user, IO_STATUS_BLOCK *iosb, NTSTA
         release_fileio( &fileio->io );
     }
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 static NTSTATUS set_pending_write( HANDLE device )
 {
+#if 0
     NTSTATUS status;
 
     SERVER_START_REQ( set_serial_info )
@@ -1167,6 +1208,9 @@ static NTSTATUS set_pending_write( HANDLE device )
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -1197,6 +1241,7 @@ NTSTATUS WINAPI NtWriteFile(HANDLE hFile, HANDLE hEvent,
                             const void* buffer, ULONG length,
                             PLARGE_INTEGER offset, PULONG key)
 {
+#if 0
     int result, unix_handle, needs_close;
     unsigned int options;
     struct io_timeouts timeouts;
@@ -1351,7 +1396,7 @@ NTSTATUS WINAPI NtWriteFile(HANDLE hFile, HANDLE hEvent,
             }
             SERVER_END_REQ;
 
-            if (status != STATUS_PENDING) RtlFreeHeap( GetProcessHeap(), 0, fileio );
+            if (status != STATUS_PENDING) free( fileio );
             goto err;
         }
         else  /* synchronous write, wait for the fd to become ready */
@@ -1413,6 +1458,9 @@ err:
     if (send_completion) NTDLL_AddCompletion( hFile, cvalue, status, total );
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -1424,6 +1472,7 @@ NTSTATUS WINAPI NtWriteFileGather( HANDLE file, HANDLE event, PIO_APC_ROUTINE ap
                                    PIO_STATUS_BLOCK io_status, FILE_SEGMENT_ELEMENT *segments,
                                    ULONG length, PLARGE_INTEGER offset, PULONG key )
 {
+#if 0
     int result, unix_handle, needs_close;
     unsigned int options;
     NTSTATUS status;
@@ -1505,6 +1554,9 @@ NTSTATUS WINAPI NtWriteFileGather( HANDLE file, HANDLE event, PIO_APC_ROUTINE ap
     if (send_completion) NTDLL_AddCompletion( file, cvalue, status, total );
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -1515,6 +1567,7 @@ static NTSTATUS server_ioctl_file( HANDLE handle, HANDLE event,
                                    const void *in_buffer, ULONG in_size,
                                    PVOID out_buffer, ULONG out_size )
 {
+#if 0
     struct async_irp *async;
     NTSTATUS status;
     HANDLE wait_handle;
@@ -1549,7 +1602,7 @@ static NTSTATUS server_ioctl_file( HANDLE handle, HANDLE event,
         FIXME("Unsupported ioctl %x (device=%x access=%x func=%x method=%x)\n",
               code, code >> 16, (code >> 14) & 3, (code >> 2) & 0xfff, code & 3);
 
-    if (status != STATUS_PENDING) RtlFreeHeap( GetProcessHeap(), 0, async );
+    if (status != STATUS_PENDING) free( async );
 
     if (wait_handle)
     {
@@ -1558,6 +1611,9 @@ static NTSTATUS server_ioctl_file( HANDLE handle, HANDLE event,
     }
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /* Tell Valgrind to ignore any holes in structs we will be passing to the
@@ -1693,6 +1749,7 @@ NTSTATUS WINAPI NtFsControlFile(HANDLE handle, HANDLE event, PIO_APC_ROUTINE apc
         if (!status) status = DIR_unmount_device( handle );
         return status;
 
+#if 0
     case FSCTL_PIPE_DISCONNECT:
         status = server_ioctl_file( handle, event, apc, apc_context, io, code,
                                     in_buffer, in_size, out_buffer, out_size );
@@ -1702,6 +1759,7 @@ NTSTATUS WINAPI NtFsControlFile(HANDLE handle, HANDLE event, PIO_APC_ROUTINE apc
             if (fd != -1) close( fd );
         }
         return status;
+#endif
 
     case FSCTL_PIPE_IMPERSONATE:
         FIXME("FSCTL_PIPE_IMPERSONATE: impersonating self\n");
@@ -1764,6 +1822,7 @@ struct read_changes_fileio
 
 static NTSTATUS read_changes_apc( void *user, IO_STATUS_BLOCK *iosb, NTSTATUS status )
 {
+#if 0
     struct read_changes_fileio *fileio = user;
     int size = 0;
 
@@ -1835,6 +1894,9 @@ static NTSTATUS read_changes_apc( void *user, IO_STATUS_BLOCK *iosb, NTSTATUS st
         release_fileio( &fileio->io );
     }
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 #define FILE_NOTIFY_ALL        (  \
@@ -1864,6 +1926,7 @@ NTSTATUS WINAPI NtNotifyChangeDirectoryFile( HANDLE handle, HANDLE event, PIO_AP
     if (!iosb) return STATUS_ACCESS_VIOLATION;
     if (filter == 0 || (filter & ~FILE_NOTIFY_ALL)) return STATUS_INVALID_PARAMETER;
 
+#if 0
     fileio = (struct read_changes_fileio *)alloc_fileio( offsetof(struct read_changes_fileio, data[size]),
                                                          read_changes_apc, handle );
     if (!fileio) return STATUS_NO_MEMORY;
@@ -1882,8 +1945,11 @@ NTSTATUS WINAPI NtNotifyChangeDirectoryFile( HANDLE handle, HANDLE event, PIO_AP
     }
     SERVER_END_REQ;
 
-    if (status != STATUS_PENDING) RtlFreeHeap( GetProcessHeap(), 0, fileio );
+    if (status != STATUS_PENDING) free( fileio );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -2139,13 +2205,14 @@ NTSTATUS fill_file_info( const struct stat *st, ULONG attr, void *ptr,
 
 NTSTATUS server_get_unix_name( HANDLE handle, ANSI_STRING *unix_name )
 {
+#if 0
     data_size_t size = 1024;
     NTSTATUS ret;
     char *name;
 
     for (;;)
     {
-        name = RtlAllocateHeap( GetProcessHeap(), 0, size + 1 );
+        name = malloc( size + 1 );
         if (!name) return STATUS_NO_MEMORY;
         unix_name->MaximumLength = size + 1;
 
@@ -2165,14 +2232,18 @@ NTSTATUS server_get_unix_name( HANDLE handle, ANSI_STRING *unix_name )
             unix_name->Length = size;
             break;
         }
-        RtlFreeHeap( GetProcessHeap(), 0, name );
+        free( name );
         if (ret != STATUS_BUFFER_OVERFLOW) break;
     }
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 static NTSTATUS fill_name_info( const ANSI_STRING *unix_name, FILE_NAME_INFORMATION *info, LONG *name_len )
 {
+#if 0
     UNICODE_STRING nt_name;
     NTSTATUS status;
 
@@ -2196,11 +2267,15 @@ static NTSTATUS fill_name_info( const ANSI_STRING *unix_name, FILE_NAME_INFORMAT
     }
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 static NTSTATUS server_get_file_info( HANDLE handle, IO_STATUS_BLOCK *io, void *buffer,
                                       ULONG length, FILE_INFORMATION_CLASS info_class )
 {
+#if 0
     SERVER_START_REQ( get_file_info )
     {
         req->handle = wine_server_obj_handle( handle );
@@ -2211,6 +2286,9 @@ static NTSTATUS server_get_file_info( HANDLE handle, IO_STATUS_BLOCK *io, void *
     }
     SERVER_END_REQ;
     return io->u.Status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 
 }
 
@@ -2308,6 +2386,7 @@ NTSTATUS WINAPI NtQueryInformationFile( HANDLE hFile, PIO_STATUS_BLOCK io,
 
     TRACE("(%p,%p,%p,0x%08x,0x%08x)\n", hFile, io, ptr, len, class);
 
+#if 0
     io->Information = 0;
 
     if (class <= 0 || class >= FileMaximumInformation)
@@ -2436,7 +2515,7 @@ NTSTATUS WINAPI NtQueryInformationFile( HANDLE hFile, PIO_STATUS_BLOCK io,
                 char *tmpbuf;
                 ULONG size = info->MaximumMessageSize ? info->MaximumMessageSize : 0x10000;
                 if (size > 0x10000) size = 0x10000;
-                if ((tmpbuf = RtlAllocateHeap( GetProcessHeap(), 0, size )))
+                if ((tmpbuf = malloc( size )))
                 {
                     if (!server_get_unix_fd( hFile, FILE_READ_DATA, &fd, &needs_close, NULL, NULL ))
                     {
@@ -2445,7 +2524,7 @@ NTSTATUS WINAPI NtQueryInformationFile( HANDLE hFile, PIO_STATUS_BLOCK io,
                         info->NextMessageSize = (res >= 0) ? res : MAILSLOT_NO_MESSAGE;
                         if (needs_close) close( fd );
                     }
-                    RtlFreeHeap( GetProcessHeap(), 0, tmpbuf );
+                    free( tmpbuf );
                 }
             }
         }
@@ -2571,6 +2650,9 @@ NTSTATUS WINAPI NtQueryInformationFile( HANDLE hFile, PIO_STATUS_BLOCK io,
     if (needs_close) close( fd );
     if (io->u.Status == STATUS_SUCCESS && !io->Information) io->Information = info_sizes[class];
     return io->u.Status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -2597,6 +2679,7 @@ NTSTATUS WINAPI NtSetInformationFile(HANDLE handle, PIO_STATUS_BLOCK io,
 
     TRACE("(%p,%p,%p,0x%08x,0x%08x)\n", handle, io, ptr, len, class);
 
+#if 0
     io->u.Status = STATUS_SUCCESS;
     switch (class)
     {
@@ -2881,6 +2964,9 @@ NTSTATUS WINAPI NtSetInformationFile(HANDLE handle, PIO_STATUS_BLOCK io,
     }
     io->Information = 0;
     return io->u.Status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -2890,6 +2976,7 @@ NTSTATUS WINAPI NtSetInformationFile(HANDLE handle, PIO_STATUS_BLOCK io,
 NTSTATUS WINAPI NtQueryFullAttributesFile( const OBJECT_ATTRIBUTES *attr,
                                            FILE_NETWORK_OPEN_INFORMATION *info )
 {
+#if 0
     ANSI_STRING unix_name;
     NTSTATUS status;
 
@@ -2924,6 +3011,9 @@ NTSTATUS WINAPI NtQueryFullAttributesFile( const OBJECT_ATTRIBUTES *attr,
     }
     else WARN("%s not found (%x)\n", debugstr_us(attr->ObjectName), status );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3158,6 +3248,7 @@ NTSTATUS WINAPI NtQueryVolumeInformationFile( HANDLE handle, PIO_STATUS_BLOCK io
                                               PVOID buffer, ULONG length,
                                               FS_INFORMATION_CLASS info_class )
 {
+#if 0
     int fd, needs_close;
     struct stat st;
     static int once;
@@ -3292,6 +3383,9 @@ NTSTATUS WINAPI NtQueryVolumeInformationFile( HANDLE handle, PIO_STATUS_BLOCK io
     }
     if (needs_close) close( fd );
     return io->u.Status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3363,6 +3457,7 @@ NTSTATUS WINAPI NtSetEaFile( HANDLE hFile, PIO_STATUS_BLOCK iosb, PVOID buffer, 
  */
 NTSTATUS WINAPI NtFlushBuffersFile( HANDLE hFile, IO_STATUS_BLOCK* IoStatusBlock )
 {
+#if 0
     NTSTATUS ret;
     HANDLE hEvent = NULL;
     enum server_fd_type type;
@@ -3395,6 +3490,9 @@ NTSTATUS WINAPI NtFlushBuffersFile( HANDLE hFile, IO_STATUS_BLOCK* IoStatusBlock
 
     if (needs_close) close( fd );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -3425,6 +3523,7 @@ NTSTATUS WINAPI NtLockFile( HANDLE hFile, HANDLE lock_granted_event,
         warn = FALSE;
     }
 
+#if 0
     for (;;)
     {
         SERVER_START_REQ( lock_file )
@@ -3466,6 +3565,9 @@ NTSTATUS WINAPI NtLockFile( HANDLE hFile, HANDLE lock_granted_event,
             NtDelayExecution( FALSE, &time );
         }
     }
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -3489,6 +3591,7 @@ NTSTATUS WINAPI NtUnlockFile( HANDLE hFile, PIO_STATUS_BLOCK io_status,
         return STATUS_NOT_IMPLEMENTED;
     }
 
+#if 0
     SERVER_START_REQ( unlock_file )
     {
         req->handle = wine_server_obj_handle( hFile );
@@ -3498,6 +3601,9 @@ NTSTATUS WINAPI NtUnlockFile( HANDLE hFile, PIO_STATUS_BLOCK io_status,
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -3513,6 +3619,7 @@ NTSTATUS WINAPI NtCreateNamedPipeFile( PHANDLE handle, ULONG access,
                                        ULONG inbound_quota, ULONG outbound_quota,
                                        PLARGE_INTEGER timeout)
 {
+#if 0
     NTSTATUS status;
     data_size_t len;
     struct object_attributes *objattr;
@@ -3549,8 +3656,11 @@ NTSTATUS WINAPI NtCreateNamedPipeFile( PHANDLE handle, ULONG access,
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -3582,6 +3692,7 @@ NTSTATUS WINAPI NtCancelIoFileEx( HANDLE hFile, PIO_STATUS_BLOCK iosb, PIO_STATU
 {
     TRACE("%p %p %p\n", hFile, iosb, io_status );
 
+#if 0
     SERVER_START_REQ( cancel_async )
     {
         req->handle      = wine_server_obj_handle( hFile );
@@ -3592,6 +3703,9 @@ NTSTATUS WINAPI NtCancelIoFileEx( HANDLE hFile, PIO_STATUS_BLOCK iosb, PIO_STATU
     SERVER_END_REQ;
 
     return io_status->u.Status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -3603,6 +3717,7 @@ NTSTATUS WINAPI NtCancelIoFile( HANDLE hFile, PIO_STATUS_BLOCK io_status )
 {
     TRACE("%p %p\n", hFile, io_status );
 
+#if 0
     SERVER_START_REQ( cancel_async )
     {
         req->handle      = wine_server_obj_handle( hFile );
@@ -3613,6 +3728,9 @@ NTSTATUS WINAPI NtCancelIoFile( HANDLE hFile, PIO_STATUS_BLOCK io_status )
     SERVER_END_REQ;
 
     return io_status->u.Status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -3637,6 +3755,7 @@ NTSTATUS WINAPI NtCreateMailslotFile(PHANDLE pHandle, ULONG DesiredAccess,
      ULONG CreateOptions, ULONG MailslotQuota, ULONG MaxMessageSize,
      PLARGE_INTEGER TimeOut)
 {
+#if 0
     LARGE_INTEGER timeout;
     NTSTATUS ret;
     data_size_t len;
@@ -3671,6 +3790,9 @@ NTSTATUS WINAPI NtCreateMailslotFile(PHANDLE pHandle, ULONG DesiredAccess,
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }

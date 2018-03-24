@@ -1789,14 +1789,14 @@ static BOOL alloc_brush_mask_bits( dib_brush *brush )
     assert(brush->masks.xor == NULL);
     assert(brush->dib.stride > 0);
 
-    if (!(brush->masks.xor = HeapAlloc(GetProcessHeap(), 0, 2 * size))) return FALSE;
+    if (!(brush->masks.xor = heap_alloc(2 * size))) return FALSE;
     brush->masks.and = (char *)brush->masks.xor + size;
     return TRUE;
 }
 
 static void free_brush_mask_bits( dib_brush *brush )
 {
-    if (brush->masks.xor != brush->dib.bits.ptr) HeapFree(GetProcessHeap(), 0, brush->masks.xor);
+    if (brush->masks.xor != brush->dib.bits.ptr) heap_free(brush->masks.xor);
     brush->masks.and = brush->masks.xor = NULL;
 }
 
@@ -1990,7 +1990,7 @@ static BOOL select_pattern_brush( dibdrv_physdev *pdev, dib_brush *brush, BOOL *
     }
     else
     {
-        brush->dib.bits.ptr     = HeapAlloc( GetProcessHeap(), 0, brush->dib.height * brush->dib.stride );
+        brush->dib.bits.ptr     = heap_alloc( brush->dib.height * brush->dib.stride );
         brush->dib.bits.is_copy = TRUE;
         brush->dib.bits.free    = free_heap_bits;
         brush->dib.funcs->convert_to(&brush->dib, &pattern, &pattern.rect, dither);
@@ -2141,7 +2141,7 @@ HPEN dibdrv_SelectPen( PHYSDEV dev, HPEN hpen, const struct brush_pattern *patte
 
         if (!size) return 0;
 
-        elp = HeapAlloc( GetProcessHeap(), 0, size );
+        elp = heap_alloc( size );
 
         GetObjectW( hpen, size, elp );
         logpen.lopnStyle = elp->elpPenStyle;
@@ -2221,7 +2221,7 @@ HPEN dibdrv_SelectPen( PHYSDEV dev, HPEN hpen, const struct brush_pattern *patte
 
     pdev->pen_uses_region = (logpen.lopnStyle & PS_GEOMETRIC || pdev->pen_width > 1);
     pdev->pen_is_ext = (elp != NULL);
-    HeapFree( GetProcessHeap(), 0, elp );
+    heap_free( elp );
     return hpen;
 }
 

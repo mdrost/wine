@@ -56,7 +56,11 @@
 #include "wined3d_gl.h"
 #include "wine/list.h"
 #include "wine/rbtree.h"
+#if 0
 #include "wine/wgl_driver.h"
+#else
+#include "wine/glx_driver.h"
+#endif
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
@@ -1899,8 +1903,10 @@ struct wined3d_context
     DWORD use_immediate_mode_draw : 1;
     DWORD rebind_fbo : 1;
     DWORD needs_set : 1;
+#if 0
     DWORD hdc_is_private : 1;
     DWORD hdc_has_format : 1;           /* only meaningful if hdc_is_private */
+#endif
     DWORD update_shader_resource_bindings : 1;
     DWORD update_compute_shader_resource_bindings : 1;
     DWORD update_unordered_access_view_bindings : 1;
@@ -1912,7 +1918,11 @@ struct wined3d_context
     DWORD shader_update_mask : 6; /* WINED3D_SHADER_TYPE_COUNT, 6 */
     DWORD clip_distance_mask : 8; /* MAX_CLIP_DISTANCES, 8 */
     DWORD last_was_ffp_blit : 1;
+#if 0
     DWORD padding : 8;
+#else
+    DWORD padding : 10;
+#endif
 
     DWORD constant_update_mask;
     DWORD                   numbered_array_mask;
@@ -1927,6 +1937,7 @@ struct wined3d_context
 
     /* The actual opengl context */
     UINT level;
+#if 0
     HGLRC restore_ctx;
     HDC restore_dc;
     int restore_pf;
@@ -1935,6 +1946,13 @@ struct wined3d_context
     HWND                    win_handle;
     HDC                     hdc;
     int pixel_format;
+#else
+    GLXContext restore_ctx;
+    Display *restore_dc;
+    GLXContext              glCtx;
+    GLXWindow               win_handle;
+    Display                 *hdc;
+#endif
     GLint                   aux_buffers;
 
     void *shader_backend_data;
@@ -3813,17 +3831,29 @@ struct wined3d_swapchain
     struct wined3d_context **context;
     unsigned int num_contexts;
 
+#if 0
     HWND win_handle;
     HWND device_window;
 
     HDC backup_dc;
     HWND backup_wnd;
+#else
+    GLXWindow win_handle;
+    GLXWindow device_window;
+
+    Display *backup_dc;
+    GLXWindow backup_wnd;
+#endif
 };
 
 void wined3d_swapchain_activate(struct wined3d_swapchain *swapchain, BOOL activate) DECLSPEC_HIDDEN;
 struct wined3d_context *swapchain_get_context(struct wined3d_swapchain *swapchain) DECLSPEC_HIDDEN;
 void swapchain_destroy_contexts(struct wined3d_swapchain *swapchain) DECLSPEC_HIDDEN;
+#if 0
 HDC swapchain_get_backup_dc(struct wined3d_swapchain *swapchain) DECLSPEC_HIDDEN;
+#else
+Display *swapchain_get_backup_dc(struct wined3d_swapchain *swapchain) DECLSPEC_HIDDEN;
+#endif
 void swapchain_update_draw_bindings(struct wined3d_swapchain *swapchain) DECLSPEC_HIDDEN;
 void swapchain_update_swap_interval(struct wined3d_swapchain *swapchain) DECLSPEC_HIDDEN;
 
@@ -3905,7 +3935,11 @@ GLenum gl_primitive_type_from_d3d(enum wined3d_primitive_type primitive_type) DE
 void multiply_matrix(struct wined3d_matrix *dest, const struct wined3d_matrix *src1,
         const struct wined3d_matrix *src2) DECLSPEC_HIDDEN;
 
+#if 0
 void wined3d_release_dc(HWND window, HDC dc) DECLSPEC_HIDDEN;
+#else
+void wined3d_release_dc(GLXWindow window, Display *dc) DECLSPEC_HIDDEN;
+#endif
 
 struct wined3d_shader_lconst
 {

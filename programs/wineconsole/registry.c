@@ -73,7 +73,7 @@ void WINECON_DumpConfig(const char* pfx, const struct config_data* cfg)
  */
 static LPWSTR   WINECON_CreateKeyName(LPCWSTR kn)
 {
-    LPWSTR      ret = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(kn) + 1) * sizeof(WCHAR));
+    LPWSTR      ret = heap_alloc((lstrlenW(kn) + 1) * sizeof(WCHAR));
     LPWSTR      ptr = ret;
 
     if (!ret) return NULL;

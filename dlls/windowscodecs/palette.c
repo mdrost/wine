@@ -91,8 +91,8 @@ static ULONG WINAPI PaletteImpl_Release(IWICPalette *iface)
     {
         This->lock.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, This->colors);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This->colors);
+        heap_free(This);
     }
 
     return ref;
@@ -104,7 +104,7 @@ static WICColor *generate_gray16_palette(UINT *count)
     UINT i;
 
     *count = 16;
-    entries = HeapAlloc(GetProcessHeap(), 0, 16 * sizeof(WICColor));
+    entries = heap_alloc(16 * sizeof(WICColor));
     if (!entries) return NULL;
 
     for (i = 0; i < 16; i++)
@@ -121,7 +121,7 @@ static WICColor *generate_gray256_palette(UINT *count)
     UINT i;
 
     *count = 256;
-    entries = HeapAlloc(GetProcessHeap(), 0, 256 * sizeof(WICColor));
+    entries = heap_alloc(256 * sizeof(WICColor));
     if (!entries) return NULL;
 
     for (i = 0; i < 256; i++)
@@ -138,7 +138,7 @@ static WICColor *generate_halftone8_palette(UINT *count, BOOL add_transparent)
     UINT i;
 
     *count = add_transparent ? 17 : 16;
-    entries = HeapAlloc(GetProcessHeap(), 0, *count * sizeof(WICColor));
+    entries = heap_alloc(*count * sizeof(WICColor));
     if (!entries) return NULL;
 
     for (i = 0; i < 8; i++)
@@ -169,7 +169,7 @@ static WICColor *generate_halftone27_palette(UINT *count, BOOL add_transparent)
     UINT i;
 
     *count = add_transparent ? 29 : 28;
-    entries = HeapAlloc(GetProcessHeap(), 0, *count * sizeof(WICColor));
+    entries = heap_alloc(*count * sizeof(WICColor));
     if (!entries) return NULL;
 
     for (i = 0; i < 27; i++)
@@ -194,7 +194,7 @@ static WICColor *generate_halftone64_palette(UINT *count, BOOL add_transparent)
     UINT i;
 
     *count = add_transparent ? 73 : 72;
-    entries = HeapAlloc(GetProcessHeap(), 0, *count * sizeof(WICColor));
+    entries = heap_alloc(*count * sizeof(WICColor));
     if (!entries) return NULL;
 
     for (i = 0; i < 64; i++)
@@ -226,7 +226,7 @@ static WICColor *generate_halftone125_palette(UINT *count, BOOL add_transparent)
     UINT i;
 
     *count = add_transparent ? 127 : 126;
-    entries = HeapAlloc(GetProcessHeap(), 0, *count * sizeof(WICColor));
+    entries = heap_alloc(*count * sizeof(WICColor));
     if (!entries) return NULL;
 
     for (i = 0; i < 125; i++)
@@ -251,7 +251,7 @@ static WICColor *generate_halftone216_palette(UINT *count, BOOL add_transparent)
     UINT i;
 
     *count = add_transparent ? 225 : 224;
-    entries = HeapAlloc(GetProcessHeap(), 0, *count * sizeof(WICColor));
+    entries = heap_alloc(*count * sizeof(WICColor));
     if (!entries) return NULL;
 
     for (i = 0; i < 216; i++)
@@ -283,7 +283,7 @@ static WICColor *generate_halftone252_palette(UINT *count, BOOL add_transparent)
     UINT i;
 
     *count = add_transparent ? 253 : 252;
-    entries = HeapAlloc(GetProcessHeap(), 0, *count * sizeof(WICColor));
+    entries = heap_alloc(*count * sizeof(WICColor));
     if (!entries) return NULL;
 
     for (i = 0; i < 252; i++)
@@ -308,7 +308,7 @@ static WICColor *generate_halftone256_palette(UINT *count, BOOL add_transparent)
     UINT i;
 
     *count = 256;
-    entries = HeapAlloc(GetProcessHeap(), 0, 256 * sizeof(WICColor));
+    entries = heap_alloc(256 * sizeof(WICColor));
     if (!entries) return NULL;
 
     for (i = 0; i < 256; i++)
@@ -340,7 +340,7 @@ static HRESULT WINAPI PaletteImpl_InitializePredefined(IWICPalette *iface,
     {
     case WICBitmapPaletteTypeFixedBW:
         count = 2;
-        colors = HeapAlloc(GetProcessHeap(), 0, count * sizeof(WICColor));
+        colors = heap_alloc(count * sizeof(WICColor));
         if (!colors) return E_OUTOFMEMORY;
         colors[0] = 0xff000000;
         colors[1] = 0xffffffff;
@@ -348,7 +348,7 @@ static HRESULT WINAPI PaletteImpl_InitializePredefined(IWICPalette *iface,
 
     case WICBitmapPaletteTypeFixedGray4:
         count = 4;
-        colors = HeapAlloc(GetProcessHeap(), 0, count * sizeof(WICColor));
+        colors = heap_alloc(count * sizeof(WICColor));
         if (!colors) return E_OUTOFMEMORY;
         colors[0] = 0xff000000;
         colors[1] = 0xff555555;
@@ -407,7 +407,7 @@ static HRESULT WINAPI PaletteImpl_InitializePredefined(IWICPalette *iface,
     }
 
     EnterCriticalSection(&This->lock);
-    HeapFree(GetProcessHeap(), 0, This->colors);
+    heap_free(This->colors);
     This->colors = colors;
     This->count = count;
     This->type = type;
@@ -431,13 +431,13 @@ static HRESULT WINAPI PaletteImpl_InitializeCustom(IWICPalette *iface,
     else
     {
         if (!pColors) return E_INVALIDARG;
-        new_colors = HeapAlloc(GetProcessHeap(), 0, sizeof(WICColor) * colorCount);
+        new_colors = heap_alloc(sizeof(WICColor) * colorCount);
         if (!new_colors) return E_OUTOFMEMORY;
         memcpy(new_colors, pColors, sizeof(WICColor) * colorCount);
     }
 
     EnterCriticalSection(&This->lock);
-    HeapFree(GetProcessHeap(), 0, This->colors);
+    heap_free(This->colors);
     This->colors = new_colors;
     This->count = colorCount;
     This->type = WICBitmapPaletteTypeCustom;
@@ -472,18 +472,18 @@ static HRESULT WINAPI PaletteImpl_InitializeFromPalette(IWICPalette *iface,
     if (hr != S_OK) return hr;
     if (count)
     {
-        colors = HeapAlloc(GetProcessHeap(), 0, sizeof(WICColor) * count);
+        colors = heap_alloc(sizeof(WICColor) * count);
         if (!colors) return E_OUTOFMEMORY;
         hr = IWICPalette_GetColors(source, count, colors, &count);
         if (hr != S_OK)
         {
-            HeapFree(GetProcessHeap(), 0, colors);
+            heap_free(colors);
             return hr;
         }
     }
 
     EnterCriticalSection(&This->lock);
-    HeapFree(GetProcessHeap(), 0, This->colors);
+    heap_free(This->colors);
     This->colors = colors;
     This->count = count;
     This->type = type;
@@ -631,7 +631,7 @@ HRESULT PaletteImpl_Create(IWICPalette **palette)
 {
     PaletteImpl *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(PaletteImpl));
+    This = heap_alloc(sizeof(PaletteImpl));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICPalette_iface.lpVtbl = &PaletteImpl_Vtbl;

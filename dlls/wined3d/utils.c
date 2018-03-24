@@ -6197,7 +6197,11 @@ BOOL wined3d_array_reserve(void **elements, SIZE_T *capacity, SIZE_T count, SIZE
     if (!*elements)
         new_elements = heap_alloc_zero(new_capacity * size);
     else
+#if 0
         new_elements = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, *elements, new_capacity * size);
+#else
+        new_elements = NULL;
+#endif
     if (!new_elements)
         return FALSE;
 

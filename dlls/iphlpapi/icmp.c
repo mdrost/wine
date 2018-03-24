@@ -50,6 +50,7 @@
 #ifdef HAVE_SYS_TIME_H
 # include <sys/time.h>
 #endif
+#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
@@ -72,6 +73,7 @@
 #include "ipexport.h"
 #include "icmpapi.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 /* Set up endianness macros for the ip and ip_icmp BSD headers */
 #ifndef BIG_ENDIAN
@@ -166,7 +168,7 @@ HANDLE WINAPI Icmp6CreateFile(VOID)
         return INVALID_HANDLE_VALUE;
     }
 
-    icp=HeapAlloc(GetProcessHeap(), 0, sizeof(*icp));
+    icp=heap_alloc(sizeof(*icp));
     if (icp==NULL) {
         close(sid);
         SetLastError(IP_NO_RESOURCES);
@@ -223,7 +225,7 @@ HANDLE WINAPI IcmpCreateFile(VOID)
         return INVALID_HANDLE_VALUE;
     }
 
-    icp=HeapAlloc(GetProcessHeap(), 0, sizeof(*icp));
+    icp=heap_alloc(sizeof(*icp));
     if (icp==NULL) {
         close(sid);
         SetLastError(IP_NO_RESOURCES);
@@ -248,7 +250,7 @@ BOOL WINAPI IcmpCloseHandle(HANDLE  IcmpHandle)
     }
 
     close( icp->sid );
-    HeapFree(GetProcessHeap (), 0, icp);
+    heap_free(icp);
     return TRUE;
 }
 
@@ -306,7 +308,7 @@ DWORD WINAPI IcmpSendEcho(
     seq=InterlockedIncrement(&icmp_sequence) & 0xFFFF;
 
     reqsize=ICMP_MINLEN+RequestSize;
-    reqbuf=HeapAlloc(GetProcessHeap(), 0, reqsize);
+    reqbuf=heap_alloc(reqsize);
     if (reqbuf==NULL) {
         SetLastError(ERROR_OUTOFMEMORY);
         return 0;
@@ -386,7 +388,7 @@ DWORD WINAPI IcmpSendEcho(
 
     send_time = GetTickCount();
     res=sendto(icp->sid, reqbuf, reqsize, 0, (struct sockaddr*)&addr, sizeof(addr));
-    HeapFree(GetProcessHeap (), 0, reqbuf);
+    heap_free(reqbuf);
     if (res<0) {
         if (errno==EMSGSIZE)
             SetLastError(IP_PACKET_TOO_BIG);

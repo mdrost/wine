@@ -90,6 +90,7 @@ NTSTATUS WINAPI NtDuplicateToken(
           ExistingToken, DesiredAccess, debugstr_ObjectAttributes(ObjectAttributes),
           ImpersonationLevel, TokenType, NewToken);
 
+#if 0
     if ((status = alloc_object_attributes( ObjectAttributes, &objattr, &len ))) return status;
 
     if (ObjectAttributes && ObjectAttributes->SecurityQualityOfService)
@@ -114,8 +115,11 @@ NTSTATUS WINAPI NtDuplicateToken(
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -141,6 +145,7 @@ NTSTATUS WINAPI NtOpenProcessTokenEx( HANDLE process, DWORD access, DWORD attrib
 
     TRACE("(%p,0x%08x,0x%08x,%p)\n", process, access, attributes, handle);
 
+#if 0
     SERVER_START_REQ( open_token )
     {
         req->handle     = wine_server_obj_handle( process );
@@ -152,6 +157,9 @@ NTSTATUS WINAPI NtOpenProcessTokenEx( HANDLE process, DWORD access, DWORD attrib
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -178,6 +186,7 @@ NTSTATUS WINAPI NtOpenThreadTokenEx( HANDLE thread, DWORD access, BOOLEAN as_sel
 
     TRACE("(%p,0x%08x,%u,0x%08x,%p)\n", thread, access, as_self, attributes, handle );
 
+#if 0
     SERVER_START_REQ( open_token )
     {
         req->handle     = wine_server_obj_handle( thread );
@@ -191,6 +200,9 @@ NTSTATUS WINAPI NtOpenThreadTokenEx( HANDLE thread, DWORD access, BOOLEAN as_sel
     SERVER_END_REQ;
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -212,6 +224,7 @@ NTSTATUS WINAPI NtAdjustPrivilegesToken(
     TRACE("(%p,0x%08x,%p,0x%08x,%p,%p)\n",
         TokenHandle, DisableAllPrivileges, NewState, BufferLength, PreviousState, ReturnLength);
 
+#if 0
     SERVER_START_REQ( adjust_token_privileges )
     {
         req->handle = wine_server_obj_handle( TokenHandle );
@@ -235,6 +248,9 @@ NTSTATUS WINAPI NtAdjustPrivilegesToken(
     SERVER_END_REQ;
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -316,6 +332,7 @@ NTSTATUS WINAPI NtQueryInformationToken(
 
     switch (tokeninfoclass)
     {
+#if 0
     case TokenUser:
         SERVER_START_REQ( get_token_sid )
         {
@@ -341,7 +358,7 @@ NTSTATUS WINAPI NtQueryInformationToken(
         void *buffer;
 
         /* reply buffer is always shorter than output one */
-        buffer = tokeninfolength ? RtlAllocateHeap(GetProcessHeap(), 0, tokeninfolength) : NULL;
+        buffer = tokeninfolength ? malloc(tokeninfolength) : NULL;
 
         SERVER_START_REQ( get_token_groups )
         {
@@ -379,7 +396,7 @@ NTSTATUS WINAPI NtQueryInformationToken(
         }
         SERVER_END_REQ;
 
-        RtlFreeHeap(GetProcessHeap(), 0, buffer);
+        free(buffer);
         break;
     }
     case TokenPrimaryGroup:
@@ -573,6 +590,7 @@ NTSTATUS WINAPI NtQueryInformationToken(
         }
         SERVER_END_REQ;
         break;
+#endif
     default:
         {
             ERR("Unhandled Token Information class %d!\n", tokeninfoclass);
@@ -610,6 +628,7 @@ NTSTATUS WINAPI NtSetInformationToken(
             ret = STATUS_ACCESS_VIOLATION;
             break;
         }
+#if 0
         SERVER_START_REQ( set_token_default_dacl )
         {
             ACL *acl = ((TOKEN_DEFAULT_DACL *)TokenInformation)->DefaultDacl;
@@ -624,6 +643,9 @@ NTSTATUS WINAPI NtSetInformationToken(
         }
         SERVER_END_REQ;
         break;
+#else
+        return STATUS_NOT_IMPLEMENTED;
+#endif
     default:
         FIXME("unimplemented class %u\n", TokenInformationClass);
         break;
@@ -658,6 +680,7 @@ NTSTATUS WINAPI NtPrivilegeCheck(
     PPRIVILEGE_SET RequiredPrivileges,
     PBOOLEAN Result)
 {
+#if 0
     NTSTATUS status;
     SERVER_START_REQ( check_token_privileges )
     {
@@ -675,6 +698,9 @@ NTSTATUS WINAPI NtPrivilegeCheck(
     }
     SERVER_END_REQ;
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /*
@@ -842,7 +868,9 @@ NTSTATUS WINAPI NtSetIntervalProfile(
     return STATUS_SUCCESS;
 }
 
+#if 0
 static  SYSTEM_CPU_INFORMATION cached_sci;
+#endif
 
 /*******************************************************************************
  * Architecture specific feature detection for CPUs
@@ -983,6 +1011,7 @@ static inline void get_cpuinfo(SYSTEM_CPU_INFORMATION* info)
         if(regs2[3] & (1 << 25)) info->FeatureSet |= CPU_FEATURE_SSE;
         if(regs2[3] & (1 << 26)) info->FeatureSet |= CPU_FEATURE_SSE2;
 
+#if 0
         user_shared_data->ProcessorFeatures[PF_FLOATING_POINT_EMULATED]       = !(regs2[3] & 1);
         user_shared_data->ProcessorFeatures[PF_RDTSC_INSTRUCTION_AVAILABLE]   = (regs2[3] >> 4) & 1;
         user_shared_data->ProcessorFeatures[PF_PAE_ENABLED]                   = (regs2[3] >> 6) & 1;
@@ -996,6 +1025,7 @@ static inline void get_cpuinfo(SYSTEM_CPU_INFORMATION* info)
 
         if((regs2[3] & (1 << 26)) && (regs2[3] & (1 << 24))) /* has SSE2 and FXSAVE/FXRSTOR */
             user_shared_data->ProcessorFeatures[PF_SSE_DAZ_MODE_AVAILABLE] = have_sse_daz_mode();
+#endif
 
         if (regs[1] == AUTH && regs[3] == ENTI && regs[2] == CAMD)
         {
@@ -1012,9 +1042,11 @@ static inline void get_cpuinfo(SYSTEM_CPU_INFORMATION* info)
             if (regs[0] >= 0x80000001)
             {
                 do_cpuid(0x80000001, regs2);  /* get vendor features */
+#if 0
                 user_shared_data->ProcessorFeatures[PF_VIRT_FIRMWARE_ENABLED]        = (regs2[2] >> 2) & 1;
                 user_shared_data->ProcessorFeatures[PF_NX_ENABLED]                   = (regs2[3] >> 20) & 1;
                 user_shared_data->ProcessorFeatures[PF_3DNOW_INSTRUCTIONS_AVAILABLE] = (regs2[3] >> 31) & 1;
+#endif
                 if (regs2[3] >> 31) info->FeatureSet |= CPU_FEATURE_3DNOW;
             }
         }
@@ -1029,13 +1061,17 @@ static inline void get_cpuinfo(SYSTEM_CPU_INFORMATION* info)
             info->Revision |= regs2[0] & 0xf;                 /* stepping       */
 
             if(regs2[3] & (1 << 21)) info->FeatureSet |= CPU_FEATURE_DS;
+#if 0
             user_shared_data->ProcessorFeatures[PF_VIRT_FIRMWARE_ENABLED] = (regs2[2] >> 5) & 1;
+#endif
 
             do_cpuid(0x80000000, regs);  /* get vendor cpuid level */
             if (regs[0] >= 0x80000001)
             {
                 do_cpuid(0x80000001, regs2);  /* get vendor features */
+#if 0
                 user_shared_data->ProcessorFeatures[PF_NX_ENABLED] = (regs2[3] >> 20) & 1;
+#endif
             }
         }
         else
@@ -1214,6 +1250,7 @@ static inline void get_cpuinfo(SYSTEM_CPU_INFORMATION* info)
 
 #endif /* End architecture specific feature detection for CPUs */
 
+#if 0
 /******************************************************************
  *		fill_cpu_info
  *
@@ -1255,6 +1292,7 @@ void fill_cpu_info(void)
     TRACE("<- CPU arch %d, level %d, rev %d, features 0x%x\n",
           cached_sci.Architecture, cached_sci.Level, cached_sci.Revision, cached_sci.FeatureSet);
 }
+#endif
 
 static BOOL grow_logical_proc_buf(SYSTEM_LOGICAL_PROCESSOR_INFORMATION **pdata,
         SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX **pdataex, DWORD *max_len)
@@ -1264,7 +1302,7 @@ static BOOL grow_logical_proc_buf(SYSTEM_LOGICAL_PROCESSOR_INFORMATION **pdata,
         SYSTEM_LOGICAL_PROCESSOR_INFORMATION *new_data;
 
         *max_len *= 2;
-        new_data = RtlReAllocateHeap(GetProcessHeap(), 0, *pdata, *max_len*sizeof(*new_data));
+        new_data = realloc(*pdata, *max_len*sizeof(*new_data));
         if (!new_data)
             return FALSE;
 
@@ -1275,7 +1313,11 @@ static BOOL grow_logical_proc_buf(SYSTEM_LOGICAL_PROCESSOR_INFORMATION **pdata,
         SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *new_dataex;
 
         *max_len *= 2;
+#if 0
         new_dataex = RtlReAllocateHeap(GetProcessHeap(), HEAP_ZERO_MEMORY, *pdataex, *max_len*sizeof(*new_dataex));
+#else
+        new_dataex = NULL;
+#endif
         if (!new_dataex)
             return FALSE;
 
@@ -1881,11 +1923,19 @@ NTSTATUS WINAPI NtQuerySystemInformation(
         }
         break;
     case SystemCpuInformation:
+#if 0
         if (Length >= (len = sizeof(cached_sci)))
         {
             if (!SystemInformation) ret = STATUS_ACCESS_VIOLATION;
             else memcpy(SystemInformation, &cached_sci, len);
         }
+#else
+        if (Length >= (len = sizeof(SYSTEM_CPU_INFORMATION)))
+        {
+            if (!SystemInformation) ret = STATUS_ACCESS_VIOLATION;
+            else get_cpuinfo(SystemInformation);
+        }
+#endif
         else ret = STATUS_INFO_LENGTH_MISMATCH;
         break;
     case SystemPerformanceInformation:
@@ -1926,6 +1976,7 @@ NTSTATUS WINAPI NtQuerySystemInformation(
             }
         }
         break;
+#if 0
     case SystemTimeOfDayInformation:
         {
             SYSTEM_TIMEOFDAY_INFORMATION sti;
@@ -2067,6 +2118,7 @@ NTSTATUS WINAPI NtQuerySystemInformation(
             if (hSnap) NtClose(hSnap);
         }
         break;
+#endif
     case SystemProcessorPerformanceInformation:
         {
             SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *sppi = NULL;
@@ -2094,7 +2146,7 @@ NTSTATUS WINAPI NtQuerySystemInformation(
                     int i;
                     cpus = min(cpus,out_cpus);
                     len = sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * cpus;
-                    sppi = RtlAllocateHeap(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+                    sppi = calloc(1, len);
                     for (i = 0; i < cpus; i++)
                     {
                         sppi[i].IdleTime.QuadPart = pinfo[i].cpu_ticks[CPU_STATE_IDLE];
@@ -2131,9 +2183,13 @@ NTSTATUS WINAPI NtQuerySystemInformation(
                         if (cpus > out_cpus) break;
                         len = sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * cpus;
                         if (sppi)
+#if 0
                             sppi = RtlReAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, sppi, len );
+#else
+                            sppi = NULL;
+#endif
                         else
-                            sppi = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, len );
+                            sppi = calloc(1, len );
 
                         sppi[cpus-1].IdleTime.QuadPart   = (ULONGLONG)idle * 10000000 / clk_tck;
                         sppi[cpus-1].KernelTime.QuadPart = (ULONGLONG)sys * 10000000 / clk_tck;
@@ -2148,9 +2204,13 @@ NTSTATUS WINAPI NtQuerySystemInformation(
             {
                 static int i = 1;
                 unsigned int n;
+#if 0
                 cpus = min(NtCurrentTeb()->Peb->NumberOfProcessors, out_cpus);
+#else
+                cpus = min(max(sysconf(_SC_NPROCESSORS_ONLN), 1), out_cpus);
+#endif
                 len = sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * cpus;
-                sppi = RtlAllocateHeap(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
+                sppi = calloc(1, len);
                 FIXME("stub info_class SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION\n");
                 /* many programs expect these values to change so fake change */
                 for (n = 0; n < cpus; n++)
@@ -2169,9 +2229,10 @@ NTSTATUS WINAPI NtQuerySystemInformation(
             }
             else ret = STATUS_INFO_LENGTH_MISMATCH;
 
-            RtlFreeHeap(GetProcessHeap(),0,sppi);
+            free(sppi);
         }
         break;
+#if 0
     case SystemModuleInformation:
         /* FIXME: should be system-wide */
         if (!SystemInformation) ret = STATUS_ACCESS_VIOLATION;
@@ -2195,7 +2256,7 @@ NTSTATUS WINAPI NtQuerySystemInformation(
             }
 
             num_handles = (Length - FIELD_OFFSET( SYSTEM_HANDLE_INFORMATION, Handle )) / sizeof(SYSTEM_HANDLE_ENTRY);
-            if (!(info = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*info) * num_handles )))
+            if (!(info = malloc( sizeof(*info) * num_handles )))
                 return STATUS_NO_MEMORY;
 
             SERVER_START_REQ( get_system_handles )
@@ -2223,9 +2284,10 @@ NTSTATUS WINAPI NtQuerySystemInformation(
             }
             SERVER_END_REQ;
 
-            RtlFreeHeap( GetProcessHeap(), 0, info );
+            free( info );
         }
         break;
+#endif
     case SystemCacheInformation:
         {
             SYSTEM_CACHE_INFORMATION sci;
@@ -2306,8 +2368,12 @@ NTSTATUS WINAPI NtQuerySystemInformation(
 
             /* Each logical processor may use up to 7 entries in returned table:
              * core, numa node, package, L1i, L1d, L2, L3 */
+#if 0
             len = 7 * NtCurrentTeb()->Peb->NumberOfProcessors;
-            buf = RtlAllocateHeap(GetProcessHeap(), 0, len * sizeof(*buf));
+#else
+            len = 7 * max(sysconf(_SC_NPROCESSORS_ONLN), 1);
+#endif
+            buf = malloc(len * sizeof(*buf));
             if(!buf)
             {
                 ret = STATUS_NO_MEMORY;
@@ -2317,7 +2383,7 @@ NTSTATUS WINAPI NtQuerySystemInformation(
             ret = create_logical_proc_info(&buf, NULL, &len);
             if( ret != STATUS_SUCCESS )
             {
-                RtlFreeHeap(GetProcessHeap(), 0, buf);
+                free(buf);
                 break;
             }
 
@@ -2327,7 +2393,7 @@ NTSTATUS WINAPI NtQuerySystemInformation(
                 else memcpy( SystemInformation, buf, len);
             }
             else ret = STATUS_INFO_LENGTH_MISMATCH;
-            RtlFreeHeap(GetProcessHeap(), 0, buf);
+            free(buf);
         }
         break;
     case SystemRecommendedSharedDataAlignment:
@@ -2385,7 +2451,7 @@ NTSTATUS WINAPI NtQuerySystemInformationEx(SYSTEM_INFORMATION_CLASS SystemInform
                 FIXME("Relationship filtering not implemented: 0x%x\n", *(DWORD*)Query);
 
             len = 3 * sizeof(*buf);
-            buf = RtlAllocateHeap(GetProcessHeap(), 0, len);
+            buf = malloc(len);
             if (!buf)
             {
                 ret = STATUS_NO_MEMORY;
@@ -2395,7 +2461,7 @@ NTSTATUS WINAPI NtQuerySystemInformationEx(SYSTEM_INFORMATION_CLASS SystemInform
             ret = create_logical_proc_info(NULL, &buf, &len);
             if (ret != STATUS_SUCCESS)
             {
-                RtlFreeHeap(GetProcessHeap(), 0, buf);
+                free(buf);
                 break;
             }
 
@@ -2409,7 +2475,7 @@ NTSTATUS WINAPI NtQuerySystemInformationEx(SYSTEM_INFORMATION_CLASS SystemInform
             else
                 ret = STATUS_INFO_LENGTH_MISMATCH;
 
-            RtlFreeHeap(GetProcessHeap(), 0, buf);
+            free(buf);
 
             break;
         }
@@ -2580,7 +2646,11 @@ NTSTATUS WINAPI NtPowerInformation(
 
 			if ((lpOutputBuffer == NULL) || (nOutputBufferSize == 0))
 				return STATUS_INVALID_PARAMETER;
+#if 0
 			out_cpus = NtCurrentTeb()->Peb->NumberOfProcessors;
+#else
+			out_cpus = max(sysconf(_SC_NPROCESSORS_ONLN), 1);
+#endif
 			if ((nOutputBufferSize / sizeof(PROCESSOR_POWER_INFORMATION)) < out_cpus)
 				return STATUS_BUFFER_TOO_SMALL;
 #if defined(linux)
@@ -2723,6 +2793,7 @@ NTSTATUS WINAPI NtAllocateLocallyUniqueId(PLUID Luid)
     if (!Luid)
         return STATUS_ACCESS_VIOLATION;
 
+#if 0
     SERVER_START_REQ( allocate_locally_unique_id )
     {
         status = wine_server_call( req );
@@ -2735,6 +2806,9 @@ NTSTATUS WINAPI NtAllocateLocallyUniqueId(PLUID Luid)
     SERVER_END_REQ;
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************

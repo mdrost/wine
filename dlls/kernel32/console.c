@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <pthread.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
@@ -56,6 +57,7 @@
 #include "wincon.h"
 #include "wine/server.h"
 #include "wine/exception.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 #include "excpt.h"
@@ -64,6 +66,7 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(console);
 
+#if 0
 static CRITICAL_SECTION CONSOLE_CritSect;
 static CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -72,6 +75,9 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": CONSOLE_CritSect") }
 };
 static CRITICAL_SECTION CONSOLE_CritSect = { &critsect_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t CONSOLE_CritSect = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 static const WCHAR coninW[] = {'C','O','N','I','N','$',0};
 static const WCHAR conoutW[] = {'C','O','N','O','U','T','$',0};
@@ -159,12 +165,14 @@ static BOOL S_termios_raw /* = FALSE */;
 /* returns the fd for a bare console (-1 otherwise) */
 static int  get_console_bare_fd(HANDLE hin)
 {
+#if 0
     int         fd;
 
     if (is_console_handle(hin) &&
         wine_server_handle_to_fd(wine_server_ptr_handle(console_handle_unmap(hin)),
                                  0, &fd, NULL) == STATUS_SUCCESS)
         return fd;
+#endif
     return -1;
 }
 
@@ -181,7 +189,7 @@ static BOOL save_console_mode(HANDLE hin)
 
 static BOOL put_console_into_raw_mode(int fd)
 {
-    RtlEnterCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_lock(&CONSOLE_CritSect);
     if (!S_termios_raw)
     {
         struct termios term = S_termios;
@@ -199,7 +207,7 @@ static BOOL put_console_into_raw_mode(int fd)
         term.c_cc[VTIME] = 0;
         S_termios_raw = tcsetattr(fd, TCSANOW, &term) >= 0;
     }
-    RtlLeaveCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_unlock(&CONSOLE_CritSect);
 
     return S_termios_raw;
 }
@@ -210,6 +218,7 @@ static BOOL put_console_into_raw_mode(int fd)
  */
 static BOOL restore_console_mode(HANDLE hin)
 {
+#if 0
     int         fd;
     BOOL        ret = TRUE;
 
@@ -224,6 +233,9 @@ static BOOL restore_console_mode(HANDLE hin)
         TERM_Exit();
 
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 /******************************************************************************
@@ -237,6 +249,7 @@ HWND WINAPI GetConsoleWindow(VOID)
 {
     HWND hWnd = NULL;
 
+#if 0
     SERVER_START_REQ(get_console_input_info)
     {
         req->handle = 0;
@@ -244,6 +257,9 @@ HWND WINAPI GetConsoleWindow(VOID)
     }
     SERVER_END_REQ;
 
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+#endif
     return hWnd;
 }
 
@@ -259,6 +275,7 @@ UINT WINAPI GetConsoleCP(VOID)
     BOOL ret;
     UINT codepage = GetOEMCP(); /* default value */
 
+#if 0
     SERVER_START_REQ(get_console_input_info)
     {
         req->handle = 0;
@@ -267,6 +284,7 @@ UINT WINAPI GetConsoleCP(VOID)
             codepage = reply->input_cp;
     }
     SERVER_END_REQ;
+#endif
 
     return codepage;
 }
@@ -285,6 +303,7 @@ BOOL WINAPI SetConsoleCP(UINT cp)
         return FALSE;
     }
 
+#if 0
     SERVER_START_REQ(set_console_input_info)
     {
         req->handle   = 0;
@@ -295,6 +314,10 @@ BOOL WINAPI SetConsoleCP(UINT cp)
     SERVER_END_REQ;
 
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -306,6 +329,7 @@ UINT WINAPI GetConsoleOutputCP(VOID)
     BOOL ret;
     UINT codepage = GetOEMCP(); /* default value */
 
+#if 0
     SERVER_START_REQ(get_console_input_info)
     {
         req->handle = 0;
@@ -314,6 +338,7 @@ UINT WINAPI GetConsoleOutputCP(VOID)
             codepage = reply->output_cp;
     }
     SERVER_END_REQ;
+#endif
 
     return codepage;
 }
@@ -339,6 +364,7 @@ BOOL WINAPI SetConsoleOutputCP(UINT cp)
         return FALSE;
     }
 
+#if 0
     SERVER_START_REQ(set_console_input_info)
     {
         req->handle   = 0;
@@ -349,6 +375,10 @@ BOOL WINAPI SetConsoleOutputCP(UINT cp)
     SERVER_END_REQ;
 
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -378,6 +408,7 @@ HANDLE WINAPI OpenConsoleW(LPCWSTR name, DWORD access, BOOL inherit, DWORD creat
 
     TRACE("(%s, 0x%08x, %d, %u)\n", debugstr_w(name), access, inherit, creation);
 
+#if 0
     if (name)
     {
         if (strcmpiW(coninW, name) == 0)
@@ -406,6 +437,10 @@ HANDLE WINAPI OpenConsoleW(LPCWSTR name, DWORD access, BOOL inherit, DWORD creat
         ret = console_handle_map(ret);
 
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return INVALID_HANDLE_VALUE;
+#endif
 }
 
 /******************************************************************
@@ -415,6 +450,7 @@ HANDLE WINAPI OpenConsoleW(LPCWSTR name, DWORD access, BOOL inherit, DWORD creat
  */
 BOOL WINAPI VerifyConsoleIoHandle(HANDLE handle)
 {
+#if 0
     BOOL ret;
 
     if (!is_console_handle(handle)) return FALSE;
@@ -425,6 +461,10 @@ BOOL WINAPI VerifyConsoleIoHandle(HANDLE handle)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /******************************************************************
@@ -435,6 +475,7 @@ BOOL WINAPI VerifyConsoleIoHandle(HANDLE handle)
 HANDLE WINAPI DuplicateConsoleHandle(HANDLE handle, DWORD access, BOOL inherit,
                                      DWORD options)
 {
+#if 0
     HANDLE      ret;
 
     if (!is_console_handle(handle) ||
@@ -442,6 +483,10 @@ HANDLE WINAPI DuplicateConsoleHandle(HANDLE handle, DWORD access, BOOL inherit,
                          GetCurrentProcess(), &ret, access, inherit, options))
         return INVALID_HANDLE_VALUE;
     return console_handle_map(ret);
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return INVALID_HANDLE_VALUE;
+#endif
 }
 
 /******************************************************************
@@ -451,12 +496,17 @@ HANDLE WINAPI DuplicateConsoleHandle(HANDLE handle, DWORD access, BOOL inherit,
  */
 BOOL WINAPI CloseConsoleHandle(HANDLE handle)
 {
-    if (!is_console_handle(handle)) 
+    if (!is_console_handle(handle))
     {
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
+#if 0
     return CloseHandle(wine_server_ptr_handle(console_handle_unmap(handle)));
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /******************************************************************
@@ -466,6 +516,7 @@ BOOL WINAPI CloseConsoleHandle(HANDLE handle)
  */
 HANDLE WINAPI GetConsoleInputWaitHandle(void)
 {
+#if 0
     if (!console_wait_event)
     {
         SERVER_START_REQ(get_console_wait_event)
@@ -476,6 +527,10 @@ HANDLE WINAPI GetConsoleInputWaitHandle(void)
         SERVER_END_REQ;
     }
     return console_wait_event;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return INVALID_HANDLE_VALUE;
+#endif
 }
 
 
@@ -496,7 +551,7 @@ BOOL WINAPI WriteConsoleInputA( HANDLE handle, const INPUT_RECORD *buffer,
             return FALSE;
         }
 
-        if (!(recW = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*recW) )))
+        if (!(recW = heap_alloc( count * sizeof(*recW) )))
         {
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
             return FALSE;
@@ -507,7 +562,7 @@ BOOL WINAPI WriteConsoleInputA( HANDLE handle, const INPUT_RECORD *buffer,
     }
 
     ret = WriteConsoleInputW( handle, recW, count, written );
-    HeapFree( GetProcessHeap(), 0, recW );
+    heap_free( recW );
     return ret;
 }
 
@@ -529,6 +584,7 @@ BOOL WINAPI WriteConsoleInputW( HANDLE handle, const INPUT_RECORD *buffer,
         return FALSE;
     }
 
+#if 0
     SERVER_START_REQ( write_console_input )
     {
         req->handle = console_handle_unmap(handle);
@@ -545,6 +601,10 @@ BOOL WINAPI WriteConsoleInputW( HANDLE handle, const INPUT_RECORD *buffer,
         ret = FALSE;
     }
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -570,7 +630,7 @@ BOOL WINAPI WriteConsoleOutputA( HANDLE hConsoleOutput, const CHAR_INFO *lpBuffe
     }
 
     /* only copy the useful rectangle */
-    if (!(ciw = HeapAlloc( GetProcessHeap(), 0, sizeof(CHAR_INFO) * new_size.X * new_size.Y )))
+    if (!(ciw = heap_alloc( sizeof(CHAR_INFO) * new_size.X * new_size.Y )))
         return FALSE;
     for (y = 0; y < new_size.Y; y++)
     {
@@ -580,7 +640,7 @@ BOOL WINAPI WriteConsoleOutputA( HANDLE hConsoleOutput, const CHAR_INFO *lpBuffe
     }
     new_coord.X = new_coord.Y = 0;
     ret = WriteConsoleOutputW( hConsoleOutput, ciw, new_size, new_coord, region );
-    HeapFree( GetProcessHeap(), 0, ciw );
+    heap_free( ciw );
     return ret;
 }
 
@@ -598,6 +658,7 @@ BOOL WINAPI WriteConsoleOutputW( HANDLE hConsoleOutput, const CHAR_INFO *lpBuffe
           hConsoleOutput, lpBuffer, size.X, size.Y, coord.X, coord.Y,
           region->Left, region->Top, region->Right, region->Bottom);
 
+#if 0
     width = min( region->Right - region->Left + 1, size.X - coord.X );
     height = min( region->Bottom - region->Top + 1, size.Y - coord.Y );
 
@@ -627,6 +688,10 @@ BOOL WINAPI WriteConsoleOutputW( HANDLE hConsoleOutput, const CHAR_INFO *lpBuffe
     region->Bottom = region->Top + height - 1;
     region->Right = region->Left + width - 1;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -655,7 +720,7 @@ BOOL WINAPI WriteConsoleOutputCharacterA( HANDLE hConsoleOutput, LPCSTR str, DWO
 
         lenW = MultiByteToWideChar( GetConsoleOutputCP(), 0, str, length, NULL, 0 );
 
-        if (!(strW = HeapAlloc( GetProcessHeap(), 0, lenW * sizeof(WCHAR) )))
+        if (!(strW = heap_alloc( lenW * sizeof(WCHAR) )))
         {
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
             return FALSE;
@@ -665,7 +730,7 @@ BOOL WINAPI WriteConsoleOutputCharacterA( HANDLE hConsoleOutput, LPCSTR str, DWO
     }
 
     ret = WriteConsoleOutputCharacterW( hConsoleOutput, strW, lenW, coord, lpNumCharsWritten );
-    HeapFree( GetProcessHeap(), 0, strW );
+    heap_free( strW );
     return ret;
 }
 
@@ -699,6 +764,7 @@ BOOL WINAPI WriteConsoleOutputAttribute( HANDLE hConsoleOutput, const WORD *attr
         return FALSE;
     }
 
+#if 0
     *lpNumAttrsWritten = 0;
 
     SERVER_START_REQ( write_console_output )
@@ -714,6 +780,10 @@ BOOL WINAPI WriteConsoleOutputAttribute( HANDLE hConsoleOutput, const WORD *attr
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -760,6 +830,7 @@ BOOL WINAPI FillConsoleOutputCharacterW( HANDLE hConsoleOutput, WCHAR ch, DWORD 
         return FALSE;
     }
 
+#if 0
     *lpNumCharsWritten = 0;
 
     SERVER_START_REQ( fill_console_output )
@@ -776,6 +847,10 @@ BOOL WINAPI FillConsoleOutputCharacterW( HANDLE hConsoleOutput, WCHAR ch, DWORD 
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -807,6 +882,7 @@ BOOL WINAPI FillConsoleOutputAttribute( HANDLE hConsoleOutput, WORD attr, DWORD 
         return FALSE;
     }
 
+#if 0
     *lpNumAttrsWritten = 0;
 
     SERVER_START_REQ( fill_console_output )
@@ -823,6 +899,10 @@ BOOL WINAPI FillConsoleOutputAttribute( HANDLE hConsoleOutput, WORD attr, DWORD 
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -845,7 +925,7 @@ BOOL WINAPI ReadConsoleOutputCharacterA(HANDLE hConsoleOutput, LPSTR lpstr, DWOR
 
     *read_count = 0;
 
-    if (!(wptr = HeapAlloc(GetProcessHeap(), 0, count * sizeof(WCHAR))))
+    if (!(wptr = heap_alloc( count * sizeof(WCHAR))))
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
         return FALSE;
@@ -856,7 +936,7 @@ BOOL WINAPI ReadConsoleOutputCharacterA(HANDLE hConsoleOutput, LPSTR lpstr, DWOR
         read = WideCharToMultiByte( GetConsoleOutputCP(), 0, wptr, read, lpstr, count, NULL, NULL);
         *read_count = read;
     }
-    HeapFree( GetProcessHeap(), 0, wptr );
+    heap_free( wptr );
     return ret;
 }
 
@@ -878,6 +958,7 @@ BOOL WINAPI ReadConsoleOutputCharacterW( HANDLE hConsoleOutput, LPWSTR buffer, D
         return FALSE;
     }
 
+#if 0
     *read_count = 0;
 
     SERVER_START_REQ( read_console_output )
@@ -893,6 +974,10 @@ BOOL WINAPI ReadConsoleOutputCharacterW( HANDLE hConsoleOutput, LPWSTR buffer, D
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -913,6 +998,7 @@ BOOL WINAPI ReadConsoleOutputAttribute(HANDLE hConsoleOutput, LPWORD lpAttribute
         return FALSE;
     }
 
+#if 0
     *read_count = 0;
 
     SERVER_START_REQ( read_console_output )
@@ -928,6 +1014,10 @@ BOOL WINAPI ReadConsoleOutputAttribute(HANDLE hConsoleOutput, LPWORD lpAttribute
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -963,6 +1053,7 @@ BOOL WINAPI ReadConsoleOutputA( HANDLE hConsoleOutput, LPCHAR_INFO lpBuffer, COO
 BOOL WINAPI ReadConsoleOutputW( HANDLE hConsoleOutput, LPCHAR_INFO lpBuffer, COORD size,
                                 COORD coord, LPSMALL_RECT region )
 {
+#if 0
     int width, height, y;
     BOOL ret = TRUE;
 
@@ -995,6 +1086,10 @@ BOOL WINAPI ReadConsoleOutputW( HANDLE hConsoleOutput, LPCHAR_INFO lpBuffer, COO
     region->Bottom = region->Top + height - 1;
     region->Right = region->Left + width - 1;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -1043,6 +1138,7 @@ BOOL WINAPI PeekConsoleInputA( HANDLE handle, PINPUT_RECORD buffer, DWORD count,
  */
 BOOL WINAPI PeekConsoleInputW( HANDLE handle, PINPUT_RECORD buffer, DWORD count, LPDWORD read )
 {
+#if 0
     BOOL ret;
     SERVER_START_REQ( read_console_input )
     {
@@ -1056,6 +1152,10 @@ BOOL WINAPI PeekConsoleInputW( HANDLE handle, PINPUT_RECORD buffer, DWORD count,
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -1064,6 +1164,7 @@ BOOL WINAPI PeekConsoleInputW( HANDLE handle, PINPUT_RECORD buffer, DWORD count,
  */
 BOOL WINAPI GetNumberOfConsoleInputEvents( HANDLE handle, LPDWORD nrofevents )
 {
+#if 0
     BOOL ret;
     SERVER_START_REQ( read_console_input )
     {
@@ -1082,6 +1183,10 @@ BOOL WINAPI GetNumberOfConsoleInputEvents( HANDLE handle, LPDWORD nrofevents )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -1126,7 +1231,7 @@ static enum read_console_input_return bare_console_fetch_input(HANDLE handle, in
         case 1:
             if (!locked)
             {
-                RtlEnterCriticalSection(&CONSOLE_CritSect);
+                pthread_mutex_lock(&CONSOLE_CritSect);
                 locked = TRUE;
             }
             i = read(fd, &input[idx], 1);
@@ -1182,7 +1287,7 @@ static enum read_console_input_return bare_console_fetch_input(HANDLE handle, in
         default: ret = rci_error; break;
         }
     } while (next_char);
-    if (locked) RtlLeaveCriticalSection(&CONSOLE_CritSect);
+    if (locked) pthread_mutex_unlock(&CONSOLE_CritSect);
 
     return ret;
 }
@@ -1211,6 +1316,7 @@ static enum read_console_input_return read_console_input(HANDLE handle, PINPUT_R
             return rci_timeout;
     }
 
+#if 0
     SERVER_START_REQ( read_console_input )
     {
         req->handle = console_handle_unmap(handle);
@@ -1222,6 +1328,9 @@ static enum read_console_input_return read_console_input(HANDLE handle, PINPUT_R
     SERVER_END_REQ;
 
     return ret;
+#else
+    return rci_error;
+#endif
 }
 
 
@@ -1248,10 +1357,10 @@ BOOL WINAPI SetConsoleTitleA( LPCSTR title )
     BOOL ret;
 
     DWORD len = MultiByteToWideChar( GetConsoleOutputCP(), 0, title, -1, NULL, 0 );
-    if (!(titleW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR)))) return FALSE;
+    if (!(titleW = heap_alloc( len * sizeof(WCHAR)))) return FALSE;
     MultiByteToWideChar( GetConsoleOutputCP(), 0, title, -1, titleW, len );
     ret = SetConsoleTitleW(titleW);
-    HeapFree(GetProcessHeap(), 0, titleW);
+    heap_free(titleW);
     return ret;
 }
 
@@ -1285,10 +1394,10 @@ BOOL WINAPI GetConsoleInputExeNameW(DWORD buflen, LPWSTR buffer)
 {
     TRACE("%u %p\n", buflen, buffer);
 
-    RtlEnterCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_lock(&CONSOLE_CritSect);
     if (buflen > strlenW(input_exe)) strcpyW(buffer, input_exe);
     else SetLastError(ERROR_BUFFER_OVERFLOW);
-    RtlLeaveCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_unlock(&CONSOLE_CritSect);
 
     return TRUE;
 }
@@ -1300,11 +1409,11 @@ BOOL WINAPI GetConsoleInputExeNameA(DWORD buflen, LPSTR buffer)
 {
     TRACE("%u %p\n", buflen, buffer);
 
-    RtlEnterCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_lock(&CONSOLE_CritSect);
     if (WideCharToMultiByte(CP_ACP, 0, input_exe, -1, NULL, 0, NULL, NULL) <= buflen)
         WideCharToMultiByte(CP_ACP, 0, input_exe, -1, buffer, buflen, NULL, NULL);
     else SetLastError(ERROR_BUFFER_OVERFLOW);
-    RtlLeaveCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_unlock(&CONSOLE_CritSect);
 
     return TRUE;
 }
@@ -1316,7 +1425,7 @@ BOOL WINAPI GetConsoleInputExeNameA(DWORD buflen, LPSTR buffer)
  */
 DWORD WINAPI GetConsoleTitleA(LPSTR title, DWORD size)
 {
-    WCHAR *ptr = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * size);
+    WCHAR *ptr = heap_alloc( sizeof(WCHAR) * size);
     DWORD ret;
 
     if (!ptr) return 0;
@@ -1326,7 +1435,7 @@ DWORD WINAPI GetConsoleTitleA(LPSTR title, DWORD size)
         WideCharToMultiByte( GetConsoleOutputCP(), 0, ptr, ret + 1, title, size, NULL, NULL);
         ret = strlen(title);
     }
-    HeapFree(GetProcessHeap(), 0, ptr);
+    heap_free( ptr);
     return ret;
 }
 
@@ -1346,6 +1455,7 @@ DWORD WINAPI GetConsoleTitleW(LPWSTR title, DWORD size)
 {
     DWORD ret = 0;
 
+#if 0
     SERVER_START_REQ( get_console_input_info )
     {
         req->handle = 0;
@@ -1357,6 +1467,9 @@ DWORD WINAPI GetConsoleTitleW(LPWSTR title, DWORD size)
         }
     }
     SERVER_END_REQ;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return ret;
 }
 
@@ -1364,6 +1477,7 @@ static COORD get_largest_console_window_size(HANDLE hConsole)
 {
     COORD c = {0,0};
 
+#if 0
     SERVER_START_REQ(get_console_output_info)
     {
         req->handle = console_handle_unmap(hConsole);
@@ -1374,6 +1488,7 @@ static COORD get_largest_console_window_size(HANDLE hConsole)
         }
     }
     SERVER_END_REQ;
+#endif
     return c;
 }
 
@@ -1418,6 +1533,7 @@ static unsigned S_EditStrPos /* = 0 */;
  */
 BOOL WINAPI FreeConsole(VOID)
 {
+#if 0
     BOOL ret;
 
     /* invalidate local copy of input event handle */
@@ -1429,6 +1545,10 @@ BOOL WINAPI FreeConsole(VOID)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 /******************************************************************
@@ -1571,11 +1691,11 @@ BOOL WINAPI AllocConsole(void)
         handle_in = OpenConsoleW( coninW, GENERIC_READ|GENERIC_WRITE|SYNCHRONIZE,
                                   TRUE, OPEN_EXISTING );
         if (handle_in == INVALID_HANDLE_VALUE) goto the_end;
-  
+
         handle_out = OpenConsoleW( conoutW, GENERIC_READ|GENERIC_WRITE,
                                    TRUE, OPEN_EXISTING );
         if (handle_out == INVALID_HANDLE_VALUE) goto the_end;
-  
+
         if (!DuplicateHandle(GetCurrentProcess(), handle_out, GetCurrentProcess(),
                     &handle_err, 0, TRUE, DUPLICATE_SAME_ACCESS))
             goto the_end;
@@ -1611,7 +1731,7 @@ BOOL WINAPI AllocConsole(void)
 BOOL WINAPI ReadConsoleA(HANDLE hConsoleInput, LPVOID lpBuffer, DWORD nNumberOfCharsToRead,
 			 LPDWORD lpNumberOfCharsRead, LPVOID lpReserved)
 {
-    LPWSTR	ptr = HeapAlloc(GetProcessHeap(), 0, nNumberOfCharsToRead * sizeof(WCHAR));
+    LPWSTR	ptr = heap_alloc( nNumberOfCharsToRead * sizeof(WCHAR));
     DWORD	ncr = 0;
     BOOL	ret;
 
@@ -1626,7 +1746,7 @@ BOOL WINAPI ReadConsoleA(HANDLE hConsoleInput, LPVOID lpBuffer, DWORD nNumberOfC
         ncr = WideCharToMultiByte(GetConsoleCP(), 0, ptr, ncr, lpBuffer, nNumberOfCharsToRead, NULL, NULL);
         if (lpNumberOfCharsRead) *lpNumberOfCharsRead = ncr;
     }
-    HeapFree(GetProcessHeap(), 0, ptr);
+    heap_free( ptr);
 
     return ret;
 }
@@ -1663,7 +1783,7 @@ BOOL WINAPI ReadConsoleW(HANDLE hConsoleInput, LPVOID lpBuffer,
     {
 	if (!S_EditString || S_EditString[S_EditStrPos] == 0)
 	{
-	    HeapFree(GetProcessHeap(), 0, S_EditString);
+	    heap_free( S_EditString);
 	    if (!(S_EditString = CONSOLE_Readline(hConsoleInput, !is_bare)))
 		return FALSE;
 	    S_EditStrPos = 0;
@@ -1686,7 +1806,7 @@ BOOL WINAPI ReadConsoleW(HANDLE hConsoleInput, LPVOID lpBuffer,
 	 * that we should wait for at least one character (not key). --KS
 	 */
 	charsread = 0;
-        do 
+        do
 	{
 	    if (read_console_input(hConsoleInput, &ir, timeout) != rci_gotone) break;
 	    if (ir.EventType == KEY_EVENT && ir.Event.KeyEvent.bKeyDown &&
@@ -1733,7 +1853,7 @@ BOOL WINAPI ReadConsoleInputW(HANDLE hConsoleInput, PINPUT_RECORD lpBuffer,
 
 /******************************************************************************
  * WriteConsoleOutputCharacterW [KERNEL32.@]
- * 
+ *
  * Copy character to consecutive cells in the console screen buffer.
  *
  * PARAMS
@@ -1762,6 +1882,7 @@ BOOL WINAPI WriteConsoleOutputCharacterW( HANDLE hConsoleOutput, LPCWSTR str, DW
         return FALSE;
     }
 
+#if 0
     *lpNumCharsWritten = 0;
 
     SERVER_START_REQ( write_console_output )
@@ -1777,6 +1898,10 @@ BOOL WINAPI WriteConsoleOutputCharacterW( HANDLE hConsoleOutput, LPCWSTR str, DW
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -1795,6 +1920,7 @@ BOOL WINAPI SetConsoleTitleW(LPCWSTR title)
     BOOL ret;
 
     TRACE("(%s)\n", debugstr_w(title));
+#if 0
     SERVER_START_REQ( set_console_input_info )
     {
         req->handle = 0;
@@ -1804,6 +1930,10 @@ BOOL WINAPI SetConsoleTitleW(LPCWSTR title)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -1830,9 +1960,9 @@ BOOL WINAPI SetConsoleInputExeNameW(LPCWSTR name)
         return FALSE;
     }
 
-    RtlEnterCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_lock(&CONSOLE_CritSect);
     if (strlenW(name) < sizeof(input_exe)/sizeof(WCHAR)) strcpyW(input_exe, name);
-    RtlLeaveCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_unlock(&CONSOLE_CritSect);
 
     return TRUE;
 }
@@ -1853,11 +1983,11 @@ BOOL WINAPI SetConsoleInputExeNameA(LPCSTR name)
     }
 
     len = MultiByteToWideChar(CP_ACP, 0, name, -1, NULL, 0);
-    if (!(nameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR)))) return FALSE;
+    if (!(nameW = heap_alloc( len * sizeof(WCHAR)))) return FALSE;
 
     MultiByteToWideChar(CP_ACP, 0, name, -1, nameW, len);
     ret = SetConsoleInputExeNameW(nameW);
-    HeapFree(GetProcessHeap(), 0, nameW);
+    heap_free( nameW);
 
     return ret;
 }
@@ -1903,34 +2033,35 @@ static struct ConsoleHandler*   CONSOLE_Handlers = &CONSOLE_DefaultConsoleHandle
  */
 BOOL WINAPI SetConsoleCtrlHandler(PHANDLER_ROUTINE func, BOOL add)
 {
+#if 0
     BOOL        ret = TRUE;
 
     TRACE("(%p,%i)\n", func, add);
 
     if (!func)
     {
-        RtlEnterCriticalSection(&CONSOLE_CritSect);
+        pthread_mutex_lock(&CONSOLE_CritSect);
         if (add)
             NtCurrentTeb()->Peb->ProcessParameters->ConsoleFlags |= 1;
         else
             NtCurrentTeb()->Peb->ProcessParameters->ConsoleFlags &= ~1;
-        RtlLeaveCriticalSection(&CONSOLE_CritSect);
+        pthread_mutex_unlock(&CONSOLE_CritSect);
     }
     else if (add)
     {
-        struct ConsoleHandler*  ch = HeapAlloc(GetProcessHeap(), 0, sizeof(struct ConsoleHandler));
+        struct ConsoleHandler*  ch = heap_alloc( sizeof(struct ConsoleHandler));
 
         if (!ch) return FALSE;
         ch->handler = func;
-        RtlEnterCriticalSection(&CONSOLE_CritSect);
+        pthread_mutex_lock(&CONSOLE_CritSect);
         ch->next = CONSOLE_Handlers;
         CONSOLE_Handlers = ch;
-        RtlLeaveCriticalSection(&CONSOLE_CritSect);
+        pthread_mutex_unlock(&CONSOLE_CritSect);
     }
     else
     {
         struct ConsoleHandler**  ch;
-        RtlEnterCriticalSection(&CONSOLE_CritSect);
+        pthread_mutex_lock(&CONSOLE_CritSect);
         for (ch = &CONSOLE_Handlers; *ch; ch = &(*ch)->next)
         {
             if ((*ch)->handler == func) break;
@@ -1949,7 +2080,7 @@ BOOL WINAPI SetConsoleCtrlHandler(PHANDLER_ROUTINE func, BOOL add)
             else
             {
                 *ch = rch->next;
-                HeapFree(GetProcessHeap(), 0, rch);
+                heap_free( rch);
             }
         }
         else
@@ -1958,9 +2089,13 @@ BOOL WINAPI SetConsoleCtrlHandler(PHANDLER_ROUTINE func, BOOL add)
             SetLastError(ERROR_INVALID_PARAMETER);
             ret = FALSE;
         }
-        RtlLeaveCriticalSection(&CONSOLE_CritSect);
+        pthread_mutex_unlock(&CONSOLE_CritSect);
     }
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 static LONG WINAPI CONSOLE_CtrlEventHandler(EXCEPTION_POINTERS *eptr)
@@ -1969,6 +2104,7 @@ static LONG WINAPI CONSOLE_CtrlEventHandler(EXCEPTION_POINTERS *eptr)
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+#if 0
 /******************************************************************
  *		CONSOLE_SendEventThread
  *
@@ -1998,14 +2134,15 @@ static DWORD WINAPI CONSOLE_SendEventThread(void* pmt)
         if (caught_by_dbg) return 0;
         /* the debugger didn't continue... so, pass to ctrl handlers */
     }
-    RtlEnterCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_lock(&CONSOLE_CritSect);
     for (ch = CONSOLE_Handlers; ch; ch = ch->next)
     {
         if (ch->handler(event)) break;
     }
-    RtlLeaveCriticalSection(&CONSOLE_CritSect);
+    pthread_mutex_unlock(&CONSOLE_CritSect);
     return 1;
 }
+#endif
 
 /******************************************************************
  *		CONSOLE_HandleCtrlC
@@ -2014,6 +2151,7 @@ static DWORD WINAPI CONSOLE_SendEventThread(void* pmt)
  */
 int     CONSOLE_HandleCtrlC(unsigned sig)
 {
+#if 0
     HANDLE thread;
 
     /* FIXME: better test whether a console is attached to this process ??? */
@@ -2023,14 +2161,14 @@ int     CONSOLE_HandleCtrlC(unsigned sig)
     /* check if we have to ignore ctrl-C events */
     if (!(NtCurrentTeb()->Peb->ProcessParameters->ConsoleFlags & 1))
     {
-        /* Create a separate thread to signal all the events. 
+        /* Create a separate thread to signal all the events.
          * This is needed because:
          *  - this function can be called in an Unix signal handler (hence on an
-         *    different stack than the thread that's running). This breaks the 
+         *    different stack than the thread that's running). This breaks the
          *    Win32 exception mechanisms (where the thread's stack is checked).
          *  - since the current thread, while processing the signal, can hold the
          *    console critical section, we need another execution environment where
-         *    we can wait on this critical section 
+         *    we can wait on this critical section
          */
         thread = CreateThread(NULL, 0, CONSOLE_SendEventThread, (void*)CTRL_C_EVENT, 0, NULL);
         if (thread == NULL)
@@ -2039,6 +2177,9 @@ int     CONSOLE_HandleCtrlC(unsigned sig)
         CloseHandle(thread);
     }
     return 1;
+#else
+    return 0;
+#endif
 }
 
 /******************************************************************************
@@ -2065,6 +2206,7 @@ BOOL WINAPI GenerateConsoleCtrlEvent(DWORD dwCtrlEvent,
 	return FALSE;
     }
 
+#if 0
     SERVER_START_REQ( send_console_signal )
     {
         req->signal = dwCtrlEvent;
@@ -2078,6 +2220,9 @@ BOOL WINAPI GenerateConsoleCtrlEvent(DWORD dwCtrlEvent,
      * As of today, we don't wait...
      */
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -2113,6 +2258,7 @@ HANDLE WINAPI CreateConsoleScreenBuffer(DWORD dwDesiredAccess, DWORD dwShareMode
 	return INVALID_HANDLE_VALUE;
     }
 
+#if 0
     SERVER_START_REQ(create_console_output)
     {
         req->handle_in  = 0;
@@ -2124,7 +2270,10 @@ HANDLE WINAPI CreateConsoleScreenBuffer(DWORD dwDesiredAccess, DWORD dwShareMode
             ret = console_handle_map( wine_server_ptr_handle( reply->handle_out ));
     }
     SERVER_END_REQ;
-
+    
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+#endif
     return ret;
 }
 
@@ -2134,6 +2283,7 @@ HANDLE WINAPI CreateConsoleScreenBuffer(DWORD dwDesiredAccess, DWORD dwShareMode
  */
 BOOL WINAPI GetConsoleScreenBufferInfo(HANDLE hConsoleOutput, LPCONSOLE_SCREEN_BUFFER_INFO csbi)
 {
+#if 0
     BOOL	ret;
 
     SERVER_START_REQ(get_console_output_info)
@@ -2156,7 +2306,7 @@ BOOL WINAPI GetConsoleScreenBufferInfo(HANDLE hConsoleOutput, LPCONSOLE_SCREEN_B
     }
     SERVER_END_REQ;
 
-    TRACE("(%p,(%d,%d) (%d,%d) %d (%d,%d-%d,%d) (%d,%d)\n", 
+    TRACE("(%p,(%d,%d) (%d,%d) %d (%d,%d-%d,%d) (%d,%d)\n",
 	  hConsoleOutput, csbi->dwSize.X, csbi->dwSize.Y,
 	  csbi->dwCursorPosition.X, csbi->dwCursorPosition.Y,
 	  csbi->wAttributes,
@@ -2164,6 +2314,10 @@ BOOL WINAPI GetConsoleScreenBufferInfo(HANDLE hConsoleOutput, LPCONSOLE_SCREEN_B
 	  csbi->dwMaximumWindowSize.X, csbi->dwMaximumWindowSize.Y);
 
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -2180,6 +2334,7 @@ BOOL WINAPI SetConsoleActiveScreenBuffer(HANDLE hConsoleOutput)
 
     TRACE("(%p)\n", hConsoleOutput);
 
+#if 0
     SERVER_START_REQ( set_console_input_info )
     {
         req->handle    = 0;
@@ -2189,6 +2344,10 @@ BOOL WINAPI SetConsoleActiveScreenBuffer(HANDLE hConsoleOutput)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -2197,6 +2356,7 @@ BOOL WINAPI SetConsoleActiveScreenBuffer(HANDLE hConsoleOutput)
  */
 BOOL WINAPI GetConsoleMode(HANDLE hcon, LPDWORD mode)
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( get_console_mode )
@@ -2209,6 +2369,10 @@ BOOL WINAPI GetConsoleMode(HANDLE hcon, LPDWORD mode)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -2232,6 +2396,7 @@ BOOL WINAPI GetConsoleMode(HANDLE hcon, LPDWORD mode)
  */
 BOOL WINAPI SetConsoleMode(HANDLE hcon, DWORD mode)
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ(set_console_mode)
@@ -2248,6 +2413,10 @@ BOOL WINAPI SetConsoleMode(HANDLE hcon, DWORD mode)
     TRACE("(%p,%x) retval == %d\n", hcon, mode, ret);
 
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -2263,6 +2432,7 @@ static int CONSOLE_WriteChars(HANDLE hCon, LPCWSTR lpBuffer, int nc, COORD* pos)
 
     if (!nc) return 0;
 
+#if 0
     SERVER_START_REQ( write_console_output )
     {
         req->handle = console_handle_unmap(hCon);
@@ -2276,6 +2446,7 @@ static int CONSOLE_WriteChars(HANDLE hCon, LPCWSTR lpBuffer, int nc, COORD* pos)
     SERVER_END_REQ;
 
     if (written > 0) pos->X += written;
+#endif
     return written;
 }
 
@@ -2378,6 +2549,7 @@ BOOL WINAPI WriteConsoleW(HANDLE hConsoleOutput, LPCVOID lpBuffer, DWORD nNumber
 	  hConsoleOutput, debugstr_wn(lpBuffer, nNumberOfCharsToWrite),
 	  nNumberOfCharsToWrite, lpNumberOfCharsWritten, lpReserved);
 
+#if 0
     if (lpNumberOfCharsWritten) *lpNumberOfCharsWritten = 0;
 
     if ((fd = get_console_bare_fd(hConsoleOutput)) != -1)
@@ -2393,7 +2565,7 @@ BOOL WINAPI WriteConsoleW(HANDLE hConsoleOutput, LPCVOID lpBuffer, DWORD nNumber
          * to do the job
          */
         len = WideCharToMultiByte(CP_UNIXCP, 0, lpBuffer, nNumberOfCharsToWrite, NULL, 0, NULL, NULL);
-        if ((ptr = HeapAlloc(GetProcessHeap(), 0, len)) == NULL)
+        if ((ptr = heap_alloc( len)) == NULL)
             return FALSE;
 
         WideCharToMultiByte(CP_UNIXCP, 0, lpBuffer, nNumberOfCharsToWrite, ptr, len, NULL, NULL);
@@ -2412,7 +2584,7 @@ BOOL WINAPI WriteConsoleW(HANDLE hConsoleOutput, LPCVOID lpBuffer, DWORD nNumber
             else
                 FIXME("Conversion not supported yet\n");
         }
-        HeapFree(GetProcessHeap(), 0, ptr);
+        heap_free( ptr);
         if (status != STATUS_SUCCESS)
         {
             SetLastError(RtlNtStatusToDosError(status));
@@ -2487,6 +2659,10 @@ BOOL WINAPI WriteConsoleW(HANDLE hConsoleOutput, LPCVOID lpBuffer, DWORD nNumber
     SetConsoleCursorPosition(hConsoleOutput, csbi.dwCursorPosition);
     if (lpNumberOfCharsWritten) *lpNumberOfCharsWritten = nw;
     return nw != 0;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -2503,14 +2679,14 @@ BOOL WINAPI WriteConsoleA(HANDLE hConsoleOutput, LPCVOID lpBuffer, DWORD nNumber
     n = MultiByteToWideChar(GetConsoleOutputCP(), 0, lpBuffer, nNumberOfCharsToWrite, NULL, 0);
 
     if (lpNumberOfCharsWritten) *lpNumberOfCharsWritten = 0;
-    xstring = HeapAlloc(GetProcessHeap(), 0, n * sizeof(WCHAR));
+    xstring = heap_alloc( n * sizeof(WCHAR));
     if (!xstring) return FALSE;
 
     MultiByteToWideChar(GetConsoleOutputCP(), 0, lpBuffer, nNumberOfCharsToWrite, xstring, n);
 
     ret = WriteConsoleW(hConsoleOutput, xstring, n, lpNumberOfCharsWritten, 0);
 
-    HeapFree(GetProcessHeap(), 0, xstring);
+    heap_free( xstring);
 
     return ret;
 }
@@ -2536,6 +2712,7 @@ BOOL WINAPI SetConsoleCursorPosition(HANDLE hcon, COORD pos)
 
     TRACE("%p %d %d\n", hcon, pos.X, pos.Y);
 
+#if 0
     SERVER_START_REQ(set_console_output_info)
     {
         req->handle         = console_handle_unmap(hcon);
@@ -2579,6 +2756,10 @@ BOOL WINAPI SetConsoleCursorPosition(HANDLE hcon, COORD pos)
     ret = (do_move) ? SetConsoleWindowInfo(hcon, TRUE, &csbi.srWindow) : TRUE;
 
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 /******************************************************************************
@@ -2594,6 +2775,7 @@ BOOL WINAPI SetConsoleCursorPosition(HANDLE hcon, COORD pos)
  */
 BOOL WINAPI GetConsoleCursorInfo(HANDLE hCon, LPCONSOLE_CURSOR_INFO cinfo)
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ(get_console_output_info)
@@ -2618,6 +2800,10 @@ BOOL WINAPI GetConsoleCursorInfo(HANDLE hCon, LPCONSOLE_CURSOR_INFO cinfo)
     else TRACE("(%p) returning (%d,%d)\n", hCon, cinfo->dwSize, cinfo->bVisible);
 
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -2636,6 +2822,7 @@ BOOL WINAPI SetConsoleCursorInfo(HANDLE hCon, LPCONSOLE_CURSOR_INFO cinfo)
     BOOL ret;
 
     TRACE("(%p,%d,%d)\n", hCon, cinfo->dwSize, cinfo->bVisible);
+#if 0
     SERVER_START_REQ(set_console_output_info)
     {
         req->handle         = console_handle_unmap(hCon);
@@ -2646,6 +2833,10 @@ BOOL WINAPI SetConsoleCursorInfo(HANDLE hCon, LPCONSOLE_CURSOR_INFO cinfo)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -2667,6 +2858,7 @@ BOOL WINAPI SetConsoleWindowInfo(HANDLE hCon, BOOL bAbsolute, LPSMALL_RECT windo
 
     TRACE("(%p,%d,(%d,%d-%d,%d))\n", hCon, bAbsolute, p.Left, p.Top, p.Right, p.Bottom);
 
+#if 0
     if (!bAbsolute)
     {
 	CONSOLE_SCREEN_BUFFER_INFO	csbi;
@@ -2691,6 +2883,10 @@ BOOL WINAPI SetConsoleWindowInfo(HANDLE hCon, BOOL bAbsolute, LPSMALL_RECT windo
     SERVER_END_REQ;
 
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -2709,6 +2905,7 @@ BOOL WINAPI SetConsoleTextAttribute(HANDLE hConsoleOutput, WORD wAttr)
     BOOL ret;
 
     TRACE("(%p,%d)\n", hConsoleOutput, wAttr);
+#if 0
     SERVER_START_REQ(set_console_output_info)
     {
         req->handle = console_handle_unmap(hConsoleOutput);
@@ -2718,6 +2915,10 @@ BOOL WINAPI SetConsoleTextAttribute(HANDLE hConsoleOutput, WORD wAttr)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -2737,6 +2938,7 @@ BOOL WINAPI SetConsoleScreenBufferSize(HANDLE hConsoleOutput, COORD dwSize)
     BOOL ret;
 
     TRACE("(%p,(%d,%d))\n", hConsoleOutput, dwSize.X, dwSize.Y);
+#if 0
     SERVER_START_REQ(set_console_output_info)
     {
         req->handle = console_handle_unmap(hConsoleOutput);
@@ -2747,6 +2949,10 @@ BOOL WINAPI SetConsoleScreenBufferSize(HANDLE hConsoleOutput, COORD dwSize)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 
@@ -2775,6 +2981,7 @@ BOOL WINAPI ScrollConsoleScreenBufferA(HANDLE hConsoleOutput, LPSMALL_RECT lpScr
  */
 void CONSOLE_FillLineUniform(HANDLE hConsoleOutput, int i, int j, int len, LPCHAR_INFO lpFill)
 {
+#if 0
     SERVER_START_REQ( fill_console_output )
     {
         req->handle    = console_handle_unmap(hConsoleOutput);
@@ -2788,6 +2995,7 @@ void CONSOLE_FillLineUniform(HANDLE hConsoleOutput, int i, int j, int len, LPCHA
         wine_server_call_err( req );
     }
     SERVER_END_REQ;
+#endif
 }
 
 /******************************************************************************
@@ -2856,6 +3064,7 @@ BOOL WINAPI ScrollConsoleScreenBufferW(HANDLE hConsoleOutput, LPSMALL_RECT lpScr
     if (dst.Right  > clip.Right ) dst.Right  = clip.Right;
     if (dst.Bottom > clip.Bottom) dst.Bottom = clip.Bottom;
 
+#if 0
     /* step 3: transfer the bits */
     SERVER_START_REQ(move_console_output)
     {
@@ -2902,6 +3111,9 @@ BOOL WINAPI ScrollConsoleScreenBufferW(HANDLE hConsoleOutput, LPSMALL_RECT lpScr
     }
 
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 /******************************************************************
@@ -2957,6 +3169,7 @@ int CONSOLE_GetHistory(int idx, WCHAR* buf, int buf_len)
 {
     int len = 0;
 
+#if 0
     SERVER_START_REQ( get_console_input_history )
     {
         req->handle = 0;
@@ -2972,6 +3185,9 @@ int CONSOLE_GetHistory(int idx, WCHAR* buf, int buf_len)
         }
     }
     SERVER_END_REQ;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+#endif
     return len;
 }
 
@@ -2988,6 +3204,7 @@ BOOL	CONSOLE_AppendHistory(const WCHAR* ptr)
     while (len && (ptr[len - 1] == '\n' || ptr[len - 1] == '\r')) len--;
     if (!len) return FALSE;
 
+#if 0
     SERVER_START_REQ( append_console_input_history )
     {
         req->handle = 0;
@@ -2996,6 +3213,9 @@ BOOL	CONSOLE_AppendHistory(const WCHAR* ptr)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 /******************************************************************
@@ -3006,12 +3226,14 @@ BOOL	CONSOLE_AppendHistory(const WCHAR* ptr)
 unsigned CONSOLE_GetNumHistoryEntries(void)
 {
     unsigned ret = -1;
+#if 0
     SERVER_START_REQ(get_console_input_info)
     {
         req->handle = 0;
         if (!wine_server_call_err( req )) ret = reply->history_index;
     }
     SERVER_END_REQ;
+#endif
     return ret;
 }
 
@@ -3023,6 +3245,7 @@ unsigned CONSOLE_GetNumHistoryEntries(void)
 BOOL CONSOLE_GetEditionMode(HANDLE hConIn, int* mode)
 {
     unsigned ret = 0;
+#if 0
     SERVER_START_REQ(get_console_input_info)
     {
         req->handle = console_handle_unmap(hConIn);
@@ -3030,6 +3253,7 @@ BOOL CONSOLE_GetEditionMode(HANDLE hConIn, int* mode)
             *mode = reply->edition_mode;
     }
     SERVER_END_REQ;
+#endif
     return ret;
 }
 
@@ -3067,6 +3291,7 @@ DWORD WINAPI GetConsoleProcessList(LPDWORD processlist, DWORD processcount)
 
 BOOL CONSOLE_Init(RTL_USER_PROCESS_PARAMETERS *params)
 {
+#if 0
     memset(&S_termios, 0, sizeof(S_termios));
     if (params->ConsoleHandle == KERNEL32_CONSOLE_SHELL)
     {
@@ -3149,6 +3374,9 @@ BOOL CONSOLE_Init(RTL_USER_PROCESS_PARAMETERS *params)
         params->hStdError = console_handle_map(params->hStdError);
 
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 BOOL CONSOLE_Exit(void)
@@ -3277,6 +3505,7 @@ BOOL WINAPI SetConsoleKeyShortcuts(BOOL set, BYTE keys, VOID *a, DWORD b)
 
 BOOL WINAPI GetCurrentConsoleFont(HANDLE hConsole, BOOL maxwindow, LPCONSOLE_FONT_INFO fontinfo)
 {
+#if 0
     BOOL ret;
 
     memset(fontinfo, 0, sizeof(CONSOLE_FONT_INFO));
@@ -3300,6 +3529,10 @@ BOOL WINAPI GetCurrentConsoleFont(HANDLE hConsole, BOOL maxwindow, LPCONSOLE_FON
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 static COORD get_console_font_size(HANDLE hConsole, DWORD index)
@@ -3312,6 +3545,7 @@ static COORD get_console_font_size(HANDLE hConsole, DWORD index)
         return c;
     }
 
+#if 0
     SERVER_START_REQ(get_console_output_info)
     {
         req->handle = console_handle_unmap(hConsole);
@@ -3322,6 +3556,7 @@ static COORD get_console_font_size(HANDLE hConsole, DWORD index)
         }
     }
     SERVER_END_REQ;
+#endif
     return c;
 }
 
@@ -3364,6 +3599,7 @@ BOOL WINAPI GetConsoleScreenBufferInfoEx(HANDLE hConsole, CONSOLE_SCREEN_BUFFER_
         return FALSE;
     }
 
+#if 0
     SERVER_START_REQ(get_console_output_info)
     {
         req->handle = console_handle_unmap(hConsole);
@@ -3388,6 +3624,10 @@ BOOL WINAPI GetConsoleScreenBufferInfoEx(HANDLE hConsole, CONSOLE_SCREEN_BUFFER_
     SERVER_END_REQ;
 
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+#endif
 }
 
 BOOL WINAPI SetConsoleScreenBufferInfoEx(HANDLE hConsole, CONSOLE_SCREEN_BUFFER_INFOEX *csbix)

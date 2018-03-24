@@ -1511,7 +1511,7 @@ static void test_CreatePipe(void)
 
     /* Try bigger chunks */
     size = 32768;
-    buffer = HeapAlloc( GetProcessHeap(), 0, size );
+    buffer = heap_alloc( size );
     for (i = 0; i < size; i++) buffer[i] = i;
     ok(CreatePipe(&piperead, &pipewrite, &pipe_attr, (size + 24)) != 0, "CreatePipe failed\n");
     ok(WriteFile(pipewrite, buffer, size, &written, NULL), "Write to anonymous pipe failed\n");
@@ -1525,7 +1525,7 @@ static void test_CreatePipe(void)
     /* But now we need to get informed that the pipe is closed */
     ok(ReadFile(piperead,readbuf,sizeof(readbuf),&read, NULL) == 0, "Broken pipe not detected\n");
     ok(CloseHandle(piperead), "CloseHandle for the read pipe failed\n");
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 
     ok(user_apc_ran == FALSE, "user apc ran, pipe using alertable io mode\n");
     SleepEx(0, TRUE); /* get rid of apc */
@@ -1804,7 +1804,7 @@ static DWORD CALLBACK named_pipe_client_func(LPVOID p)
 
         ret = GetTokenInformation(process_token, TokenPrivileges, NULL, 0, &Size);
         ok(!ret && GetLastError() == ERROR_INSUFFICIENT_BUFFER, "GetTokenInformation(TokenPrivileges) failed with %d\n", GetLastError());
-        Privileges = HeapAlloc(GetProcessHeap(), 0, Size);
+        Privileges = heap_alloc(Size);
         ret = GetTokenInformation(process_token, TokenPrivileges, Privileges, Size, &Size);
         ok(ret, "GetTokenInformation(TokenPrivileges) failed with %d\n", GetLastError());
 
@@ -1846,7 +1846,7 @@ static DWORD CALLBACK named_pipe_client_func(LPVOID p)
         ret = AdjustTokenPrivileges(process_token, FALSE, Privileges, 0, NULL, NULL);
         ok(ret, "AdjustTokenPrivileges failed with error %d\n", GetLastError());
 
-        HeapFree(GetProcessHeap(), 0, Privileges);
+        heap_free(Privileges);
 
         CloseHandle(process_token);
     }
@@ -1976,11 +1976,11 @@ static BOOL are_all_privileges_disabled(HANDLE hToken)
     ret = GetTokenInformation(hToken, TokenPrivileges, NULL, 0, &Size);
     if (!ret && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
     {
-        Privileges = HeapAlloc(GetProcessHeap(), 0, Size);
+        Privileges = heap_alloc(Size);
         ret = GetTokenInformation(hToken, TokenPrivileges, Privileges, Size, &Size);
         if (!ret)
         {
-            HeapFree(GetProcessHeap(), 0, Privileges);
+            heap_free(Privileges);
             return FALSE;
         }
     }
@@ -1996,7 +1996,7 @@ static BOOL are_all_privileges_disabled(HANDLE hToken)
         }
     }
 
-    HeapFree(GetProcessHeap(), 0, Privileges);
+    heap_free(Privileges);
 
     return all_privs_disabled;
 }

@@ -485,11 +485,11 @@ INT16 WINAPI OpenComm16(LPCSTR device,UINT16 cbInQueue,UINT16 cbOutQueue)
 			COM[port].obuf_size = cbOutQueue;
 			COM[port].obuf_head = COM[port].obuf_tail = 0;
 
-			COM[port].inbuf = HeapAlloc(GetProcessHeap(), 0, cbInQueue);
+			COM[port].inbuf = heap_alloc(cbInQueue);
 			if (COM[port].inbuf) {
-			  COM[port].outbuf = HeapAlloc( GetProcessHeap(), 0, cbOutQueue);
+			  COM[port].outbuf = heap_alloc( cbOutQueue);
 			  if (!COM[port].outbuf)
-			    HeapFree( GetProcessHeap(), 0, COM[port].inbuf);
+			    heap_free( COM[port].inbuf);
 			} else COM[port].outbuf = NULL;
 			if (!COM[port].outbuf) {
 			  /* not enough memory */
@@ -546,8 +546,8 @@ INT16 WINAPI CloseComm16(INT16 cid)
 		CancelIo(ptr->handle);
 
 		/* free buffers */
-		HeapFree( GetProcessHeap(), 0, ptr->outbuf);
-		HeapFree( GetProcessHeap(), 0, ptr->inbuf);
+		heap_free( ptr->outbuf);
+		heap_free( ptr->inbuf);
 
 		/* reset modem lines */
 		SetCommState16(&COM[cid].dcb);

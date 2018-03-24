@@ -125,7 +125,7 @@ void NetBIOSShutdown(void)
     LeaveCriticalSection(&gNBTable.cs);
     gNBTable.cs.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection(&gNBTable.cs);
-    HeapFree(GetProcessHeap(), 0, gNBTable.table);
+    heap_free(gNBTable.table);
 }
 
 BOOL NetBIOSRegisterTransport(ULONG id, NetBIOSTransport *transport)

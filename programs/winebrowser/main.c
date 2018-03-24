@@ -64,7 +64,7 @@ static char *strdup_unixcp( const WCHAR *str )
 {
     char *ret;
     int len = WideCharToMultiByte( CP_UNIXCP, 0, str, -1, NULL, 0, NULL, NULL );
-    if ((ret = HeapAlloc( GetProcessHeap(), 0, len )))
+    if ((ret = heap_alloc( len )))
         WideCharToMultiByte( CP_UNIXCP, 0, str, -1, ret, len, NULL, NULL );
     return ret;
 }
@@ -82,7 +82,7 @@ static int launch_app( const WCHAR *candidates, const WCHAR *argv1 )
     {
         WCHAR **args = CommandLineToArgvW( candidates, &count );
 
-        if (!(argv_new = HeapAlloc( GetProcessHeap(), 0, (count + 2) * sizeof(*argv_new) ))) break;
+        if (!(argv_new = heap_alloc( (count + 2) * sizeof(*argv_new) ))) break;
         for (i = 0; i < count; i++) argv_new[i] = strdup_unixcp( args[i] );
         argv_new[count] = cmdline;
         argv_new[count + 1] = NULL;
@@ -92,13 +92,13 @@ static int launch_app( const WCHAR *candidates, const WCHAR *argv1 )
         TRACE( "\n" );
 
         _spawnvp( _P_OVERLAY, argv_new[0], (const char **)argv_new );  /* only returns on error */
-        for (i = 0; i < count; i++) HeapFree( GetProcessHeap(), 0, argv_new[i] );
-        HeapFree( GetProcessHeap(), 0, argv_new );
+        for (i = 0; i < count; i++) heap_free( argv_new[i] );
+        heap_free( argv_new );
         candidates += strlenW( candidates ) + 1;  /* grab the next app */
     }
     WINE_ERR( "could not find a suitable app to open %s\n", debugstr_w( argv1 ));
 
-    HeapFree( GetProcessHeap(), 0, cmdline );
+    heap_free( cmdline );
     return 1;
 }
 
@@ -212,7 +212,7 @@ static HDDEDATA CALLBACK ddeCb(UINT uType, UINT uFmt, HCONV hConv,
         case XTYP_EXECUTE:
             if (!(size = DdeGetData(hData, NULL, 0, 0)))
                 WINE_ERR("DdeGetData returned zero size of execute string\n");
-            else if (!(ddeString = HeapAlloc(GetProcessHeap(), 0, size)))
+            else if (!(ddeString = heap_alloc(size)))
                 WINE_ERR("Out of memory\n");
             else if (DdeGetData(hData, (LPBYTE)ddeString, size, 0) != size)
                 WINE_WARN("DdeGetData did not return %d bytes\n", size);
@@ -223,7 +223,7 @@ static HDDEDATA CALLBACK ddeCb(UINT uType, UINT uFmt, HCONV hConv,
             ret = -3; /* error */
             if (!(size = DdeQueryStringW(ddeInst, hsz2, NULL, 0, CP_WINUNICODE)))
                 WINE_ERR("DdeQueryString returned zero size of request string\n");
-            else if (!(ddeString = HeapAlloc(GetProcessHeap(), 0, (size + 1) * sizeof(WCHAR))))
+            else if (!(ddeString = heap_alloc((size + 1) * sizeof(WCHAR))))
                 WINE_ERR("Out of memory\n");
             else if (DdeQueryStringW(ddeInst, hsz2, ddeString, size + 1, CP_WINUNICODE) != size)
                 WINE_WARN("DdeQueryString did not return %d characters\n", size);
@@ -350,7 +350,7 @@ static WCHAR *encode_unix_path(const char *src)
         tmp_src++;
     }
 
-    dst = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+    dst = heap_alloc(len*sizeof(WCHAR));
 
     if (!dst)
         return NULL;
@@ -409,10 +409,10 @@ static WCHAR *convert_file_uri(IUri *uri)
     if(unixpath && stat(unixpath, &dummy) >= 0) {
         WINE_TRACE("Unix path: %s\n", wine_dbgstr_a(unixpath));
         new_path = encode_unix_path(unixpath);
-        HeapFree(GetProcessHeap(), 0, unixpath);
+        heap_free(unixpath);
     }else {
         WINE_WARN("File %s does not exist\n", wine_dbgstr_a(unixpath));
-        HeapFree(GetProcessHeap(), 0, unixpath);
+        heap_free(unixpath);
         new_path = NULL;
     }
 
@@ -450,11 +450,11 @@ int wmain(int argc, WCHAR *argv[])
     if(FAILED(hres)) {
         WINE_ERR("Failed to parse URL\n");
         ret = open_http_url(url);
-        HeapFree(GetProcessHeap(), 0, ddeString);
+        heap_free(ddeString);
         return ret;
     }
 
-    HeapFree(GetProcessHeap(), 0, ddeString);
+    heap_free(ddeString);
     IUri_GetScheme(uri, &scheme);
 
     if(scheme == URL_SCHEME_FILE) {

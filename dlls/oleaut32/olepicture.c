@@ -62,6 +62,7 @@
 #include "initguid.h"
 #include "wincodec.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/library.h"
 
@@ -285,7 +286,7 @@ static OLEPictureImpl* OLEPictureImpl_Construct(LPPICTDESC pictDesc, BOOL fOwn)
   /*
    * Allocate space for the object.
    */
-  newObject = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(OLEPictureImpl));
+  newObject = heap_alloc_zero(sizeof(OLEPictureImpl));
 
   if (newObject==0)
     return newObject;
@@ -303,7 +304,7 @@ static OLEPictureImpl* OLEPictureImpl_Construct(LPPICTDESC pictDesc, BOOL fOwn)
                         &newObject->pCP);
   if (!newObject->pCP)
   {
-    HeapFree(GetProcessHeap(), 0, newObject);
+    heap_free(newObject);
     return NULL;
   }
 
@@ -399,8 +400,8 @@ static void OLEPictureImpl_Destroy(OLEPictureImpl* Obj)
       break;
     }
   }
-  HeapFree(GetProcessHeap(), 0, Obj->data);
-  HeapFree(GetProcessHeap(), 0, Obj);
+  heap_free(Obj->data);
+  heap_free(Obj);
 }
 
 
@@ -1056,7 +1057,7 @@ static HRESULT OLEPictureImpl_LoadWICSource(OLEPictureImpl *This, IWICBitmapSour
     stride = 4 * width;
     buffersize = stride * height;
 
-    bits = HeapAlloc(GetProcessHeap(), 0, buffersize);
+    bits = heap_alloc(buffersize);
     if (!bits)
     {
         hr = E_OUTOFMEMORY;
@@ -1143,7 +1144,7 @@ static HRESULT OLEPictureImpl_LoadWICSource(OLEPictureImpl *This, IWICBitmapSour
     ReleaseDC(0, hdcref);
 
 end:
-    HeapFree(GetProcessHeap(), 0, bits);
+    heap_free(bits);
     IWICBitmapSource_Release(real_source);
     return hr;
 }
@@ -1254,7 +1255,7 @@ static HRESULT OLEPictureImpl_LoadIcon(OLEPictureImpl *This, BYTE *xbuf, ULONG x
     }
     if (cifd->idType == 2)
     {
-        LPBYTE buf = HeapAlloc(GetProcessHeap(), 0, cifd->idEntries[i].dwDIBSize + 4);
+        LPBYTE buf = heap_alloc(cifd->idEntries[i].dwDIBSize + 4);
         memcpy(buf, &cifd->idEntries[i].xHotspot, 4);
         memcpy(buf + 4, xbuf+cifd->idEntries[i].dwDIBOffset, cifd->idEntries[i].dwDIBSize);
         hicon = CreateIconFromResourceEx(
@@ -1266,7 +1267,7 @@ static HRESULT OLEPictureImpl_LoadIcon(OLEPictureImpl *This, BYTE *xbuf, ULONG x
 		    cifd->idEntries[i].bHeight,
 		    0
 	);
-	HeapFree(GetProcessHeap(), 0, buf);
+	heap_free(buf);
     }
     else
     {
@@ -1369,6 +1370,7 @@ static HRESULT WINAPI OLEPictureImpl_Load(IPersistStream* iface, IStream *pStm) 
   
   TRACE("(%p,%p)\n",This,pStm);
 
+#if 0
   /****************************************************************************************
    * Part 1: Load the data
    */
@@ -1444,7 +1446,7 @@ static HRESULT WINAPI OLEPictureImpl_Load(IPersistStream* iface, IStream *pStm) 
       ULONG nread = 42;
 
       TRACE("Reading all data from stream.\n");
-      xbuf = HeapAlloc (GetProcessHeap(), HEAP_ZERO_MEMORY, origsize);
+      xbuf = heap_alloc_zero(rigsize);
       if (headerisdata)
           memcpy (xbuf, header, 8);
       while (1) {
@@ -1469,7 +1471,7 @@ static HRESULT WINAPI OLEPictureImpl_Load(IPersistStream* iface, IStream *pStm) 
       This->data    = xbuf;
   } else {
       This->datalen = toread+(headerisdata?8:0);
-      xbuf = This->data = HeapAlloc (GetProcessHeap(), HEAP_ZERO_MEMORY, This->datalen);
+      xbuf = This->data = heap_alloc_zero(This->datalen);
       if (!xbuf)
           return E_OUTOFMEMORY;
 
@@ -1544,6 +1546,9 @@ static HRESULT WINAPI OLEPictureImpl_Load(IPersistStream* iface, IStream *pStm) 
   if (hr==S_OK)
       OLEPicture_SendNotify(This,DISPID_PICT_TYPE);
   return hr;
+#else
+  return E_NOTIMPL;
+#endif
 }
 
 static BOOL serializeBMP(HBITMAP hBitmap, void ** ppBuffer, unsigned int * pLength)
@@ -1556,8 +1561,7 @@ static BOOL serializeBMP(HBITMAP hBitmap, void ** ppBuffer, unsigned int * pLeng
     BITMAPFILEHEADER * pFileHeader;
     BITMAPINFO * pInfoHeader;
 
-    pInfoBitmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-        sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
+    pInfoBitmap = heap_alloc_zero(sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
 
     /* Find out bitmap size and padded length */
     hDC = GetDC(0);
@@ -1566,7 +1570,7 @@ static BOOL serializeBMP(HBITMAP hBitmap, void ** ppBuffer, unsigned int * pLeng
 
     /* Fetch bitmap palette & pixel data */
 
-    pPixelData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, pInfoBitmap->bmiHeader.biSizeImage);
+    pPixelData = heap_alloc_zero(pInfoBitmap->bmiHeader.biSizeImage);
     GetDIBits(hDC, hBitmap, 0, pInfoBitmap->bmiHeader.biHeight, pPixelData, pInfoBitmap, DIB_RGB_COLORS);
 
     /* Calculate the total length required for the BMP data */
@@ -1584,7 +1588,7 @@ static BOOL serializeBMP(HBITMAP hBitmap, void ** ppBuffer, unsigned int * pLeng
         sizeof(BITMAPINFOHEADER) +
         iNumPaletteEntries * sizeof(RGBQUAD) +
         pInfoBitmap->bmiHeader.biSizeImage;
-    *ppBuffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, *pLength);
+    *ppBuffer = heap_alloc_zero(*pLength);
 
     /* Fill the BITMAPFILEHEADER */
     pFileHeader = *ppBuffer;
@@ -1606,8 +1610,8 @@ static BOOL serializeBMP(HBITMAP hBitmap, void ** ppBuffer, unsigned int * pLeng
         pPixelData, pInfoBitmap->bmiHeader.biSizeImage);
     success = TRUE;
 
-    HeapFree(GetProcessHeap(), 0, pPixelData);
-    HeapFree(GetProcessHeap(), 0, pInfoBitmap);
+    heap_free(pPixelData);
+    heap_free(pInfoBitmap);
     return success;
 }
 
@@ -1623,7 +1627,7 @@ static BOOL serializeIcon(HICON hIcon, void ** ppBuffer, unsigned int * pLength)
 		unsigned char * pIconData = NULL;
 		unsigned int iDataSize = 0;
 
-        pInfoBitmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
+        pInfoBitmap = heap_alloc_zero(sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
 
 		/* Find out icon size */
 		hDC = GetDC(0);
@@ -1655,7 +1659,7 @@ static BOOL serializeIcon(HICON hIcon, void ** ppBuffer, unsigned int * pLength)
 */
 			/* Let's start with one CURSORICONFILEDIR and one CURSORICONFILEDIRENTRY */
 			iDataSize += 3 * sizeof(WORD) + sizeof(CURSORICONFILEDIRENTRY) + sizeof(BITMAPINFOHEADER);
-			pIconData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, iDataSize);
+			pIconData = heap_alloc_zero(iDataSize);
 
 			/* Fill out the CURSORICONFILEDIR */
 			pIconDir = (CURSORICONFILEDIR *)pIconData;
@@ -1704,7 +1708,7 @@ static BOOL serializeIcon(HICON hIcon, void ** ppBuffer, unsigned int * pLength)
 			iDataSize += pIconBitmapHeader->biHeight * iLengthScanLineMask;
 			pIconBitmapHeader->biSizeImage += pIconBitmapHeader->biHeight * iLengthScanLineMask;
 			pIconBitmapHeader->biHeight *= 2;
-			pIconData = HeapReAlloc(GetProcessHeap(), 0, pIconData, iDataSize);
+			pIconData = heap_realloc(pIconData, iDataSize);
 			pIconEntry = (CURSORICONFILEDIRENTRY *)(pIconData + 3 * sizeof(WORD));
 			pIconBitmapHeader = (BITMAPINFOHEADER *)(pIconData + 3 * sizeof(WORD) + sizeof(CURSORICONFILEDIRENTRY));
 			pIconEntry->dwDIBSize = iDataSize - (3 * sizeof(WORD) + sizeof(CURSORICONFILEDIRENTRY));
@@ -1754,7 +1758,7 @@ static BOOL serializeIcon(HICON hIcon, void ** ppBuffer, unsigned int * pLength)
 		if (hDC) ReleaseDC(0, hDC);
 		DeleteObject(infoIcon.hbmMask);
 		if (infoIcon.hbmColor) DeleteObject(infoIcon.hbmColor);
-		HeapFree(GetProcessHeap(), 0, pInfoBitmap);
+		heap_free(pInfoBitmap);
 	} else {
 		printf("ERROR: Unable to get icon information (error %u)\n",
 			GetLastError());
@@ -1789,7 +1793,7 @@ static HRESULT WINAPI OLEPictureImpl_Save(
                 hResult = E_FAIL;
                 break;
             }
-            HeapFree(GetProcessHeap(), 0, This->data);
+            heap_free(This->data);
             This->data = pIconData;
             This->datalen = iDataSize;
         }
@@ -1826,7 +1830,7 @@ static HRESULT WINAPI OLEPictureImpl_Save(
                 break;
             }
 
-            HeapFree(GetProcessHeap(), 0, This->data);
+            heap_free(This->data);
             This->data = pIconData;
             This->datalen = iDataSize;
         }
@@ -2363,6 +2367,7 @@ HRESULT WINAPI OleLoadPicturePath( LPOLESTR szURLorPath, LPUNKNOWN punkCaller,
 
   *ppvRet = NULL;
 
+#if 0
   /* Convert file URLs to DOS paths. */
   if (strncmpW(szURLorPath, file, 5) == 0) {
       DWORD size;
@@ -2454,6 +2459,9 @@ HRESULT WINAPI OleLoadPicturePath( LPOLESTR szURLorPath, LPUNKNOWN punkCaller,
       CoUninitialize();
 
   return hRes;
+#else
+  return E_NOTIMPL;
+#endif
 }
 
 /*******************************************************************************

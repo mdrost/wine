@@ -26,6 +26,7 @@
 #include "rpcndr.h"
 #include "winternl.h"
 
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -67,7 +68,7 @@ static RPC_STATUS RpcAssoc_Alloc(LPCSTR Protseq, LPCSTR NetworkAddr,
                                  RpcAssoc **assoc_out)
 {
     RpcAssoc *assoc;
-    assoc = HeapAlloc(GetProcessHeap(), 0, sizeof(*assoc));
+    assoc = heap_alloc(sizeof(*assoc));
     if (!assoc)
         return RPC_S_OUT_OF_RESOURCES;
     assoc->refs = 1;
@@ -210,15 +211,15 @@ ULONG RpcAssoc_Release(RpcAssoc *assoc)
         LIST_FOR_EACH_ENTRY_SAFE(context_handle, context_handle_cursor, &assoc->context_handle_list, RpcContextHandle, entry)
             RpcContextHandle_Destroy(context_handle);
 
-        HeapFree(GetProcessHeap(), 0, assoc->NetworkOptions);
-        HeapFree(GetProcessHeap(), 0, assoc->Endpoint);
-        HeapFree(GetProcessHeap(), 0, assoc->NetworkAddr);
-        HeapFree(GetProcessHeap(), 0, assoc->Protseq);
+        heap_free(assoc->NetworkOptions);
+        heap_free(assoc->Endpoint);
+        heap_free(assoc->NetworkAddr);
+        heap_free(assoc->Protseq);
 
         assoc->cs.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&assoc->cs);
 
-        HeapFree(GetProcessHeap(), 0, assoc);
+        heap_free(assoc);
     }
 
     return refs;
@@ -357,7 +358,7 @@ static RPC_STATUS RpcAssoc_BindConnection(const RpcAssoc *assoc, RpcConnection *
 
     I_RpcFree(msg.Buffer);
     RPCRT4_FreeHeader(response_hdr);
-    HeapFree(GetProcessHeap(), 0, auth_data);
+    heap_free(auth_data);
     return status;
 }
 
@@ -442,7 +443,7 @@ RPC_STATUS RpcServerAssoc_AllocateContextHandle(RpcAssoc *assoc, void *CtxGuard,
 {
     RpcContextHandle *context_handle;
 
-    context_handle = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*context_handle));
+    context_handle = heap_alloc_zero(sizeof(*context_handle));
     if (!context_handle)
         return RPC_S_OUT_OF_MEMORY;
 
@@ -541,7 +542,7 @@ static void RpcContextHandle_Destroy(RpcContextHandle *context_handle)
 
     RtlDeleteResource(&context_handle->rw_lock);
 
-    HeapFree(GetProcessHeap(), 0, context_handle);
+    heap_free(context_handle);
 }
 
 unsigned int RpcServerAssoc_ReleaseContextHandle(RpcAssoc *assoc, NDR_SCONTEXT SContext, BOOL release_lock)

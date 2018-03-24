@@ -367,7 +367,7 @@ static int CALLBACK font_enum_size(const LOGFONTW* lf, const TEXTMETRICW* tm,
         int i;
 
         di->nFont = sizeof(sizes) / sizeof(sizes[0]);
-        di->font = HeapAlloc(GetProcessHeap(), 0, di->nFont * sizeof(di->font[0]));
+        di->font = heap_alloc(di->nFont * sizeof(di->font[0]));
         for (i = 0; i < di->nFont; i++)
         {
             /* drop sizes where window size wouldn't fit on screen */
@@ -410,12 +410,12 @@ static int CALLBACK font_enum_size(const LOGFONTW* lf, const TEXTMETRICW* tm,
             /* now grow our arrays and insert the values at the same index than in the list box */
             if (di->nFont)
             {
-                di->font = HeapReAlloc(GetProcessHeap(), 0, di->font, sizeof(*di->font) * (di->nFont + 1));
+                di->font = heap_realloc(di->font, sizeof(*di->font) * (di->nFont + 1));
                 if (idx != di->nFont)
                     memmove(&di->font[idx + 1], &di->font[idx], (di->nFont - idx) * sizeof(*di->font));
             }
             else
-                di->font = HeapAlloc(GetProcessHeap(), 0, sizeof(*di->font));
+                di->font = heap_alloc(sizeof(*di->font));
             di->font[idx].height = tm->tmHeight;
             di->font[idx].weight = tm->tmWeight;
             lstrcpyW(di->font[idx].faceName, lf->lfFaceName);
@@ -485,7 +485,7 @@ static BOOL  fill_list_size(struct dialog_info* di, BOOL doInit)
 
     SendDlgItemMessageW(di->hDlg, IDC_FNT_LIST_FONT, LB_GETTEXT, idx, (LPARAM)lfFaceName);
     SendDlgItemMessageW(di->hDlg, IDC_FNT_LIST_SIZE, LB_RESETCONTENT, 0, 0);
-    HeapFree(GetProcessHeap(), 0, di->font);
+    heap_free(di->font);
     di->nFont = 0;
     di->font = NULL;
 

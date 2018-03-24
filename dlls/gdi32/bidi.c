@@ -49,6 +49,7 @@
 #include "wingdi.h"
 #include "winnls.h"
 #include "usp10.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 #include "gdi_private.h"
@@ -302,7 +303,7 @@ static void BidiLines(int baselevel, LPWSTR pszOutLine, LPCWSTR pszLine, const W
     int done = 0;
     int *run;
 
-    run = HeapAlloc(GetProcessHeap(), 0, cchPara * sizeof(int));
+    run = heap_alloc(cchPara * sizeof(int));
     if (!run)
     {
         WARN("Out of memory\n");
@@ -335,7 +336,7 @@ static void BidiLines(int baselevel, LPWSTR pszOutLine, LPCWSTR pszLine, const W
 
     } while (cchPara);
 
-    HeapFree(GetProcessHeap(), 0, run);
+    heap_free(run);
 }
 
 /*************************************************************
@@ -352,7 +353,11 @@ BOOL BIDI_Reorder(
                 LPWSTR lpOutString, /* [out] Reordered string */
                 INT uCountOut,  /* [in] Size of output buffer */
                 UINT *lpOrder, /* [out] Logical -> Visual order map */
+#if 0
                 WORD **lpGlyphs, /* [out] reordered, mirrored, shaped glyphs to display */
+#else
+                DWORD **lpGlyphs, /* [out] reordered, mirrored, shaped glyphs to display */
+#endif
                 INT *cGlyphs /* [out] number of glyphs generated */
     )
 {
@@ -369,7 +374,11 @@ BOOL BIDI_Reorder(
     SCRIPT_ITEM *pItems;
     HRESULT res;
     SCRIPT_CACHE psc = NULL;
+#if 0
     WORD *run_glyphs = NULL;
+#else
+    DWORD *run_glyphs = NULL;
+#endif
     WORD *pwLogClust = NULL;
     SCRIPT_VISATTR *psva = NULL;
     DWORD cMaxGlyphs = 0;
@@ -396,7 +405,7 @@ BOOL BIDI_Reorder(
         return FALSE;
     }
 
-    chartype = HeapAlloc(GetProcessHeap(), 0, uCount * sizeof(WORD));
+    chartype = heap_alloc(uCount * sizeof(WORD));
     if (!chartype)
     {
         WARN("Out of memory\n");
@@ -435,7 +444,7 @@ BOOL BIDI_Reorder(
             }
         if (done)
         {
-            HeapFree(GetProcessHeap(), 0, chartype);
+            heap_free(chartype);
             if (lpOrder)
             {
                 for (i = 0; i < uCount; i++)
@@ -445,55 +454,55 @@ BOOL BIDI_Reorder(
         }
     }
 
-    levels = HeapAlloc(GetProcessHeap(), 0, uCount * sizeof(BYTE));
+    levels = heap_alloc(uCount * sizeof(BYTE));
     if (!levels)
     {
         WARN("Out of memory\n");
-        HeapFree(GetProcessHeap(), 0, chartype);
+        heap_free(chartype);
         return FALSE;
     }
 
     maxItems = 5;
-    pItems = HeapAlloc(GetProcessHeap(),0, maxItems * sizeof(SCRIPT_ITEM));
+    pItems = heap_alloc(maxItems * sizeof(SCRIPT_ITEM));
     if (!pItems)
     {
         WARN("Out of memory\n");
-        HeapFree(GetProcessHeap(), 0, chartype);
-        HeapFree(GetProcessHeap(), 0, levels);
+        heap_free(chartype);
+        heap_free(levels);
         return FALSE;
     }
 
     if (lpGlyphs)
     {
         cMaxGlyphs = 1.5 * uCount + 16;
-        run_glyphs = HeapAlloc(GetProcessHeap(),0,sizeof(WORD) * cMaxGlyphs);
+        run_glyphs = heap_alloc(sizeof(WORD) * cMaxGlyphs);
         if (!run_glyphs)
         {
             WARN("Out of memory\n");
-            HeapFree(GetProcessHeap(), 0, chartype);
-            HeapFree(GetProcessHeap(), 0, levels);
-            HeapFree(GetProcessHeap(), 0, pItems);
+            heap_free(chartype);
+            heap_free(levels);
+            heap_free(pItems);
             return FALSE;
         }
-        pwLogClust = HeapAlloc(GetProcessHeap(),0,sizeof(WORD) * uCount);
+        pwLogClust = heap_alloc(sizeof(WORD) * uCount);
         if (!pwLogClust)
         {
             WARN("Out of memory\n");
-            HeapFree(GetProcessHeap(), 0, chartype);
-            HeapFree(GetProcessHeap(), 0, levels);
-            HeapFree(GetProcessHeap(), 0, pItems);
-            HeapFree(GetProcessHeap(), 0, run_glyphs);
+            heap_free(chartype);
+            heap_free(levels);
+            heap_free(pItems);
+            heap_free(run_glyphs);
             return FALSE;
         }
-        psva = HeapAlloc(GetProcessHeap(),0,sizeof(SCRIPT_VISATTR) * uCount);
+        psva = heap_alloc(sizeof(SCRIPT_VISATTR) * uCount);
         if (!psva)
         {
             WARN("Out of memory\n");
-            HeapFree(GetProcessHeap(), 0, chartype);
-            HeapFree(GetProcessHeap(), 0, levels);
-            HeapFree(GetProcessHeap(), 0, pItems);
-            HeapFree(GetProcessHeap(), 0, run_glyphs);
-            HeapFree(GetProcessHeap(), 0, pwLogClust);
+            heap_free(chartype);
+            heap_free(levels);
+            heap_free(pItems);
+            heap_free(run_glyphs);
+            heap_free(pwLogClust);
             return FALSE;
         }
     }
@@ -540,15 +549,15 @@ BOOL BIDI_Reorder(
         while (res == E_OUTOFMEMORY)
         {
             maxItems = maxItems * 2;
-            pItems = HeapReAlloc(GetProcessHeap(), 0, pItems, sizeof(SCRIPT_ITEM) * maxItems);
+            pItems = heap_realloc(pItems, sizeof(SCRIPT_ITEM) * maxItems);
             if (!pItems)
             {
                 WARN("Out of memory\n");
-                HeapFree(GetProcessHeap(), 0, chartype);
-                HeapFree(GetProcessHeap(), 0, levels);
-                HeapFree(GetProcessHeap(), 0, run_glyphs);
-                HeapFree(GetProcessHeap(), 0, pwLogClust);
-                HeapFree(GetProcessHeap(), 0, psva);
+                heap_free(chartype);
+                heap_free(levels);
+                heap_free(run_glyphs);
+                heap_free(pwLogClust);
+                heap_free(psva);
                 return FALSE;
             }
             res = ScriptItemize(lpString + done, i, maxItems, &Control, &State, pItems, &nItems);
@@ -600,18 +609,18 @@ BOOL BIDI_Reorder(
             int *visOrder;
             SCRIPT_ITEM *curItem;
 
-            runOrder = HeapAlloc(GetProcessHeap(), 0, maxItems * sizeof(*runOrder));
-            visOrder = HeapAlloc(GetProcessHeap(), 0, maxItems * sizeof(*visOrder));
+            runOrder = heap_alloc(maxItems * sizeof(*runOrder));
+            visOrder = heap_alloc(maxItems * sizeof(*visOrder));
             if (!runOrder || !visOrder)
             {
                 WARN("Out of memory\n");
-                HeapFree(GetProcessHeap(), 0, runOrder);
-                HeapFree(GetProcessHeap(), 0, visOrder);
-                HeapFree(GetProcessHeap(), 0, chartype);
-                HeapFree(GetProcessHeap(), 0, levels);
-                HeapFree(GetProcessHeap(), 0, pItems);
-                HeapFree(GetProcessHeap(), 0, psva);
-                HeapFree(GetProcessHeap(), 0, pwLogClust);
+                heap_free(runOrder);
+                heap_free(visOrder);
+                heap_free(chartype);
+                heap_free(levels);
+                heap_free(pItems);
+                heap_free(psva);
+                heap_free(pwLogClust);
                 return FALSE;
             }
 
@@ -632,18 +641,18 @@ BOOL BIDI_Reorder(
                 while (res == E_OUTOFMEMORY)
                 {
                     cMaxGlyphs *= 2;
-                    run_glyphs = HeapReAlloc(GetProcessHeap(), 0, run_glyphs, sizeof(WORD) * cMaxGlyphs);
+                    run_glyphs = heap_realloc(run_glyphs, sizeof(WORD) * cMaxGlyphs);
                     if (!run_glyphs)
                     {
                         WARN("Out of memory\n");
-                        HeapFree(GetProcessHeap(), 0, runOrder);
-                        HeapFree(GetProcessHeap(), 0, visOrder);
-                        HeapFree(GetProcessHeap(), 0, chartype);
-                        HeapFree(GetProcessHeap(), 0, levels);
-                        HeapFree(GetProcessHeap(), 0, pItems);
-                        HeapFree(GetProcessHeap(), 0, psva);
-                        HeapFree(GetProcessHeap(), 0, pwLogClust);
-                        HeapFree(GetProcessHeap(), 0, *lpGlyphs);
+                        heap_free(runOrder);
+                        heap_free(visOrder);
+                        heap_free(chartype);
+                        heap_free(levels);
+                        heap_free(pItems);
+                        heap_free(psva);
+                        heap_free(pwLogClust);
+                        heap_free(*lpGlyphs);
                         ScriptFreeCache(&psc);
                         *lpGlyphs = NULL;
                         return FALSE;
@@ -658,22 +667,22 @@ BOOL BIDI_Reorder(
                         FIXME("Unable to shape string (%x)\n",res);
                     j = nItems;
                     doGlyphs = FALSE;
-                    HeapFree(GetProcessHeap(), 0, *lpGlyphs);
+                    heap_free(*lpGlyphs);
                     *lpGlyphs = NULL;
                 }
                 else
                 {
                     if (*lpGlyphs)
-                        *lpGlyphs = HeapReAlloc(GetProcessHeap(), 0, *lpGlyphs, sizeof(WORD) * (glyph_i + cOutGlyphs));
+                        *lpGlyphs = heap_realloc(*lpGlyphs, sizeof(WORD) * (glyph_i + cOutGlyphs));
                    else
-                        *lpGlyphs = HeapAlloc(GetProcessHeap(), 0, sizeof(WORD) * (glyph_i + cOutGlyphs));
+                        *lpGlyphs = heap_alloc(sizeof(WORD) * (glyph_i + cOutGlyphs));
                     for (k = 0; k < cOutGlyphs; k++)
                         (*lpGlyphs)[glyph_i+k] = run_glyphs[k];
                     glyph_i += cOutGlyphs;
                 }
             }
-            HeapFree(GetProcessHeap(), 0, runOrder);
-            HeapFree(GetProcessHeap(), 0, visOrder);
+            heap_free(runOrder);
+            heap_free(visOrder);
         }
 
         done += i;
@@ -681,12 +690,12 @@ BOOL BIDI_Reorder(
     if (cGlyphs)
         *cGlyphs = glyph_i;
 
-    HeapFree(GetProcessHeap(), 0, chartype);
-    HeapFree(GetProcessHeap(), 0, levels);
-    HeapFree(GetProcessHeap(), 0, pItems);
-    HeapFree(GetProcessHeap(), 0, run_glyphs);
-    HeapFree(GetProcessHeap(), 0, pwLogClust);
-    HeapFree(GetProcessHeap(), 0, psva);
+    heap_free(chartype);
+    heap_free(levels);
+    heap_free(pItems);
+    heap_free(run_glyphs);
+    heap_free(pwLogClust);
+    heap_free(psva);
     ScriptFreeCache(&psc);
     return TRUE;
 }

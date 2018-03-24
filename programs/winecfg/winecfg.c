@@ -86,7 +86,7 @@ WCHAR* load_string (UINT id)
     LoadStringW (GetModuleHandleW(NULL), id, buf, sizeof(buf)/sizeof(buf[0]));
 
     len = lstrlenW (buf);
-    newStr = HeapAlloc (GetProcessHeap(), 0, (len + 1) * sizeof (WCHAR));
+    newStr = heap_alloc((len + 1) * sizeof (WCHAR));
     memcpy (newStr, buf, len * sizeof (WCHAR));
     newStr[len] = 0;
     return newStr;
@@ -140,7 +140,7 @@ static WCHAR *get_config_key (HKEY root, const WCHAR *subkey, const WCHAR *name,
         goto end;
     }
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, len + sizeof(WCHAR));
+    buffer = heap_alloc(len + sizeof(WCHAR));
 
     RegQueryValueExW(hSubKey, name, NULL, NULL, (LPBYTE) buffer, &len);
 
@@ -231,13 +231,13 @@ static void free_setting(struct setting *setting)
     WINE_TRACE("destroying %p: %s\n", setting,
                wine_dbgstr_w(setting->path));
 
-    HeapFree(GetProcessHeap(), 0, setting->path);
-    HeapFree(GetProcessHeap(), 0, setting->name);
-    HeapFree(GetProcessHeap(), 0, setting->value);
+    heap_free(setting->path);
+    heap_free(setting->name);
+    heap_free(setting->value);
 
     list_remove(&setting->entry);
 
-    HeapFree(GetProcessHeap(), 0, setting);
+    heap_free(setting);
 }
 
 /**
@@ -289,15 +289,15 @@ char *get_reg_key(HKEY root, const char *path, const char *name, const char *def
 
     WINE_TRACE("path=%s, name=%s, def=%s\n", path, name, def);
 
-    wpath = HeapAlloc(GetProcessHeap(), 0, (strlen(path)+1)*sizeof(WCHAR));
-    wname = HeapAlloc(GetProcessHeap(), 0, (strlen(name)+1)*sizeof(WCHAR));
+    wpath = heap_alloc((strlen(path)+1)*sizeof(WCHAR));
+    wname = heap_alloc((strlen(name)+1)*sizeof(WCHAR));
 
     MultiByteToWideChar(CP_ACP, 0, path, -1, wpath, strlen(path)+1);
     MultiByteToWideChar(CP_ACP, 0, name, -1, wname, strlen(name)+1);
 
     if (def)
     {
-        wdef = HeapAlloc(GetProcessHeap(), 0, (strlen(def)+1)*sizeof(WCHAR));
+        wdef = heap_alloc((strlen(def)+1)*sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, def, -1, wdef, strlen(def)+1);
     }
 
@@ -306,14 +306,14 @@ char *get_reg_key(HKEY root, const char *path, const char *name, const char *def
     len = WideCharToMultiByte(CP_ACP, 0, wRet, -1, NULL, 0, NULL, NULL);
     if (len)
     {
-        szRet = HeapAlloc(GetProcessHeap(), 0, len);
+        szRet = heap_alloc(len);
         WideCharToMultiByte(CP_ACP, 0, wRet, -1, szRet, len, NULL, NULL);
     }
 
-    HeapFree(GetProcessHeap(), 0, wpath);
-    HeapFree(GetProcessHeap(), 0, wname);
-    HeapFree(GetProcessHeap(), 0, wdef);
-    HeapFree(GetProcessHeap(), 0, wRet);
+    heap_free(wpath);
+    heap_free(wname);
+    heap_free(wdef);
+    heap_free(wRet);
 
     return szRet;
 }
@@ -359,7 +359,7 @@ static void set_reg_key_ex(HKEY root, const WCHAR *path, const WCHAR *name, cons
         if (!s->name && name) s->name = strdupW(name);
 
         /* yes, we have already set it, so just replace the content and return  */
-        HeapFree(GetProcessHeap(), 0, s->value);
+        heap_free(s->value);
         s->type = type;
         switch (type)
         {
@@ -367,7 +367,7 @@ static void set_reg_key_ex(HKEY root, const WCHAR *path, const WCHAR *name, cons
                 s->value = value ? strdupW(value) : NULL;
                 break;
             case REG_DWORD:
-                s->value = HeapAlloc(GetProcessHeap(), 0, sizeof(DWORD));
+                s->value = heap_alloc(sizeof(DWORD));
                 memcpy( s->value, value, sizeof(DWORD) );
                 break;
         }
@@ -386,7 +386,7 @@ static void set_reg_key_ex(HKEY root, const WCHAR *path, const WCHAR *name, cons
     }
 
     /* otherwise add a new setting for it  */
-    s = HeapAlloc(GetProcessHeap(), 0, sizeof(struct setting));
+    s = heap_alloc(sizeof(struct setting));
     s->root  = root;
     s->path  = strdupW(path);
     s->name  = name  ? strdupW(name)  : NULL;
@@ -397,7 +397,7 @@ static void set_reg_key_ex(HKEY root, const WCHAR *path, const WCHAR *name, cons
             s->value = value ? strdupW(value) : NULL;
             break;
         case REG_DWORD:
-            s->value = HeapAlloc(GetProcessHeap(), 0, sizeof(DWORD));
+            s->value = heap_alloc(sizeof(DWORD));
             memcpy( s->value, value, sizeof(DWORD) );
             break;
     }
@@ -409,42 +409,42 @@ void set_reg_key(HKEY root, const char *path, const char *name, const char *valu
 {
     WCHAR *wpath, *wname = NULL, *wvalue = NULL;
 
-    wpath = HeapAlloc(GetProcessHeap(), 0, (strlen(path)+1)*sizeof(WCHAR));
+    wpath = heap_alloc((strlen(path)+1)*sizeof(WCHAR));
     MultiByteToWideChar(CP_ACP, 0, path, -1, wpath, strlen(path)+1);
 
     if (name)
     {
-        wname = HeapAlloc(GetProcessHeap(), 0, (strlen(name)+1)*sizeof(WCHAR));
+        wname = heap_alloc((strlen(name)+1)*sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, name, -1, wname, strlen(name)+1);
     }
 
     if (value)
     {
-        wvalue = HeapAlloc(GetProcessHeap(), 0, (strlen(value)+1)*sizeof(WCHAR));
+        wvalue = heap_alloc((strlen(value)+1)*sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, value, -1, wvalue, strlen(value)+1);
     }
 
     set_reg_key_ex(root, wpath, wname, wvalue, REG_SZ);
 
-    HeapFree(GetProcessHeap(), 0, wpath);
-    HeapFree(GetProcessHeap(), 0, wname);
-    HeapFree(GetProcessHeap(), 0, wvalue);
+    heap_free(wpath);
+    heap_free(wname);
+    heap_free(wvalue);
 }
 
 void set_reg_key_dword(HKEY root, const char *path, const char *name, DWORD value)
 {
     WCHAR *wpath, *wname;
 
-    wpath = HeapAlloc(GetProcessHeap(), 0, (strlen(path)+1)*sizeof(WCHAR));
-    wname = HeapAlloc(GetProcessHeap(), 0, (strlen(name)+1)*sizeof(WCHAR));
+    wpath = heap_alloc((strlen(path)+1)*sizeof(WCHAR));
+    wname = heap_alloc((strlen(name)+1)*sizeof(WCHAR));
 
     MultiByteToWideChar(CP_ACP, 0, path, -1, wpath, strlen(path)+1);
     MultiByteToWideChar(CP_ACP, 0, name, -1, wname, strlen(name)+1);
 
     set_reg_key_ex(root, wpath, wname, &value, REG_DWORD);
 
-    HeapFree(GetProcessHeap(), 0, wpath);
-    HeapFree(GetProcessHeap(), 0, wname);
+    heap_free(wpath);
+    heap_free(wname);
 }
 
 void set_reg_keyW(HKEY root, const WCHAR *path, const WCHAR *name, const WCHAR *value)
@@ -508,8 +508,8 @@ static WCHAR **enumerate_valuesW(HKEY root, WCHAR *path)
             }
 
             /* grow the array if necessary, add buffer to it, iterate  */
-            if (values) values = HeapReAlloc(GetProcessHeap(), 0, values, sizeof(WCHAR*) * (valueslen + 1));
-            else values = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR*));
+            if (values) values = heap_realloc(values, sizeof(WCHAR*) * (valueslen + 1));
+            else values = heap_alloc(sizeof(WCHAR*));
 
             values[valueslen++] = strdupW(name);
             WINE_TRACE("valueslen is now %d\n", valueslen);
@@ -548,8 +548,8 @@ static WCHAR **enumerate_valuesW(HKEY root, WCHAR *path)
         WINE_TRACE("%s in list but not registry\n", wine_dbgstr_w(setting->name));
 
         /* otherwise it's been set by the user but isn't in the registry */
-        if (values) values = HeapReAlloc(GetProcessHeap(), 0, values, sizeof(WCHAR*) * (valueslen + 1));
-        else values = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR*));
+        if (values) values = heap_realloc(values, sizeof(WCHAR*) * (valueslen + 1));
+        else values = heap_alloc(sizeof(WCHAR*));
 
         values[valueslen++] = strdupW(setting->name);
     }
@@ -557,7 +557,7 @@ static WCHAR **enumerate_valuesW(HKEY root, WCHAR *path)
     WINE_TRACE("adding null terminator\n");
     if (values)
     {
-        values = HeapReAlloc(GetProcessHeap(), 0, values, sizeof(WCHAR*) * (valueslen + 1));
+        values = heap_realloc(values, sizeof(WCHAR*) * (valueslen + 1));
         values[valueslen] = NULL;
     }
 
@@ -573,7 +573,7 @@ char **enumerate_values(HKEY root, char *path)
     char **ret=NULL;
     int i=0, len=0, size;
 
-    wpath = HeapAlloc(GetProcessHeap(), 0, (strlen(path)+1)*sizeof(WCHAR));
+    wpath = heap_alloc((strlen(path)+1)*sizeof(WCHAR));
     MultiByteToWideChar(CP_ACP, 0, path, -1, wpath, strlen(path)+1);
 
     wret = enumerate_valuesW(root, wpath);
@@ -581,7 +581,7 @@ char **enumerate_values(HKEY root, char *path)
     if (wret)
     {
         for(len=0; wret[len]; len++);
-        ret = HeapAlloc(GetProcessHeap(), 0, (len+1)*sizeof(char*));
+        ret = heap_alloc((len+1)*sizeof(char*));
 
         /* convert WCHAR ** to char ** and HeapFree each WCHAR * element on our way */
         for (i=0; i<len; i++)
@@ -589,16 +589,16 @@ char **enumerate_values(HKEY root, char *path)
             size = WideCharToMultiByte(CP_ACP, 0, wret[i], -1, NULL, 0, NULL, NULL);
             if(size)
             {
-                ret[i] = HeapAlloc(GetProcessHeap(), 0, size);
+                ret[i] = heap_alloc(size);
                 WideCharToMultiByte(CP_ACP, 0, wret[i], -1, ret[i], size, NULL, NULL);
-                HeapFree(GetProcessHeap(), 0, wret[i]);
+                heap_free(wret[i]);
             }
         }
         ret[len] = NULL;
     }
 
-    HeapFree(GetProcessHeap(), 0, wpath);
-    HeapFree(GetProcessHeap(), 0, wret);
+    heap_free(wpath);
+    heap_free(wret);
 
     return ret;
 }
@@ -613,7 +613,7 @@ BOOL reg_key_exists(HKEY root, const char *path, const char *name)
 
     if (val)
     {
-        HeapFree(GetProcessHeap(), 0, val);
+        heap_free(val);
         return TRUE;
     }
 
@@ -693,11 +693,11 @@ char *keypath(const char *section)
 {
     static char *result = NULL;
 
-    HeapFree(GetProcessHeap(), 0, result);
+    heap_free(result);
 
     if (current_app)
     {
-        result = HeapAlloc(GetProcessHeap(), 0, strlen("AppDefaults\\") + lstrlenW(current_app)*2 + 2 /* \\ */ + strlen(section) + 1 /* terminator */);
+        result = heap_alloc(strlen("AppDefaults\\") + lstrlenW(current_app)*2 + 2 /* \\ */ + strlen(section) + 1 /* terminator */);
         wsprintfA(result, "AppDefaults\\%ls", current_app);
         if (section[0]) sprintf( result + strlen(result), "\\%s", section );
     }
@@ -714,12 +714,12 @@ WCHAR *keypathW(const WCHAR *section)
     static const WCHAR appdefaultsW[] = {'A','p','p','D','e','f','a','u','l','t','s','\\',0};
     static WCHAR *result = NULL;
 
-    HeapFree(GetProcessHeap(), 0, result);
+    heap_free(result);
 
     if (current_app)
     {
         DWORD len = sizeof(appdefaultsW) + (lstrlenW(current_app) + lstrlenW(section) + 1) * sizeof(WCHAR);
-        result = HeapAlloc(GetProcessHeap(), 0, len );
+        result = heap_alloc(len );
         lstrcpyW( result, appdefaultsW );
         lstrcatW( result, current_app );
         if (section[0])

@@ -107,7 +107,7 @@ static INT (WINAPI *pFindNLSStringEx)(LPCWSTR, DWORD, LPCWSTR, INT, LPCWSTR, INT
 
 static void InitFunctionPointers(void)
 {
-  HMODULE mod = GetModuleHandleA("kernel32");
+  HMODULE mod = GetModuleHandleA("libwinapi-kernel32.so");
 
 #define X(f) p##f = (void*)GetProcAddress(mod, #f)
   X(GetTimeFormatEx);
@@ -138,7 +138,7 @@ static void InitFunctionPointers(void)
   X(GetNumberFormatEx);
   X(FindNLSStringEx);
 
-  mod = GetModuleHandleA("ntdll");
+  mod = GetModuleHandleA("libwinapi-ntdll.so");
   X(RtlUpcaseUnicodeChar);
 #undef X
 }
@@ -5082,7 +5082,7 @@ static void test_GetSystemPreferredUILanguages(void)
         return;
     }
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, size_buffer * sizeof(WCHAR));
+    buffer = heap_alloc(size_buffer * sizeof(WCHAR));
     if (!buffer)
     {
         skip("Failed to allocate memory for %d chars\n", size_buffer);
@@ -5165,7 +5165,7 @@ static void test_GetSystemPreferredUILanguages(void)
     ok(ERROR_INSUFFICIENT_BUFFER == GetLastError(),
        "Expected error ERROR_INSUFFICIENT_BUFFER, got %d\n", GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 }
 
 static void test_GetThreadPreferredUILanguages(void)
@@ -5187,11 +5187,11 @@ static void test_GetThreadPreferredUILanguages(void)
     ok(size, "expected size > 0\n");
 
     count = 0;
-    buf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size * sizeof(WCHAR));
+    buf = heap_alloc_zero(size * sizeof(WCHAR));
     ret = pGetThreadPreferredUILanguages(MUI_LANGUAGE_ID|MUI_UI_FALLBACK, &count, buf, &size);
     ok(ret, "got %u\n", GetLastError());
     ok(count, "expected count > 0\n");
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 }
 
 static void test_GetUserPreferredUILanguages(void)
@@ -5262,7 +5262,7 @@ static void test_GetUserPreferredUILanguages(void)
         return;
     }
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, size_buffer * sizeof(WCHAR));
+    buffer = heap_alloc(size_buffer * sizeof(WCHAR));
 
     count = 0xdeadbeef;
     size = size_buffer;
@@ -5328,7 +5328,7 @@ static void test_GetUserPreferredUILanguages(void)
     ok(ERROR_INSUFFICIENT_BUFFER == GetLastError(),
        "Expected error ERROR_INSUFFICIENT_BUFFER, got %d\n", GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 }
 
 static void test_FindNLSStringEx(void)

@@ -94,16 +94,16 @@ static void free_file_op_queue( struct file_op_queue *queue )
 
     while( op )
     {
-        HeapFree( GetProcessHeap(), 0, op->src_root );
-        HeapFree( GetProcessHeap(), 0, op->src_path );
-        HeapFree( GetProcessHeap(), 0, op->src_file );
-        HeapFree( GetProcessHeap(), 0, op->src_descr );
-        HeapFree( GetProcessHeap(), 0, op->src_tag );
-        HeapFree( GetProcessHeap(), 0, op->dst_path );
-        if (op->dst_file != op->src_file) HeapFree( GetProcessHeap(), 0, op->dst_file );
+        heap_free( op->src_root );
+        heap_free( op->src_path );
+        heap_free( op->src_file );
+        heap_free( op->src_descr );
+        heap_free( op->src_tag );
+        heap_free( op->dst_path );
+        if (op->dst_file != op->src_file) heap_free( op->dst_file );
         t = op;
         op = op->next;
-        HeapFree( GetProcessHeap(), 0, t );
+        heap_free( t );
     }
 }
 
@@ -139,6 +139,7 @@ static void concat_W( WCHAR *buffer, const WCHAR *src1, const WCHAR *src2, const
  */
 static BOOL build_filepathsW( const struct file_op *op, FILEPATHS_W *paths )
 {
+#if 0
     unsigned int src_len = 1, dst_len = 1;
     WCHAR *source = (PWSTR)paths->Source, *target = (PWSTR)paths->Target;
 
@@ -152,13 +153,13 @@ static BOOL build_filepathsW( const struct file_op *op, FILEPATHS_W *paths )
 
     if (!source || HeapSize( GetProcessHeap(), 0, source ) < src_len )
     {
-        HeapFree( GetProcessHeap(), 0, source );
-        paths->Source = source = HeapAlloc( GetProcessHeap(), 0, src_len );
+        heap_free( source );
+        paths->Source = source = heap_alloc( src_len );
     }
     if (!target || HeapSize( GetProcessHeap(), 0, target ) < dst_len )
     {
-        HeapFree( GetProcessHeap(), 0, target );
-        paths->Target = target = HeapAlloc( GetProcessHeap(), 0, dst_len );
+        heap_free( target );
+        paths->Target = target = heap_alloc( dst_len );
     }
     if (!source || !target) return FALSE;
     concat_W( source, op->src_root, op->src_path, op->src_file );
@@ -166,6 +167,9 @@ static BOOL build_filepathsW( const struct file_op *op, FILEPATHS_W *paths )
     paths->Win32Error = 0;
     paths->Flags      = 0;
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -206,8 +210,8 @@ UINT CALLBACK QUEUE_callback_WtoA( void *context, UINT notification,
             pathsA.Flags      = pathsW->Flags;
             ret = callback_ctx->orig_handler( callback_ctx->orig_context, notification,
                                               (UINT_PTR)&pathsA, param2 );
-            HeapFree( GetProcessHeap(), 0, (void *)pathsA.Source );
-            HeapFree( GetProcessHeap(), 0, (void *)pathsA.Target );
+            heap_free( (void *)pathsA.Source );
+            heap_free( (void *)pathsA.Target );
         }
         if (notification == SPFILENOTIFY_COPYERROR)
             MultiByteToWideChar( CP_ACP, 0, buffer, -1, (WCHAR *)old_param2, MAX_PATH );
@@ -225,7 +229,7 @@ UINT CALLBACK QUEUE_callback_WtoA( void *context, UINT notification,
             statusA.FailureCode = statusW->FailureCode;
             ret = callback_ctx->orig_handler( callback_ctx->orig_context, notification,
                                               (UINT_PTR)&statusA, param2 );
-            HeapFree( GetProcessHeap(), 0, (LPSTR)statusA.FileName );
+            heap_free( (LPSTR)statusA.FileName );
         }
         break;
 
@@ -236,7 +240,7 @@ UINT CALLBACK QUEUE_callback_WtoA( void *context, UINT notification,
 
             ret = callback_ctx->orig_handler( callback_ctx->orig_context, notification,
                                               (UINT_PTR)target, param2 );
-            HeapFree( GetProcessHeap(), 0, target );
+            heap_free( target );
         }
         break;
 
@@ -293,13 +297,13 @@ static void get_src_file_info( HINF hinf, struct file_op *op )
     if (!op->src_descr)
     {
         if (SetupGetStringFieldW( &disk_ctx, 1, NULL, 0, &len ) &&
-            (op->src_descr = HeapAlloc( GetProcessHeap(), 0, len*sizeof(WCHAR) )))
+            (op->src_descr = heap_alloc( len*sizeof(WCHAR) )))
             SetupGetStringFieldW( &disk_ctx, 1, op->src_descr, len, NULL );
     }
     if (!op->src_tag)
     {
         if (SetupGetStringFieldW( &disk_ctx, 2, NULL, 0, &len ) &&
-            (op->src_tag = HeapAlloc( GetProcessHeap(), 0, len*sizeof(WCHAR) )))
+            (op->src_tag = heap_alloc( len*sizeof(WCHAR) )))
             SetupGetStringFieldW( &disk_ctx, 2, op->src_tag, len, NULL );
     }
     if (!op->src_path && !(op->style & SP_COPY_SOURCE_ABSOLUTE))
@@ -314,7 +318,7 @@ static void get_src_file_info( HINF hinf, struct file_op *op )
         if (!SetupGetStringFieldW( &file_ctx, 2, NULL, 0, &len2 )) len2 = 0;
 
         if ((len || len2) &&
-            (op->src_path = HeapAlloc( GetProcessHeap(), 0, (len+len2)*sizeof(WCHAR) )))
+            (op->src_path = heap_alloc( (len+len2)*sizeof(WCHAR) )))
         {
             WCHAR *ptr = op->src_path;
             if (len)
@@ -388,9 +392,9 @@ static BOOL extract_cabinet_file( const WCHAR *cabinet, const WCHAR *root,
 
     if (!(cab_path = strdupWtoA( root ))) return FALSE;
     len = WideCharToMultiByte( CP_ACP, 0, cabinet, -1, NULL, 0, NULL, NULL );
-    if (!(cab_file = HeapAlloc( GetProcessHeap(), 0, strlen(cab_path) + len + 1 )))
+    if (!(cab_file = heap_alloc( strlen(cab_path) + len + 1 )))
     {
-        HeapFree( GetProcessHeap(), 0, cab_path );
+        heap_free( cab_path );
         return FALSE;
     }
     strcpy( cab_file, cab_path );
@@ -398,8 +402,8 @@ static BOOL extract_cabinet_file( const WCHAR *cabinet, const WCHAR *root,
     WideCharToMultiByte( CP_ACP, 0, cabinet, -1, cab_file + strlen(cab_file), len, NULL, NULL );
     FIXME( "awful hack: extracting cabinet %s\n", debugstr_a(cab_file) );
     pExtractFiles( cab_file, cab_path, 0, 0, 0, 0 );
-    HeapFree( GetProcessHeap(), 0, cab_file );
-    HeapFree( GetProcessHeap(), 0, cab_path );
+    heap_free( cab_file );
+    heap_free( cab_path );
     return CopyFileW( src, dst, FALSE /*FIXME*/ );
 }
 
@@ -411,7 +415,7 @@ HSPFILEQ WINAPI SetupOpenFileQueue(void)
 {
     struct file_queue *queue;
 
-    if (!(queue = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*queue))))
+    if (!(queue = heap_alloc_zero( sizeof(*queue))))
         return INVALID_HANDLE_VALUE;
     return queue;
 }
@@ -427,7 +431,7 @@ BOOL WINAPI SetupCloseFileQueue( HSPFILEQ handle )
     free_file_op_queue( &queue->copy_queue );
     free_file_op_queue( &queue->rename_queue );
     free_file_op_queue( &queue->delete_queue );
-    HeapFree( GetProcessHeap(), 0, queue );
+    heap_free( queue );
     return TRUE;
 }
 
@@ -440,7 +444,7 @@ BOOL WINAPI SetupQueueCopyIndirectA( PSP_FILE_COPY_PARAMS_A params )
     struct file_queue *queue = params->QueueHandle;
     struct file_op *op;
 
-    if (!(op = HeapAlloc( GetProcessHeap(), 0, sizeof(*op) ))) return FALSE;
+    if (!(op = heap_alloc( sizeof(*op) ))) return FALSE;
     op->style      = params->CopyStyle;
     op->src_root   = strdupAtoW( params->SourceRootPath );
     op->src_path   = strdupAtoW( params->SourcePath );
@@ -476,7 +480,7 @@ BOOL WINAPI SetupQueueCopyIndirectW( PSP_FILE_COPY_PARAMS_W params )
     struct file_queue *queue = params->QueueHandle;
     struct file_op *op;
 
-    if (!(op = HeapAlloc( GetProcessHeap(), 0, sizeof(*op) ))) return FALSE;
+    if (!(op = heap_alloc( sizeof(*op) ))) return FALSE;
     op->style      = params->CopyStyle;
     op->src_root   = strdupW( params->SourceRootPath );
     op->src_path   = strdupW( params->SourcePath );
@@ -610,7 +614,7 @@ BOOL WINAPI SetupQueueDeleteA( HSPFILEQ handle, PCSTR part1, PCSTR part2 )
     struct file_queue *queue = handle;
     struct file_op *op;
 
-    if (!(op = HeapAlloc( GetProcessHeap(), 0, sizeof(*op) ))) return FALSE;
+    if (!(op = heap_alloc( sizeof(*op) ))) return FALSE;
     op->style      = 0;
     op->src_root   = NULL;
     op->src_path   = NULL;
@@ -632,7 +636,7 @@ BOOL WINAPI SetupQueueDeleteW( HSPFILEQ handle, PCWSTR part1, PCWSTR part2 )
     struct file_queue *queue = handle;
     struct file_op *op;
 
-    if (!(op = HeapAlloc( GetProcessHeap(), 0, sizeof(*op) ))) return FALSE;
+    if (!(op = heap_alloc( sizeof(*op) ))) return FALSE;
     op->style      = 0;
     op->src_root   = NULL;
     op->src_path   = NULL;
@@ -655,7 +659,7 @@ BOOL WINAPI SetupQueueRenameA( HSPFILEQ handle, PCSTR SourcePath, PCSTR SourceFi
     struct file_queue *queue = handle;
     struct file_op *op;
 
-    if (!(op = HeapAlloc( GetProcessHeap(), 0, sizeof(*op) ))) return FALSE;
+    if (!(op = heap_alloc( sizeof(*op) ))) return FALSE;
     op->style      = 0;
     op->src_root   = NULL;
     op->src_path   = strdupAtoW( SourcePath );
@@ -678,7 +682,7 @@ BOOL WINAPI SetupQueueRenameW( HSPFILEQ handle, PCWSTR SourcePath, PCWSTR Source
     struct file_queue *queue = handle;
     struct file_op *op;
 
-    if (!(op = HeapAlloc( GetProcessHeap(), 0, sizeof(*op) ))) return FALSE;
+    if (!(op = heap_alloc( sizeof(*op) ))) return FALSE;
     op->style      = 0;
     op->src_root   = NULL;
     op->src_path   = strdupW( SourcePath );
@@ -765,7 +769,7 @@ BOOL WINAPI SetupQueueCopySectionW( HSPFILEQ queue, PCWSTR src_root, HINF hinf, 
     } while (SetupFindNextLine( &context, &context ));
     ret = TRUE;
 end:
-    HeapFree(GetProcessHeap(), 0, dest_dir);
+    heap_free(dest_dir);
     return ret;
 }
 
@@ -814,7 +818,7 @@ BOOL WINAPI SetupQueueDeleteSectionW( HSPFILEQ queue, HINF hinf, HINF hlist, PCW
 
     ret = TRUE;
  done:
-    HeapFree( GetProcessHeap(), 0, dest_dir );
+    heap_free( dest_dir );
     return ret;
 }
 
@@ -863,7 +867,7 @@ BOOL WINAPI SetupQueueRenameSectionW( HSPFILEQ queue, HINF hinf, HINF hlist, PCW
 
     ret = TRUE;
  done:
-    HeapFree( GetProcessHeap(), 0, dest_dir );
+    heap_free( dest_dir );
     return ret;
 }
 
@@ -893,7 +897,7 @@ static BOOL create_full_pathW(const WCHAR *path)
     int len;
     WCHAR *new_path;
 
-    new_path = HeapAlloc(GetProcessHeap(), 0, (strlenW(path) + 1) * sizeof(WCHAR));
+    new_path = heap_alloc((strlenW(path) + 1) * sizeof(WCHAR));
     strcpyW(new_path, path);
 
     while((len = strlenW(new_path)) && new_path[len - 1] == '\\')
@@ -929,7 +933,7 @@ static BOOL create_full_pathW(const WCHAR *path)
 	new_path[len] = '\\';
     }
 
-    HeapFree(GetProcessHeap(), 0, new_path);
+    heap_free(new_path);
     return ret;
 }
 
@@ -983,8 +987,8 @@ static BOOL do_file_copyW( LPCWSTR source, LPCWSTR target, DWORD style,
             static const WCHAR SubBlock[]={'\\',0};
             DWORD  ret;
 
-            VersionSource = HeapAlloc(GetProcessHeap(),0,VersionSizeSource);
-            VersionTarget = HeapAlloc(GetProcessHeap(),0,VersionSizeTarget);
+            VersionSource = heap_alloc(VersionSizeSource);
+            VersionTarget = heap_alloc(VersionSizeTarget);
 
             ret = GetFileVersionInfoW(source,0,VersionSizeSource,VersionSource);
             if (ret)
@@ -1041,8 +1045,8 @@ static BOOL do_file_copyW( LPCWSTR source, LPCWSTR target, DWORD style,
                     }
                 }
             }
-            HeapFree(GetProcessHeap(),0,VersionSource);
-            HeapFree(GetProcessHeap(),0,VersionTarget);
+            heap_free(VersionSource);
+            heap_free(VersionTarget);
         }
     }
     if (style & (SP_COPY_NOOVERWRITE | SP_COPY_FORCE_NOOVERWRITE))
@@ -1153,14 +1157,14 @@ BOOL WINAPI SetupInstallFileExW( HINF hinf, PINFCONTEXT inf_context, PCWSTR sour
             if (!SetupFindFirstLineW( hinf, CopyFiles, NULL, inf_context )) return FALSE;
         }
         if (!SetupGetStringFieldW( inf_context, 1, NULL, 0, &len )) return FALSE;
-        if (!(inf_source = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+        if (!(inf_source = heap_alloc( len * sizeof(WCHAR) )))
         {
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
             return FALSE;
         }
         if (!SetupGetStringFieldW( inf_context, 1, inf_source, len, NULL ))
         {
-            HeapFree( GetProcessHeap(), 0, inf_source );
+            heap_free( inf_source );
             return FALSE;
         }
         source = inf_source;
@@ -1174,9 +1178,9 @@ BOOL WINAPI SetupInstallFileExW( HINF hinf, PINFCONTEXT inf_context, PCWSTR sour
     len = strlenW( source ) + 1;
     if (absolute) len += strlenW( root ) + 1;
 
-    if (!(p = buffer = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+    if (!(p = buffer = heap_alloc( len * sizeof(WCHAR) )))
     {
-        HeapFree( GetProcessHeap(), 0, inf_source );
+        heap_free( inf_source );
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return FALSE;
     }
@@ -1192,8 +1196,8 @@ BOOL WINAPI SetupInstallFileExW( HINF hinf, PINFCONTEXT inf_context, PCWSTR sour
 
     ret = do_file_copyW( buffer, dest, style, handler, context );
 
-    HeapFree( GetProcessHeap(), 0, inf_source );
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( inf_source );
+    heap_free( buffer );
     return ret;
 }
 
@@ -1326,8 +1330,8 @@ BOOL WINAPI SetupCommitFileQueueW( HWND owner, HSPFILEQ handle, PSP_FILE_CALLBAC
 
  done:
     handler( context, SPFILENOTIFY_ENDQUEUE, result, 0 );
-    HeapFree( GetProcessHeap(), 0, (void *)paths.Source );
-    HeapFree( GetProcessHeap(), 0, (void *)paths.Target );
+    heap_free( (void *)paths.Source );
+    heap_free( (void *)paths.Target );
     return result;
 }
 
@@ -1396,8 +1400,8 @@ BOOL WINAPI SetupScanFileQueueW( HSPFILEQ handle, DWORD flags, HWND window,
 
  done:
     if (result) *result = 0;
-    HeapFree( GetProcessHeap(), 0, (void *)paths.Source );
-    HeapFree( GetProcessHeap(), 0, (void *)paths.Target );
+    heap_free( (void *)paths.Source );
+    heap_free( (void *)paths.Target );
     return ret;
 }
 
@@ -1484,7 +1488,7 @@ PVOID WINAPI SetupInitDefaultQueueCallbackEx( HWND owner, HWND progress, UINT ms
 {
     struct default_callback_context *context;
 
-    if ((context = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*context) )))
+    if ((context = heap_alloc_zero( sizeof(*context) )))
     {
         context->magic    = 0x43515053; /* "SPQC" */
         context->owner    = owner;
@@ -1500,7 +1504,7 @@ PVOID WINAPI SetupInitDefaultQueueCallbackEx( HWND owner, HWND progress, UINT ms
  */
 void WINAPI SetupTermDefaultQueueCallback( PVOID context )
 {
-    HeapFree( GetProcessHeap(), 0, context );
+    heap_free( context );
 }
 
 

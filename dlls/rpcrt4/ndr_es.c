@@ -32,6 +32,7 @@
 #include "ndr_stubless.h"
 
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "wine/rpcfc.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
@@ -56,7 +57,7 @@ RPC_STATUS WINAPI MesEncodeIncrementalHandleCreate(
 
     TRACE("(%p, %p, %p, %p)\n", UserState, AllocFn, WriteFn, pHandle);
 
-    pEsMsg = HeapAlloc(GetProcessHeap(), 0, sizeof(*pEsMsg));
+    pEsMsg = heap_alloc(sizeof(*pEsMsg));
     if (!pEsMsg)
         return RPC_S_OUT_OF_MEMORY;
 
@@ -83,7 +84,7 @@ RPC_STATUS WINAPI MesDecodeIncrementalHandleCreate(
 
     TRACE("(%p, %p, %p)\n", UserState, ReadFn, pHandle);
 
-    pEsMsg = HeapAlloc(GetProcessHeap(), 0, sizeof(*pEsMsg));
+    pEsMsg = heap_alloc(sizeof(*pEsMsg));
     if (!pEsMsg)
         return RPC_S_OUT_OF_MEMORY;
 
@@ -163,7 +164,7 @@ RPC_STATUS WINAPI MesBufferHandleReset(handle_t Handle, ULONG HandleStyle,
 RPC_STATUS WINAPI MesHandleFree(handle_t Handle)
 {
     TRACE("(%p)\n", Handle);
-    HeapFree(GetProcessHeap(), 0, Handle);
+    heap_free(Handle);
     return RPC_S_OK;
 }
 
@@ -197,7 +198,7 @@ RPC_STATUS RPC_ENTRY MesEncodeFixedBufferHandleCreate(
 
     /* FIXME: check BufferSize too */
 
-    pEsMsg = HeapAlloc(GetProcessHeap(), 0, sizeof(*pEsMsg));
+    pEsMsg = heap_alloc(sizeof(*pEsMsg));
     if (!pEsMsg)
         return RPC_S_OUT_OF_MEMORY;
 
@@ -227,7 +228,7 @@ RPC_STATUS RPC_ENTRY MesEncodeDynBufferHandleCreate(char **Buffer,
     if (!pEncodedSize)
         return RPC_S_INVALID_ARG;
 
-    pEsMsg = HeapAlloc(GetProcessHeap(), 0, sizeof(*pEsMsg));
+    pEsMsg = heap_alloc(sizeof(*pEsMsg));
     if (!pEsMsg)
         return RPC_S_OUT_OF_MEMORY;
 
@@ -257,7 +258,7 @@ RPC_STATUS RPC_ENTRY MesDecodeBufferHandleCreate(
     if ((status = validate_mes_buffer_pointer(Buffer)))
         return status;
 
-    pEsMsg = HeapAlloc(GetProcessHeap(), 0, sizeof(*pEsMsg));
+    pEsMsg = heap_alloc(sizeof(*pEsMsg));
     if (!pEsMsg)
         return RPC_S_OUT_OF_MEMORY;
 

@@ -20,9 +20,17 @@
 #define __WINE_NTDLL_MISC_H
 
 #include <stdarg.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <pthread.h>
+#ifdef HAVE_SYSCALL_H
+# include <syscall.h>
+#else
+# ifdef HAVE_SYS_SYSCALL_H
+#  include <sys/syscall.h>
+# endif
+#endif
 
 #include "windef.h"
 #include "winnt.h"
@@ -48,6 +56,7 @@ struct drive_info
 extern NTSTATUS close_handle( HANDLE ) DECLSPEC_HIDDEN;
 extern ULONG_PTR get_system_affinity_mask(void) DECLSPEC_HIDDEN;
 
+#if 0
 /* exceptions */
 extern void wait_suspend( CONTEXT *context ) DECLSPEC_HIDDEN;
 extern NTSTATUS send_debug_event( EXCEPTION_RECORD *rec, int first_chance, CONTEXT *context ) DECLSPEC_HIDDEN;
@@ -57,12 +66,15 @@ extern NTSTATUS context_to_server( context_t *to, const CONTEXT *from ) DECLSPEC
 extern NTSTATUS context_from_server( CONTEXT *to, const context_t *from ) DECLSPEC_HIDDEN;
 extern NTSTATUS set_thread_context( HANDLE handle, const CONTEXT *context, BOOL *self ) DECLSPEC_HIDDEN;
 extern NTSTATUS get_thread_context( HANDLE handle, CONTEXT *context, BOOL *self ) DECLSPEC_HIDDEN;
+#endif
 
 /* debug helpers */
+extern LPCSTR debugstr_as( const ANSI_STRING *str ) DECLSPEC_HIDDEN;
 extern LPCSTR debugstr_us( const UNICODE_STRING *str ) DECLSPEC_HIDDEN;
 extern LPCSTR debugstr_ObjectAttributes(const OBJECT_ATTRIBUTES *oa) DECLSPEC_HIDDEN;
 
 /* init routines */
+#if 0
 extern NTSTATUS signal_alloc_thread( TEB **teb ) DECLSPEC_HIDDEN;
 extern void signal_free_thread( TEB *teb ) DECLSPEC_HIDDEN;
 extern void signal_init_thread( TEB *teb ) DECLSPEC_HIDDEN;
@@ -71,6 +83,7 @@ extern void signal_start_thread( LPTHREAD_START_ROUTINE entry, void *arg, BOOL s
 extern void signal_start_process( LPTHREAD_START_ROUTINE entry, BOOL suspend ) DECLSPEC_HIDDEN;
 extern void DECLSPEC_NORETURN signal_exit_thread( int status ) DECLSPEC_HIDDEN;
 extern void DECLSPEC_NORETURN signal_exit_process( int status ) DECLSPEC_HIDDEN;
+#endif
 extern void version_init( const WCHAR *appname ) DECLSPEC_HIDDEN;
 extern void debug_init(void) DECLSPEC_HIDDEN;
 extern HANDLE thread_init(void) DECLSPEC_HIDDEN;
@@ -80,6 +93,7 @@ extern void virtual_init_threading(void) DECLSPEC_HIDDEN;
 extern void fill_cpu_info(void) DECLSPEC_HIDDEN;
 extern void heap_set_debug_flags( HANDLE handle ) DECLSPEC_HIDDEN;
 
+#if 0
 /* server support */
 extern timeout_t server_start_time DECLSPEC_HIDDEN;
 extern unsigned int server_cpus DECLSPEC_HIDDEN;
@@ -91,8 +105,10 @@ extern void DECLSPEC_NORETURN abort_thread( int status ) DECLSPEC_HIDDEN;
 extern void DECLSPEC_NORETURN exit_thread( int status ) DECLSPEC_HIDDEN;
 extern sigset_t server_block_set DECLSPEC_HIDDEN;
 extern unsigned int server_call_unlocked( void *req_ptr ) DECLSPEC_HIDDEN;
+#endif
 extern void server_enter_uninterrupted_section( RTL_CRITICAL_SECTION *cs, sigset_t *sigset ) DECLSPEC_HIDDEN;
 extern void server_leave_uninterrupted_section( RTL_CRITICAL_SECTION *cs, sigset_t *sigset ) DECLSPEC_HIDDEN;
+#if 0
 extern unsigned int server_select( const select_op_t *select_op, data_size_t size,
                                    UINT flags, const LARGE_INTEGER *timeout ) DECLSPEC_HIDDEN;
 extern unsigned int server_queue_process_apc( HANDLE process, const apc_call_t *call, apc_result_t *result ) DECLSPEC_HIDDEN;
@@ -123,6 +139,9 @@ extern void (WINAPI *kernel32_start_process)(LPTHREAD_START_ROUTINE,void*) DECLS
 #define GetProcessHeap()       (NtCurrentTeb()->Peb->ProcessHeap)
 #define GetCurrentProcessId()  (HandleToULong(NtCurrentTeb()->ClientId.UniqueProcess))
 #define GetCurrentThreadId()   (HandleToULong(NtCurrentTeb()->ClientId.UniqueThread))
+#else
+#define GetCurrentThreadId()   ((DWORD)syscall(SYS_gettid))
+#endif
 
 /* Device IO */
 extern NTSTATUS CDROM_DeviceIoControl(HANDLE hDevice, 
@@ -165,10 +184,13 @@ extern NTSTATUS nt_to_unix_file_name_attr( const OBJECT_ATTRIBUTES *attr, ANSI_S
                                            UINT disposition ) DECLSPEC_HIDDEN;
 
 /* virtual memory */
+#if 0
 extern NTSTATUS virtual_map_section( HANDLE handle, PVOID *addr_ptr, ULONG zero_bits, SIZE_T commit_size,
                                      const LARGE_INTEGER *offset_ptr, SIZE_T *size_ptr, ULONG protect,
                                      pe_image_info_t *image_info ) DECLSPEC_HIDDEN;
+#endif
 extern void virtual_get_system_info( SYSTEM_BASIC_INFORMATION *info ) DECLSPEC_HIDDEN;
+#if 0
 extern NTSTATUS virtual_create_builtin_view( void *base ) DECLSPEC_HIDDEN;
 extern NTSTATUS virtual_alloc_thread_stack( TEB *teb, SIZE_T reserve_size,
                                             SIZE_T commit_size, SIZE_T *pthread_size ) DECLSPEC_HIDDEN;
@@ -187,6 +209,7 @@ extern void VIRTUAL_SetForceExec( BOOL enable ) DECLSPEC_HIDDEN;
 extern void virtual_release_address_space(void) DECLSPEC_HIDDEN;
 extern void virtual_set_large_address_space(void) DECLSPEC_HIDDEN;
 extern struct _KUSER_SHARED_DATA *user_shared_data DECLSPEC_HIDDEN;
+#endif
 
 /* completion */
 extern NTSTATUS NTDLL_AddCompletion( HANDLE hFile, ULONG_PTR CompletionValue,
@@ -223,6 +246,7 @@ struct debug_info
     char  output[1024];  /* current output line */
 };
 
+#if 0
 /* thread private data, stored in NtCurrentTeb()->GdiTebBatch */
 struct ntdll_thread_data
 {
@@ -241,6 +265,7 @@ static inline struct ntdll_thread_data *ntdll_get_thread_data(void)
 {
     return (struct ntdll_thread_data *)&NtCurrentTeb()->GdiTebBatch;
 }
+#endif
 
 extern mode_t FILE_umask DECLSPEC_HIDDEN;
 extern HANDLE keyed_event DECLSPEC_HIDDEN;

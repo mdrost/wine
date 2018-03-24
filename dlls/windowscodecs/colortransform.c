@@ -87,7 +87,7 @@ static ULONG WINAPI ColorTransform_Release(IWICColorTransform *iface)
     if (ref == 0)
     {
         if (This->dst) IWICBitmapSource_Release(This->dst);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -177,7 +177,7 @@ HRESULT ColorTransform_Create(IWICColorTransform **colortransform)
 
     if (!colortransform) return E_INVALIDARG;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(ColorTransform));
+    This = heap_alloc(sizeof(ColorTransform));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICColorTransform_iface.lpVtbl = &ColorTransform_Vtbl;

@@ -28,6 +28,7 @@
 #include "win.h"
 #include "user_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(dialog);
 
@@ -241,7 +242,7 @@ static LRESULT DEFDLG_Proc( HWND hwnd, UINT msg, WPARAM wParam,
 
                 if (dlgInfo->hUserFont) DeleteObject( dlgInfo->hUserFont );
                 if (dlgInfo->hMenu) DestroyMenu( dlgInfo->hMenu );
-                HeapFree( GetProcessHeap(), 0, dlgInfo );
+                heap_free( dlgInfo );
 
                 wndPtr = WIN_GetPtr( hwnd );
                 wndPtr->dlgInfo = NULL;
@@ -337,7 +338,7 @@ DIALOGINFO *DIALOG_get_info( HWND hwnd, BOOL create )
 
     if (!dlgInfo && create)
     {
-        if (!(dlgInfo = HeapAlloc( GetProcessHeap(), 0, sizeof(*dlgInfo) )))
+        if (!(dlgInfo = heap_alloc( sizeof(*dlgInfo) )))
             goto out;
         dlgInfo->hwndFocus   = 0;
         dlgInfo->hUserFont   = 0;

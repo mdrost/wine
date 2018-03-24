@@ -110,13 +110,13 @@ static BSTR read_file_to_bstr(const WCHAR *file_name)
         return NULL;
     }
 
-    data = HeapAlloc(GetProcessHeap(), 0, file_size.QuadPart);
+    data = heap_alloc(file_size.QuadPart);
     if (data)
         r = ReadFile(file, data, file_size.QuadPart, &read_size, NULL);
     CloseHandle(file);
     if (!r) {
         FIXME("Read filed\n");
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(data);
         return NULL;
     }
 
@@ -128,7 +128,7 @@ static BSTR read_file_to_bstr(const WCHAR *file_name)
         if (ret)
             MultiByteToWideChar(CP_ACP, 0, (const char *)data, read_size, ret, size);
     }
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     return ret;
 }

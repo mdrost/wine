@@ -29,6 +29,7 @@
 #include "winbase.h"
 #include "wingdi.h"
 #include "wine/gdi_driver.h"
+#include "wine/heap.h"
 
 /* Metafile defines */
 #define META_EOF 0x0000
@@ -190,8 +191,13 @@ static inline BOOL is_bitmapobj_dib( const BITMAPOBJ *bmp )
 #define WINE_GCPW_DIR_MASK 3
 #define WINE_GCPW_LOOSE_MASK 2
 
+#if 0
 extern BOOL BIDI_Reorder( HDC hDC, LPCWSTR lpString, INT uCount, DWORD dwFlags, DWORD dwWineGCP_Flags,
                           LPWSTR lpOutString, INT uCountOut, UINT *lpOrder, WORD **lpGlyphs, INT* cGlyphs ) DECLSPEC_HIDDEN;
+#else
+extern BOOL BIDI_Reorder( HDC hDC, LPCWSTR lpString, INT uCount, DWORD dwFlags, DWORD dwWineGCP_Flags,
+                          LPWSTR lpOutString, INT uCountOut, UINT *lpOrder, DWORD **lpGlyphs, INT* cGlyphs ) DECLSPEC_HIDDEN;
+#endif
 
 /* bitblt.c */
 extern DWORD convert_bits( const BITMAPINFO *src_info, struct bitblt_coords *src,

@@ -49,14 +49,14 @@ static int ipconfig_vprintfW(const WCHAR *msg, __ms_va_list va_args)
          */
         len = WideCharToMultiByte(GetConsoleOutputCP(), 0, msg_buffer, wlen,
             NULL, 0, NULL, NULL);
-        msgA = HeapAlloc(GetProcessHeap(), 0, len);
+        msgA = heap_alloc(len);
         if (!msgA)
             return 0;
 
         WideCharToMultiByte(GetConsoleOutputCP(), 0, msg_buffer, wlen, msgA, len,
             NULL, NULL);
         WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), msgA, len, &count, FALSE);
-        HeapFree(GetProcessHeap(), 0, msgA);
+        heap_free(msgA);
     }
 
     return count;
@@ -164,7 +164,7 @@ static void print_basic_information(void)
     if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_ALL_GATEWAYS,
                              NULL, NULL, &out) == ERROR_BUFFER_OVERFLOW)
     {
-        adapters = HeapAlloc(GetProcessHeap(), 0, out);
+        adapters = heap_alloc(out);
         if (!adapters)
             exit(1);
 
@@ -215,7 +215,7 @@ static void print_basic_information(void)
             }
         }
 
-        HeapFree(GetProcessHeap(), 0, adapters);
+        heap_free(adapters);
     }
 }
 
@@ -293,7 +293,7 @@ static void print_full_information(void)
 
     if (GetNetworkParams(NULL, &out) == ERROR_BUFFER_OVERFLOW)
     {
-        info = HeapAlloc(GetProcessHeap(), 0, out);
+        info = heap_alloc(out);
         if (!info)
             exit(1);
 
@@ -314,13 +314,13 @@ static void print_full_information(void)
             ipconfig_printfW(newlineW);
         }
 
-        HeapFree(GetProcessHeap(), 0, info);
+        heap_free(info);
     }
 
     if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_ALL_GATEWAYS,
                              NULL, NULL, &out) == ERROR_BUFFER_OVERFLOW)
     {
-        adapters = HeapAlloc(GetProcessHeap(), 0, out);
+        adapters = heap_alloc(out);
         if (!adapters)
             exit(1);
 
@@ -374,7 +374,7 @@ static void print_full_information(void)
             }
         }
 
-        HeapFree(GetProcessHeap(), 0, adapters);
+        heap_free(adapters);
     }
 }
 

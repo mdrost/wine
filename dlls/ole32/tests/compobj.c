@@ -2044,7 +2044,7 @@ static ULONG WINAPI Test_CallContext_Release(IUnknown *iface)
     Test_CallContext *This = impl_from_IUnknown(iface);
     ULONG refs = InterlockedDecrement(&This->refs);
     if (!refs)
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     return refs;
 }
 
@@ -2070,7 +2070,7 @@ static void test_CoGetCallContext(void)
 
     CoInitialize(NULL);
 
-    test_object = HeapAlloc(GetProcessHeap(), 0, sizeof(Test_CallContext));
+    test_object = heap_alloc(sizeof(Test_CallContext));
     test_object->IUnknown_iface.lpVtbl = &TestCallContext_Vtbl;
     test_object->refs = 1;
 

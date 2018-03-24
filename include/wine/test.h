@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <windef.h>
 #include <winbase.h>
+#include <wine/heap.h>
 
 #ifdef __WINE_CONFIG_H
 #error config.h should not be used in Wine tests
@@ -239,7 +240,7 @@ static struct tls_data *get_tls_data(void)
     data=TlsGetValue(tls_index);
     if (!data)
     {
-        data = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data));
+        data = heap_alloc_zero(sizeof(*data));
         data->str_pos = data->strings;
         TlsSetValue(tls_index,data);
     }
@@ -462,6 +463,7 @@ void winetest_wait_child_process( HANDLE process )
     }
 }
 
+#if 0
 const char *wine_dbgstr_wn( const WCHAR *str, int n )
 {
     char *dst, *res;
@@ -517,6 +519,7 @@ const char *wine_dbgstr_wn( const WCHAR *str, int n )
     release_temp_buffer( res, dst - res );
     return res;
 }
+#endif
 
 const char *wine_dbgstr_guid( const GUID *guid )
 {

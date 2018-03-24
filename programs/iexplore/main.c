@@ -52,7 +52,7 @@ static BOOL check_native_ie(void)
     if(!size)
         return TRUE;
 
-    buf = HeapAlloc(GetProcessHeap(), 0, size);
+    buf = heap_alloc(size);
     GetFileVersionInfoW(browseui_dllW, 0, size,buf);
     if (VerQueryValueW(buf, translationW, (void **)&translation, &bytes))
     {
@@ -60,7 +60,7 @@ static BOOL check_native_ie(void)
         ret = !VerQueryValueW(buf, file_desc_strW, (void**)&file_desc, &bytes) || !strstrW(file_desc, wineW);
     }
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     return ret;
 }
 

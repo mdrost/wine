@@ -51,6 +51,7 @@ BOOL WINAPI WaitForDebugEvent(
     LPDEBUG_EVENT event,
     DWORD         timeout)
 {
+#if 0
     BOOL ret;
     DWORD res;
     int i;
@@ -147,6 +148,9 @@ BOOL WINAPI WaitForDebugEvent(
         if (res != STATUS_WAIT_0) break;
     }
     SetLastError( ERROR_SEM_TIMEOUT );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return FALSE;
 }
 
@@ -171,6 +175,7 @@ BOOL WINAPI ContinueDebugEvent(
     DWORD tid,
     DWORD status)
 {
+#if 0
     BOOL ret;
     SERVER_START_REQ( continue_debug_event )
     {
@@ -181,6 +186,10 @@ BOOL WINAPI ContinueDebugEvent(
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -198,6 +207,7 @@ BOOL WINAPI ContinueDebugEvent(
  */
 BOOL WINAPI DebugActiveProcess( DWORD pid )
 {
+#if 0
     BOOL ret;
     SERVER_START_REQ( debug_process )
     {
@@ -207,6 +217,10 @@ BOOL WINAPI DebugActiveProcess( DWORD pid )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /**********************************************************************
@@ -223,6 +237,7 @@ BOOL WINAPI DebugActiveProcess( DWORD pid )
  */
 BOOL WINAPI DebugActiveProcessStop( DWORD pid )
 {
+#if 0
     BOOL ret;
     SERVER_START_REQ( debug_process )
     {
@@ -232,6 +247,10 @@ BOOL WINAPI DebugActiveProcessStop( DWORD pid )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 static LONG WINAPI debug_exception_handler( EXCEPTION_POINTERS *eptr )
@@ -240,6 +259,7 @@ static LONG WINAPI debug_exception_handler( EXCEPTION_POINTERS *eptr )
     return (rec->ExceptionCode == DBG_PRINTEXCEPTION_C) ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH;
 }
 
+#if 0
 /***********************************************************************
  *           OutputDebugStringA   (KERNEL32.@)
  *
@@ -376,6 +396,7 @@ void WINAPI OutputDebugStringW( LPCWSTR str )
         RtlFreeAnsiString( &strA );
     }
 }
+#endif
 
 
 /***********************************************************************
@@ -384,12 +405,18 @@ void WINAPI OutputDebugStringW( LPCWSTR str )
  *  Raises an exception so that a debugger (if attached)
  *  can take some action.
  */
+#if 0
 #if defined(__i386__) || defined(__x86_64__)
-__ASM_STDCALL_FUNC( DebugBreak, 0, "jmp " __ASM_NAME("DbgBreakPoint") )
+__ASM_STDCALL_FUNC( DebugBreak, 0, "jmp " __ASM_NAME("DbgBreakPoint@plt") )
 #else
 void WINAPI DebugBreak(void)
 {
     DbgBreakPoint();
+}
+#endif
+#else
+void WINAPI DebugBreak(void)
+{
 }
 #endif
 
@@ -412,6 +439,7 @@ BOOL WINAPI DebugBreakProcess(HANDLE hProc)
 
     TRACE("(%p)\n", hProc);
 
+#if 0
     SERVER_START_REQ( debug_break )
     {
         req->handle = wine_server_obj_handle( hProc );
@@ -421,6 +449,10 @@ BOOL WINAPI DebugBreakProcess(HANDLE hProc)
     SERVER_END_REQ;
     if (self) DbgBreakPoint();
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -437,7 +469,11 @@ BOOL WINAPI DebugBreakProcess(HANDLE hProc)
  */
 BOOL WINAPI IsDebuggerPresent(void)
 {
+#if 0
     return NtCurrentTeb()->Peb->BeingDebugged;
+#else
+    return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -463,6 +499,7 @@ BOOL WINAPI CheckRemoteDebuggerPresent(HANDLE process, PBOOL DebuggerPresent)
         return FALSE;
     }
 
+#if 0
     status = NtQueryInformationProcess(process, ProcessDebugPort, &port, sizeof(port), NULL);
     if (status != STATUS_SUCCESS)
     {
@@ -472,6 +509,10 @@ BOOL WINAPI CheckRemoteDebuggerPresent(HANDLE process, PBOOL DebuggerPresent)
 
     *DebuggerPresent = !!port;
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -488,6 +529,7 @@ BOOL WINAPI CheckRemoteDebuggerPresent(HANDLE process, PBOOL DebuggerPresent)
  */
 BOOL WINAPI DebugSetProcessKillOnExit(BOOL kill)
 {
+#if 0
     BOOL ret = FALSE;
 
     SERVER_START_REQ( set_debugger_kill_on_exit )
@@ -497,4 +539,8 @@ BOOL WINAPI DebugSetProcessKillOnExit(BOOL kill)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }

@@ -52,7 +52,7 @@ static WCHAR *a2w(const char *str)
         return NULL;
 
     len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-    ret = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+    ret = heap_alloc(len*sizeof(WCHAR));
     MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
 
     return ret;
@@ -108,8 +108,8 @@ static void _register_task(unsigned line, const char *task_name_a)
     hres = ITaskFolder_RegisterTask(root, task_name, xml, TASK_CREATE, empty, empty,
                                     TASK_LOGON_NONE, empty, &task);
     ok_(__FILE__,line)(hres == S_OK, "RegisterTask failed: %08x\n", hres);
-    HeapFree(GetProcessHeap(), 0, task_name);
-    HeapFree(GetProcessHeap(), 0, xml);
+    heap_free(task_name);
+    heap_free(xml);
 
     IRegisteredTask_Release(task);
 }
@@ -125,7 +125,7 @@ static void _unregister_task(unsigned line, const char *task_name_a)
     hres = ITaskFolder_DeleteTask(root, task_name, 0);
     ok_(__FILE__,line)(hres == S_OK, "DeleteTask failed: %08x\n", hres);
 
-    HeapFree(GetProcessHeap(), 0, task_name);
+    heap_free(task_name);
 }
 
 static void create_file(const char *file_name, const char *data)

@@ -23,6 +23,7 @@
 #include "winbase.h"
 #include "dictionary.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(storage);
 
@@ -49,7 +50,7 @@ struct dictionary *dictionary_create(comparefunc c, destroyfunc d, void *extra)
     TRACE("(%p, %p, %p)\n", c, d, extra);
     if (!c)
         return NULL;
-    ret = HeapAlloc(GetProcessHeap(), 0, sizeof(struct dictionary));
+    ret = heap_alloc(sizeof(struct dictionary));
     if (ret)
     {
         ret->comp = c;
@@ -75,10 +76,10 @@ void dictionary_destroy(struct dictionary *d)
 
             if (d->destroy)
                 d->destroy(p->key, p->value, d->extra);
-            HeapFree(GetProcessHeap(), 0, p);
+            heap_free(p);
             p = next;
         }
-        HeapFree(GetProcessHeap(), 0, d);
+        heap_free(d);
     }
 }
 
@@ -126,8 +127,7 @@ void dictionary_insert(struct dictionary *d, const void *k, const void *v)
     }
     else
     {
-        struct dictionary_entry *elem = HeapAlloc(GetProcessHeap(), 0,
-                                            sizeof(struct dictionary_entry));
+        struct dictionary_entry *elem = heap_alloc(sizeof(struct dictionary_entry));
 
         if (!elem)
             return;
@@ -171,7 +171,7 @@ void dictionary_remove(struct dictionary *d, const void *k)
         if (d->destroy)
             d->destroy((*prior)->key, (*prior)->value, d->extra);
         *prior = (*prior)->next;
-        HeapFree(GetProcessHeap(), 0, temp);
+        heap_free(temp);
         d->num_entries--;
     }
 }

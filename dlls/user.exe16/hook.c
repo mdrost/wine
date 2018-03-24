@@ -77,7 +77,7 @@ static struct hook16_queue_info *get_hook_info( BOOL create )
     if (!info && create)
     {
         if (hook_tls == TLS_OUT_OF_INDEXES) hook_tls = TlsAlloc();
-        info = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*info) );
+        info = heap_alloc_zero( sizeof(*info) );
         TlsSetValue( hook_tls, info );
     }
     return info;

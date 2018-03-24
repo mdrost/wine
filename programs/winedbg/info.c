@@ -273,7 +273,7 @@ void info_win32_module(DWORD64 base)
         }
         num_printed++;
     }
-    HeapFree(GetProcessHeap(), 0, im.modules);
+    heap_free(im.modules);
 
     if (base && !num_printed)
         dbg_printf("'0x%x%08x' is not a valid module address\n", (DWORD)(base >> 32), (DWORD)base);
@@ -332,7 +332,7 @@ void info_win32_class(HWND hWnd, const char* name)
         cw.table = NULL;
         cw.used = cw.alloc = 0;
         class_walker(GetDesktopWindow(), &cw);
-        HeapFree(GetProcessHeap(), 0, cw.table);
+        heap_free(cw.table);
         return;
     }
 
@@ -520,7 +520,7 @@ void info_win32_processes(void)
 
         dp.count   = 0;
         dp.alloc   = 16;
-        dp.entries = HeapAlloc(GetProcessHeap(), 0, sizeof(*dp.entries) * dp.alloc);
+        dp.entries = heap_alloc(sizeof(*dp.entries) * dp.alloc);
         if (!dp.entries)
         {
              CloseHandle(snap);
@@ -536,7 +536,7 @@ void info_win32_processes(void)
                 dp.entries[dp.count++].children = -1;
             if (dp.count >= dp.alloc)
             {
-                dp.entries = HeapReAlloc(GetProcessHeap(), 0, dp.entries, sizeof(*dp.entries) * (dp.alloc *= 2));
+                dp.entries = heap_realloc(dp.entries, sizeof(*dp.entries) * (dp.alloc *= 2));
                 if (!dp.entries) return;
             }
             dp.entries[dp.count].proc.dwSize = sizeof(dp.entries[dp.count].proc);
@@ -553,7 +553,7 @@ void info_win32_processes(void)
         }
         dbg_printf(" %-8.8s %-8.8s %s (all id:s are in hex)\n", "pid", "threads", "executable");
         dump_proc_info(&dp, first, 0);
-        HeapFree(GetProcessHeap(), 0, dp.entries);
+        heap_free(dp.entries);
     }
 }
 

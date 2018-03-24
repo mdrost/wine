@@ -36,6 +36,8 @@
 #include "winternl.h"
 
 #include "kernel_private.h"
+#include "wine/error.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -45,6 +47,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(file);
 
 static int path_safe_mode = -1;  /* path mode set by SetSearchPathMode */
 
+#if 0
 /* check if a file name is for an executable file (.exe or .com) */
 static inline BOOL is_executable( const WCHAR *name )
 {
@@ -55,6 +58,7 @@ static inline BOOL is_executable( const WCHAR *name )
     if (len < 4) return FALSE;
     return (!strcmpiW( name + len - 4, exeW ) || !strcmpiW( name + len - 4, comW ));
 }
+#endif
 
 /***********************************************************************
  *           copy_filename_WtoA
@@ -85,6 +89,7 @@ static DWORD copy_filename_WtoA( LPCWSTR nameW, LPSTR buffer, DWORD len )
     return ret;
 }
 
+#if 0
 /***********************************************************************
  *           add_boot_rename_entry
  *
@@ -184,7 +189,7 @@ static BOOL add_boot_rename_entry( LPCWSTR source, LPCWSTR dest, DWORD flags )
     if (NtQueryValueKey( Reboot, &nameW, KeyValuePartialInformation,
                          NULL, 0, &DataSize ) == STATUS_BUFFER_TOO_SMALL)
     {
-        if (!(Buffer = HeapAlloc( GetProcessHeap(), 0, DataSize + len1 + len2 + sizeof(WCHAR) )))
+        if (!(Buffer = heap_alloc( DataSize + len1 + len2 + sizeof(WCHAR) )))
             goto Quit;
         if (NtQueryValueKey( Reboot, &nameW, KeyValuePartialInformation,
                              Buffer, DataSize, &DataSize )) goto Quit;
@@ -195,7 +200,7 @@ static BOOL add_boot_rename_entry( LPCWSTR source, LPCWSTR dest, DWORD flags )
     else
     {
         DataSize = info_size;
-        if (!(Buffer = HeapAlloc( GetProcessHeap(), 0, DataSize + len1 + len2 + sizeof(WCHAR) )))
+        if (!(Buffer = heap_alloc( DataSize + len1 + len2 + sizeof(WCHAR) )))
             goto Quit;
     }
 
@@ -226,9 +231,10 @@ static BOOL add_boot_rename_entry( LPCWSTR source, LPCWSTR dest, DWORD flags )
     RtlFreeUnicodeString( &source_name );
     RtlFreeUnicodeString( &dest_name );
     if (Reboot) NtClose(Reboot);
-    HeapFree( GetProcessHeap(), 0, Buffer );
+    heap_free( Buffer );
     return(rc);
 }
+#endif
 
 
 /***********************************************************************
@@ -461,7 +467,7 @@ DWORD WINAPI GetShortPathNameW( LPCWSTR longpath, LPWSTR shortpath, DWORD shortl
     /* code below only removes characters from string, never adds, so this is
      * the largest buffer that tmpshortpath will need to have */
     buf_len = strlenW(longpath) + 1;
-    tmpshortpath = HeapAlloc(GetProcessHeap(), 0, buf_len * sizeof(WCHAR));
+    tmpshortpath = heap_alloc(buf_len * sizeof(WCHAR));
     if (!tmpshortpath)
     {
         SetLastError(ERROR_OUTOFMEMORY);
@@ -519,10 +525,10 @@ DWORD WINAPI GetShortPathNameW( LPCWSTR longpath, LPWSTR shortpath, DWORD shortl
         {
             WCHAR *new_buf;
             buf_len += strlenW(wfd.cAlternateFileName) - tmplen;
-            new_buf = HeapReAlloc(GetProcessHeap(), 0, tmpshortpath, buf_len * sizeof(WCHAR));
+            new_buf = heap_realloc(tmpshortpath, buf_len * sizeof(WCHAR));
             if(!new_buf)
             {
-                HeapFree(GetProcessHeap(), 0, tmpshortpath);
+                heap_free(tmpshortpath);
                 SetLastError(ERROR_OUTOFMEMORY);
                 return 0;
             }
@@ -543,11 +549,11 @@ DWORD WINAPI GetShortPathNameW( LPCWSTR longpath, LPWSTR shortpath, DWORD shortl
         tmplen--; /* length without 0 */
     }
 
-    HeapFree(GetProcessHeap(), 0, tmpshortpath);
+    heap_free(tmpshortpath);
     return tmplen;
 
  notfound:
-    HeapFree(GetProcessHeap(), 0, tmpshortpath);
+    heap_free(tmpshortpath);
     TRACE("not found!\n" );
     SetLastError ( ERROR_FILE_NOT_FOUND );
     return 0;
@@ -605,19 +611,32 @@ DWORD WINAPI GetTempPathA( DWORD count, LPSTR path )
  */
 DWORD WINAPI GetTempPathW( DWORD count, LPWSTR path )
 {
+#if 0
     static const WCHAR tmp[]  = { 'T', 'M', 'P', 0 };
     static const WCHAR temp[] = { 'T', 'E', 'M', 'P', 0 };
     static const WCHAR userprofile[] = { 'U','S','E','R','P','R','O','F','I','L','E',0 };
+#else
+    static const WCHAR tmpdir[] = { 'T','M','P','D','I','R',0 };
+#endif
     WCHAR tmp_path[MAX_PATH];
     UINT ret;
 
     TRACE("%u,%p\n", count, path);
 
+#if 0
     if (!(ret = GetEnvironmentVariableW( tmp, tmp_path, MAX_PATH )) &&
         !(ret = GetEnvironmentVariableW( temp, tmp_path, MAX_PATH )) &&
         !(ret = GetEnvironmentVariableW( userprofile, tmp_path, MAX_PATH )) &&
         !(ret = GetWindowsDirectoryW( tmp_path, MAX_PATH )))
         return 0;
+#else
+    if (!(ret = GetEnvironmentVariableW( tmpdir, tmp_path, MAX_PATH )))
+    {
+        static const WCHAR tmp[]  = { '/','t','m','p',0 };
+        lstrcpynW( tmp_path, tmp, 5);
+        ret = 4;
+    }
+#endif
 
     if (ret > MAX_PATH)
     {
@@ -676,7 +695,7 @@ UINT WINAPI GetTempFileNameA( LPCSTR path, LPCSTR prefix, UINT unique, LPSTR buf
     ret = GetTempFileNameW(pathW, prefixW, unique, bufferW);
     if (ret) FILE_name_WtoA( bufferW, -1, buffer, MAX_PATH );
 
-    HeapFree( GetProcessHeap(), 0, prefixW );
+    heap_free( prefixW );
     return ret;
 }
 
@@ -753,6 +772,7 @@ UINT WINAPI GetTempFileNameW( LPCWSTR path, LPCWSTR prefix, UINT unique, LPWSTR 
 }
 
 
+#if 0
 /***********************************************************************
  *           get_path_safe_mode
  */
@@ -839,7 +859,7 @@ static NTSTATUS find_actctx_dllpath(const WCHAR *libname, WCHAR **path)
 
     for (;;)
     {
-        if (!(info = HeapAlloc( GetProcessHeap(), 0, size )))
+        if (!(info = heap_alloc( size )))
         {
             status = STATUS_NO_MEMORY;
             goto done;
@@ -849,7 +869,7 @@ static NTSTATUS find_actctx_dllpath(const WCHAR *libname, WCHAR **path)
                                                        info, size, &needed );
         if (status == STATUS_SUCCESS) break;
         if (status != STATUS_BUFFER_TOO_SMALL) goto done;
-        HeapFree( GetProcessHeap(), 0, info );
+        heap_free( info );
         size = needed;
         /* restart with larger buffer */
     }
@@ -871,7 +891,7 @@ static NTSTATUS find_actctx_dllpath(const WCHAR *libname, WCHAR **path)
              * windows/winsxs manifest; use the manifest directory name instead */
             dirlen = p - info->lpAssemblyManifestPath;
             needed = (dirlen + 1) * sizeof(WCHAR);
-            if (!(*path = p = HeapAlloc( GetProcessHeap(), 0, needed )))
+            if (!(*path = p = heap_alloc( needed )))
             {
                 status = STATUS_NO_MEMORY;
                 goto done;
@@ -885,7 +905,7 @@ static NTSTATUS find_actctx_dllpath(const WCHAR *libname, WCHAR **path)
     needed = (strlenW( DIR_Windows ) * sizeof(WCHAR) +
               sizeof(winsxsW) + info->ulAssemblyDirectoryNameLength + 2*sizeof(WCHAR));
 
-    if (!(*path = p = HeapAlloc( GetProcessHeap(), 0, needed )))
+    if (!(*path = p = heap_alloc( needed )))
     {
         status = STATUS_NO_MEMORY;
         goto done;
@@ -899,10 +919,11 @@ static NTSTATUS find_actctx_dllpath(const WCHAR *libname, WCHAR **path)
     *p++ = '\\';
     *p = 0;
 done:
-    HeapFree( GetProcessHeap(), 0, info );
+    heap_free( info );
     RtlReleaseActivationContext( data.hActCtx );
     return status;
 }
+#endif
 
 /***********************************************************************
  * SearchPathW [KERNEL32.@]
@@ -935,6 +956,7 @@ done:
 DWORD WINAPI SearchPathW( LPCWSTR path, LPCWSTR name, LPCWSTR ext, DWORD buflen,
                           LPWSTR buffer, LPWSTR *lastpart )
 {
+#if 0
     DWORD ret = 0;
 
     if (!name || !name[0])
@@ -964,7 +986,7 @@ DWORD WINAPI SearchPathW( LPCWSTR path, LPCWSTR name, LPCWSTR ext, DWORD buflen,
             LPWSTR tmp;
             DWORD len = strlenW(name) + strlenW(ext);
 
-            if (!(tmp = HeapAlloc( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) )))
+            if (!(tmp = heap_alloc( (len + 1) * sizeof(WCHAR) )))
             {
                 SetLastError( ERROR_OUTOFMEMORY );
                 return 0;
@@ -973,7 +995,7 @@ DWORD WINAPI SearchPathW( LPCWSTR path, LPCWSTR name, LPCWSTR ext, DWORD buflen,
             strcatW( tmp, ext );
             if (RtlDoesFileExists_U( tmp ))
                 ret = GetFullPathNameW( tmp, buflen, buffer, lastpart );
-            HeapFree( GetProcessHeap(), 0, tmp );
+            heap_free( tmp );
         }
     }
     else if (path && path[0])  /* search in the specified path */
@@ -996,7 +1018,7 @@ DWORD WINAPI SearchPathW( LPCWSTR path, LPCWSTR name, LPCWSTR ext, DWORD buflen,
             req_len += ext_len;
             name_len += ext_len;
 
-            search = HeapAlloc( GetProcessHeap(), 0, (name_len + ext_len + 1) * sizeof(WCHAR) );
+            search = heap_alloc( (name_len + ext_len + 1) * sizeof(WCHAR) );
             if (!search)
             {
                 SetLastError( ERROR_OUTOFMEMORY );
@@ -1032,8 +1054,8 @@ DWORD WINAPI SearchPathW( LPCWSTR path, LPCWSTR name, LPCWSTR ext, DWORD buflen,
             else
                 ret = req_len + 1;
 
-            HeapFree( GetProcessHeap(), 0, dll_path );
-            HeapFree( GetProcessHeap(), 0, search );
+            heap_free( dll_path );
+            heap_free( search );
         }
         else
         {
@@ -1041,8 +1063,8 @@ DWORD WINAPI SearchPathW( LPCWSTR path, LPCWSTR name, LPCWSTR ext, DWORD buflen,
             {
                 ret = RtlDosSearchPath_U( dll_path, name, NULL, buflen * sizeof(WCHAR),
                                           buffer, lastpart ) / sizeof(WCHAR);
-                HeapFree( GetProcessHeap(), 0, dll_path );
-                HeapFree( GetProcessHeap(), 0, search );
+                heap_free( dll_path );
+                heap_free( search );
             }
             else
             {
@@ -1055,6 +1077,10 @@ DWORD WINAPI SearchPathW( LPCWSTR path, LPCWSTR name, LPCWSTR ext, DWORD buflen,
     if (!ret) SetLastError( ERROR_FILE_NOT_FOUND );
     else TRACE( "found %s\n", debugstr_w(buffer) );
     return ret;
+#else
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return 0;
+#endif
 }
 
 
@@ -1078,17 +1104,17 @@ DWORD WINAPI SearchPathA( LPCSTR path, LPCSTR name, LPCSTR ext,
 
     if (!(nameW = FILE_name_AtoW( name, FALSE ))) return 0;
     if (path && !(pathW = FILE_name_AtoW( path, TRUE ))) return 0;
-    
+
     if (ext && !(extW = FILE_name_AtoW( ext, TRUE )))
     {
-        HeapFree( GetProcessHeap(), 0, pathW );
+        heap_free( pathW );
         return 0;
     }
 
     ret = SearchPathW(pathW, nameW, extW, MAX_PATH, bufferW, NULL);
 
-    HeapFree( GetProcessHeap(), 0, pathW );
-    HeapFree( GetProcessHeap(), 0, extW );
+    heap_free( pathW );
+    heap_free( extW );
 
     if (!ret) return 0;
     if (ret > MAX_PATH)
@@ -1106,6 +1132,7 @@ static BOOL is_same_file(HANDLE h1, HANDLE h2)
 {
     int fd1;
     BOOL ret = FALSE;
+#if 0
     if (wine_server_handle_to_fd(h1, 0, &fd1, NULL) == STATUS_SUCCESS)
     {
         int fd2;
@@ -1118,6 +1145,7 @@ static BOOL is_same_file(HANDLE h1, HANDLE h2)
         }
         wine_server_release_fd(h1, fd1);
     }
+#endif
     return ret;
 }
 
@@ -1144,7 +1172,7 @@ BOOL WINAPI CopyFileA( LPCSTR source, LPCSTR dest, BOOL fail_if_exists)
 
     ret = CopyFileW( sourceW, destW, fail_if_exists );
 
-    HeapFree( GetProcessHeap(), 0, destW );
+    heap_free( destW );
     return ret;
 }
 
@@ -1168,7 +1196,7 @@ BOOL WINAPI CopyFileExW(LPCWSTR source, LPCWSTR dest,
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
-    if (!(buffer = HeapAlloc( GetProcessHeap(), 0, buffer_size )))
+    if (!(buffer = heap_alloc( buffer_size )))
     {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
         return FALSE;
@@ -1181,14 +1209,14 @@ BOOL WINAPI CopyFileExW(LPCWSTR source, LPCWSTR dest,
                      NULL, OPEN_EXISTING, 0, 0)) == INVALID_HANDLE_VALUE)
     {
         WARN("Unable to open source %s\n", debugstr_w(source));
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
         return FALSE;
     }
 
     if (!GetFileInformationByHandle( h1, &info ))
     {
         WARN("GetFileInformationByHandle returned error for %s\n", debugstr_w(source));
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
         CloseHandle( h1 );
         return FALSE;
     }
@@ -1205,7 +1233,7 @@ BOOL WINAPI CopyFileExW(LPCWSTR source, LPCWSTR dest,
         }
         if (same_file)
         {
-            HeapFree( GetProcessHeap(), 0, buffer );
+            heap_free( buffer );
             CloseHandle( h1 );
             SetLastError( ERROR_SHARING_VIOLATION );
             return FALSE;
@@ -1217,7 +1245,7 @@ BOOL WINAPI CopyFileExW(LPCWSTR source, LPCWSTR dest,
                              info.dwFileAttributes, h1 )) == INVALID_HANDLE_VALUE)
     {
         WARN("Unable to open dest %s\n", debugstr_w(dest));
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
         CloseHandle( h1 );
         return FALSE;
     }
@@ -1237,7 +1265,7 @@ BOOL WINAPI CopyFileExW(LPCWSTR source, LPCWSTR dest,
 done:
     /* Maintain the timestamp of source file to destination file */
     SetFileTime(h2, NULL, NULL, &info.ftLastWriteTime);
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     CloseHandle( h1 );
     CloseHandle( h2 );
     return ret;
@@ -1258,13 +1286,13 @@ BOOL WINAPI CopyFileExA(LPCSTR sourceFilename, LPCSTR destFilename,
     if (!(sourceW = FILE_name_AtoW( sourceFilename, TRUE ))) return FALSE;
     if (!(destW = FILE_name_AtoW( destFilename, TRUE )))
     {
-        HeapFree( GetProcessHeap(), 0, sourceW );
+        heap_free( sourceW );
         return FALSE;
     }
     ret = CopyFileExW(sourceW, destW, progressRoutine, appData,
                       cancelFlagPointer, copyFlags);
-    HeapFree( GetProcessHeap(), 0, sourceW );
-    HeapFree( GetProcessHeap(), 0, destW );
+    heap_free( sourceW );
+    heap_free( destW );
     return ret;
 }
 
@@ -1288,7 +1316,11 @@ BOOL WINAPI MoveFileWithProgressW( LPCWSTR source, LPCWSTR dest,
           debugstr_w(source), debugstr_w(dest), fnProgress, param, flag );
 
     if (flag & MOVEFILE_DELAY_UNTIL_REBOOT)
+#if 0
         return add_boot_rename_entry( source, dest, flag );
+#else
+        FIXME("MOVEFILE_DELAY_UNTIL_REBOOT unimplemented\n");
+#endif
 
     if (!dest)
         return DeleteFileW( source );
@@ -1298,7 +1330,11 @@ BOOL WINAPI MoveFileWithProgressW( LPCWSTR source, LPCWSTR dest,
 
     /* check if we are allowed to rename the source */
 
+#if 0
     if (!RtlDosPathNameToNtPathName_U( source, &nt_name, NULL, NULL ))
+#else
+    if (!RtlCreateUnicodeString( &nt_name, source ))
+#endif
     {
         SetLastError( ERROR_PATH_NOT_FOUND );
         return FALSE;
@@ -1314,7 +1350,11 @@ BOOL WINAPI MoveFileWithProgressW( LPCWSTR source, LPCWSTR dest,
 
     status = NtOpenFile( &source_handle, SYNCHRONIZE, &attr, &io, 0, FILE_SYNCHRONOUS_IO_NONALERT );
     if (status == STATUS_SUCCESS)
+#if 0
         status = wine_nt_to_unix_file_name( &nt_name, &source_unix, FILE_OPEN, FALSE );
+#else
+        status = RtlUnicodeStringToAnsiString( &source_unix, &nt_name, TRUE );
+#endif
     RtlFreeUnicodeString( &nt_name );
     if (status != STATUS_SUCCESS)
     {
@@ -1331,7 +1371,11 @@ BOOL WINAPI MoveFileWithProgressW( LPCWSTR source, LPCWSTR dest,
     /* we must have write access to the destination, and it must */
     /* not exist except if MOVEFILE_REPLACE_EXISTING is set */
 
+#if 0
     if (!RtlDosPathNameToNtPathName_U( dest, &nt_name, NULL, NULL ))
+#else
+    if (!RtlCreateUnicodeString( &nt_name, dest ))
+#endif
     {
         SetLastError( ERROR_PATH_NOT_FOUND );
         goto error;
@@ -1360,7 +1404,11 @@ BOOL WINAPI MoveFileWithProgressW( LPCWSTR source, LPCWSTR dest,
         goto error;
     }
 
+#if 0
     status = wine_nt_to_unix_file_name( &nt_name, &dest_unix, FILE_OPEN_IF, FALSE );
+#else
+    status = RtlUnicodeStringToAnsiString( &dest_unix, &nt_name, TRUE );
+#endif
     RtlFreeUnicodeString( &nt_name );
     if (status != STATUS_SUCCESS && status != STATUS_NO_SUCH_FILE)
     {
@@ -1388,6 +1436,7 @@ BOOL WINAPI MoveFileWithProgressW( LPCWSTR source, LPCWSTR dest,
         goto error;
     }
 
+#if 0
     /* fixup executable permissions */
 
     if (is_executable( source ) != is_executable( dest ))
@@ -1403,6 +1452,7 @@ BOOL WINAPI MoveFileWithProgressW( LPCWSTR source, LPCWSTR dest,
             chmod( dest_unix.Buffer, fstat.st_mode );
         }
     }
+#endif
 
     NtClose( source_handle );
     RtlFreeAnsiString( &source_unix );
@@ -1435,7 +1485,7 @@ BOOL WINAPI MoveFileWithProgressA( LPCSTR source, LPCSTR dest,
         destW = NULL;
 
     ret = MoveFileWithProgressW( sourceW, destW, fnProgress, param, flag );
-    HeapFree( GetProcessHeap(), 0, destW );
+    heap_free( destW );
     return ret;
 }
 
@@ -1491,18 +1541,31 @@ BOOL WINAPI CreateHardLinkW(LPCWSTR lpFileName, LPCWSTR lpExistingFileName,
         debugstr_w(lpExistingFileName), lpSecurityAttributes);
 
     ntDest.Buffer = ntSource.Buffer = NULL;
+#if 0
     if (!RtlDosPathNameToNtPathName_U( lpFileName, &ntDest, NULL, NULL ) ||
         !RtlDosPathNameToNtPathName_U( lpExistingFileName, &ntSource, NULL, NULL ))
+#else
+    if (!RtlCreateUnicodeString( &ntDest, lpFileName ) ||
+        !RtlCreateUnicodeString( &ntSource, lpExistingFileName ))
+#endif
     {
         SetLastError( ERROR_PATH_NOT_FOUND );
         goto err;
     }
 
     unixSource.Buffer = unixDest.Buffer = NULL;
+#if 0
     status = wine_nt_to_unix_file_name( &ntSource, &unixSource, FILE_OPEN, FALSE );
+#else
+    status = RtlUnicodeStringToAnsiString( &unixSource, &ntSource, TRUE );
+#endif
     if (!status)
     {
+#if 0
         status = wine_nt_to_unix_file_name( &ntDest, &unixDest, FILE_CREATE, FALSE );
+#else
+        status = RtlUnicodeStringToAnsiString( &unixDest, &ntDest, TRUE );
+#endif
         if (!status) /* destination must not exist */
         {
             status = STATUS_OBJECT_NAME_EXISTS;
@@ -1548,14 +1611,14 @@ BOOL WINAPI CreateHardLinkA(LPCSTR lpFileName, LPCSTR lpExistingFileName,
     }
     if (!(destW = FILE_name_AtoW( lpFileName, TRUE )))
     {
-        HeapFree( GetProcessHeap(), 0, sourceW );
+        heap_free( sourceW );
         return FALSE;
     }
 
     res = CreateHardLinkW( destW, sourceW, lpSecurityAttributes );
 
-    HeapFree( GetProcessHeap(), 0, sourceW );
-    HeapFree( GetProcessHeap(), 0, destW );
+    heap_free( sourceW );
+    heap_free( destW );
 
     return res;
 }
@@ -1582,7 +1645,11 @@ BOOL WINAPI CreateDirectoryW( LPCWSTR path, LPSECURITY_ATTRIBUTES sa )
 
     TRACE( "%s\n", debugstr_w(path) );
 
+#if 0
     if (!RtlDosPathNameToNtPathName_U( path, &nt_name, NULL, NULL ))
+#else
+    if (!RtlCreateUnicodeString( &nt_name, path ))
+#endif
     {
         SetLastError( ERROR_PATH_NOT_FOUND );
         return FALSE;
@@ -1634,7 +1701,7 @@ BOOL WINAPI CreateDirectoryExA( LPCSTR template, LPCSTR path, LPSECURITY_ATTRIBU
     if (template && !(templateW = FILE_name_AtoW( template, TRUE ))) return FALSE;
 
     ret = CreateDirectoryExW( templateW, pathW, sa );
-    HeapFree( GetProcessHeap(), 0, templateW );
+    heap_free( templateW );
     return ret;
 }
 
@@ -1663,7 +1730,11 @@ BOOL WINAPI RemoveDirectoryW( LPCWSTR path )
 
     TRACE( "%s\n", debugstr_w(path) );
 
+#if 0
     if (!RtlDosPathNameToNtPathName_U( path, &nt_name, NULL, NULL ))
+#else
+    if (!RtlCreateUnicodeString( &nt_name, path ))
+#endif
     {
         SetLastError( ERROR_PATH_NOT_FOUND );
         return FALSE;
@@ -1685,7 +1756,11 @@ BOOL WINAPI RemoveDirectoryW( LPCWSTR path )
         return FALSE;
     }
 
+#if 0
     status = wine_nt_to_unix_file_name( &nt_name, &unix_name, FILE_OPEN, FALSE );
+#else
+    status = RtlUnicodeStringToAnsiString( &unix_name, &nt_name, TRUE );
+#endif
     RtlFreeUnicodeString( &nt_name );
     if (status != STATUS_SUCCESS)
     {
@@ -1718,7 +1793,26 @@ BOOL WINAPI RemoveDirectoryA( LPCSTR path )
  */
 UINT WINAPI GetCurrentDirectoryW( UINT buflen, LPWSTR buf )
 {
+#if 0
     return RtlGetCurrentDirectory_U( buflen * sizeof(WCHAR), buf ) / sizeof(WCHAR);
+#else
+    UINT ret;
+    CHAR *bufA;
+
+    if (!(bufA = heap_alloc(buflen * sizeof(CHAR)))) return FALSE;
+
+    ret = GetCurrentDirectoryA(buflen, bufA);
+
+    if(!MultiByteToWideChar(CP_UNIXCP, 0, bufA, buflen, buf, buflen))
+    {
+        heap_free(bufA);
+        return 0;
+    }
+
+    heap_free(bufA);
+
+    return ret;
+#endif
 }
 
 
@@ -1727,6 +1821,7 @@ UINT WINAPI GetCurrentDirectoryW( UINT buflen, LPWSTR buf )
  */
 UINT WINAPI GetCurrentDirectoryA( UINT buflen, LPSTR buf )
 {
+#if 0
     WCHAR bufferW[MAX_PATH];
     DWORD ret;
 
@@ -1749,6 +1844,14 @@ UINT WINAPI GetCurrentDirectoryA( UINT buflen, LPSTR buf )
         return 0;
     }
     return copy_filename_WtoA( bufferW, buf, buflen );
+#else
+    if(!getcwd(buf, buflen))
+    {
+        return 0;
+    }
+
+    return strlen(buf);
+#endif
 }
 
 
@@ -1757,6 +1860,7 @@ UINT WINAPI GetCurrentDirectoryA( UINT buflen, LPSTR buf )
  */
 BOOL WINAPI SetCurrentDirectoryW( LPCWSTR dir )
 {
+#if 0
     UNICODE_STRING dirW;
     NTSTATUS status;
 
@@ -1764,6 +1868,26 @@ BOOL WINAPI SetCurrentDirectoryW( LPCWSTR dir )
     status = RtlSetCurrentDirectory_U( &dirW );
     if (status != STATUS_SUCCESS) SetLastError( RtlNtStatusToDosError(status) );
     return !status;
+#else
+    BOOL ret;
+    CHAR *dirA;
+
+    int len = WideCharToMultiByte(CP_UNIXCP, 0, dir, -1, NULL, 0, NULL, NULL);
+
+    if (!(dirA = heap_alloc(len * sizeof(CHAR)))) return FALSE;
+
+    if(!WideCharToMultiByte(CP_UNIXCP, 0, dir, len, dirA, len, NULL, NULL))
+    {
+        heap_free(dirA);
+        return FALSE;
+    }
+
+    ret = SetCurrentDirectoryA(dirA);
+
+    heap_free(dirA);
+
+    return ret;
+#endif
 }
 
 
@@ -1772,6 +1896,7 @@ BOOL WINAPI SetCurrentDirectoryW( LPCWSTR dir )
  */
 BOOL WINAPI SetCurrentDirectoryA( LPCSTR dir )
 {
+#if 0
     WCHAR *dirW;
     UNICODE_STRING strW;
     NTSTATUS status;
@@ -1781,6 +1906,14 @@ BOOL WINAPI SetCurrentDirectoryA( LPCSTR dir )
     status = RtlSetCurrentDirectory_U( &strW );
     if (status != STATUS_SUCCESS) SetLastError( RtlNtStatusToDosError(status) );
     return !status;
+#else
+    if (chdir(dir) != 0)
+    {
+        SetLastError( wine_errno_to_error(errno) );
+        return FALSE;
+    }
+    return TRUE;
+#endif
 }
 
 
@@ -1791,6 +1924,7 @@ BOOL WINAPI SetCurrentDirectoryA( LPCSTR dir )
  */
 UINT WINAPI GetWindowsDirectoryW( LPWSTR path, UINT count )
 {
+#if 0
     UINT len = strlenW( DIR_Windows ) + 1;
     if (path && count >= len)
     {
@@ -1798,6 +1932,10 @@ UINT WINAPI GetWindowsDirectoryW( LPWSTR path, UINT count )
         len--;
     }
     return len;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
@@ -1812,7 +1950,12 @@ UINT WINAPI GetWindowsDirectoryW( LPWSTR path, UINT count )
  */
 UINT WINAPI GetWindowsDirectoryA( LPSTR path, UINT count )
 {
+#if 0
     return copy_filename_WtoA( DIR_Windows, path, count );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
@@ -1841,6 +1984,7 @@ UINT WINAPI GetSystemWindowsDirectoryW( LPWSTR path, UINT count )
  */
 UINT WINAPI GetSystemDirectoryW( LPWSTR path, UINT count )
 {
+#if 0
     UINT len = strlenW( DIR_System ) + 1;
     if (path && count >= len)
     {
@@ -1848,6 +1992,10 @@ UINT WINAPI GetSystemDirectoryW( LPWSTR path, UINT count )
         len--;
     }
     return len;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
@@ -1858,7 +2006,12 @@ UINT WINAPI GetSystemDirectoryW( LPWSTR path, UINT count )
  */
 UINT WINAPI GetSystemDirectoryA( LPSTR path, UINT count )
 {
+#if 0
     return copy_filename_WtoA( DIR_System, path, count );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
@@ -1871,6 +2024,7 @@ UINT WINAPI GetSystemDirectoryA( LPSTR path, UINT count )
  */
 UINT WINAPI GetSystemWow64DirectoryW( LPWSTR path, UINT count )
 {
+#if 0
     UINT len;
 
     if (!DIR_SysWow64)
@@ -1885,6 +2039,10 @@ UINT WINAPI GetSystemWow64DirectoryW( LPWSTR path, UINT count )
         len--;
     }
     return len;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
@@ -1895,12 +2053,17 @@ UINT WINAPI GetSystemWow64DirectoryW( LPWSTR path, UINT count )
  */
 UINT WINAPI GetSystemWow64DirectoryA( LPSTR path, UINT count )
 {
+#if 0
     if (!DIR_SysWow64)
     {
         SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
         return 0;
     }
     return copy_filename_WtoA( DIR_SysWow64, path, count );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 

@@ -37,6 +37,7 @@
 #include "ddeml.h"
 #include "win.h"
 #include "dde_private.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -84,6 +85,7 @@ LPARAM WINAPI PackDDElParam(UINT msg, UINT_PTR uiLo, UINT_PTR uiHi)
     case WM_DDE_ADVISE:
     case WM_DDE_DATA:
     case WM_DDE_POKE:
+#if 0
         if (!(hMem = GlobalAlloc(GMEM_DDESHARE, sizeof(UINT_PTR) * 2)))
         {
             ERR("GlobalAlloc failed\n");
@@ -98,6 +100,9 @@ LPARAM WINAPI PackDDElParam(UINT msg, UINT_PTR uiLo, UINT_PTR uiHi)
         params[1] = uiHi;
         GlobalUnlock(hMem);
         return (LPARAM)hMem;
+#else
+        return 0;
+#endif
 
     case WM_DDE_EXECUTE:
         return uiHi;
@@ -126,6 +131,7 @@ BOOL WINAPI UnpackDDElParam(UINT msg, LPARAM lParam,
     case WM_DDE_ADVISE:
     case WM_DDE_DATA:
     case WM_DDE_POKE:
+#if 0
         if (!lParam || !(params = GlobalLock((HGLOBAL)lParam)))
         {
             if (uiLo) *uiLo = 0;
@@ -136,6 +142,9 @@ BOOL WINAPI UnpackDDElParam(UINT msg, LPARAM lParam,
         if (uiHi) *uiHi = params[1];
         GlobalUnlock( (HGLOBAL)lParam );
         return TRUE;
+#else
+        return FALSE;
+#endif
 
     case WM_DDE_EXECUTE:
         if (uiLo) *uiLo = 0;
@@ -165,9 +174,13 @@ BOOL WINAPI FreeDDElParam(UINT msg, LPARAM lParam)
     case WM_DDE_ADVISE:
     case WM_DDE_DATA:
     case WM_DDE_POKE:
+#if 0
         /* first check if it's a global handle */
         if (!GlobalHandle( (LPVOID)lParam )) return TRUE;
         return !GlobalFree( (HGLOBAL)lParam );
+#else
+        return FALSE;
+#endif
 
     default:
         return TRUE;
@@ -198,6 +211,7 @@ LPARAM WINAPI ReuseDDElParam(LPARAM lParam, UINT msgIn, UINT msgOut,
         case WM_DDE_ADVISE:
         case WM_DDE_DATA:
         case WM_DDE_POKE:
+#if 0
             if (!lParam) return 0;
             if (!(params = GlobalLock( (HGLOBAL)lParam )))
             {
@@ -209,6 +223,9 @@ LPARAM WINAPI ReuseDDElParam(LPARAM lParam, UINT msgIn, UINT msgOut,
             TRACE("Reusing pack %08lx %08lx\n", uiLo, uiHi);
             GlobalUnlock( (HGLOBAL)lParam );
             return lParam;
+#else
+            return 0;
+#endif
 
         case WM_DDE_EXECUTE:
             FreeDDElParam( msgIn, lParam );
@@ -412,7 +429,7 @@ BOOL WDML_DecHSZ(WDML_INSTANCE* pInstance, HSZ hsz)
 		{
 		    pPrev->next = pCurrent->next;
 		}
-		HeapFree(GetProcessHeap(), 0, pCurrent);
+		heap_free(pCurrent);
 		DeleteAtom(HSZ2ATOM(hsz));
 	    }
 	    return TRUE;
@@ -451,7 +468,7 @@ static void WDML_InsertHSZNode(WDML_INSTANCE* pInstance, HSZ hsz)
 	HSZNode* pNew = NULL;
 	/* Create a new node for this HSZ.
 	 */
-	pNew = HeapAlloc(GetProcessHeap(), 0, sizeof(HSZNode));
+	pNew = heap_alloc(sizeof(HSZNode));
 	if (pNew != NULL)
 	{
 	    pNew->hsz      = hsz;
@@ -857,7 +874,7 @@ static UINT WDML_Initialize(LPDWORD pidInst, PFNCALLBACK pfnCallback,
 
     /* grab enough heap for one control struct - not really necessary for re-initialise
      *	but allows us to use same validation routines */
-    pInstance = HeapAlloc(GetProcessHeap(), 0, sizeof(WDML_INSTANCE));
+    pInstance = heap_alloc(sizeof(WDML_INSTANCE));
     if (pInstance == NULL)
     {
 	/* catastrophe !! warn user & abort */
@@ -1068,14 +1085,14 @@ static UINT WDML_Initialize(LPDWORD pidInst, PFNCALLBACK pfnCallback,
 	reference_inst->clientOnly = pInstance->clientOnly;
 	reference_inst->monitorFlags = pInstance->monitorFlags;
 
-	HeapFree(GetProcessHeap(), 0, pInstance); /* finished - release heap space used as work store */
+	heap_free(pInstance); /* finished - release heap space used as work store */
 
 	LeaveCriticalSection(&WDML_CritSect);
     }
 
     return DMLERR_NO_ERROR;
  theError:
-    HeapFree(GetProcessHeap(), 0, pInstance);
+    heap_free(pInstance);
     LeaveCriticalSection(&WDML_CritSect);
     return ret;
 }
@@ -1181,7 +1198,7 @@ BOOL WINAPI DdeUninitialize(DWORD idInst)
     }
     /* release the heap entry
      */
-    HeapFree(GetProcessHeap(), 0, pInstance);
+    heap_free(pInstance);
 
     return TRUE;
 }
@@ -1306,6 +1323,7 @@ HDDEDATA WINAPI DdeCreateDataHandle(DWORD idInst, LPBYTE pSrc, DWORD cb, DWORD c
         return NULL;
     }
 
+#if 0
     if (!GetAtomNameW(HSZ2ATOM(hszItem), psz, MAX_BUFFER_LEN))
     {
         psz[0] = HSZ2ATOM(hszItem);
@@ -1344,6 +1362,9 @@ HDDEDATA WINAPI DdeCreateDataHandle(DWORD idInst, LPBYTE pSrc, DWORD cb, DWORD c
 
     TRACE("=> %p\n", hMem);
     return hMem;
+#else
+    return NULL;
+#endif
 }
 
 /*****************************************************************
@@ -1357,6 +1378,7 @@ HDDEDATA WINAPI DdeAddData(HDDEDATA hData, LPBYTE pSrc, DWORD cb, DWORD cbOff)
 
     TRACE("(%p,%p,cb %d, cbOff %d)\n", hData, pSrc, cb, cbOff);
 
+#if 0
     pDst = DdeAccessData(hData, &old_sz);
     if (!pDst) return 0;
 
@@ -1374,6 +1396,9 @@ HDDEDATA WINAPI DdeAddData(HDDEDATA hData, LPBYTE pSrc, DWORD cb, DWORD cbOff)
     memcpy(pDst + cbOff, pSrc, cb);
     DdeUnaccessData(hData);
     return hData;
+#else
+    return 0;
+#endif
 }
 
 /******************************************************************************
@@ -1439,6 +1464,7 @@ LPBYTE WINAPI DdeAccessData(HDDEDATA hData, LPDWORD pcbDataSize)
 
     TRACE("(%p,%p)\n", hData, pcbDataSize);
 
+#if 0
     pDdh = GlobalLock(hMem);
     if (pDdh == NULL)
     {
@@ -1452,6 +1478,9 @@ LPBYTE WINAPI DdeAccessData(HDDEDATA hData, LPDWORD pcbDataSize)
     }
     TRACE("=> %p (%lu) fmt %04x\n", pDdh + 1, GlobalSize(hMem) - sizeof(DDE_DATAHANDLE_HEAD), pDdh->cfFormat);
     return (LPBYTE)(pDdh + 1);
+#else
+    return 0;
+#endif
 }
 
 /*****************************************************************
@@ -1463,9 +1492,13 @@ BOOL WINAPI DdeUnaccessData(HDDEDATA hData)
 
     TRACE("(%p)\n", hData);
 
+#if 0
     GlobalUnlock(hMem);
 
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 /*****************************************************************
@@ -1479,7 +1512,11 @@ BOOL WINAPI DdeFreeDataHandle(HDDEDATA hData)
     if (hData == (HDDEDATA)1)
         return TRUE;
 
+#if 0
     return GlobalFree(hData) == 0;
+#else
+    return FALSE;
+#endif
 }
 
 /******************************************************************
@@ -1492,12 +1529,14 @@ BOOL WDML_IsAppOwned(HDDEDATA hData)
     DDE_DATAHANDLE_HEAD*	pDdh;
     BOOL                        ret = FALSE;
 
+#if 0
     pDdh = GlobalLock(hData);
     if (pDdh != NULL)
     {
         ret = pDdh->bAppOwned;
         GlobalUnlock(hData);
     }
+#endif
     return ret;
 }
 
@@ -1520,6 +1559,7 @@ HDDEDATA        WDML_Global2DataHandle(WDML_CONV* pConv, HGLOBAL hMem, WINE_DDEH
     HDDEDATA	ret = 0;
     DWORD       size;
 
+#if 0
     if (hMem)
     {
         pDd = GlobalLock(hMem);
@@ -1565,6 +1605,7 @@ HDDEDATA        WDML_Global2DataHandle(WDML_CONV* pConv, HGLOBAL hMem, WINE_DDEH
             GlobalUnlock(hMem);
         }
     }
+#endif
     return ret;
 }
 
@@ -1580,6 +1621,7 @@ HGLOBAL WDML_DataHandle2Global(HDDEDATA hDdeData, BOOL fResponse, BOOL fRelease,
     DWORD                       dwSize;
     HGLOBAL                     hMem = 0;
 
+#if 0
     dwSize = GlobalSize(hDdeData) - sizeof(DDE_DATAHANDLE_HEAD);
     pDdh = GlobalLock(hDdeData);
     if (dwSize && pDdh)
@@ -1633,6 +1675,7 @@ HGLOBAL WDML_DataHandle2Global(HDDEDATA hDdeData, BOOL fResponse, BOOL fRelease,
         }
         GlobalUnlock(hDdeData);
     }
+#endif
 
     return hMem;
 }
@@ -1655,7 +1698,7 @@ WDML_SERVER*	WDML_AddServer(WDML_INSTANCE* pInstance, HSZ hszService, HSZ hszTop
     WCHAR		buf1[256];
     WCHAR		buf2[256];
 
-    pServer = HeapAlloc(GetProcessHeap(), 0, sizeof(WDML_SERVER));
+    pServer = heap_alloc(sizeof(WDML_SERVER));
     if (pServer == NULL) return NULL;
 
     pServer->hszService = hszService;
@@ -1675,6 +1718,7 @@ WDML_SERVER*	WDML_AddServer(WDML_INSTANCE* pInstance, HSZ hszService, HSZ hszTop
     return pServer;
 }
 
+#if 0
 /******************************************************************
  *		WDML_RemoveServer
  *
@@ -1723,7 +1767,7 @@ void WDML_RemoveServer(WDML_INSTANCE* pInstance, HSZ hszService, HSZ hszTopic)
 	    GlobalDeleteAtom(pServer->atomService);
 	    GlobalDeleteAtom(pServer->atomServiceSpec);
 
-	    HeapFree(GetProcessHeap(), 0, pServer);
+	    heap_free(pServer);
 	    break;
 	}
 
@@ -1731,6 +1775,7 @@ void WDML_RemoveServer(WDML_INSTANCE* pInstance, HSZ hszService, HSZ hszTopic)
 	pServer = pServer->next;
     }
 }
+#endif
 
 /*****************************************************************************
  *	WDML_FindServer
@@ -1770,7 +1815,7 @@ void WDML_AddLink(WDML_INSTANCE* pInstance, HCONV hConv, WDML_SIDE side,
 {
     WDML_LINK*	pLink;
 
-    pLink = HeapAlloc(GetProcessHeap(), 0, sizeof(WDML_LINK));
+    pLink = heap_alloc(sizeof(WDML_LINK));
     if (pLink == NULL)
     {
 	ERR("OOM\n");
@@ -1814,7 +1859,7 @@ void WDML_RemoveLink(WDML_INSTANCE* pInstance, HCONV hConv, WDML_SIDE side,
 	    }
 
 	    WDML_DecHSZ(pInstance, pCurrent->hszItem);
-	    HeapFree(GetProcessHeap(), 0, pCurrent);
+	    heap_free(pCurrent);
 	    break;
 	}
 
@@ -1857,7 +1902,7 @@ static void WDML_RemoveAllLinks(WDML_INSTANCE* pInstance, WDML_CONV* pConv, WDML
 
 	    WDML_DecHSZ(pInstance, pCurrent->hszItem);
 
-	    HeapFree(GetProcessHeap(), 0, pCurrent);
+	    heap_free(pCurrent);
 	    pCurrent = NULL;
 	}
 
@@ -1916,7 +1961,7 @@ WDML_XACT*	WDML_AllocTransaction(WDML_INSTANCE* pInstance, UINT ddeMsg,
     WDML_XACT*		pXAct;
     static WORD		tid = 1;	/* FIXME: wrap around */
 
-    pXAct = HeapAlloc(GetProcessHeap(), 0, sizeof(WDML_XACT));
+    pXAct = heap_alloc(sizeof(WDML_XACT));
     if (!pXAct)
     {
 	pInstance->lastError = DMLERR_MEMORY_ERROR;
@@ -1972,6 +2017,7 @@ BOOL	WDML_UnQueueTransaction(WDML_CONV* pConv, WDML_XACT*  pXAct)
     return FALSE;
 }
 
+#if 0
 /******************************************************************
  *		WDML_FreeTransaction
  *
@@ -1986,8 +2032,9 @@ void	WDML_FreeTransaction(WDML_INSTANCE* pInstance, WDML_XACT* pXAct, BOOL doFre
     }
     if (pXAct->hszItem) WDML_DecHSZ(pInstance, pXAct->hszItem);
 
-    HeapFree(GetProcessHeap(), 0, pXAct);
+    heap_free(pXAct);
 }
+#endif
 
 /******************************************************************
  *		WDML_FindTransaction
@@ -2024,7 +2071,7 @@ WDML_CONV*	WDML_AddConv(WDML_INSTANCE* pInstance, WDML_SIDE side,
     WDML_CONV*	pConv;
 
     /* no conversation yet, add it */
-    pConv = HeapAlloc(GetProcessHeap(), 0, sizeof(WDML_CONV));
+    pConv = heap_alloc(sizeof(WDML_CONV));
     if (!pConv) return NULL;
 
     pConv->instance = pInstance;
@@ -2075,6 +2122,7 @@ WDML_CONV*	WDML_FindConv(WDML_INSTANCE* pInstance, WDML_SIDE side,
     return NULL;
 }
 
+#if 0
 /******************************************************************
  *		WDML_RemoveConv
  *
@@ -2128,11 +2176,12 @@ void WDML_RemoveConv(WDML_CONV* pRef, WDML_SIDE side)
 		pPrev->next = pCurrent->next;
 	    }
 	    pCurrent->magic = 0;
-	    HeapFree(GetProcessHeap(), 0, pCurrent);
+	    heap_free(pCurrent);
 	    break;
 	}
     }
 }
+#endif
 
 /******************************************************************
  *              WDML_EnableCallback
@@ -2155,6 +2204,7 @@ static BOOL WDML_EnableCallback(WDML_CONV *pConv, UINT wCmd)
         return FALSE;
     }
 
+#if 0
     if (wCmd == EC_ENABLEALL)
     {
         pConv->wStatus &= ~ST_BLOCKED;
@@ -2183,6 +2233,9 @@ static BOOL WDML_EnableCallback(WDML_CONV *pConv, UINT wCmd)
         if (wCmd == EC_ENABLEONE) break;
     }
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 /*****************************************************************

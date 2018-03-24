@@ -551,7 +551,7 @@ HRESULT WINAPI IShellItem_Constructor(IUnknown *pUnkOuter, REFIID riid, void **p
 
     if (pUnkOuter) return CLASS_E_NOAGGREGATION;
 
-    This = heap_alloc(sizeof(*This));
+    This = heap_alloc(sizeof(ShellItem));
     This->IShellItem2_iface.lpVtbl = &ShellItem2_Vtbl;
     This->ref = 1;
     This->pidl = NULL;
@@ -1007,7 +1007,7 @@ static HRESULT IEnumShellItems_Constructor(IShellItemArray *array, IEnumShellIte
     IEnumShellItemsImpl *This;
     HRESULT ret;
 
-    This = heap_alloc(sizeof(*This));
+    This = heap_alloc(sizeof(IEnumShellItemsImpl));
     if(!This)
         return E_OUTOFMEMORY;
 
@@ -1236,7 +1236,7 @@ static HRESULT create_shellitemarray(IShellItem **items, DWORD count, IShellItem
 
     TRACE("(%p, %d, %p)\n", items, count, ret);
 
-    This = heap_alloc(sizeof(*This));
+    This = heap_alloc(sizeof(IShellItemArrayImpl));
     if(!This)
         return E_OUTOFMEMORY;
 

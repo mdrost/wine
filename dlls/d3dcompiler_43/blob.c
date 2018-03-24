@@ -79,8 +79,8 @@ static ULONG STDMETHODCALLTYPE d3dcompiler_blob_Release(ID3DBlob *iface)
 
     if (!refcount)
     {
-        HeapFree(GetProcessHeap(), 0, blob->data);
-        HeapFree(GetProcessHeap(), 0, blob);
+        heap_free(blob->data);
+        heap_free(blob);
     }
 
     return refcount;
@@ -123,7 +123,7 @@ static HRESULT d3dcompiler_blob_init(struct d3dcompiler_blob *blob, SIZE_T data_
     blob->refcount = 1;
     blob->size = data_size;
 
-    blob->data = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, data_size);
+    blob->data = heap_alloc_zero(data_size);
     if (!blob->data)
     {
         ERR("Failed to allocate D3D blob data memory\n");
@@ -146,7 +146,7 @@ HRESULT WINAPI D3DCreateBlob(SIZE_T data_size, ID3DBlob **blob)
         return D3DERR_INVALIDCALL;
     }
 
-    object = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*object));
+    object = heap_alloc_zero(sizeof(*object));
     if (!object)
         return E_OUTOFMEMORY;
 
@@ -154,7 +154,7 @@ HRESULT WINAPI D3DCreateBlob(SIZE_T data_size, ID3DBlob **blob)
     if (FAILED(hr))
     {
         WARN("Failed to initialize blob, hr %#x.\n", hr);
-        HeapFree(GetProcessHeap(), 0, object);
+        heap_free(object);
         return hr;
     }
 

@@ -34,6 +34,7 @@
 #include "winbase.h"
 #include "wingdi.h"
 #include "winuser.h"
+#include "wine/heap.h"
 #include "wine/list.h"
 #include "wine/unicode.h"
 #include "objbase.h"
@@ -118,7 +119,7 @@ static void HFONTItem_Delete(PHFONTItem item)
 {
   DeleteObject(item->gdiFont);
   list_remove(&item->entry);
-  HeapFree(GetProcessHeap(), 0, item);
+  heap_free(item);
 }
 
 /* Find hfont item entry in the list.  Should be called while holding the crit sect */
@@ -137,7 +138,7 @@ static HFONTItem *find_hfontitem(HFONT hfont)
 /* Add an item to the list with one internal reference */
 static HRESULT add_hfontitem(HFONT hfont)
 {
-    HFONTItem *new_item = HeapAlloc(GetProcessHeap(), 0, sizeof(*new_item));
+    HFONTItem *new_item = heap_alloc(sizeof(*new_item));
 
     if(!new_item) return E_OUTOFMEMORY;
 
@@ -232,7 +233,7 @@ static WCHAR *strdupW(const WCHAR* str)
     WCHAR *ret;
     DWORD size = (strlenW(str) + 1) * sizeof(WCHAR);
 
-    ret = HeapAlloc(GetProcessHeap(), 0, size);
+    ret = heap_alloc(size);
     if(ret)
         memcpy(ret, str, size);
     return ret;
@@ -648,7 +649,7 @@ static void realize_font(OLEFontImpl *This)
     GetTextFaceW(hdc, sizeof(text_face) / sizeof(text_face[0]), text_face);
     if(lstrcmpiW(text_face, This->description.lpstrName))
     {
-        HeapFree(GetProcessHeap(), 0, This->description.lpstrName);
+        heap_free(This->description.lpstrName);
         This->description.lpstrName = strdupW(text_face);
     }
     GetTextMetricsW(hdc, &tm);
@@ -696,7 +697,7 @@ static HRESULT WINAPI OLEFontImpl_put_Name(
   if (!name)
     return CTL_E_INVALIDPROPERTYVALUE;
 
-  HeapFree(GetProcessHeap(), 0, This->description.lpstrName);
+  heap_free(This->description.lpstrName);
   This->description.lpstrName = strdupW(name);
   if (!This->description.lpstrName) return E_OUTOFMEMORY;
 
@@ -999,7 +1000,7 @@ static HRESULT WINAPI OLEFontImpl_Clone(
 
   *ppfont = NULL;
 
-  newObject = HeapAlloc(GetProcessHeap(), 0, sizeof(OLEFontImpl));
+  newObject = heap_alloc(sizeof(OLEFontImpl));
   if (newObject==NULL)
     return E_OUTOFMEMORY;
 
@@ -1662,10 +1663,10 @@ static HRESULT WINAPI OLEFontImpl_Load(
   IStream_Read(pLoadStream, readBuffer, string_size, &cbRead);
   if (cbRead != string_size) return E_FAIL;
 
-  HeapFree(GetProcessHeap(), 0, this->description.lpstrName);
+  heap_free(this->description.lpstrName);
 
   len = MultiByteToWideChar( CP_ACP, 0, readBuffer, string_size, NULL, 0 );
-  this->description.lpstrName = HeapAlloc( GetProcessHeap(), 0, (len+1) * sizeof(WCHAR) );
+  this->description.lpstrName = heap_alloc( (len+1) * sizeof(WCHAR) );
   MultiByteToWideChar( CP_ACP, 0, readBuffer, string_size, this->description.lpstrName, len );
   this->description.lpstrName[len] = 0;
 
@@ -1736,13 +1737,13 @@ static HRESULT WINAPI OLEFontImpl_Save(
 
   if (string_size)
   {
-      if (!(writeBuffer = HeapAlloc( GetProcessHeap(), 0, string_size ))) return E_OUTOFMEMORY;
+      if (!(writeBuffer = heap_alloc( string_size ))) return E_OUTOFMEMORY;
       WideCharToMultiByte( CP_ACP, 0, this->description.lpstrName,
                            strlenW(this->description.lpstrName),
                            writeBuffer, string_size, NULL, NULL );
 
       IStream_Write(pOutStream, writeBuffer, string_size, &written);
-      HeapFree(GetProcessHeap(), 0, writeBuffer);
+      heap_free(writeBuffer);
 
       if (written != string_size) return E_FAIL;
   }
@@ -2150,7 +2151,7 @@ static OLEFontImpl* OLEFontImpl_Construct(const FONTDESC *fontDesc)
 {
   OLEFontImpl* newObject;
 
-  newObject = HeapAlloc(GetProcessHeap(), 0, sizeof(OLEFontImpl));
+  newObject = heap_alloc(sizeof(OLEFontImpl));
 
   if (newObject==0)
     return newObject;
@@ -2206,14 +2207,14 @@ static void OLEFontImpl_Destroy(OLEFontImpl* fontDesc)
 {
   TRACE("(%p)\n", fontDesc);
 
-  HeapFree(GetProcessHeap(), 0, fontDesc->description.lpstrName);
+  heap_free(fontDesc->description.lpstrName);
 
   if (fontDesc->pPropertyNotifyCP)
       IConnectionPoint_Release(fontDesc->pPropertyNotifyCP);
   if (fontDesc->pFontEventsCP)
       IConnectionPoint_Release(fontDesc->pFontEventsCP);
 
-  HeapFree(GetProcessHeap(), 0, fontDesc);
+  heap_free(fontDesc);
 }
 
 /*******************************************************************************

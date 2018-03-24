@@ -226,7 +226,7 @@ static void test_info(void)
     if ( retval == 0 || hdl != 0)
         return;
 
-    pVersionInfo = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, retval );
+    pVersionInfo = heap_alloc_zero( retval );
     ok(pVersionInfo != 0, "HeapAlloc failed\n" );
     if (pVersionInfo == 0)
         return;
@@ -277,7 +277,7 @@ static void test_info(void)
     }
 
 cleanup:
-    HeapFree( GetProcessHeap(), 0, pVersionInfo);
+    heap_free( pVersionInfo);
 }
 
 static void test_32bit_win(void)
@@ -340,14 +340,14 @@ static void test_32bit_win(void)
     if (is_unicode_enabled)
     { 
         retvalW = GetFileVersionInfoSizeW( mypathW, &hdlW);
-        pVersionInfoW = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, retvalW );
+        pVersionInfoW = heap_alloc_zero( retvalW );
         retW = GetFileVersionInfoW( mypathW, 0, retvalW, pVersionInfoW );
         ok(retW, "GetFileVersionInfo failed: GetLastError = %u\n", GetLastError());
     }
 
     GetModuleFileNameA(NULL, mypathA, MAX_PATH);
     retvalA = GetFileVersionInfoSizeA( mypathA, &hdlA);
-    pVersionInfoA = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, retvalA );
+    pVersionInfoA = heap_alloc_zero( retvalA );
     retA = GetFileVersionInfoA( mypathA, 0, retvalA, pVersionInfoA );
     ok(retA, "GetFileVersionInfo failed: GetLastError = %u\n", GetLastError());
 
@@ -456,9 +456,9 @@ static void test_32bit_win(void)
         ok( !lstrcmpW(WineFileDescriptionW, pBufW), "FileDescription should have been '%s'\n", WineFileDescriptionA);
     }
 
-    HeapFree( GetProcessHeap(), 0, pVersionInfoA);
+    heap_free( pVersionInfoA);
     if (is_unicode_enabled)
-        HeapFree( GetProcessHeap(), 0, pVersionInfoW);
+        heap_free( pVersionInfoW);
 }
 
 static void test_VerQueryValueA(void)
@@ -479,7 +479,7 @@ static void test_VerQueryValueA(void)
     len = GetFileVersionInfoSizeA(buf, NULL);
     ok(len, "GetFileVersionInfoSizeA(%s) error %u\n", buf, GetLastError());
 
-    ver = HeapAlloc(GetProcessHeap(), 0, len);
+    ver = heap_alloc(len);
     assert(ver);
 
     SetLastError(0xdeadbeef);
@@ -575,7 +575,7 @@ static void test_VerQueryValueA(void)
         ok(len == 0, "expected 0 or 0xbeef, got %x\n", len);
     }
 
-    HeapFree(GetProcessHeap(), 0, ver);
+    heap_free(ver);
 }
 
 static void test_extra_block(void)
@@ -597,7 +597,7 @@ static void test_extra_block(void)
     len = GetFileVersionInfoSizeA(buf, NULL);
     ok(len, "GetFileVersionInfoSizeA(%s) error %u\n", buf, GetLastError());
 
-    ver = HeapAlloc(GetProcessHeap(), 0, len + sizeof(extra_block) * 2);
+    ver = heap_alloc(len + sizeof(extra_block) * 2);
     ok(ver != NULL, "Can't allocate memory\n");
 
     ret = GetFileVersionInfoA(buf, 0, len, ver);
@@ -625,7 +625,7 @@ static void test_extra_block(void)
     ok(p != (char *)0xdeadbeef, "not expected 0xdeadbeef\n");
     ok(strcmp(p, "B-)") == 0, "got '%s', expected '%s'\n", p, "B-)");
 
-    HeapFree(GetProcessHeap(), 0, ver);
+    heap_free(ver);
 }
 
 static void test_GetFileVersionInfoEx(void)
@@ -661,7 +661,7 @@ static void test_GetFileVersionInfoEx(void)
     size = GetFileVersionInfoSizeW(kernel32W, NULL);
     ok(size, "GetFileVersionInfoSize(kernel32) error %u\n", GetLastError());
 
-    ver = HeapAlloc(GetProcessHeap(), 0, size);
+    ver = heap_alloc(size);
     assert(ver);
 
     ret = GetFileVersionInfoW(kernel32W, 0, size, ver);
@@ -678,7 +678,7 @@ static void test_GetFileVersionInfoEx(void)
     ok(HIWORD(translation) == unicode, "got %u, expected codepage is %u\n",
        HIWORD(translation), unicode);
 
-    HeapFree(GetProcessHeap(), 0, ver);
+    heap_free(ver);
 
     mod = GetModuleHandleA("version.dll");
     assert(mod);
@@ -697,7 +697,7 @@ static void test_GetFileVersionInfoEx(void)
         size = pGetFileVersionInfoSizeExW(test_flags[i], kernel32W, NULL);
         ok(size, "[%u] GetFileVersionInfoSizeEx(kernel32) error %u\n", i, GetLastError());
 
-        ver = HeapAlloc(GetProcessHeap(), 0, size);
+        ver = heap_alloc(size);
         assert(ver);
 
         ret = pGetFileVersionInfoExW(test_flags[i], kernel32W, 0, size, ver);
@@ -726,7 +726,7 @@ static void test_GetFileVersionInfoEx(void)
         ok(ret, "[%u] VerQueryValue error %u\n", i, GetLastError());
         ok(size == strlen(p) + 1, "[%u] VerQueryValue returned %u\n", i, size);
 
-        HeapFree(GetProcessHeap(), 0, ver);
+        heap_free(ver);
     }
 
     return;

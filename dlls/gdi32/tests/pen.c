@@ -567,6 +567,7 @@ static void test_ps_userstyle(void)
     DeleteObject(pen);
 }
 
+#if 0
 static void test_brush_pens(void)
 {
     char buffer[offsetof(EXTLOGPEN, elpStyleEntry) + 16 * sizeof(DWORD)];
@@ -686,11 +687,14 @@ static void test_brush_pens(void)
     GlobalFree( hmem );
     DeleteObject( bmp );
 }
+#endif
 
 START_TEST(pen)
 {
     test_logpen();
+#if 0
     test_brush_pens();
+#endif
     test_ps_alternate();
     test_ps_userstyle();
 }

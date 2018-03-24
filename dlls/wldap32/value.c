@@ -156,7 +156,8 @@ static char *bv2str( struct berval *bv )
     char *str = NULL;
     unsigned int len = bv->bv_len;
 
-    if ((str = heap_alloc( len + 1 )))
+    str = heap_alloc( len + 1 );
+    if (str)
     {
         memcpy( str, bv->bv_val, len );
         str[len] = '\0';
@@ -175,7 +176,8 @@ static char **bv2str_array( struct berval **bv )
         len++;
         p++;
     }
-    if (!(str = heap_alloc( (len + 1) * sizeof(char *) ))) return NULL;
+    str = heap_alloc( (len + 1) * sizeof(char *) );
+    if (!str) return NULL;
 
     p = bv;
     while (*p)

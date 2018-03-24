@@ -125,14 +125,14 @@ static void determine_pointer_marshalling_style(void)
                            0);
 
     StubMsg.BufferLength = 8;
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     NdrPointerMarshall(&StubMsg, (unsigned char*)&ch, fmtstr_up_char);
     ok(StubMsg.Buffer == StubMsg.BufferStart + 5, "%p %p\n", StubMsg.Buffer, StubMsg.BufferStart);
 
     use_pointer_ids = (*(unsigned int *)StubMsg.BufferStart != (UINT_PTR)&ch);
     trace("Pointer marshalling using %s\n", use_pointer_ids ? "pointer ids" : "pointer value");
 
-    HeapFree(GetProcessHeap(), 0, StubMsg.BufferStart);
+    heap_free(StubMsg.BufferStart);
 }
 
 static void test_ndr_simple_type(void)
@@ -152,7 +152,7 @@ static void test_ndr_simple_type(void)
                            0);
 
     StubMsg.BufferLength = 16;
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     l = 0xcafebabe;
     NdrSimpleTypeMarshall(&StubMsg, (unsigned char*)&l, 8 /* FC_LONG */);
     ok(StubMsg.Buffer == StubMsg.BufferStart + 4, "%p %p\n", StubMsg.Buffer, StubMsg.BufferStart);
@@ -168,7 +168,7 @@ static void test_ndr_simple_type(void)
     ok(StubMsg.Buffer == StubMsg.BufferStart + 8, "%p %p\n", StubMsg.Buffer, StubMsg.BufferStart);
     ok(l2 == l, "%d\n", l2);
 
-    HeapFree(GetProcessHeap(), 0, StubMsg.BufferStart);
+    heap_free(StubMsg.BufferStart);
 }
 
 static void test_pointer_marshal(const unsigned char *formattypes,
@@ -206,7 +206,7 @@ static void test_pointer_marshal(const unsigned char *formattypes,
     ok(StubMsg.BufferLength >= wiredatalen, "%s: length %d\n", msgpfx, StubMsg.BufferLength);
 
     /*NdrGetBuffer(&_StubMsg, _StubMsg.BufferLength, NULL);*/
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     StubMsg.BufferEnd = StubMsg.BufferStart + StubMsg.BufferLength;
 
     memset(StubMsg.BufferStart, 0x0, StubMsg.BufferLength); /* This is a hack to clear the padding between the ptr and longlong/double */
@@ -260,7 +260,7 @@ static void test_pointer_marshal(const unsigned char *formattypes,
 
     StubMsg.Buffer = StubMsg.BufferStart;
     StubMsg.MemorySize = 0;
-    mem_orig = mem = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+    mem_orig = mem = heap_alloc_zero(size);
 
     if(formattypes[1] & 0x10 /* FC_POINTER_DEREF */)
         *(void**)mem = NULL;
@@ -327,8 +327,8 @@ todo_wine {
             }
         }
     }
-    HeapFree(GetProcessHeap(), 0, mem_orig);
-    HeapFree(GetProcessHeap(), 0, StubMsg.BufferStart);
+    heap_free(mem_orig);
+    heap_free(StubMsg.BufferStart);
 }
 
 static int deref_cmp(const void *s1, const void *s2, size_t num)
@@ -584,7 +584,7 @@ static void test_nontrivial_pointer_types(void)
     ok(StubMsg.BufferLength >= 5, "length %d\n", StubMsg.BufferLength);
 
     /*NdrGetBuffer(&_StubMsg, _StubMsg.BufferLength, NULL);*/
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     StubMsg.BufferEnd = StubMsg.BufferStart + StubMsg.BufferLength;
 
     ptr = NdrPointerMarshall( &StubMsg, (unsigned char *)p1, &fmtstr_ref_unique_out[4] );
@@ -602,7 +602,7 @@ static void test_nontrivial_pointer_types(void)
     /* Client */
     my_alloc_called = 0;
     StubMsg.Buffer = StubMsg.BufferStart;
-    mem = mem_orig = HeapAlloc(GetProcessHeap(), 0, sizeof(void *));
+    mem = mem_orig = heap_alloc(sizeof(void *));
     *(void **)mem = NULL;
     NdrPointerUnmarshall( &StubMsg, &mem, &fmtstr_ref_unique_out[4], 0);
     ok(mem == mem_orig, "mem alloced\n");
@@ -693,8 +693,8 @@ static void test_nontrivial_pointer_types(void)
     ok(my_free_called == 1, "free called %d\n", my_free_called);
     my_free(mem);
 
-    HeapFree(GetProcessHeap(), 0, mem_orig);
-    HeapFree(GetProcessHeap(), 0, StubMsg.RpcMsg->Buffer);
+    heap_free(mem_orig);
+    heap_free(StubMsg.RpcMsg->Buffer);
 }
 
 static void test_simple_struct_marshal(const unsigned char *formattypes,
@@ -724,7 +724,7 @@ static void test_simple_struct_marshal(const unsigned char *formattypes,
     StubMsg.BufferLength = 0;
     NdrSimpleStructBufferSize( &StubMsg, memsrc, formattypes );
     ok(StubMsg.BufferLength >= wiredatalen, "%s: length %d\n", msgpfx, StubMsg.BufferLength);
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     StubMsg.BufferEnd = StubMsg.BufferStart + StubMsg.BufferLength;
     ptr = NdrSimpleStructMarshall( &StubMsg,  memsrc, formattypes );
     ok(ptr == NULL, "%s: ret %p\n", msgpfx, ptr);
@@ -748,7 +748,7 @@ static void test_simple_struct_marshal(const unsigned char *formattypes,
 
     StubMsg.Buffer = StubMsg.BufferStart;
     StubMsg.MemorySize = 0;
-    mem_orig = mem = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, srcsize);
+    mem_orig = mem = heap_alloc_zero(srcsize);
     ptr = NdrSimpleStructUnmarshall( &StubMsg, &mem, formattypes, 0 );
     ok(ptr == NULL, "%s: ret %p\n", msgpfx, ptr);
     ok(StubMsg.Buffer - StubMsg.BufferStart == wiredatalen, "%s: Buffer %p Start %p\n", msgpfx, StubMsg.Buffer, StubMsg.BufferStart);
@@ -837,8 +837,8 @@ static void test_simple_struct_marshal(const unsigned char *formattypes,
     my_alloc_called = 0;
     ok(StubMsg.MemorySize == 0, "memorysize touched in unmarshal\n");
 
-    HeapFree(GetProcessHeap(), 0, mem_orig);
-    HeapFree(GetProcessHeap(), 0, StubMsg.BufferStart);
+    heap_free(mem_orig);
+    heap_free(StubMsg.BufferStart);
 }
 
 typedef struct
@@ -1416,7 +1416,7 @@ static void test_conformant_array(void)
     ok(StubMsg.BufferLength >= 20, "length %d\n", StubMsg.BufferLength);
 
     /*NdrGetBuffer(&_StubMsg, _StubMsg.BufferLength, NULL);*/
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     StubMsg.BufferEnd = StubMsg.BufferStart + StubMsg.BufferLength;
 
     ptr = NdrConformantArrayMarshall( &StubMsg,  memsrc, fmtstr_conf_array );
@@ -1490,7 +1490,7 @@ static void test_conformant_array(void)
     StubMsg.pfnFree(mem);
     StubMsg.pfnFree(mem_orig);
 
-    HeapFree(GetProcessHeap(), 0, StubMsg.RpcMsg->Buffer);
+    heap_free(StubMsg.RpcMsg->Buffer);
 }
 
 static void test_conformant_string(void)
@@ -1527,7 +1527,7 @@ static void test_conformant_string(void)
     ok(StubMsg.BufferLength >= sizeof(memsrc) + 12, "length %d\n", StubMsg.BufferLength);
 
     /*NdrGetBuffer(&_StubMsg, _StubMsg.BufferLength, NULL);*/
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     StubMsg.BufferEnd = StubMsg.BufferStart + StubMsg.BufferLength;
 
     ptr = NdrPointerMarshall( &StubMsg, (unsigned char *)memsrc, fmtstr_conf_str );
@@ -1544,7 +1544,7 @@ static void test_conformant_string(void)
     /* Client */
     my_alloc_called = 0;
     StubMsg.Buffer = StubMsg.BufferStart;
-    mem = mem_orig = HeapAlloc(GetProcessHeap(), 0, sizeof(memsrc));
+    mem = mem_orig = heap_alloc(sizeof(memsrc));
     /* Windows apparently checks string length on the output buffer to determine its size... */
     memset( mem, 'x', sizeof(memsrc) - 1 );
     mem[sizeof(memsrc) - 1] = 0;
@@ -1563,7 +1563,7 @@ todo_wine {
     /* Prevent a memory leak when running with Wine.
        Remove once the todo_wine block above is fixed. */
     if (mem != mem_orig)
-        HeapFree(GetProcessHeap(), 0, mem_orig);
+        heap_free(mem_orig);
 
     my_free_called = 0;
     StubMsg.Buffer = StubMsg.BufferStart;
@@ -1597,7 +1597,7 @@ todo_wine {
 }
 
     my_alloc_called = 0;
-    mem = mem_orig = HeapAlloc(GetProcessHeap(), 0, sizeof(memsrc));
+    mem = mem_orig = heap_alloc(sizeof(memsrc));
     StubMsg.Buffer = StubMsg.BufferStart;
     NdrPointerUnmarshall( &StubMsg, &mem, fmtstr_conf_str, 0);
     ok(mem == StubMsg.BufferStart + 12 || broken(!mem), /* win9x, nt4 */
@@ -1620,8 +1620,8 @@ todo_wine {
     NdrPointerFree( &StubMsg, mem, fmtstr_conf_str );
     ok(my_free_called == 1, "free called %d\n", my_free_called);
 
-    HeapFree(GetProcessHeap(), 0, mem_orig);
-    HeapFree(GetProcessHeap(), 0, StubMsg.RpcMsg->Buffer);
+    heap_free(mem_orig);
+    heap_free(StubMsg.RpcMsg->Buffer);
 }
 
 static void test_nonconformant_string(void)
@@ -1658,7 +1658,7 @@ static void test_nonconformant_string(void)
     ok(StubMsg.BufferLength >= strlen((char *)memsrc) + 1 + 8, "length %d\n", StubMsg.BufferLength);
 
     /*NdrGetBuffer(&_StubMsg, _StubMsg.BufferLength, NULL);*/
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     StubMsg.BufferEnd = StubMsg.BufferStart + StubMsg.BufferLength;
 
     ptr = NdrNonConformantStringMarshall( &StubMsg, memsrc, fmtstr_nonconf_str );
@@ -1675,7 +1675,7 @@ static void test_nonconformant_string(void)
     /* Client */
     my_alloc_called = 0;
     StubMsg.Buffer = StubMsg.BufferStart;
-    mem = mem_orig = HeapAlloc(GetProcessHeap(), 0, sizeof(memsrc));
+    mem = mem_orig = heap_alloc(sizeof(memsrc));
     NdrNonConformantStringUnmarshall( &StubMsg, &mem, fmtstr_nonconf_str, 0);
     ok(mem == mem_orig, "mem alloced\n");
     ok(my_alloc_called == 0, "alloc called %d\n", my_alloc_called);
@@ -1715,8 +1715,8 @@ static void test_nonconformant_string(void)
     todo_wine
     ok(my_alloc_called == 0, "alloc called %d\n", my_alloc_called);
 
-    HeapFree(GetProcessHeap(), 0, mem_orig);
-    HeapFree(GetProcessHeap(), 0, StubMsg.RpcMsg->Buffer);
+    heap_free(mem_orig);
+    heap_free(StubMsg.RpcMsg->Buffer);
 
     /* length = size */
     NdrClientInitializeNew(
@@ -1731,7 +1731,7 @@ static void test_nonconformant_string(void)
     ok(StubMsg.BufferLength >= strlen((char *)memsrc2) + 1 + 8, "length %d\n", StubMsg.BufferLength);
 
     /*NdrGetBuffer(&_StubMsg, _StubMsg.BufferLength, NULL);*/
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     StubMsg.BufferEnd = StubMsg.BufferStart + StubMsg.BufferLength;
 
     ptr = NdrNonConformantStringMarshall( &StubMsg, memsrc2, fmtstr_nonconf_str );
@@ -1748,7 +1748,7 @@ static void test_nonconformant_string(void)
     /* Client */
     my_alloc_called = 0;
     StubMsg.Buffer = StubMsg.BufferStart;
-    mem = mem_orig = HeapAlloc(GetProcessHeap(), 0, sizeof(memsrc));
+    mem = mem_orig = heap_alloc(sizeof(memsrc));
     NdrNonConformantStringUnmarshall( &StubMsg, &mem, fmtstr_nonconf_str, 0);
     ok(mem == mem_orig, "mem alloced\n");
     ok(my_alloc_called == 0, "alloc called %d\n", my_alloc_called);
@@ -1788,8 +1788,8 @@ static void test_nonconformant_string(void)
     todo_wine
     ok(my_alloc_called == 0, "alloc called %d\n", my_alloc_called);
 
-    HeapFree(GetProcessHeap(), 0, mem_orig);
-    HeapFree(GetProcessHeap(), 0, StubMsg.RpcMsg->Buffer);
+    heap_free(mem_orig);
+    heap_free(StubMsg.RpcMsg->Buffer);
 }
 
 static void test_conf_complex_struct(void)
@@ -1866,7 +1866,7 @@ static void test_conf_complex_struct(void)
     ok(StubMsg.BufferLength >= 28, "length %d\n", StubMsg.BufferLength);
 
     /*NdrGetBuffer(&_StubMsg, _StubMsg.BufferLength, NULL);*/
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     StubMsg.BufferEnd = StubMsg.BufferStart + StubMsg.BufferLength;
 
     ptr = NdrComplexStructMarshall( &StubMsg, (unsigned char *)memsrc,
@@ -1888,8 +1888,8 @@ static void test_conf_complex_struct(void)
     ok(mem->array[0] == NULL, "mem->array[0] wasn't unmarshalled correctly (%p)\n", mem->array[0]);
     StubMsg.pfnFree(mem);
 
-    HeapFree(GetProcessHeap(), 0, StubMsg.RpcMsg->Buffer);
-    HeapFree(GetProcessHeap(), 0, memsrc);
+    heap_free(StubMsg.RpcMsg->Buffer);
+    heap_free(memsrc);
 }
 
 
@@ -1971,11 +1971,11 @@ static void test_conf_complex_array(void)
     memsrc.dim1 = 5;
     memsrc.dim2 = 3;
 
-    memsrc.array = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, memsrc.dim1 * sizeof(DWORD*));
+    memsrc.array = heap_alloc_zero(memsrc.dim1 * sizeof(DWORD*));
 
     for(i = 0; i < memsrc.dim1; i++)
     {
-        memsrc.array[i] = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, memsrc.dim2 * sizeof(DWORD));
+        memsrc.array[i] = heap_alloc_zero(memsrc.dim2 * sizeof(DWORD));
         for(j = 0; j < memsrc.dim2; j++)
             memsrc.array[i][j] = i * memsrc.dim2 + j;
     }
@@ -2010,7 +2010,7 @@ static void test_conf_complex_array(void)
     ok(StubMsg.BufferLength >= expected_length, "length %d\n", StubMsg.BufferLength);
 
     /*NdrGetBuffer(&_StubMsg, _StubMsg.BufferLength, NULL);*/
-    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = HeapAlloc(GetProcessHeap(), 0, StubMsg.BufferLength);
+    StubMsg.RpcMsg->Buffer = StubMsg.BufferStart = StubMsg.Buffer = heap_alloc(StubMsg.BufferLength);
     StubMsg.BufferEnd = StubMsg.BufferStart + StubMsg.BufferLength;
 
 #ifdef _WIN64
@@ -2074,12 +2074,12 @@ static void test_conf_complex_array(void)
     NdrSimpleStructFree( &StubMsg, (unsigned char*)mem, &fmtstr_complex_array[32]);
 #endif
 
-    HeapFree(GetProcessHeap(), 0, StubMsg.RpcMsg->Buffer);
+    heap_free(StubMsg.RpcMsg->Buffer);
 
 cleanup:
     for(i = 0; i < memsrc.dim1; i++)
-        HeapFree(GetProcessHeap(), 0, memsrc.array[i]);
-    HeapFree(GetProcessHeap(), 0, memsrc.array);
+        heap_free(memsrc.array[i]);
+    heap_free(memsrc.array);
 }
 
 static void test_ndr_buffer(void)

@@ -155,7 +155,10 @@
 #include "ipstats.h"
 
 #include "wine/debug.h"
+#include "wine/heap.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/unicode.h"
 
 #ifndef HAVE_NETINET_TCP_FSM_H
@@ -263,7 +266,7 @@ static void *read_mib_entry( int fd, int level, int name, int *len )
         if (buf.len < sizeof(reply.ack_header)) return NULL;
         if (reply.ack_header.OPT_length < sizeof(reply.opt_header)) return NULL;
 
-        if (!(data = HeapAlloc( GetProcessHeap(), 0, reply.opt_header.len ))) return NULL;
+        if (!(data = heap_alloc( reply.opt_header.len ))) return NULL;
         buf.maxlen = reply.opt_header.len;
         buf.buf = (caddr_t)data;
         flags = 0;
@@ -274,7 +277,7 @@ static void *read_mib_entry( int fd, int level, int name, int *len )
             *len = buf.len;
             return data;
         }
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
 }
 #endif /* HAVE_SYS_TIHDR_H && T_OPTMGMT_ACK */
@@ -360,7 +363,7 @@ DWORD getInterfaceStatsByName(const char *name, PMIB_IFROW entry)
             ERR ("failed to get size of iflist\n");
             goto done;
         }
-        buf = HeapAlloc (GetProcessHeap (), 0, needed);
+        buf = heap_alloc (needed);
         if (!buf)
         {
             ret = ERROR_OUTOFMEMORY;
@@ -392,7 +395,7 @@ DWORD getInterfaceStatsByName(const char *name, PMIB_IFROW entry)
             }
         }
     done:
-        HeapFree (GetProcessHeap (), 0, buf);
+        heap_free (buf);
     }
 #else
     FIXME( "unimplemented\n" );
@@ -759,6 +762,7 @@ DWORD WINAPI GetIcmpStatisticsEx(PMIB_ICMP_EX stats, DWORD family)
 DWORD WINAPI GetIpStatisticsEx(PMIB_IPSTATS stats, DWORD family)
 {
     DWORD ret = ERROR_NOT_SUPPORTED;
+#if 0
     MIB_IPFORWARDTABLE *fwd_table;
 
     if (!stats) return ERROR_INVALID_PARAMETER;
@@ -769,7 +773,7 @@ DWORD WINAPI GetIpStatisticsEx(PMIB_IPSTATS stats, DWORD family)
     if (!AllocateAndGetIpForwardTableFromStack( &fwd_table, FALSE, GetProcessHeap(), 0 ))
     {
         stats->dwNumRoutes = fwd_table->dwNumEntries;
-        HeapFree( GetProcessHeap(), 0, fwd_table );
+        heap_free( fwd_table );
     }
 
     if (family == WS_AF_INET6)
@@ -973,6 +977,8 @@ DWORD WINAPI GetIpStatisticsEx(PMIB_IPSTATS stats, DWORD family)
 #else
     FIXME( "unimplemented for IPv4\n" );
 #endif
+#endif
+    FIXME( "unimplemented\n" );
     return ret;
 }
 
@@ -1010,6 +1016,7 @@ DWORD WINAPI GetTcpStatisticsEx(PMIB_TCPSTATS stats, DWORD family)
 {
     DWORD ret = ERROR_NOT_SUPPORTED;
 
+#if 0
     if (!stats) return ERROR_INVALID_PARAMETER;
     if (family != WS_AF_INET && family != WS_AF_INET6) return ERROR_INVALID_PARAMETER;
     memset( stats, 0, sizeof(*stats) );
@@ -1059,7 +1066,7 @@ DWORD WINAPI GetTcpStatisticsEx(PMIB_TCPSTATS stats, DWORD family)
             if (!AllocateAndGetTcpTableFromStack( &tcp_table, FALSE, GetProcessHeap(), 0 ))
             {
                 stats->dwNumConns = tcp_table->dwNumEntries;
-                HeapFree( GetProcessHeap(), 0, tcp_table );
+                heap_free( tcp_table );
             }
             fclose(fp);
             ret = NO_ERROR;
@@ -1135,6 +1142,8 @@ DWORD WINAPI GetTcpStatisticsEx(PMIB_TCPSTATS stats, DWORD family)
 #else
     FIXME( "unimplemented\n" );
 #endif
+#endif
+    FIXME( "unimplemented\n" );
     return ret;
 }
 
@@ -1276,7 +1285,7 @@ DWORD WINAPI GetUdpStatisticsEx(PMIB_UDPSTATS stats, DWORD family)
             if (!AllocateAndGetUdpTableFromStack( &udp_table, FALSE, GetProcessHeap(), 0 ))
             {
                 stats->dwNumAddrs = udp_table->dwNumEntries;
-                HeapFree( GetProcessHeap(), 0, udp_table );
+                heap_free( udp_table );
             }
             ret = NO_ERROR;
         }
@@ -1299,7 +1308,7 @@ DWORD WINAPI GetUdpStatisticsEx(PMIB_UDPSTATS stats, DWORD family)
             if (!AllocateAndGetUdpTableFromStack( &udp_table, FALSE, GetProcessHeap(), 0 ))
             {
                 stats->dwNumAddrs = udp_table->dwNumEntries;
-                HeapFree( GetProcessHeap(), 0, udp_table );
+                heap_free( udp_table );
             }
             ret = NO_ERROR;
         }
@@ -1333,17 +1342,21 @@ static MIB_IPFORWARDTABLE *append_ipforward_row( HANDLE heap, DWORD flags, MIB_I
 {
     if (table->dwNumEntries >= *count)
     {
+#if 0
         MIB_IPFORWARDTABLE *new_table;
         DWORD new_count = table->dwNumEntries * 2;
 
         if (!(new_table = HeapReAlloc( heap, flags, table,
                                        FIELD_OFFSET(MIB_IPFORWARDTABLE, table[new_count] ))))
         {
-            HeapFree( heap, 0, table );
+            heap_free( table );
             return NULL;
         }
         *count = new_count;
         table = new_table;
+#endif
+        heap_free( table );
+        return NULL;
     }
     memcpy( &table->table[table->dwNumEntries++], row, sizeof(*row) );
     return table;
@@ -1389,6 +1402,7 @@ DWORD WINAPI AllocateAndGetIpForwardTableFromStack(PMIB_IPFORWARDTABLE *ppIpForw
 
     if (!ppIpForwardTable) return ERROR_INVALID_PARAMETER;
 
+#if 0
     if (!(table = HeapAlloc( heap, flags, FIELD_OFFSET(MIB_IPFORWARDTABLE, table[count] ))))
         return ERROR_OUTOFMEMORY;
 
@@ -1469,7 +1483,7 @@ DWORD WINAPI AllocateAndGetIpForwardTableFromStack(PMIB_IPFORWARDTABLE *ppIpForw
                     getInterfaceIndexByName( name, &row.dwForwardIfIndex );
                     if (!(table = append_ipforward_row( heap, flags, table, &count, &row ))) break;
                 }
-                HeapFree( GetProcessHeap(), 0, data );
+                heap_free( data );
             }
             close( fd );
         }
@@ -1489,7 +1503,7 @@ DWORD WINAPI AllocateAndGetIpForwardTableFromStack(PMIB_IPFORWARDTABLE *ppIpForw
           goto done;
        }
 
-       buf = HeapAlloc (GetProcessHeap (), 0, needed);
+       buf = heap_alloc (needed);
        if (!buf)
        {
           ret = ERROR_OUTOFMEMORY;
@@ -1595,6 +1609,10 @@ done:
     }
     else HeapFree( heap, flags, table );
     TRACE( "returning ret %u table %p\n", ret, table );
+#else
+    FIXME( "not implemented\n" );
+    ret = ERROR_NOT_SUPPORTED;
+#endif
     return ret;
 }
 
@@ -1603,17 +1621,22 @@ static MIB_IPNETTABLE *append_ipnet_row( HANDLE heap, DWORD flags, MIB_IPNETTABL
 {
     if (table->dwNumEntries >= *count)
     {
+#if 0
         MIB_IPNETTABLE *new_table;
         DWORD new_count = table->dwNumEntries * 2;
 
         if (!(new_table = HeapReAlloc( heap, flags, table,
                                        FIELD_OFFSET(MIB_IPNETTABLE, table[new_count] ))))
         {
-            HeapFree( heap, 0, table );
+            heap_free( table );
             return NULL;
         }
         *count = new_count;
         table = new_table;
+#else
+        heap_free( table );
+        return NULL;
+#endif
     }
     memcpy( &table->table[table->dwNumEntries++], row, sizeof(*row) );
     return table;
@@ -1656,6 +1679,7 @@ DWORD WINAPI AllocateAndGetIpNetTableFromStack(PMIB_IPNETTABLE *ppIpNetTable, BO
 
     if (!ppIpNetTable) return ERROR_INVALID_PARAMETER;
 
+#if 0
     if (!(table = HeapAlloc( heap, flags, FIELD_OFFSET(MIB_IPNETTABLE, table[count] ))))
         return ERROR_OUTOFMEMORY;
 
@@ -1732,7 +1756,7 @@ DWORD WINAPI AllocateAndGetIpNetTableFromStack(PMIB_IPNETTABLE *ppIpNetTable, BO
                     getInterfaceIndexByName( name, &row.dwIndex );
                     if (!(table = append_ipnet_row( heap, flags, table, &count, &row ))) break;
                 }
-                HeapFree( GetProcessHeap(), 0, data );
+                heap_free( data );
             }
             close( fd );
         }
@@ -1755,7 +1779,7 @@ DWORD WINAPI AllocateAndGetIpNetTableFromStack(PMIB_IPNETTABLE *ppIpNetTable, BO
          goto done;
       }
 
-      buf = HeapAlloc (GetProcessHeap (), 0, needed);
+      buf = heap_alloc (needed);
       if (!buf)
       {
           ret = ERROR_OUTOFMEMORY;
@@ -1809,6 +1833,10 @@ done:
     }
     else HeapFree( heap, flags, table );
     TRACE( "returning ret %u table %p\n", ret, table );
+#else
+    FIXME( "not implemented\n" );
+    ret = ERROR_NOT_SUPPORTED;
+#endif
     return ret;
 }
 
@@ -1855,17 +1883,22 @@ static MIB_TCPTABLE *append_tcp_row( TCP_TABLE_CLASS class, HANDLE heap, DWORD f
 {
     if (table->dwNumEntries >= *count)
     {
+#if 0
         MIB_TCPTABLE *new_table;
         DWORD new_count = table->dwNumEntries * 2, new_table_size;
 
         new_table_size = get_tcp_table_sizes( class, new_count, NULL );
         if (!(new_table = HeapReAlloc( heap, flags, table, new_table_size )))
         {
-            HeapFree( heap, 0, table );
+            heap_free( table );
             return NULL;
         }
         *count = new_count;
         table = new_table;
+#else
+        heap_free( table );
+        return NULL;
+#endif
     }
     memcpy( (char *)table->table + (table->dwNumEntries * row_size), row, row_size );
     table->dwNumEntries++;
@@ -1920,7 +1953,7 @@ static struct pid_map *get_pid_map( unsigned int *num_entries )
     unsigned int i = 0, count = 16, size = count * sizeof(*map);
     NTSTATUS ret;
 
-    if (!(map = HeapAlloc( GetProcessHeap(), 0, size ))) return NULL;
+    if (!(map = heap_alloc( size ))) return NULL;
 
     SERVER_START_REQ( create_snapshot )
     {
@@ -1946,9 +1979,9 @@ static struct pid_map *get_pid_map( unsigned int *num_entries )
                     count *= 2;
                     size = count * sizeof(*new_map);
 
-                    if (!(new_map = HeapReAlloc( GetProcessHeap(), 0, map, size )))
+                    if (!(new_map = heap_realloc( map, size )))
                     {
-                        HeapFree( GetProcessHeap(), 0, map );
+                        heap_free( map );
                         map = NULL;
                         goto done;
                     }
@@ -2058,7 +2091,7 @@ static unsigned int find_owning_pid( struct pid_map *map, unsigned int num_entri
         int fd_len = proc_pidinfo( map[i].unix_pid, PROC_PIDLISTFDS, 0, NULL, 0 );
         if (fd_len <= 0) continue;
 
-        fds = HeapAlloc( GetProcessHeap(), 0, fd_len );
+        fds = heap_alloc( fd_len );
         if (!fds) continue;
 
         proc_pidinfo( map[i].unix_pid, PROC_PIDLISTFDS, 0, fds, fd_len );
@@ -2070,12 +2103,12 @@ static unsigned int find_owning_pid( struct pid_map *map, unsigned int num_entri
             proc_pidfdinfo( map[i].unix_pid, fds[j].proc_fd, PROC_PIDFDSOCKETINFO, &sock, sizeof(sock) );
             if (sock.psi.soi_pcb == inode)
             {
-                HeapFree( GetProcessHeap(), 0, fds );
+                heap_free( fds );
                 return map[i].pid;
             }
         }
 
-        HeapFree( GetProcessHeap(), 0, fds );
+        heap_free( fds );
     }
     return 0;
 #else
@@ -2121,6 +2154,7 @@ DWORD build_tcp_table( TCP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
     if (!(table_size = get_tcp_table_sizes( class, count, &row_size )))
         return ERROR_INVALID_PARAMETER;
 
+#if 0
     if (!(table = HeapAlloc( heap, flags, table_size )))
         return ERROR_OUTOFMEMORY;
 
@@ -2162,7 +2196,7 @@ DWORD build_tcp_table( TCP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
                 if (!(table = append_tcp_row( class, heap, flags, table, &count, &row, row_size )))
                     break;
             }
-            HeapFree( GetProcessHeap(), 0, map );
+            heap_free( map );
             fclose( fp );
         }
         else ret = ERROR_NOT_SUPPORTED;
@@ -2188,7 +2222,7 @@ DWORD build_tcp_table( TCP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
                     if (!(table = append_tcp_row( class, heap, flags, table, &count, &row, row_size )))
                         break;
                 }
-                HeapFree( GetProcessHeap(), 0, data );
+                heap_free( data );
             }
             close( fd );
         }
@@ -2209,7 +2243,7 @@ DWORD build_tcp_table( TCP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
             goto done;
         }
 
-        Buf = HeapAlloc (GetProcessHeap (), 0, Len);
+        Buf = heap_alloc (Len);
         if (!Buf)
         {
             ret = ERROR_OUTOFMEMORY;
@@ -2282,8 +2316,8 @@ DWORD build_tcp_table( TCP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
         }
 
     done:
-        HeapFree( GetProcessHeap(), 0, pMap );
-        HeapFree (GetProcessHeap (), 0, Buf);
+        heap_free( pMap );
+        heap_free (Buf);
     }
 #else
     FIXME( "not implemented\n" );
@@ -2300,6 +2334,10 @@ DWORD build_tcp_table( TCP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
     else HeapFree( heap, flags, table );
     if (size) *size = get_tcp_table_sizes( class, count, NULL );
     TRACE( "returning ret %u table %p\n", ret, table );
+#else
+    FIXME( "not implemented\n" );
+    ret = ERROR_NOT_SUPPORTED;
+#endif
     return ret;
 }
 
@@ -2366,17 +2404,22 @@ static MIB_UDPTABLE *append_udp_row( UDP_TABLE_CLASS class, HANDLE heap, DWORD f
 {
     if (table->dwNumEntries >= *count)
     {
+#if 0
         MIB_UDPTABLE *new_table;
         DWORD new_count = table->dwNumEntries * 2, new_table_size;
 
         new_table_size = get_udp_table_sizes( class, new_count, NULL );
         if (!(new_table = HeapReAlloc( heap, flags, table, new_table_size )))
         {
-            HeapFree( heap, 0, table );
+            heap_free( table );
             return NULL;
         }
         *count = new_count;
         table = new_table;
+#else
+        heap_free( table );
+        return NULL;
+#endif
     }
     memcpy( (char *)table->table + (table->dwNumEntries * row_size), row, row_size );
     table->dwNumEntries++;
@@ -2403,6 +2446,7 @@ DWORD build_udp_table( UDP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
     if (!(table_size = get_udp_table_sizes( class, count, &row_size )))
         return ERROR_INVALID_PARAMETER;
 
+#if 0
     if (!(table = HeapAlloc( heap, flags, table_size )))
          return ERROR_OUTOFMEMORY;
 
@@ -2442,7 +2486,7 @@ DWORD build_udp_table( UDP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
                 if (!(table = append_udp_row( class, heap, flags, table, &count, &row, row_size )))
                     break;
             }
-            HeapFree( GetProcessHeap(), 0, map );
+            heap_free( map );
             fclose( fp );
         }
         else ret = ERROR_NOT_SUPPORTED;
@@ -2463,7 +2507,7 @@ DWORD build_udp_table( UDP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
                     row.dwLocalPort = htons( entry->udpLocalPort );
                     if (!(table = append_udp_row( class, heap, flags, table, &count, &row, row_size ))) break;
                 }
-                HeapFree( GetProcessHeap(), 0, data );
+                heap_free( data );
             }
             close( fd );
         }
@@ -2484,7 +2528,7 @@ DWORD build_udp_table( UDP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
             goto done;
         }
 
-        Buf = HeapAlloc (GetProcessHeap (), 0, Len);
+        Buf = heap_alloc (Len);
         if (!Buf)
         {
             ret = ERROR_OUTOFMEMORY;
@@ -2550,8 +2594,8 @@ DWORD build_udp_table( UDP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
         }
 
     done:
-        HeapFree( GetProcessHeap(), 0, pMap );
-        HeapFree (GetProcessHeap (), 0, Buf);
+        heap_free( pMap );
+        heap_free (Buf);
     }
 #else
     FIXME( "not implemented\n" );
@@ -2569,6 +2613,10 @@ DWORD build_udp_table( UDP_TABLE_CLASS class, void **tablep, BOOL order, HANDLE 
     if (size) *size = get_udp_table_sizes( class, count, NULL );
     TRACE( "returning ret %u table %p\n", ret, table );
     return ret;
+#else
+    FIXME( "not implemented\n" );
+    return ERROR_NOT_SUPPORTED;
+#endif
 }
 
 /******************************************************************

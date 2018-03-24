@@ -62,6 +62,7 @@ static void dumpLsaAttributes(const LSA_OBJECT_ATTRIBUTES *oa)
     }
 }
 
+#if 0
 static void* ADVAPI_GetDomainName(unsigned sz, unsigned ofs)
 {
     HKEY key;
@@ -1060,6 +1061,7 @@ NTSTATUS WINAPI LsaLookupPrivilegeName(LSA_HANDLE handle, LUID *luid, LSA_UNICOD
 
     return STATUS_SUCCESS;
 }
+#endif
 
 /******************************************************************************
  * LsaLookupPrivilegeDisplayName [ADVAPI32.@]

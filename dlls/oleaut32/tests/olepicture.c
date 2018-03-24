@@ -1377,7 +1377,7 @@ static void NoStatStreamImpl_Destroy(NoStatStreamImpl* This)
 {
   GlobalFree(This->supportHandle);
   This->supportHandle=0;
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This);
 }
 
 static ULONG WINAPI NoStatStreamImpl_AddRef(
@@ -1619,7 +1619,7 @@ static IStream* NoStatStream_Construct(HGLOBAL hGlobal)
 {
   NoStatStreamImpl* newStream;
 
-  newStream = HeapAlloc(GetProcessHeap(), 0, sizeof(NoStatStreamImpl));
+  newStream = heap_alloc(sizeof(NoStatStreamImpl));
   if (newStream!=0)
   {
     newStream->IStream_iface.lpVtbl = &NoStatStreamImpl_Vtbl;

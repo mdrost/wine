@@ -126,6 +126,7 @@ static ULONG WINAPI IExtractIconW_fnRelease(IExtractIconW * iface)
 	  TRACE(" destroying IExtractIcon(%p)\n",This);
 	  SHFree(This->pidl);
 	  heap_free(This);
+	  return 0;
 	}
 	return refCount;
 }

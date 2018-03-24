@@ -331,6 +331,11 @@ static DWORD SHELL32_AnsiToUnicodeBuf(LPCSTR aPath, LPWSTR *wPath, DWORD minChar
 	return E_OUTOFMEMORY;
 }
 
+static void SHELL32_FreeUnicodeBuf(LPWSTR wPath)
+{
+	heap_free(wPath);
+}
+
 HRESULT WINAPI SHIsFileAvailableOffline(LPCWSTR path, LPDWORD status)
 {
     FIXME("(%s, %p) stub\n", debugstr_w(path), status);
@@ -401,7 +406,7 @@ static DWORD SHNotifyCreateDirectoryA(LPCSTR path, LPSECURITY_ATTRIBUTES sec)
 	if (!retCode)
 	{
 	  retCode = SHNotifyCreateDirectoryW(wPath, sec);
-	  heap_free(wPath);
+	  SHELL32_FreeUnicodeBuf(wPath);
 	}
 	return retCode;
 }
@@ -455,7 +460,7 @@ static DWORD SHNotifyRemoveDirectoryA(LPCSTR path)
 	if (!retCode)
 	{
 	  retCode = SHNotifyRemoveDirectoryW(wPath);
-	  heap_free(wPath);
+	  SHELL32_FreeUnicodeBuf(wPath);
 	}
 	return retCode;
 }
@@ -519,7 +524,7 @@ static DWORD SHNotifyDeleteFileA(LPCSTR path)
 	if (!retCode)
 	{
 	  retCode = SHNotifyDeleteFileW(wPath);
-	  heap_free(wPath);
+	  SHELL32_FreeUnicodeBuf(wPath);
 	}
 	return retCode;
 }
@@ -715,7 +720,7 @@ int WINAPI SHCreateDirectoryExA(HWND hWnd, LPCSTR path, LPSECURITY_ATTRIBUTES se
 	if (!retCode)
 	{
 	  retCode = SHCreateDirectoryExW(hWnd, wPath, sec);
-	  heap_free(wPath);
+	  SHELL32_FreeUnicodeBuf(wPath);
 	}
 	return retCode;
 }
@@ -1019,7 +1024,8 @@ static HRESULT parse_file_list(FILE_LIST *flList, LPCWSTR szFiles)
     if (!szFiles[0])
         return ERROR_ACCESS_DENIED;
         
-    flList->feFiles = heap_alloc_zero(flList->num_alloc * sizeof(FILE_ENTRY));
+    flList->feFiles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
+                                flList->num_alloc * sizeof(FILE_ENTRY));
 
     while (*ptr)
     {

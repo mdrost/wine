@@ -1678,7 +1678,9 @@ PVOID WINAPI RtlAllocateHeap( HANDLE heap, ULONG flags, SIZE_T size )
     rounded_size = ROUND_SIZE(size) + HEAP_TAIL_EXTRA_SIZE( flags );
     if (rounded_size < size)  /* overflow */
     {
+#if 0
         if (flags & HEAP_GENERATE_EXCEPTIONS) RtlRaiseStatus( STATUS_NO_MEMORY );
+#endif
         return NULL;
     }
     if (rounded_size < HEAP_MIN_DATA_SIZE) rounded_size = HEAP_MIN_DATA_SIZE;
@@ -1689,7 +1691,9 @@ PVOID WINAPI RtlAllocateHeap( HANDLE heap, ULONG flags, SIZE_T size )
     {
         void *ret = allocate_large_block( heap, flags, size );
         if (!(flags & HEAP_NO_SERIALIZE)) RtlLeaveCriticalSection( &heapPtr->critSection );
+#if 0
         if (!ret && (flags & HEAP_GENERATE_EXCEPTIONS)) RtlRaiseStatus( STATUS_NO_MEMORY );
+#endif
         TRACE("(%p,%08x,%08lx): returning %p\n", heap, flags, size, ret );
         return ret;
     }
@@ -1701,7 +1705,9 @@ PVOID WINAPI RtlAllocateHeap( HANDLE heap, ULONG flags, SIZE_T size )
         TRACE("(%p,%08x,%08lx): returning NULL\n",
                   heap, flags, size  );
         if (!(flags & HEAP_NO_SERIALIZE)) RtlLeaveCriticalSection( &heapPtr->critSection );
+#if 0
         if (flags & HEAP_GENERATE_EXCEPTIONS) RtlRaiseStatus( STATUS_NO_MEMORY );
+#endif
         return NULL;
     }
 
@@ -1927,7 +1933,9 @@ done:
 
 oom:
     if (!(flags & HEAP_NO_SERIALIZE)) RtlLeaveCriticalSection( &heapPtr->critSection );
+#if 0
     if (flags & HEAP_GENERATE_EXCEPTIONS) RtlRaiseStatus( STATUS_NO_MEMORY );
+#endif
     RtlSetLastWin32ErrorAndNtStatusFromNtStatus( STATUS_NO_MEMORY );
     TRACE("(%p,%08x,%p,%08lx): returning NULL\n", heap, flags, ptr, size );
     return NULL;

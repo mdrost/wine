@@ -59,14 +59,14 @@ static int hostname_vprintfW(const WCHAR *msg, va_list va_args)
          */
         len = WideCharToMultiByte(GetConsoleOutputCP(), 0, msg_buffer, wlen,
             NULL, 0, NULL, NULL);
-        msgA = HeapAlloc(GetProcessHeap(), 0, len);
+        msgA = heap_alloc(len);
         if (!msgA)
             return 0;
 
         WideCharToMultiByte(GetConsoleOutputCP(), 0, msg_buffer, wlen, msgA, len,
             NULL, NULL);
         WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), msgA, len, &count, FALSE);
-        HeapFree(GetProcessHeap(), 0, msgA);
+        heap_free(msgA);
     }
 
     return count;

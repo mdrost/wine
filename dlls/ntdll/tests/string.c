@@ -64,7 +64,7 @@ static int      (WINAPIV *p__snprintf)(char *, size_t, const char *, ...);
 
 static void InitFunctionPtrs(void)
 {
-    hntdll = LoadLibraryA("ntdll.dll");
+    hntdll = LoadLibraryA("/home/mateusz/git/wine/build/dlls/ntdll/libwinapi-ntdll.so");
     ok(hntdll != 0, "LoadLibrary failed\n");
     if (hntdll) {
 	pRtlUnicodeStringToAnsiString = (void *)GetProcAddress(hntdll, "RtlUnicodeStringToAnsiString");

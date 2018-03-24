@@ -52,13 +52,17 @@ extern "C" {
 /*
  * API declarations
  */
+#if 0
 HRESULT     WINAPI RegisterDragDrop(HWND,LPDROPTARGET);
 HRESULT     WINAPI RevokeDragDrop(HWND);
 HRESULT     WINAPI DoDragDrop(LPDATAOBJECT,LPDROPSOURCE,DWORD,DWORD*);
+#endif
 HRESULT  WINAPI OleLoadFromStream(IStream *pStm,REFIID iidInterface,void** ppvObj);
 HRESULT  WINAPI OleSaveToStream(IPersistStream *pPStm,IStream *pStm);
+#if 0
 HOLEMENU WINAPI OleCreateMenuDescriptor(HMENU hmenuCombined,LPOLEMENUGROUPWIDTHS lpMenuWidths);
 HRESULT   WINAPI OleDestroyMenuDescriptor(HOLEMENU hmenuDescriptor);
+#endif
 HRESULT  WINAPI OleSetMenuDescriptor(HOLEMENU hmenuDescriptor,HWND hwndFrame,HWND hwndActiveObject,LPOLEINPLACEFRAME lpFrame,LPOLEINPLACEACTIVEOBJECT lpActiveObject);
 
 HRESULT WINAPI WriteClassStg(IStorage *pstg, REFCLSID rclsid);
@@ -89,7 +93,9 @@ HRESULT     WINAPI OleQueryLinkFromData(IDataObject* pSrcDataObject);
 HRESULT     WINAPI OleQueryCreateFromData(LPDATAOBJECT pSrcDataObject);
 HRESULT     WINAPI OleRun(LPUNKNOWN pUnknown);
 HRESULT     WINAPI OleDraw(LPUNKNOWN pUnknown, DWORD dwAspect, HDC hdcDraw, LPCRECT lprcBounds);
+#if 0
 VOID        WINAPI ReleaseStgMedium(LPSTGMEDIUM);
+#endif
 HRESULT     WINAPI OleGetClipboard(IDataObject** ppDataObj);
 HRESULT     WINAPI OleIsCurrentClipboard(LPDATAOBJECT);
 HRESULT     WINAPI OleSetClipboard(LPDATAOBJECT);

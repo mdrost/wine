@@ -31,6 +31,7 @@
 #define NO_SHLWAPI_PATH
 #include "shlwapi.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
 
@@ -105,9 +106,9 @@ static ULONG WINAPI IStream_fnRelease(IStream *iface)
   if (!refCount)
   {
     IStream_fnCommit(iface, 0); /* If ever buffered, this will be needed */
-    LocalFree(This->lpszPath);
+    heap_free(This->lpszPath);
     CloseHandle(This->hFile);
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
   }
   
   return refCount;
@@ -363,7 +364,7 @@ static IStream *IStream_Create(LPCWSTR lpszPath, HANDLE hFile, DWORD dwMode)
 {
     ISHFileStream *fileStream;
 
-    fileStream = HeapAlloc(GetProcessHeap(), 0, sizeof(ISHFileStream));
+    fileStream = heap_alloc(sizeof(ISHFileStream));
     if (!fileStream) return NULL;
 
     fileStream->IStream_iface.lpVtbl = &SHLWAPI_fsVTable;

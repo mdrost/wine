@@ -237,10 +237,19 @@ HRESULT WINAPI ScriptRecordDigitSubstitution(LCID Locale, SCRIPT_DIGITSUBSTITUTE
 HRESULT WINAPI ScriptItemize(const WCHAR *pwcInChars, int cInChars, int cMaxItems, 
                              const SCRIPT_CONTROL *psControl, const SCRIPT_STATE *psState, 
                              SCRIPT_ITEM *pItems, int *pcItems);
+#if 0
 HRESULT WINAPI ScriptGetCMap(HDC hdc, SCRIPT_CACHE *psc, const WCHAR *pwcInChars, int cChars,
                              DWORD dwFlags, WORD *pwOutGlyphs);
+#else
+HRESULT WINAPI ScriptGetCMap(HDC hdc, SCRIPT_CACHE *psc, const WCHAR *pwcInChars, int cChars,
+                             DWORD dwFlags, DWORD *pwOutGlyphs);
+#endif
 HRESULT WINAPI ScriptGetFontProperties(HDC hdc, SCRIPT_CACHE *psc, SCRIPT_FONTPROPERTIES *sfp);
+#if 0
 HRESULT WINAPI ScriptGetGlyphABCWidth(HDC hdc, SCRIPT_CACHE *psc, WORD wGlyph, ABC *pABC);
+#else
+HRESULT WINAPI ScriptGetGlyphABCWidth(HDC hdc, SCRIPT_CACHE *psc, DWORD wGlyph, ABC *pABC);
+#endif
 HRESULT WINAPI ScriptGetLogicalWidths(const SCRIPT_ANALYSIS *psa, int cChars, int cGlyphs,
                                       const int *piGlyphWidth, const WORD *pwLogClust,
                                       const SCRIPT_VISATTR *psva, int *piDx);
@@ -265,10 +274,17 @@ HRESULT WINAPI ScriptIsComplex(const WCHAR* pwcInChars, int cInChars, DWORD dwFl
 HRESULT WINAPI ScriptJustify(const SCRIPT_VISATTR *psva, const int *piAdvance, int cGlyphs,
                              int iDx, int iMinKashida, int *piJustify);
 HRESULT WINAPI ScriptLayout(int cRuns, const BYTE *pbLevel, int *piVisualToLogical, int *piLogicalToVisual);
+#if 0
 HRESULT WINAPI ScriptShape(HDC hdc, SCRIPT_CACHE *psc, const WCHAR *pwcChars, int cChars, int cMaxGlyphs,
                            SCRIPT_ANALYSIS *psa, WORD *pwOutGlyphs, WORD *pwLogClust, SCRIPT_VISATTR *psva, int *pcGlyphs);
 HRESULT WINAPI ScriptPlace(HDC hdc, SCRIPT_CACHE *psc, const WORD *pwGlyphs, int cGlyphs, const SCRIPT_VISATTR *psva,
                            SCRIPT_ANALYSIS *psa, int *piAdvance, GOFFSET *pGoffset, ABC *pABC );
+#else
+HRESULT WINAPI ScriptShape(HDC hdc, SCRIPT_CACHE *psc, const WCHAR *pwcChars, int cChars, int cMaxGlyphs,
+                           SCRIPT_ANALYSIS *psa, DWORD *pwOutGlyphs, WORD *pwLogClust, SCRIPT_VISATTR *psva, int *pcGlyphs);
+HRESULT WINAPI ScriptPlace(HDC hdc, SCRIPT_CACHE *psc, const DWORD *pwGlyphs, int cGlyphs, const SCRIPT_VISATTR *psva,
+                           SCRIPT_ANALYSIS *psa, int *piAdvance, GOFFSET *pGoffset, ABC *pABC );
+#endif
 HRESULT WINAPI ScriptBreak(const WCHAR *pwcChars, int cChars, const SCRIPT_ANALYSIS *psa, SCRIPT_LOGATTR *psla);
 HRESULT WINAPI ScriptCacheGetHeight(HDC hdc, SCRIPT_CACHE *psc, LONG *tmHeight);
 HRESULT WINAPI ScriptCPtoX(int iCP, BOOL fTrailing, int cChars, int cGlyphs, const WORD *pwLogClust, const SCRIPT_VISATTR *psva,
@@ -281,9 +297,15 @@ HRESULT WINAPI ScriptStringGetLogicalWidths(SCRIPT_STRING_ANALYSIS ssa, int *piD
 HRESULT WINAPI ScriptStringGetOrder(SCRIPT_STRING_ANALYSIS ssa, UINT *puOrder);
 HRESULT WINAPI ScriptStringOut(SCRIPT_STRING_ANALYSIS ssa, int iX, int iY, UINT uOptions, const RECT *prc,
                                int iMinSel, int iMaxSel, BOOL fDisabled);
+#if 0
 HRESULT WINAPI ScriptTextOut(const HDC hdc, SCRIPT_CACHE *psc, int x, int y, UINT fuOptions, const RECT *lprc,
                              const SCRIPT_ANALYSIS *psa, const WCHAR *pwcReserved, int iReserved, const WORD *pwGlyphs,
                              int cGlyphs, const int *piAdvance, const int *piJustify, const GOFFSET *pGoffset);
+#else
+HRESULT WINAPI ScriptTextOut(const HDC hdc, SCRIPT_CACHE *psc, int x, int y, UINT fuOptions, const RECT *lprc,
+                             const SCRIPT_ANALYSIS *psa, const WCHAR *pwcReserved, int iReserved, const DWORD *pwGlyphs,
+                             int cGlyphs, const int *piAdvance, const int *piJustify, const GOFFSET *pGoffset);
+#endif
 const int* WINAPI ScriptString_pcOutChars(SCRIPT_STRING_ANALYSIS ssa);
 const SCRIPT_LOGATTR* WINAPI ScriptString_pLogAttr(SCRIPT_STRING_ANALYSIS ssa);
 const SIZE* WINAPI ScriptString_pSize(SCRIPT_STRING_ANALYSIS ssa);

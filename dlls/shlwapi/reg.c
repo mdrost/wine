@@ -28,6 +28,7 @@
 #include "wine/debug.h"
 #define NO_SHLWAPI_STREAM
 #include "shlwapi.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
@@ -133,7 +134,7 @@ LONG WINAPI SHRegOpenUSKeyW(LPCWSTR Path, REGSAM AccessType, HUSKEY hRelativeUSK
         *phNewUSKey = NULL;
 
     /* Create internal HUSKEY */
-    hKey = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*hKey));
+    hKey = heap_alloc_zero(sizeof(*hKey));
     lstrcpynW(hKey->lpszPath, Path, sizeof(hKey->lpszPath)/sizeof(WCHAR));
 
     if (hRelativeUSKey)
@@ -205,7 +206,7 @@ LONG WINAPI SHRegCloseUSKey(
     if (hKey->HKLMstart && hKey->HKLMstart != HKEY_LOCAL_MACHINE)
         ret = RegCloseKey(hKey->HKLMstart);
 
-    HeapFree(GetProcessHeap(), 0, hKey);
+    heap_free(hKey);
     return ret;
 }
 
@@ -226,7 +227,7 @@ LONG WINAPI SHRegCreateUSKeyA(LPCSTR path, REGSAM samDesired, HUSKEY relative_ke
     if (path)
     {
         INT len = MultiByteToWideChar(CP_ACP, 0, path, -1, NULL, 0);
-        pathW = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+        pathW = heap_alloc(len*sizeof(WCHAR));
         if (!pathW)
             return ERROR_NOT_ENOUGH_MEMORY;
         MultiByteToWideChar(CP_ACP, 0, path, -1, pathW, len);
@@ -235,7 +236,7 @@ LONG WINAPI SHRegCreateUSKeyA(LPCSTR path, REGSAM samDesired, HUSKEY relative_ke
         pathW = NULL;
 
     ret = SHRegCreateUSKeyW(pathW, samDesired, relative_key, new_uskey, flags);
-    HeapFree(GetProcessHeap(), 0, pathW);
+    heap_free(pathW);
     return ret;
 }
 
@@ -274,7 +275,7 @@ LONG WINAPI SHRegCreateUSKeyW(LPCWSTR path, REGSAM samDesired, HUSKEY relative_k
         return ERROR_SUCCESS;
     }
 
-    ret_key = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*ret_key));
+    ret_key = heap_alloc_zero(sizeof(*ret_key));
     lstrcpynW(ret_key->lpszPath, path, sizeof(ret_key->lpszPath)/sizeof(WCHAR));
 
     if (relative_key)
@@ -294,7 +295,7 @@ LONG WINAPI SHRegCreateUSKeyW(LPCWSTR path, REGSAM samDesired, HUSKEY relative_k
         if (ret == ERROR_SUCCESS)
             *new_uskey = ret_key;
         else
-            HeapFree(GetProcessHeap(), 0, ret_key);
+            heap_free(ret_key);
     }
 
     return ret;
@@ -1427,21 +1428,21 @@ DWORD WINAPI SHQueryValueExA( HKEY hKey, LPCSTR lpszValue,
       char cNull = '\0';
       nBytesToAlloc = dwUnExpDataLen;
 
-      szData = LocalAlloc(LMEM_ZEROINIT, nBytesToAlloc);
+      szData = heap_alloc_zero(nBytesToAlloc);
       RegQueryValueExA (hKey, lpszValue, lpReserved, NULL, (LPBYTE)szData, &nBytesToAlloc);
       dwExpDataLen = ExpandEnvironmentStringsA(szData, &cNull, 1);
       dwUnExpDataLen = max(nBytesToAlloc, dwExpDataLen);
-      LocalFree(szData);
+      heap_free(szData);
     }
     else
     {
       nBytesToAlloc = (lstrlenA(pvData)+1) * sizeof (CHAR);
-      szData = LocalAlloc(LMEM_ZEROINIT, nBytesToAlloc);
+      szData = heap_alloc_zero(nBytesToAlloc);
       lstrcpyA(szData, pvData);
       dwExpDataLen = ExpandEnvironmentStringsA(szData, pvData, *pcbData / sizeof(CHAR));
       if (dwExpDataLen > *pcbData) dwRet = ERROR_MORE_DATA;
       dwUnExpDataLen = max(nBytesToAlloc, dwExpDataLen);
-      LocalFree(szData);
+      heap_free(szData);
     }
   }
 
@@ -1488,21 +1489,21 @@ DWORD WINAPI SHQueryValueExW(HKEY hKey, LPCWSTR lpszValue,
       WCHAR cNull = '\0';
       nBytesToAlloc = dwUnExpDataLen;
 
-      szData = LocalAlloc(LMEM_ZEROINIT, nBytesToAlloc);
+      szData = heap_alloc_zero(nBytesToAlloc);
       RegQueryValueExW (hKey, lpszValue, lpReserved, NULL, (LPBYTE)szData, &nBytesToAlloc);
       dwExpDataLen = ExpandEnvironmentStringsW(szData, &cNull, 1);
       dwUnExpDataLen = max(nBytesToAlloc, dwExpDataLen);
-      LocalFree(szData);
+      heap_free(szData);
     }
     else
     {
       nBytesToAlloc = (lstrlenW(pvData) + 1) * sizeof(WCHAR);
-      szData = LocalAlloc(LMEM_ZEROINIT, nBytesToAlloc);
+      szData = heap_alloc_zero(nBytesToAlloc);
       lstrcpyW(szData, pvData);
       dwExpDataLen = ExpandEnvironmentStringsW(szData, pvData, *pcbData/sizeof(WCHAR) );
       if (dwExpDataLen > *pcbData) dwRet = ERROR_MORE_DATA;
       dwUnExpDataLen = max(nBytesToAlloc, dwExpDataLen);
-      LocalFree(szData);
+      heap_free(szData);
     }
   }
 
@@ -1562,7 +1563,7 @@ DWORD WINAPI SHDeleteKeyW(HKEY hKey, LPCWSTR lpszSubKey)
       dwMaxSubkeyLen++;
       if (dwMaxSubkeyLen > sizeof(szNameBuf)/sizeof(WCHAR))
         /* Name too big: alloc a buffer for it */
-        lpszName = HeapAlloc(GetProcessHeap(), 0, dwMaxSubkeyLen*sizeof(WCHAR));
+        lpszName = heap_alloc(dwMaxSubkeyLen*sizeof(WCHAR));
 
       if(!lpszName)
         dwRet = ERROR_NOT_ENOUGH_MEMORY;
@@ -1579,7 +1580,7 @@ DWORD WINAPI SHDeleteKeyW(HKEY hKey, LPCWSTR lpszSubKey)
           dwRet = ERROR_SUCCESS;
     
         if (lpszName != szNameBuf)
-          HeapFree(GetProcessHeap(), 0, lpszName); /* Free buffer if allocated */
+          heap_free(lpszName); /* Free buffer if allocated */
       }
     }
 
@@ -2291,10 +2292,10 @@ DWORD WINAPI SHCopyKeyW(HKEY hKeySrc, LPCWSTR lpszSrcSubKey, HKEY hKeyDst, DWORD
           dwMaxKeyLen = dwMaxValueLen; /* Get max size for key/value names */
 
         if (dwMaxKeyLen++ > MAX_PATH - 1)
-          lpszName = HeapAlloc(GetProcessHeap(), 0, dwMaxKeyLen * sizeof(WCHAR));
+          lpszName = heap_alloc(dwMaxKeyLen * sizeof(WCHAR));
 
         if (dwMaxDataLen > sizeof(buff))
-          lpBuff = HeapAlloc(GetProcessHeap(), 0, dwMaxDataLen);
+          lpBuff = heap_alloc(dwMaxDataLen);
 
         if (!lpszName || !lpBuff)
           dwRet = ERROR_NOT_ENOUGH_MEMORY;
@@ -2344,9 +2345,9 @@ DWORD WINAPI SHCopyKeyW(HKEY hKeySrc, LPCWSTR lpszSrcSubKey, HKEY hKeyDst, DWORD
 
   /* Free buffers if allocated */
   if (lpszName != szName)
-    HeapFree(GetProcessHeap(), 0, lpszName);
+    heap_free(lpszName);
   if (lpBuff != buff)
-    HeapFree(GetProcessHeap(), 0, lpBuff);
+    heap_free(lpBuff);
 
   if (lpszSrcSubKey && hKeyDst)
     RegCloseKey(hKeyDst);

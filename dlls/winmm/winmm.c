@@ -346,14 +346,14 @@ UINT WINAPI midiOutGetErrorTextA(UINT uError, LPSTR lpText, UINT uSize)
     else if (uSize == 0) ret = MMSYSERR_NOERROR;
     else
     {
-        LPWSTR	xstr = HeapAlloc(GetProcessHeap(), 0, uSize * sizeof(WCHAR));
+        LPWSTR	xstr = heap_alloc(uSize * sizeof(WCHAR));
         if (!xstr) ret = MMSYSERR_NOMEM;
         else
         {
             ret = midiOutGetErrorTextW(uError, xstr, uSize);
             if (ret == MMSYSERR_NOERROR)
                 WideCharToMultiByte(CP_ACP, 0, xstr, -1, lpText, uSize, NULL, NULL);
-            HeapFree(GetProcessHeap(), 0, xstr);
+            heap_free(xstr);
         }
     }
     return ret;
@@ -1237,7 +1237,7 @@ MMRESULT WINAPI midiStreamClose(HMIDISTRM hMidiStrm)
         CloseHandle(lpMidiStrm->hThread);
     }
     if(!ret)
-        HeapFree(GetProcessHeap(), 0, lpMidiStrm);
+        heap_free(lpMidiStrm);
 
     return midiOutClose((HMIDIOUT)hMidiStrm);
 }
@@ -1265,7 +1265,7 @@ MMRESULT WINAPI midiStreamOpen(HMIDISTRM* lphMidiStrm, LPUINT lpuDeviceID,
     if (ret != MMSYSERR_NOERROR)
 	return ret;
 
-    lpMidiStrm = HeapAlloc(GetProcessHeap(), 0, sizeof(WINE_MIDIStream));
+    lpMidiStrm = heap_alloc(sizeof(WINE_MIDIStream));
     if (!lpMidiStrm)
 	return MMSYSERR_NOMEM;
 
@@ -1278,7 +1278,7 @@ MMRESULT WINAPI midiStreamOpen(HMIDISTRM* lphMidiStrm, LPUINT lpuDeviceID,
     mosm.wDeviceID  = *lpuDeviceID;
     lpwm = MIDI_OutAlloc(&hMidiOut, &dwCallback, &dwInstance, &fdwOpen, 1, &mosm);
     if (!lpwm) {
-	HeapFree(GetProcessHeap(), 0, lpMidiStrm);
+	heap_free(lpMidiStrm);
 	return MMSYSERR_NOMEM;
     }
     lpMidiStrm->hDevice = hMidiOut;
@@ -1289,7 +1289,7 @@ MMRESULT WINAPI midiStreamOpen(HMIDISTRM* lphMidiStrm, LPUINT lpuDeviceID,
     ret = MMDRV_Open(&lpwm->mld, MODM_OPEN, (DWORD_PTR)&lpwm->mod, fdwOpen);
     if (ret != MMSYSERR_NOERROR) {
 	MMDRV_Free(hMidiOut, &lpwm->mld);
-	HeapFree(GetProcessHeap(), 0, lpMidiStrm);
+	heap_free(lpMidiStrm);
 	return ret;
     }
 
@@ -1495,7 +1495,7 @@ static DWORD WINAPI mmTaskRun(void* pmt)
     struct mm_starter mms;
 
     memcpy(&mms, pmt, sizeof(struct mm_starter));
-    HeapFree(GetProcessHeap(), 0, pmt);
+    heap_free(pmt);
     mms.cb(mms.client);
     if (mms.event) SetEvent(mms.event);
     return 0;
@@ -1510,7 +1510,7 @@ UINT     WINAPI mmTaskCreate(LPTASKCALLBACK cb, HANDLE* ph, DWORD_PTR client)
     HANDLE               hEvent = 0;
     struct mm_starter   *mms;
 
-    mms = HeapAlloc(GetProcessHeap(), 0, sizeof(struct mm_starter));
+    mms = heap_alloc(sizeof(struct mm_starter));
     if (mms == NULL) return TASKERR_OUTOFMEMORY;
 
     mms->cb = cb;
@@ -1520,7 +1520,7 @@ UINT     WINAPI mmTaskCreate(LPTASKCALLBACK cb, HANDLE* ph, DWORD_PTR client)
 
     hThread = CreateThread(0, 0, mmTaskRun, mms, 0, NULL);
     if (!hThread) {
-        HeapFree(GetProcessHeap(), 0, mms);
+        heap_free(mms);
         if (hEvent) CloseHandle(hEvent);
         return TASKERR_OUTOFMEMORY;
     }

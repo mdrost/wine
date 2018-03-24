@@ -34,6 +34,7 @@
 
 #include "windef.h"
 #include "winbase.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 #include "winternl.h"
@@ -137,7 +138,7 @@ static WCHAR* NLS_GetLocaleString(LCID lcid, DWORD dwFlags)
   szBuff[0] = '\0';
   GetLocaleInfoW(lcid, dwFlags, szBuff, sizeof(szBuff) / sizeof(WCHAR));
   dwLen = strlenW(szBuff) + 1;
-  str = HeapAlloc(GetProcessHeap(), 0, dwLen * sizeof(WCHAR));
+  str = heap_alloc(dwLen * sizeof(WCHAR));
   if (str)
     memcpy(str, szBuff, dwLen * sizeof(WCHAR));
   return str;
@@ -207,7 +208,7 @@ static const NLS_FORMAT_NODE *NLS_GetFormats(LCID lcid, DWORD dwFlags)
 
     TRACE("Creating new cache entry\n");
 
-    if (!(new_node = HeapAlloc(GetProcessHeap(), 0, sizeof(NLS_FORMAT_NODE))))
+    if (!(new_node = heap_alloc(sizeof(NLS_FORMAT_NODE))))
       return NULL;
 
     GET_LOCALE_NUMBER(new_node->dwCodePage, LOCALE_IDEFAULTANSICODEPAGE);
@@ -273,7 +274,7 @@ static const NLS_FORMAT_NODE *NLS_GetFormats(LCID lcid, DWORD dwFlags)
     {
       if (strcmpW(GetLongMonth(new_node, i), GetGenitiveMonth(new_node, i)) == 0)
       {
-        HeapFree(GetProcessHeap(), 0, GetGenitiveMonth(new_node, i));
+        heap_free(GetGenitiveMonth(new_node, i));
         GetGenitiveMonth(new_node, i) = NULL;
       }
     }
@@ -317,13 +318,13 @@ static const NLS_FORMAT_NODE *NLS_GetFormats(LCID lcid, DWORD dwFlags)
        * node points to the currently cached node, so free new_node.
        */
       for (i = 0; i < sizeof(NLS_LocaleIndices)/sizeof(NLS_LocaleIndices[0]); i++)
-        HeapFree(GetProcessHeap(), 0, new_node->lppszStrings[i]);
-      HeapFree(GetProcessHeap(), 0, new_node->fmt.lpDecimalSep);
-      HeapFree(GetProcessHeap(), 0, new_node->fmt.lpThousandSep);
-      HeapFree(GetProcessHeap(), 0, new_node->cyfmt.lpDecimalSep);
-      HeapFree(GetProcessHeap(), 0, new_node->cyfmt.lpThousandSep);
-      HeapFree(GetProcessHeap(), 0, new_node->cyfmt.lpCurrencySymbol);
-      HeapFree(GetProcessHeap(), 0, new_node);
+        heap_free(new_node->lppszStrings[i]);
+      heap_free(new_node->fmt.lpDecimalSep);
+      heap_free(new_node->fmt.lpThousandSep);
+      heap_free(new_node->cyfmt.lpDecimalSep);
+      heap_free(new_node->cyfmt.lpThousandSep);
+      heap_free(new_node->cyfmt.lpCurrencySymbol);
+      heap_free(new_node);
     }
   }
   return node;
@@ -2123,7 +2124,7 @@ static BOOL NLS_EnumCalendarInfo(const struct enumcalendar_context *ctxt)
     return FALSE;
   }
 
-  buf = HeapAlloc(GetProcessHeap(), 0, bufSz);
+  buf = heap_alloc(bufSz);
   if (buf == NULL)
   {
     SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -2135,7 +2136,7 @@ static BOOL NLS_EnumCalendarInfo(const struct enumcalendar_context *ctxt)
     int optSz = GetLocaleInfoW(ctxt->lcid, LOCALE_IOPTIONALCALENDAR, NULL, 0);
     if (optSz > 1)
     {
-      opt = HeapAlloc(GetProcessHeap(), 0, optSz * sizeof(WCHAR));
+      opt = heap_alloc(optSz * sizeof(WCHAR));
       if (opt == NULL)
       {
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -2172,7 +2173,7 @@ static BOOL NLS_EnumCalendarInfo(const struct enumcalendar_context *ctxt)
           }
           bufSz = newSz;
           WARN("Buffer too small; resizing to %d bytes.\n", bufSz);
-          buf = HeapReAlloc(GetProcessHeap(), 0, buf, bufSz);
+          buf = heap_realloc(buf, bufSz);
           if (buf == NULL)
             goto cleanup;
         } else goto cleanup;
@@ -2220,8 +2221,8 @@ static BOOL NLS_EnumCalendarInfo(const struct enumcalendar_context *ctxt)
   }
 
 cleanup:
-  HeapFree(GetProcessHeap(), 0, opt);
-  HeapFree(GetProcessHeap(), 0, buf);
+  heap_free(opt);
+  heap_free(buf);
   return ret;
 }
 

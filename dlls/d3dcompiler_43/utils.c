@@ -538,7 +538,7 @@ HRESULT dxbc_add_section(struct dxbc *dxbc, DWORD tag, const char *data, DWORD d
         struct dxbc_section *new_sections;
         DWORD new_size = dxbc->size << 1;
 
-        new_sections = HeapReAlloc(GetProcessHeap(), 0, dxbc->sections, new_size * sizeof(*dxbc->sections));
+        new_sections = heap_realloc(dxbc->sections, new_size * sizeof(*dxbc->sections));
         if (!new_sections)
         {
             ERR("Failed to allocate dxbc section memory\n");
@@ -564,7 +564,7 @@ HRESULT dxbc_init(struct dxbc *dxbc, UINT size)
     /* use a good starting value for the size if none specified */
     if (!size) size = 2;
 
-    dxbc->sections = HeapAlloc(GetProcessHeap(), 0, size * sizeof(*dxbc->sections));
+    dxbc->sections = heap_alloc(size * sizeof(*dxbc->sections));
     if (!dxbc->sections)
     {
         ERR("Failed to allocate dxbc section memory\n");
@@ -652,7 +652,7 @@ void dxbc_destroy(struct dxbc *dxbc)
 {
     TRACE("dxbc %p.\n", dxbc);
 
-    HeapFree(GetProcessHeap(), 0, dxbc->sections);
+    heap_free(dxbc->sections);
 }
 
 HRESULT dxbc_write_blob(struct dxbc *dxbc, ID3DBlob **blob)

@@ -73,7 +73,7 @@ static void X11DRV_ImmSetInternalString(DWORD dwOffset,
     if (byte_expansion + dwCompStringLength >= dwCompStringSize)
     {
         if (CompositionString)
-            ptr_new = HeapReAlloc(GetProcessHeap(), 0, CompositionString,
+            ptr_new = heap_realloc(CompositionString,
                                   dwCompStringSize + byte_expansion);
         else
             ptr_new = HeapAlloc(GetProcessHeap(), 0,
@@ -108,7 +108,7 @@ void X11DRV_XIMLookupChars( const char *str, DWORD count )
     TRACE("%p %u\n", str, count);
 
     dwOutput = MultiByteToWideChar(CP_UNIXCP, 0, str, count, NULL, 0);
-    wcOutput = HeapAlloc(GetProcessHeap(), 0, sizeof(WCHAR) * dwOutput);
+    wcOutput = heap_alloc(sizeof(WCHAR) * dwOutput);
     if (wcOutput == NULL)
         return;
     MultiByteToWideChar(CP_UNIXCP, 0, str, count, wcOutput, dwOutput);
@@ -117,7 +117,7 @@ void X11DRV_XIMLookupChars( const char *str, DWORD count )
         IME_UpdateAssociation(focus);
 
     IME_SetResultString(wcOutput, dwOutput);
-    HeapFree(GetProcessHeap(), 0, wcOutput);
+    heap_free(wcOutput);
 }
 
 static BOOL XIMPreEditStateNotifyCallback(XIC xic, XPointer p, XPointer data)
@@ -153,7 +153,7 @@ static void XIMPreEditDoneCallback(XIC ic, XPointer client_data, XPointer call_d
     TRACE("PreeditDoneCallback %p\n",ic);
     ximInComposeMode = FALSE;
     if (dwCompStringSize)
-        HeapFree(GetProcessHeap(), 0, CompositionString);
+        heap_free(CompositionString);
     dwCompStringSize = 0;
     dwCompStringLength = 0;
     CompositionString = NULL;
@@ -180,7 +180,7 @@ static void XIMPreEditDrawCallback(XIM ic, XPointer client_data,
                 dwOutput = MultiByteToWideChar(CP_UNIXCP, 0,
                            P_DR->text->string.multi_byte, -1,
                            NULL, 0);
-                wcOutput = HeapAlloc(GetProcessHeap(), 0, sizeof (WCHAR) * dwOutput);
+                wcOutput = heap_alloc(sizeof (WCHAR) * dwOutput);
                 if (wcOutput)
                 {
                     dwOutput = MultiByteToWideChar(CP_UNIXCP, 0,
@@ -190,7 +190,7 @@ static void XIMPreEditDrawCallback(XIM ic, XPointer client_data,
                     /* ignore null */
                     dwOutput --;
                     X11DRV_ImmSetInternalString (sel, len, wcOutput, dwOutput);
-                    HeapFree(GetProcessHeap(), 0, wcOutput);
+                    heap_free(wcOutput);
                 }
             }
             else

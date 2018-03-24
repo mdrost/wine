@@ -148,7 +148,7 @@ static const struct gdi_dc_funcs emfdrv_driver =
     EMFDRV_SetTextAlign,             /* pSetTextAlign */
     NULL,                            /* pSetTextCharacterExtra */
     EMFDRV_SetTextColor,             /* pSetTextColor */
-    EMFDRV_SetTextJustification,     /* pSetTextJustification */ 
+    EMFDRV_SetTextJustification,     /* pSetTextJustification */
     EMFDRV_SetViewportExtEx,         /* pSetViewportExtEx */
     EMFDRV_SetViewportOrgEx,         /* pSetViewportOrgEx */
     EMFDRV_SetWindowExtEx,           /* pSetWindowExtEx */
@@ -176,12 +176,12 @@ static BOOL EMFDRV_DeleteDC( PHYSDEV dev )
     EMFDRV_PDEVICE *physDev = get_emf_physdev( dev );
     UINT index;
 
-    HeapFree( GetProcessHeap(), 0, physDev->emh );
+    free( physDev->emh );
     for(index = 0; index < physDev->handles_size; index++)
         if(physDev->handles[index])
 	    GDI_hdc_not_using_object(physDev->handles[index], dev->hdc);
-    HeapFree( GetProcessHeap(), 0, physDev->handles );
-    HeapFree( GetProcessHeap(), 0, physDev );
+    free( physDev->handles );
+    free( physDev );
     return TRUE;
 }
 
@@ -210,16 +210,20 @@ BOOL EMFDRV_WriteRecord( PHYSDEV dev, EMR *emr )
         if (!WriteFile(physDev->hFile, emr, emr->nSize, &bytes_written, NULL))
 	    return FALSE;
     } else {
+#if 0
         DWORD nEmfSize = HeapSize(GetProcessHeap(), 0, physDev->emh);
         len = physDev->emh->nBytes;
         if (len > nEmfSize) {
             nEmfSize += (nEmfSize / 2) + emr->nSize;
-            emh = HeapReAlloc(GetProcessHeap(), 0, physDev->emh, nEmfSize);
+            emh = heap_realloc(physDev->emh, nEmfSize);
             if (!emh) return FALSE;
             physDev->emh = emh;
         }
         memcpy((CHAR *)physDev->emh + physDev->emh->nBytes - emr->nSize, emr,
                emr->nSize);
+#else
+        return FALSE;
+#endif
     }
     return TRUE;
 }
@@ -283,21 +287,21 @@ HDC WINAPI CreateEnhMetaFileA(
     if(filename)
     {
         total = MultiByteToWideChar( CP_ACP, 0, filename, -1, NULL, 0 );
-        filenameW = HeapAlloc( GetProcessHeap(), 0, total * sizeof(WCHAR) );
+        filenameW = malloc( total * sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, filename, -1, filenameW, total );
     }
     if(description) {
         len1 = strlen(description);
 	len2 = strlen(description + len1 + 1);
         total = MultiByteToWideChar( CP_ACP, 0, description, len1 + len2 + 3, NULL, 0 );
-	descriptionW = HeapAlloc( GetProcessHeap(), 0, total * sizeof(WCHAR) );
+	descriptionW = malloc( total * sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, description, len1 + len2 + 3, descriptionW, total );
     }
 
     hReturnDC = CreateEnhMetaFileW(hdc, filenameW, rect, descriptionW);
 
-    HeapFree( GetProcessHeap(), 0, filenameW );
-    HeapFree( GetProcessHeap(), 0, descriptionW );
+    free( filenameW );
+    free( descriptionW );
 
     return hReturnDC;
 }
@@ -342,7 +346,7 @@ HDC WINAPI CreateEnhMetaFileW(
 
     if (!(dc = alloc_dc_ptr( OBJ_ENHMETADC ))) return 0;
 
-    physDev = HeapAlloc(GetProcessHeap(),0,sizeof(*physDev));
+    physDev = malloc(sizeof(*physDev));
     if (!physDev) {
         free_dc_ptr( dc );
         return 0;
@@ -355,15 +359,15 @@ HDC WINAPI CreateEnhMetaFileW(
     }
     size = sizeof(ENHMETAHEADER) + (length + 3) / 4 * 4;
 
-    if (!(physDev->emh = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size))) {
-        HeapFree( GetProcessHeap(), 0, physDev );
+    if (!(physDev->emh = calloc(1, size))) {
+        free( physDev );
         free_dc_ptr( dc );
         return 0;
     }
 
     push_dc_driver( &dc->physDev, &physDev->dev, &emfdrv_driver );
 
-    physDev->handles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, HANDLE_LIST_INC * sizeof(physDev->handles[0]));
+    physDev->handles = calloc(HANDLE_LIST_INC, sizeof(physDev->handles[0]));
     physDev->handles_size = HANDLE_LIST_INC;
     physDev->cur_handles = 1;
     physDev->hFile = 0;
@@ -519,7 +523,7 @@ HENHMETAFILE WINAPI CloseEnhMetaFile(HDC hdc) /* [in] metafile DC */
             free_dc_ptr( dc );
             return 0;
         }
-	HeapFree( GetProcessHeap(), 0, physDev->emh );
+	free( physDev->emh );
         hMapping = CreateFileMappingA(physDev->hFile, NULL, PAGE_READONLY, 0,
 				      0, NULL);
 	TRACE("hMapping = %p\n", hMapping );

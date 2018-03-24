@@ -184,10 +184,10 @@ static BOOL dbg_exception_prolog(BOOL is_debug, const EXCEPTION_RECORD* rec)
             if ((!last_name || strcmp(last_name, si->Name)) ||
                 (!last_file || strcmp(last_file, il.FileName)))
             {
-                HeapFree(GetProcessHeap(), 0, last_name);
-                HeapFree(GetProcessHeap(), 0, last_file);
-                last_name = strcpy(HeapAlloc(GetProcessHeap(), 0, strlen(si->Name) + 1), si->Name);
-                last_file = strcpy(HeapAlloc(GetProcessHeap(), 0, strlen(il.FileName) + 1), il.FileName);
+                heap_free(last_name);
+                heap_free(last_file);
+                last_name = strcpy(heap_alloc(strlen(si->Name) + 1), si->Name);
+                last_file = strcpy(heap_alloc(strlen(il.FileName) + 1), il.FileName);
                 dbg_printf("%s () at %s:%u\n", last_name, last_file, il.LineNumber);
             }
         }
@@ -823,7 +823,7 @@ enum dbg_start    dbg_active_launch(int argc, char* argv[])
 
     if (argc == 0) return start_error_parse;
 
-    if (!(cmd_line = HeapAlloc(GetProcessHeap(), 0, len = 1)))
+    if (!(cmd_line = heap_alloc(len = 1)))
     {
     oom_leave:
         dbg_printf("Out of memory\n");
@@ -834,7 +834,7 @@ enum dbg_start    dbg_active_launch(int argc, char* argv[])
     for (i = 0; i < argc; i++)
     {
         len += strlen(argv[i]) + 1;
-        if (!(cmd_line = HeapReAlloc(GetProcessHeap(), 0, cmd_line, len)))
+        if (!(cmd_line = heap_realloc(cmd_line, len)))
             goto oom_leave;
         strcat(cmd_line, argv[i]);
         cmd_line[len - 2] = ' ';
@@ -843,10 +843,10 @@ enum dbg_start    dbg_active_launch(int argc, char* argv[])
 
     if (!dbg_start_debuggee(cmd_line))
     {
-        HeapFree(GetProcessHeap(), 0, cmd_line);
+        heap_free(cmd_line);
         return start_error_init;
     }
-    HeapFree(GetProcessHeap(), 0, dbg_last_cmd_line);
+    heap_free(dbg_last_cmd_line);
     dbg_last_cmd_line = cmd_line;
     return start_ok;
 }

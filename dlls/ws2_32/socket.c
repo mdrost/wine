@@ -157,6 +157,7 @@
 #include "wine/server.h"
 #include "wine/debug.h"
 #include "wine/exception.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 
 #if defined(linux) && !defined(IP_UNICAST_IF)
@@ -558,11 +559,11 @@ static struct ws2_async_io *alloc_async_io( DWORD size, async_callback_t callbac
     while (io)
     {
         struct ws2_async_io *next = io->next;
-        HeapFree( GetProcessHeap(), 0, io );
+        heap_free( io );
         io = next;
     }
 
-    io = HeapAlloc( GetProcessHeap(), 0, size );
+    io = heap_alloc( size );
     if (io) io->callback = callback;
     return io;
 }
@@ -1287,7 +1288,7 @@ static struct per_thread_data *get_per_thread_data(void)
     /* lazy initialization */
     if (!ptb)
     {
-        ptb = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*ptb) );
+        ptb = heap_alloc_zero( sizeof(*ptb) );
         NtCurrentTeb()->WinSockData = ptb;
     }
     return ptb;
@@ -1300,12 +1301,12 @@ static void free_per_thread_data(void)
     if (!ptb) return;
 
     /* delete scratch buffers */
-    HeapFree( GetProcessHeap(), 0, ptb->he_buffer );
-    HeapFree( GetProcessHeap(), 0, ptb->se_buffer );
-    HeapFree( GetProcessHeap(), 0, ptb->pe_buffer );
-    HeapFree( GetProcessHeap(), 0, ptb->fd_cache );
+    heap_free( ptb->he_buffer );
+    heap_free( ptb->se_buffer );
+    heap_free( ptb->pe_buffer );
+    heap_free( ptb->fd_cache );
 
-    HeapFree( GetProcessHeap(), 0, ptb );
+    heap_free( ptb );
     NtCurrentTeb()->WinSockData = NULL;
 }
 
@@ -1422,7 +1423,7 @@ static int convert_sockopt(INT *level, INT *optname)
 static char *strdup_lower(const char *str)
 {
     int i;
-    char *ret = HeapAlloc( GetProcessHeap(), 0, strlen(str) + 1 );
+    char *ret = heap_alloc( strlen(str) + 1 );
 
     if (ret)
     {
@@ -1694,9 +1695,9 @@ static struct WS_hostent *check_buffer_he(int size)
     if (ptb->he_buffer)
     {
         if (ptb->he_len >= size ) return ptb->he_buffer;
-        HeapFree( GetProcessHeap(), 0, ptb->he_buffer );
+        heap_free( ptb->he_buffer );
     }
-    ptb->he_buffer = HeapAlloc( GetProcessHeap(), 0, (ptb->he_len = size) );
+    ptb->he_buffer = heap_alloc( (ptb->he_len = size) );
     if (!ptb->he_buffer) SetLastError(WSAENOBUFS);
     return ptb->he_buffer;
 }
@@ -1707,9 +1708,9 @@ static struct WS_servent *check_buffer_se(int size)
     if (ptb->se_buffer)
     {
         if (ptb->se_len >= size ) return ptb->se_buffer;
-        HeapFree( GetProcessHeap(), 0, ptb->se_buffer );
+        heap_free( ptb->se_buffer );
     }
-    ptb->se_buffer = HeapAlloc( GetProcessHeap(), 0, (ptb->se_len = size) );
+    ptb->se_buffer = heap_alloc( (ptb->se_len = size) );
     if (!ptb->se_buffer) SetLastError(WSAENOBUFS);
     return ptb->se_buffer;
 }
@@ -1720,9 +1721,9 @@ static struct WS_protoent *check_buffer_pe(int size)
     if (ptb->pe_buffer)
     {
         if (ptb->pe_len >= size ) return ptb->pe_buffer;
-        HeapFree( GetProcessHeap(), 0, ptb->pe_buffer );
+        heap_free( ptb->pe_buffer );
     }
-    ptb->pe_buffer = HeapAlloc( GetProcessHeap(), 0, (ptb->pe_len = size) );
+    ptb->pe_buffer = heap_alloc( (ptb->pe_len = size) );
     if (!ptb->pe_buffer) SetLastError(WSAENOBUFS);
     return ptb->pe_buffer;
 }
@@ -2716,7 +2717,7 @@ static int WS2_register_async_shutdown( SOCKET s, int type )
     status = register_async( type, wsa->hSocket, &wsa->io, 0, NULL, NULL, &wsa->iosb );
     if (status != STATUS_PENDING)
     {
-        HeapFree( GetProcessHeap(), 0, wsa );
+        heap_free( wsa );
         return NtStatusToWSAError( status );
     }
     return 0;
@@ -2844,7 +2845,7 @@ static BOOL WINAPI WS2_AcceptEx(SOCKET listener, SOCKET acceptor, PVOID dest, DW
         wsa->read = (struct ws2_async *)alloc_async_io( offsetof(struct ws2_async, iovec[1]), WS2_async_accept_recv );
         if (!wsa->read)
         {
-            HeapFree( GetProcessHeap(), 0, wsa );
+            heap_free( wsa );
             SetLastError(WSAEFAULT);
             return FALSE;
         }
@@ -2867,8 +2868,8 @@ static BOOL WINAPI WS2_AcceptEx(SOCKET listener, SOCKET acceptor, PVOID dest, DW
 
     if(status != STATUS_PENDING)
     {
-        HeapFree( GetProcessHeap(), 0, wsa->read );
-        HeapFree( GetProcessHeap(), 0, wsa );
+        heap_free( wsa->read );
+        heap_free( wsa );
     }
 
     SetLastError( NtStatusToWSAError(status) );
@@ -3128,7 +3129,7 @@ static BOOL WINAPI WS2_TransmitFile( SOCKET s, HANDLE h, DWORD file_bytes, DWORD
         iosb->Information = 0;
         status = register_async( ASYNC_TYPE_WRITE, SOCKET2HANDLE(s), &wsa->io,
                                  overlapped->hEvent, NULL, NULL, iosb );
-        if(status != STATUS_PENDING) HeapFree( GetProcessHeap(), 0, wsa );
+        if(status != STATUS_PENDING) heap_free( wsa );
         release_sock_fd( s, fd );
         WSASetLastError( NtStatusToWSAError(status) );
         return FALSE;
@@ -3149,7 +3150,7 @@ static BOOL WINAPI WS2_TransmitFile( SOCKET s, HANDLE h, DWORD file_bytes, DWORD
 
     if (status != STATUS_SUCCESS)
         WSASetLastError( NtStatusToWSAError(status) );
-    HeapFree( GetProcessHeap(), 0, wsa );
+    heap_free( wsa );
     return (status == STATUS_SUCCESS);
 }
 
@@ -3242,7 +3243,7 @@ static BOOL interface_bind( SOCKET s, int fd, struct sockaddr *addr )
         return FALSE; /* Special interface binding is only necessary for UDP datagrams. */
     if (GetAdaptersInfo(NULL, &adap_size) != ERROR_BUFFER_OVERFLOW)
         goto cleanup;
-    adapters = HeapAlloc(GetProcessHeap(), 0, adap_size);
+    adapters = heap_alloc(adap_size);
     if (adapters == NULL || GetAdaptersInfo(adapters, &adap_size) != NO_ERROR)
         goto cleanup;
     /* Search the IPv4 adapter list for the appropriate binding interface */
@@ -3288,7 +3289,7 @@ static BOOL interface_bind( SOCKET s, int fd, struct sockaddr *addr )
 cleanup:
     if(!ret)
         ERR("Failed to bind to interface, receiving broadcast packets will not work on socket %04lx.\n", s);
-    HeapFree(GetProcessHeap(), 0, adapters);
+    heap_free(adapters);
     return ret;
 }
 
@@ -3584,7 +3585,7 @@ static BOOL WINAPI WS2_ConnectEx(SOCKET s, const struct WS_sockaddr* name, int n
 
             status = register_async( ASYNC_TYPE_WRITE, wsa->hSocket, &wsa->io, ov->hEvent,
                                       NULL, (void *)cvalue, iosb );
-            if (status != STATUS_PENDING) HeapFree(GetProcessHeap(), 0, wsa);
+            if (status != STATUS_PENDING) heap_free(wsa);
 
             /* If the connect already failed */
             if (status == STATUS_PIPE_DISCONNECTED)
@@ -3703,7 +3704,7 @@ static void interface_bind_check(int fd, struct sockaddr_in *addr)
 
         if (GetAdaptersInfo(NULL, &adap_size) != ERROR_BUFFER_OVERFLOW)
             return;
-        adapters = HeapAlloc(GetProcessHeap(), 0, adap_size);
+        adapters = heap_alloc(adap_size);
         if (adapters && GetAdaptersInfo(adapters, &adap_size) == NO_ERROR)
         {
             /* Search the IPv4 adapter list for the appropriate bound interface */
@@ -3718,7 +3719,7 @@ static void interface_bind_check(int fd, struct sockaddr_in *addr)
                 break;
             }
         }
-        HeapFree(GetProcessHeap(), 0, adapters);
+        heap_free(adapters);
     }
 #endif
 }
@@ -4606,7 +4607,7 @@ static DWORD server_ioctl_sock( SOCKET s, DWORD code, LPVOID in_buff, DWORD in_s
     else if (status == STATUS_SUCCESS)
         *ret_size = io->Information; /* "Information" is the size written to the output buffer */
 
-    if (status != STATUS_PENDING) RtlFreeHeap( GetProcessHeap(), 0, wsa );
+    if (status != STATUS_PENDING) heap_free( wsa );
 
     return NtStatusToWSAError( status );
 }
@@ -4723,7 +4724,7 @@ INT WINAPI WSAIoctl(SOCKET s, DWORD code, LPVOID in_buff, DWORD in_size, LPVOID 
            apiReturn = GetAdaptersInfo(NULL, &size);
            if (apiReturn == ERROR_BUFFER_OVERFLOW)
            {
-               PIP_ADAPTER_INFO table = HeapAlloc(GetProcessHeap(),0,size);
+               PIP_ADAPTER_INFO table = heap_alloc(size);
 
                if (table)
                {
@@ -4798,7 +4799,7 @@ INT WINAPI WSAIoctl(SOCKET s, DWORD code, LPVOID in_buff, DWORD in_size, LPVOID 
                      ERR("Unable to get interface table!\n");
                      status = WSAEINVAL;
                   }
-                  HeapFree(GetProcessHeap(),0,table);
+                  heap_free(table);
                }
                else status = WSAEINVAL;
            }
@@ -4834,7 +4835,7 @@ INT WINAPI WSAIoctl(SOCKET s, DWORD code, LPVOID in_buff, DWORD in_size, LPVOID 
 
         if (GetAdaptersInfo(NULL, &size) == ERROR_BUFFER_OVERFLOW)
         {
-            IP_ADAPTER_INFO *p, *table = HeapAlloc(GetProcessHeap(), 0, size);
+            IP_ADAPTER_INFO *p, *table = heap_alloc(size);
             SOCKET_ADDRESS_LIST *sa_list;
             SOCKADDR_IN *sockaddr;
             SOCKET_ADDRESS *sa;
@@ -4843,7 +4844,7 @@ INT WINAPI WSAIoctl(SOCKET s, DWORD code, LPVOID in_buff, DWORD in_size, LPVOID 
 
             if (!table || GetAdaptersInfo(table, &size))
             {
-                HeapFree(GetProcessHeap(), 0, table);
+                heap_free(table);
                 status = WSAEINVAL;
                 break;
             }
@@ -4855,7 +4856,7 @@ INT WINAPI WSAIoctl(SOCKET s, DWORD code, LPVOID in_buff, DWORD in_size, LPVOID 
             if (total > out_size || !out_buff)
             {
                 *ret_size = total;
-                HeapFree(GetProcessHeap(), 0, table);
+                heap_free(table);
                 status = WSAEFAULT;
                 break;
             }
@@ -4878,7 +4879,7 @@ INT WINAPI WSAIoctl(SOCKET s, DWORD code, LPVOID in_buff, DWORD in_size, LPVOID 
                 i++;
             }
 
-            HeapFree(GetProcessHeap(), 0, table);
+            heap_free(table);
         }
         else
         {
@@ -5010,10 +5011,10 @@ INT WINAPI WSAIoctl(SOCKET s, DWORD code, LPVOID in_buff, DWORD in_size, LPVOID 
            status = WSAEFAULT;
            break;
        }
-       ipAddrTable = HeapAlloc(GetProcessHeap(), 0, size);
+       ipAddrTable = heap_alloc(size);
        if (GetIpAddrTable(ipAddrTable, &size, FALSE))
        {
-           HeapFree(GetProcessHeap(), 0, ipAddrTable);
+           heap_free(ipAddrTable);
            status = WSAEFAULT;
            break;
        }
@@ -5027,7 +5028,7 @@ INT WINAPI WSAIoctl(SOCKET s, DWORD code, LPVOID in_buff, DWORD in_size, LPVOID 
        {
            ERR("no matching IP address for interface %d\n",
                row.dwForwardIfIndex);
-           HeapFree(GetProcessHeap(), 0, ipAddrTable);
+           heap_free(ipAddrTable);
            status = WSAEFAULT;
            break;
        }
@@ -5035,7 +5036,7 @@ INT WINAPI WSAIoctl(SOCKET s, DWORD code, LPVOID in_buff, DWORD in_size, LPVOID 
        saddr_in->sin_addr.S_un.S_addr = ipAddrTable->table[found_index].dwAddr;
        saddr_in->sin_port = 0;
        total = sizeof(struct WS_sockaddr_in);
-       HeapFree(GetProcessHeap(), 0, ipAddrTable);
+       heap_free(ipAddrTable);
        break;
    }
    case WS_SIO_SET_COMPATIBILITY_MODE:
@@ -5192,12 +5193,12 @@ static struct pollfd *fd_sets_to_poll( const WS_fd_set *readfds, const WS_fd_set
     /* check if the cache can hold all descriptors, if not do the resizing */
     if (ptb->fd_count < count)
     {
-        if (!(fds = HeapAlloc(GetProcessHeap(), 0, count * sizeof(fds[0]))))
+        if (!(fds = heap_alloc(count * sizeof(fds[0]))))
         {
             SetLastError( ERROR_NOT_ENOUGH_MEMORY );
             return NULL;
         }
-        HeapFree(GetProcessHeap(), 0, ptb->fd_cache);
+        heap_free(ptb->fd_cache);
         ptb->fd_cache = fds;
         ptb->fd_count = count;
     }
@@ -5432,7 +5433,7 @@ int WINAPI WSAPoll(WSAPOLLFD *wfds, ULONG count, int timeout)
         return SOCKET_ERROR;
     }
 
-    if (!(ufds = HeapAlloc(GetProcessHeap(), 0, count * sizeof(ufds[0]))))
+    if (!(ufds = heap_alloc(count * sizeof(ufds[0]))))
     {
         SetLastError(WSAENOBUFS);
         return SOCKET_ERROR;
@@ -5471,7 +5472,7 @@ int WINAPI WSAPoll(WSAPOLLFD *wfds, ULONG count, int timeout)
             wfds[i].revents = WS_POLLNVAL;
     }
 
-    HeapFree(GetProcessHeap(), 0, ufds);
+    heap_free(ufds);
     return ret;
 }
 
@@ -5619,7 +5620,7 @@ static int WS2_sendto( SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount,
                the async is done. */
             _enable_event(SOCKET2HANDLE(s), FD_WRITE, 0, 0);
 
-            if (err != STATUS_PENDING) HeapFree( GetProcessHeap(), 0, wsa );
+            if (err != STATUS_PENDING) heap_free( wsa );
             SetLastError(NtStatusToWSAError( err ));
             return SOCKET_ERROR;
         }
@@ -5631,7 +5632,7 @@ static int WS2_sendto( SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount,
         {
             if (cvalue) WS_AddCompletion( s, cvalue, STATUS_SUCCESS, n );
             if (lpOverlapped->hEvent) SetEvent( lpOverlapped->hEvent );
-            HeapFree( GetProcessHeap(), 0, wsa );
+            heap_free( wsa );
         }
         else NtQueueApcThread( GetCurrentThread(), (PNTAPCFUNC)ws2_async_apc,
                                (ULONG_PTR)wsa, (ULONG_PTR)iosb, 0 );
@@ -5701,13 +5702,13 @@ static int WS2_sendto( SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount,
     TRACE(" -> %i bytes\n", bytes_sent);
 
     if (lpNumberOfBytesSent) *lpNumberOfBytesSent = bytes_sent;
-    if (wsa != &localwsa) HeapFree( GetProcessHeap(), 0, wsa );
+    if (wsa != &localwsa) heap_free( wsa );
     release_sock_fd( s, fd );
     SetLastError(ERROR_SUCCESS);
     return 0;
 
 error:
-    if (wsa != &localwsa) HeapFree( GetProcessHeap(), 0, wsa );
+    if (wsa != &localwsa) heap_free( wsa );
     release_sock_fd( s, fd );
     WARN(" -> ERROR %d\n", err);
     SetLastError(err);
@@ -6181,17 +6182,17 @@ struct WS_hostent* WINAPI WS_gethostbyaddr(const char *addr, int len, int type)
 
 #ifdef HAVE_LINUX_GETHOSTBYNAME_R_6
     host = NULL;
-    extrabuf=HeapAlloc(GetProcessHeap(),0,ebufsize) ;
+    extrabuf=heap_alloc(ebufsize) ;
     while(extrabuf) {
         int res = gethostbyaddr_r(paddr, len, unixtype,
                                   &hostentry, extrabuf, ebufsize, &host, &locerr);
         if (res != ERANGE) break;
         ebufsize *=2;
-        extrabuf=HeapReAlloc(GetProcessHeap(),0,extrabuf,ebufsize) ;
+        extrabuf=heap_realloc(xtrabuf,ebufsize) ;
     }
     if (host) retval = WS_dup_he(host);
     else SetLastError((locerr < 0) ? wsaErrno() : wsaHerrno(locerr));
-    HeapFree(GetProcessHeap(),0,extrabuf);
+    heap_free(extrabuf);
 #else
     EnterCriticalSection( &csWSgetXXXbyYYY );
     host = gethostbyaddr(paddr, len, unixtype);
@@ -6248,9 +6249,9 @@ static struct WS_hostent* WS_get_local_ips( char *hostname )
         return NULL;
     if (GetIpForwardTable(NULL, &route_size, FALSE) != ERROR_INSUFFICIENT_BUFFER)
         return NULL;
-    adapters = HeapAlloc(GetProcessHeap(), 0, adap_size);
-    routes = HeapAlloc(GetProcessHeap(), 0, route_size);
-    route_addrs = HeapAlloc(GetProcessHeap(), 0, 0); /* HeapReAlloc doesn't work on NULL */
+    adapters = heap_alloc(adap_size);
+    routes = heap_alloc(route_size);
+    route_addrs = heap_alloc(0); /* HeapReAlloc doesn't work on NULL */
     if (adapters == NULL || routes == NULL || route_addrs == NULL)
         goto cleanup;
     /* Obtain the adapter list and the full routing table */
@@ -6284,7 +6285,7 @@ static struct WS_hostent* WS_get_local_ips( char *hostname )
         }
         if (exists)
             continue;
-        route_addrs = HeapReAlloc(GetProcessHeap(), 0, route_addrs, (numroutes+1)*sizeof(struct route));
+        route_addrs = heap_realloc(route_addrs, (numroutes+1)*sizeof(struct route));
         if (route_addrs == NULL)
             goto cleanup; /* Memory allocation error, fail gracefully */
         route_addrs[numroutes].interface = ifindex;
@@ -6333,9 +6334,9 @@ static struct WS_hostent* WS_get_local_ips( char *hostname )
      * the address list is used by the calling app.
      */
 cleanup:
-    HeapFree(GetProcessHeap(), 0, route_addrs);
-    HeapFree(GetProcessHeap(), 0, adapters);
-    HeapFree(GetProcessHeap(), 0, routes);
+    heap_free(route_addrs);
+    heap_free(adapters);
+    heap_free(routes);
     return hostlist;
 }
 
@@ -6374,12 +6375,12 @@ struct WS_hostent* WINAPI WS_gethostbyname(const char* name)
     {
 #ifdef  HAVE_LINUX_GETHOSTBYNAME_R_6
         host = NULL;
-        extrabuf=HeapAlloc(GetProcessHeap(),0,ebufsize) ;
+        extrabuf=heap_alloc(ebufsize) ;
         while(extrabuf) {
             int res = gethostbyname_r(name, &hostentry, extrabuf, ebufsize, &host, &locerr);
             if( res != ERANGE) break;
             ebufsize *=2;
-            extrabuf=HeapReAlloc(GetProcessHeap(),0,extrabuf,ebufsize) ;
+            extrabuf=heap_realloc(extrabuf,ebufsize) ;
         }
         if (!host) SetLastError((locerr < 0) ? wsaErrno() : wsaHerrno(locerr));
 #else
@@ -6389,7 +6390,7 @@ struct WS_hostent* WINAPI WS_gethostbyname(const char* name)
 #endif
         if (host) retval = WS_dup_he(host);
 #ifdef  HAVE_LINUX_GETHOSTBYNAME_R_6
-        HeapFree(GetProcessHeap(),0,extrabuf);
+        heap_free(extrabuf);
 #else
         LeaveCriticalSection( &csWSgetXXXbyYYY );
 #endif
@@ -6472,7 +6473,7 @@ struct WS_servent* WINAPI WS_getservbyname(const char *name, const char *proto)
     {
         if (!(proto_str = strdup_lower(proto)))
         {
-            HeapFree( GetProcessHeap(), 0, name_str );
+            heap_free( name_str );
             return NULL;
         }
     }
@@ -6485,8 +6486,8 @@ struct WS_servent* WINAPI WS_getservbyname(const char *name, const char *proto)
     }
     else SetLastError(WSANO_DATA);
     LeaveCriticalSection( &csWSgetXXXbyYYY );
-    HeapFree( GetProcessHeap(), 0, proto_str );
-    HeapFree( GetProcessHeap(), 0, name_str );
+    heap_free( proto_str );
+    heap_free( name_str );
     TRACE( "%s, %s ret %p\n", debugstr_a(name), debugstr_a(proto), retval );
     return retval;
 }
@@ -6499,10 +6500,10 @@ void WINAPI WS_freeaddrinfo(struct WS_addrinfo *res)
     while (res) {
         struct WS_addrinfo *next;
 
-        HeapFree(GetProcessHeap(),0,res->ai_canonname);
-        HeapFree(GetProcessHeap(),0,res->ai_addr);
+        heap_free(res->ai_canonname);
+        heap_free(res->ai_addr);
         next = res->ai_next;
-        HeapFree(GetProcessHeap(),0,res);
+        heap_free(res);
         res = next;
     }
 }
@@ -6576,10 +6577,10 @@ static char *get_fqdn(void)
 
     GetComputerNameExA( ComputerNamePhysicalDnsFullyQualified, NULL, &size );
     if (GetLastError() != ERROR_MORE_DATA) return NULL;
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, size ))) return NULL;
+    if (!(ret = heap_alloc( size ))) return NULL;
     if (!GetComputerNameExA( ComputerNamePhysicalDnsFullyQualified, ret, &size ))
     {
-        HeapFree( GetProcessHeap(), 0, ret );
+        heap_free( ret );
         return NULL;
     }
     return ret;
@@ -6626,10 +6627,10 @@ int WINAPI WS_getaddrinfo(LPCSTR nodename, LPCSTR servname, const struct WS_addr
 
             if (node[0] == '[' && (close_bracket = strchr(node + 1, ']')))
             {
-                nodeV6 = HeapAlloc(GetProcessHeap(), 0, close_bracket - node);
+                nodeV6 = heap_alloc(close_bracket - node);
                 if (!nodeV6)
                 {
-                    HeapFree(GetProcessHeap(), 0, fqdn);
+                    heap_free(fqdn);
                     return WSA_NOT_ENOUGH_MEMORY;
                 }
                 lstrcpynA(nodeV6, node + 1, close_bracket - node);
@@ -6658,8 +6659,8 @@ int WINAPI WS_getaddrinfo(LPCSTR nodename, LPCSTR servname, const struct WS_addr
         if (punixhints->ai_socktype < 0)
         {
             SetLastError(WSAESOCKTNOSUPPORT);
-            HeapFree(GetProcessHeap(), 0, fqdn);
-            HeapFree(GetProcessHeap(), 0, nodeV6);
+            heap_free(fqdn);
+            heap_free(nodeV6);
             return SOCKET_ERROR;
         }
 
@@ -6692,8 +6693,8 @@ int WINAPI WS_getaddrinfo(LPCSTR nodename, LPCSTR servname, const struct WS_addr
         result = getaddrinfo(NULL, servname ? servname : "0", punixhints, &unixaires);
     }
     TRACE("%s, %s %p -> %p %d\n", debugstr_a(nodename), debugstr_a(servname), hints, res, result);
-    HeapFree(GetProcessHeap(), 0, fqdn);
-    HeapFree(GetProcessHeap(), 0, nodeV6);
+    heap_free(fqdn);
+    heap_free(nodeV6);
 
     if (!result) {
         struct addrinfo *xuai = unixaires;
@@ -6701,7 +6702,7 @@ int WINAPI WS_getaddrinfo(LPCSTR nodename, LPCSTR servname, const struct WS_addr
 
         *xai = NULL;
         while (xuai) {
-            struct WS_addrinfo *ai = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY, sizeof(struct WS_addrinfo));
+            struct WS_addrinfo *ai = heap_alloc_zero(sizeof(struct WS_addrinfo));
             SIZE_T len;
 
             if (!ai)
@@ -6720,13 +6721,13 @@ int WINAPI WS_getaddrinfo(LPCSTR nodename, LPCSTR servname, const struct WS_addr
             }
             if (xuai->ai_canonname) {
                 TRACE("canon name - %s\n",debugstr_a(xuai->ai_canonname));
-                ai->ai_canonname = HeapAlloc(GetProcessHeap(),0,strlen(xuai->ai_canonname)+1);
+                ai->ai_canonname = heap_alloc(strlen(xuai->ai_canonname)+1);
                 if (!ai->ai_canonname)
                     goto outofmem;
                 strcpy(ai->ai_canonname,xuai->ai_canonname);
             }
             len = xuai->ai_addrlen;
-            ai->ai_addr = HeapAlloc(GetProcessHeap(),0,len);
+            ai->ai_addr = heap_alloc(len);
             if (!ai->ai_addr)
                 goto outofmem;
             ai->ai_addrlen = len;
@@ -6738,7 +6739,7 @@ int WINAPI WS_getaddrinfo(LPCSTR nodename, LPCSTR servname, const struct WS_addr
                     break;
                 }
                 len = 2*len;
-                ai->ai_addr = HeapReAlloc(GetProcessHeap(),0,ai->ai_addr,len);
+                ai->ai_addr = heap_realloc(ai->ai_addr,len);
                 if (!ai->ai_addr)
                     goto outofmem;
                 ai->ai_addrlen = len;
@@ -6778,7 +6779,7 @@ static ADDRINFOEXW *addrinfo_AtoW(const struct WS_addrinfo *ai)
 {
     ADDRINFOEXW *ret;
 
-    if (!(ret = HeapAlloc(GetProcessHeap(), 0, sizeof(ADDRINFOEXW)))) return NULL;
+    if (!(ret = heap_alloc(sizeof(ADDRINFOEXW)))) return NULL;
     ret->ai_flags     = ai->ai_flags;
     ret->ai_family    = ai->ai_family;
     ret->ai_socktype  = ai->ai_socktype;
@@ -6793,19 +6794,19 @@ static ADDRINFOEXW *addrinfo_AtoW(const struct WS_addrinfo *ai)
     if (ai->ai_canonname)
     {
         int len = MultiByteToWideChar(CP_ACP, 0, ai->ai_canonname, -1, NULL, 0);
-        if (!(ret->ai_canonname = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR))))
+        if (!(ret->ai_canonname = heap_alloc(len*sizeof(WCHAR))))
         {
-            HeapFree(GetProcessHeap(), 0, ret);
+            heap_free(ret);
             return NULL;
         }
         MultiByteToWideChar(CP_ACP, 0, ai->ai_canonname, -1, ret->ai_canonname, len);
     }
     if (ai->ai_addr)
     {
-        if (!(ret->ai_addr = HeapAlloc(GetProcessHeap(), 0, ai->ai_addrlen)))
+        if (!(ret->ai_addr = heap_alloc(ai->ai_addrlen)))
         {
-            HeapFree(GetProcessHeap(), 0, ret->ai_canonname);
-            HeapFree(GetProcessHeap(), 0, ret);
+            heap_free(ret->ai_canonname);
+            heap_free(ret);
             return NULL;
         }
         memcpy(ret->ai_addr, ai->ai_addr, ai->ai_addrlen);
@@ -6835,7 +6836,7 @@ static struct WS_addrinfo *addrinfo_WtoA(const struct WS_addrinfoW *ai)
 {
     struct WS_addrinfo *ret;
 
-    if (!(ret = HeapAlloc(GetProcessHeap(), 0, sizeof(struct WS_addrinfo)))) return NULL;
+    if (!(ret = heap_alloc(sizeof(struct WS_addrinfo)))) return NULL;
     ret->ai_flags     = ai->ai_flags;
     ret->ai_family    = ai->ai_family;
     ret->ai_socktype  = ai->ai_socktype;
@@ -6847,19 +6848,19 @@ static struct WS_addrinfo *addrinfo_WtoA(const struct WS_addrinfoW *ai)
     if (ai->ai_canonname)
     {
         int len = WideCharToMultiByte(CP_ACP, 0, ai->ai_canonname, -1, NULL, 0, NULL, NULL);
-        if (!(ret->ai_canonname = HeapAlloc(GetProcessHeap(), 0, len)))
+        if (!(ret->ai_canonname = heap_alloc(len)))
         {
-            HeapFree(GetProcessHeap(), 0, ret);
+            heap_free(ret);
             return NULL;
         }
         WideCharToMultiByte(CP_ACP, 0, ai->ai_canonname, -1, ret->ai_canonname, len, NULL, NULL);
     }
     if (ai->ai_addr)
     {
-        if (!(ret->ai_addr = HeapAlloc(GetProcessHeap(), 0, sizeof(struct WS_sockaddr))))
+        if (!(ret->ai_addr = heap_alloc(sizeof(struct WS_sockaddr))))
         {
-            HeapFree(GetProcessHeap(), 0, ret->ai_canonname);
-            HeapFree(GetProcessHeap(), 0, ret);
+            heap_free(ret->ai_canonname);
+            heap_free(ret);
             return NULL;
         }
         memcpy(ret->ai_addr, ai->ai_addr, sizeof(struct WS_sockaddr));
@@ -6891,9 +6892,9 @@ static void WINAPI getaddrinfo_callback(TP_CALLBACK_INSTANCE *instance, void *co
         WS_freeaddrinfo(res);
     }
 
-    HeapFree(GetProcessHeap(), 0, args->nodename);
-    HeapFree(GetProcessHeap(), 0, args->servname);
-    HeapFree(GetProcessHeap(), 0, args);
+    heap_free(args->nodename);
+    heap_free(args->servname);
+    heap_free(args);
 
     overlapped->Internal = ret;
     if (event) SetEvent(event);
@@ -6934,20 +6935,20 @@ static int WS_getaddrinfoW(const WCHAR *nodename, const WCHAR *servname, const s
                 ret = EAI_FAIL;
                 goto end;
             }
-            if (!(local_nodenameW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR)))) goto end;
+            if (!(local_nodenameW = heap_alloc(len * sizeof(WCHAR)))) goto end;
             IdnToAscii(0, nodename, -1, local_nodenameW, len);
         }
     }
     if (local_nodenameW)
     {
         len = WideCharToMultiByte(CP_ACP, 0, local_nodenameW, -1, NULL, 0, NULL, NULL);
-        if (!(nodenameA = HeapAlloc(GetProcessHeap(), 0, len))) goto end;
+        if (!(nodenameA = heap_alloc(len))) goto end;
         WideCharToMultiByte(CP_ACP, 0, local_nodenameW, -1, nodenameA, len, NULL, NULL);
     }
     if (servname)
     {
         len = WideCharToMultiByte(CP_ACP, 0, servname, -1, NULL, 0, NULL, NULL);
-        if (!(servnameA = HeapAlloc(GetProcessHeap(), 0, len))) goto end;
+        if (!(servnameA = heap_alloc(len))) goto end;
         WideCharToMultiByte(CP_ACP, 0, servname, -1, servnameA, len, NULL, NULL);
     }
 
@@ -6955,7 +6956,7 @@ static int WS_getaddrinfoW(const WCHAR *nodename, const WCHAR *servname, const s
     {
         struct getaddrinfo_args *args;
 
-        if (!(args = HeapAlloc(GetProcessHeap(), 0, sizeof(*args)))) goto end;
+        if (!(args = heap_alloc(sizeof(*args)))) goto end;
         args->overlapped = overlapped;
         args->result = res;
         args->nodename = nodenameA;
@@ -6964,14 +6965,14 @@ static int WS_getaddrinfoW(const WCHAR *nodename, const WCHAR *servname, const s
         overlapped->Internal = WSAEINPROGRESS;
         if (!TrySubmitThreadpoolCallback(getaddrinfo_callback, args, NULL))
         {
-            HeapFree(GetProcessHeap(), 0, args);
+            heap_free(args);
             ret = GetLastError();
             goto end;
         }
 
 
         if (local_nodenameW != nodename)
-            HeapFree(GetProcessHeap(), 0, local_nodenameW);
+            heap_free(local_nodenameW);
         WSASetLastError(ERROR_IO_PENDING);
         return ERROR_IO_PENDING;
     }
@@ -6985,9 +6986,9 @@ static int WS_getaddrinfoW(const WCHAR *nodename, const WCHAR *servname, const s
 
 end:
     if (local_nodenameW != nodename)
-        HeapFree(GetProcessHeap(), 0, local_nodenameW);
-    HeapFree(GetProcessHeap(), 0, nodenameA);
-    HeapFree(GetProcessHeap(), 0, servnameA);
+        heap_free(local_nodenameW);
+    heap_free(nodenameA);
+    heap_free(servnameA);
     return ret;
 }
 
@@ -7079,10 +7080,10 @@ void WINAPI FreeAddrInfoW(PADDRINFOW ai)
     while (ai)
     {
         ADDRINFOW *next;
-        HeapFree(GetProcessHeap(), 0, ai->ai_canonname);
-        HeapFree(GetProcessHeap(), 0, ai->ai_addr);
+        heap_free(ai->ai_canonname);
+        heap_free(ai->ai_addr);
         next = ai->ai_next;
-        HeapFree(GetProcessHeap(), 0, ai);
+        heap_free(ai);
         ai = next;
     }
 }
@@ -7097,10 +7098,10 @@ void WINAPI FreeAddrInfoExW(ADDRINFOEXW *ai)
     while (ai)
     {
         ADDRINFOEXW *next;
-        HeapFree(GetProcessHeap(), 0, ai->ai_canonname);
-        HeapFree(GetProcessHeap(), 0, ai->ai_addr);
+        heap_free(ai->ai_canonname);
+        heap_free(ai->ai_addr);
         next = ai->ai_next;
-        HeapFree(GetProcessHeap(), 0, ai);
+        heap_free(ai);
         ai = next;
     }
 }
@@ -7136,10 +7137,10 @@ int WINAPI GetNameInfoW(const SOCKADDR *sa, WS_socklen_t salen, PWCHAR host,
     int ret;
     char *hostA = NULL, *servA = NULL;
 
-    if (host && (!(hostA = HeapAlloc(GetProcessHeap(), 0, hostlen)))) return EAI_MEMORY;
-    if (serv && (!(servA = HeapAlloc(GetProcessHeap(), 0, servlen))))
+    if (host && (!(hostA = heap_alloc(hostlen)))) return EAI_MEMORY;
+    if (serv && (!(servA = heap_alloc(servlen))))
     {
-        HeapFree(GetProcessHeap(), 0, hostA);
+        heap_free(hostA);
         return EAI_MEMORY;
     }
 
@@ -7150,8 +7151,8 @@ int WINAPI GetNameInfoW(const SOCKADDR *sa, WS_socklen_t salen, PWCHAR host,
         if (serv) MultiByteToWideChar(CP_ACP, 0, servA, -1, serv, servlen);
     }
 
-    HeapFree(GetProcessHeap(), 0, hostA);
-    HeapFree(GetProcessHeap(), 0, servA);
+    heap_free(hostA);
+    heap_free(servA);
     return ret;
 }
 
@@ -7175,7 +7176,7 @@ struct WS_servent* WINAPI WS_getservbyport(int port, const char *proto)
     }
     else SetLastError(WSANO_DATA);
     LeaveCriticalSection( &csWSgetXXXbyYYY );
-    HeapFree( GetProcessHeap(), 0, proto_str );
+    heap_free( proto_str );
 #endif
     TRACE("%d (i.e. port %d), %s ret %p\n", port, (int)ntohl(port), debugstr_a(proto), retval);
     return retval;
@@ -7966,7 +7967,7 @@ static int WS2_recv_base( SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount,
                     err = register_async( ASYNC_TYPE_READ, wsa->hSocket, &wsa->io, lpOverlapped->hEvent,
                                           NULL, (void *)cvalue, iosb );
 
-                if (err != STATUS_PENDING) HeapFree( GetProcessHeap(), 0, wsa );
+                if (err != STATUS_PENDING) heap_free( wsa );
                 SetLastError(NtStatusToWSAError( err ));
                 return SOCKET_ERROR;
             }
@@ -7977,7 +7978,7 @@ static int WS2_recv_base( SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount,
             {
                 if (cvalue) WS_AddCompletion( s, cvalue, STATUS_SUCCESS, n );
                 if (lpOverlapped->hEvent) SetEvent( lpOverlapped->hEvent );
-                HeapFree( GetProcessHeap(), 0, wsa );
+                heap_free( wsa );
             }
             else NtQueueApcThread( GetCurrentThread(), (PNTAPCFUNC)ws2_async_apc,
                                    (ULONG_PTR)wsa, (ULONG_PTR)iosb, 0 );
@@ -8027,7 +8028,7 @@ static int WS2_recv_base( SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount,
     }
 
     TRACE(" -> %i bytes\n", n);
-    if (wsa != &localwsa) HeapFree( GetProcessHeap(), 0, wsa );
+    if (wsa != &localwsa) heap_free( wsa );
     release_sock_fd( s, fd );
     _enable_event(SOCKET2HANDLE(s), FD_READ, 0, 0);
     SetLastError(ERROR_SUCCESS);
@@ -8035,7 +8036,7 @@ static int WS2_recv_base( SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount,
     return 0;
 
 error:
-    if (wsa != &localwsa) HeapFree( GetProcessHeap(), 0, wsa );
+    if (wsa != &localwsa) heap_free( wsa );
     release_sock_fd( s, fd );
     WARN(" -> ERROR %d\n", err);
     SetLastError( err );
@@ -8300,7 +8301,7 @@ INT WINAPI InetPtonW(INT family, PCWSTR addr, PVOID buffer)
     }
 
     len = WideCharToMultiByte(CP_ACP, 0, addr, -1, NULL, 0, NULL, NULL);
-    if (!(addrA = HeapAlloc(GetProcessHeap(), 0, len)))
+    if (!(addrA = heap_alloc(len)))
     {
         SetLastError(WSA_NOT_ENOUGH_MEMORY);
         return SOCKET_ERROR;
@@ -8309,7 +8310,7 @@ INT WINAPI InetPtonW(INT family, PCWSTR addr, PVOID buffer)
 
     ret = WS_inet_pton(family, addrA, buffer);
 
-    HeapFree(GetProcessHeap(), 0, addrA);
+    heap_free(addrA);
     return ret;
 }
 
@@ -8359,8 +8360,7 @@ INT WINAPI WSAStringToAddressA(LPSTR AddressString,
     if (lpProtocolInfo)
         FIXME("ProtocolInfo not implemented.\n");
 
-    workBuffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-                            strlen(AddressString) + 1);
+    workBuffer = heap_alloc_zero(strlen(AddressString) + 1);
     if (!workBuffer)
     {
         SetLastError(WSA_NOT_ENOUGH_MEMORY);
@@ -8466,7 +8466,7 @@ INT WINAPI WSAStringToAddressA(LPSTR AddressString,
         res = WSAEINVAL;
     }
 
-    HeapFree(GetProcessHeap(), 0, workBuffer);
+    heap_free(workBuffer);
 
     if (!res) return 0;
     SetLastError(res);
@@ -8515,14 +8515,14 @@ INT WINAPI WSAStringToAddressW(LPWSTR AddressString,
         /* Translate AddressString to ANSI code page - assumes that only
            standard digits 0-9 are used with this API call */
         sBuffer = WideCharToMultiByte( CP_ACP, 0, AddressString, -1, NULL, 0, NULL, NULL );
-        workBuffer = HeapAlloc( GetProcessHeap(), 0, sBuffer );
+        workBuffer = heap_alloc( sBuffer );
 
         if (workBuffer)
         {
             WideCharToMultiByte( CP_ACP, 0, AddressString, -1, workBuffer, sBuffer, NULL, NULL );
             res = WSAStringToAddressA(workBuffer,AddressFamily,lpProtoInfoA,
                                       lpAddress,lpAddressLength);
-            HeapFree( GetProcessHeap(), 0, workBuffer );
+            heap_free( workBuffer );
             return res;
         }
         else

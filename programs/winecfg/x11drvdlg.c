@@ -65,7 +65,7 @@ static void convert_x11_desktop_key(void)
     set_reg_key(config_key, "Explorer\\Desktops", "Default", buf);
     set_reg_key(config_key, "Explorer", "Desktop", "Default");
     set_reg_key(config_key, "X11 Driver", "Desktop", NULL);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 }
 
 static void update_gui_for_desktop_mode(HWND dialog)
@@ -87,7 +87,7 @@ static void update_gui_for_desktop_mode(HWND dialog)
         SetDlgItemTextA(dialog, IDC_DESKTOP_WIDTH, "800");
         SetDlgItemTextA(dialog, IDC_DESKTOP_HEIGHT, "600");
     }
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     /* do we have desktop mode enabled? */
     if (reg_key_exists(config_key, keypath("Explorer"), "Desktop"))
@@ -127,21 +127,21 @@ static void init_dialog(HWND dialog)
 	CheckDlgButton(dialog, IDC_FULLSCREEN_GRAB, BST_CHECKED);
     else
 	CheckDlgButton(dialog, IDC_FULLSCREEN_GRAB, BST_UNCHECKED);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     buf = get_reg_key(config_key, keypath("X11 Driver"), "Managed", "Y");
     if (IS_OPTION_TRUE(*buf))
 	CheckDlgButton(dialog, IDC_ENABLE_MANAGED, BST_CHECKED);
     else
 	CheckDlgButton(dialog, IDC_ENABLE_MANAGED, BST_UNCHECKED);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     buf = get_reg_key(config_key, keypath("X11 Driver"), "Decorated", "Y");
     if (IS_OPTION_TRUE(*buf))
 	CheckDlgButton(dialog, IDC_ENABLE_DECORATED, BST_CHECKED);
     else
 	CheckDlgButton(dialog, IDC_ENABLE_DECORATED, BST_UNCHECKED);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     updating_ui = FALSE;
 }
@@ -164,34 +164,34 @@ static void set_from_desktop_edits(HWND dialog)
     height = get_textW(dialog, IDC_DESKTOP_HEIGHT);
 
     if (!width || !width[0]) {
-        HeapFree(GetProcessHeap(), 0, width);
+        heap_free(width);
         width = strdupW(def_width);
     }
     else if (atoiW(width) < atoiW(min_width))
     {
-        HeapFree(GetProcessHeap(), 0, width);
+        heap_free(width);
         width = strdupW(min_width);
     }
     if (!height || !height[0]) {
-        HeapFree(GetProcessHeap(), 0, height);
+        heap_free(height);
         height = strdupW(def_height);
     }
     else if (atoiW(height) < atoiW(min_height))
     {
-        HeapFree(GetProcessHeap(), 0, height);
+        heap_free(height);
         height = strdupW(min_height);
     }
 
-    new = HeapAlloc(GetProcessHeap(), 0, (strlenW(width) + strlenW(height) + 2) * sizeof(WCHAR));
+    new = heap_alloc((strlenW(width) + strlenW(height) + 2) * sizeof(WCHAR));
     strcpyW( new, width );
     strcatW( new, x );
     strcatW( new, height );
     set_reg_keyW(config_key, explorer_desktopsW, desktop_name, new);
     set_reg_keyW(config_key, keypathW(explorerW), desktopW, desktop_name);
 
-    HeapFree(GetProcessHeap(), 0, width);
-    HeapFree(GetProcessHeap(), 0, height);
-    HeapFree(GetProcessHeap(), 0, new);
+    heap_free(width);
+    heap_free(height);
+    heap_free(new);
 }
 
 static void on_enable_desktop_clicked(HWND dialog) {
@@ -240,7 +240,7 @@ static INT read_logpixels_reg(void)
     WCHAR *buf = get_reg_keyW(HKEY_CURRENT_USER, logpixels_reg, logpixels, NULL);
     if (!buf) buf = get_reg_keyW(HKEY_CURRENT_CONFIG, def_logpixels_reg, logpixels, NULL);
     dwLogPixels = buf ? *buf : DEFDPI;
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
     return dwLogPixels;
 }
 

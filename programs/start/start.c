@@ -55,11 +55,11 @@ static void output(const WCHAR *message)
 		char  *mesA;
 		/* Convert to OEM, then output */
 		len = WideCharToMultiByte( GetConsoleOutputCP(), 0, message, wlen, NULL, 0, NULL, NULL );
-		mesA = HeapAlloc(GetProcessHeap(), 0, len*sizeof(char));
+		mesA = heap_alloc(len*sizeof(char));
 		if (!mesA) return;
 		WideCharToMultiByte( GetConsoleOutputCP(), 0, message, wlen, mesA, len, NULL, NULL );
 		WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), mesA, len, &count, FALSE);
-		HeapFree(GetProcessHeap(), 0, mesA);
+		heap_free(mesA);
 	}
 }
 
@@ -137,7 +137,7 @@ static WCHAR *build_args( int argc, WCHAR **argvW )
 		if (strchrW(argvW[i], ' '))
 			wlen += 2;
 	}
-	ret = HeapAlloc( GetProcessHeap(), 0, wlen*sizeof(WCHAR) );
+	ret = heap_alloc( wlen*sizeof(WCHAR) );
 	ret[0] = 0;
 
 	for (i = 0, p = ret; i < argc; i++ )
@@ -162,7 +162,7 @@ static WCHAR *get_parent_dir(WCHAR* path)
 	else
 		len = last_slash - path + 1;
 
-	result = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+	result = heap_alloc(len * sizeof(WCHAR));
 	CopyMemory(result, path, (len-1)*sizeof(WCHAR));
 	result[len-1] = '\0';
 
@@ -354,13 +354,13 @@ int wmain (int argc, WCHAR *argv[])
 			fatal_string(STRING_UNIXFAIL);
 
 		multibyte_unixpath_len = WideCharToMultiByte(CP_UNIXCP, 0, sei.lpFile, -1, NULL, 0, NULL, NULL);
-		multibyte_unixpath = HeapAlloc(GetProcessHeap(), 0, multibyte_unixpath_len);
+		multibyte_unixpath = heap_alloc(multibyte_unixpath_len);
 
 		WideCharToMultiByte(CP_UNIXCP, 0, sei.lpFile, -1, multibyte_unixpath, multibyte_unixpath_len, NULL, NULL);
 
 		dos_filename = wine_get_dos_file_name_ptr(multibyte_unixpath);
 
-		HeapFree(GetProcessHeap(), 0, multibyte_unixpath);
+		heap_free(multibyte_unixpath);
 
 		if (!dos_filename)
 			fatal_string(STRING_UNIXFAIL);
@@ -378,7 +378,7 @@ int wmain (int argc, WCHAR *argv[])
 
                     /* explorer on windows always quotes the filename when running a binary on windows (see bug 5224) so we have to use CreateProcessW in this case */
 
-                    commandline = HeapAlloc(GetProcessHeap(), 0, (strlenW(sei.lpFile)+3+strlenW(sei.lpParameters))*sizeof(WCHAR));
+                    commandline = heap_alloc((strlenW(sei.lpFile)+3+strlenW(sei.lpParameters))*sizeof(WCHAR));
                     sprintfW(commandline, commandlineformat, sei.lpFile, sei.lpParameters);
 
                     ZeroMemory(&startup_info, sizeof(startup_info));
@@ -408,9 +408,9 @@ int wmain (int argc, WCHAR *argv[])
             fatal_string_error(STRING_EXECFAIL, GetLastError(), sei.lpFile);
 
 done:
-	HeapFree( GetProcessHeap(), 0, args );
-	HeapFree( GetProcessHeap(), 0, dos_filename );
-	HeapFree( GetProcessHeap(), 0, parent_directory );
+	heap_free( args );
+	heap_free( dos_filename );
+	heap_free( parent_directory );
 
 	if (sei.fMask & SEE_MASK_NOCLOSEPROCESS) {
 		DWORD exitcode;

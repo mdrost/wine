@@ -1252,7 +1252,7 @@ void output_stubs( DLLSPEC *spec )
                     output( "\tmovl $%d,4(%%esp)\n", odp->ordinal );
                 output( "\tmovl $.L__wine_spec_file_name,(%%esp)\n" );
             }
-            output( "\tcall %s\n", asm_name("__wine_spec_unimplemented_stub") );
+            output( "\tcall %s\n", asm_name("__wine_spec_unimplemented_stub@plt") );
             break;
         case CPU_x86_64:
             output( "\tsubq $8,%%rsp\n" );
@@ -1265,7 +1265,7 @@ void output_stubs( DLLSPEC *spec )
             }
             else
                 output( "\tmovq $%d,%%rsi\n", odp->ordinal );
-            output( "\tcall %s\n", asm_name("__wine_spec_unimplemented_stub") );
+            output( "\tcall %s\n", asm_name("__wine_spec_unimplemented_stub@plt") );
             break;
         case CPU_ARM:
             output( "\tldr r0,2f\n");
@@ -1277,7 +1277,7 @@ void output_stubs( DLLSPEC *spec )
                 output( "\tadd r1,PC\n");
                 count++;
             }
-            output( "\tbl %s\n", asm_name("__wine_spec_unimplemented_stub") );
+            output( "\tbl %s\n", asm_name("__wine_spec_unimplemented_stub@plt") );
             output( "2:\t.long .L__wine_spec_file_name-1b\n" );
             if (exp_name) output( "\t.long .L%s_string-2b\n", name );
             else output( "\t.long %u\n", odp->ordinal );
@@ -1293,8 +1293,8 @@ void output_stubs( DLLSPEC *spec )
             }
             else
                 output( "\tmov x1, %u\n", odp->ordinal );
-            output( "\tadrp x2, %s\n", asm_name("__wine_spec_unimplemented_stub") );
-            output( "\tadd x2, x2, #:lo12:%s\n", asm_name("__wine_spec_unimplemented_stub") );
+            output( "\tadrp x2, %s\n", asm_name("__wine_spec_unimplemented_stub@plt") );
+            output( "\tadd x2, x2, #:lo12:%s\n", asm_name("__wine_spec_unimplemented_stub@plt") );
             output( "\tblr x2\n" );
             break;
         default:

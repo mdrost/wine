@@ -276,7 +276,8 @@ INT CDECL ldap_create_vlv_controlW( WLDAP32_LDAP *ld, WLDAP32_LDAPVLVInfo *info,
 
 static inline void bv_val_dup( const struct WLDAP32_berval *src, struct WLDAP32_berval *dst )
 {
-    if ((dst->bv_val = heap_alloc( src->bv_len )))
+    dst->bv_val = heap_alloc( src->bv_len );
+    if (dst->bv_val)
     {
         memcpy( dst->bv_val, src->bv_val, src->bv_len );
         dst->bv_len = src->bv_len;

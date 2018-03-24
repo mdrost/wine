@@ -17,3 +17,13 @@
  */
 
 HRESULT SWbemLocator_create(LPVOID *) DECLSPEC_HIDDEN;
+
+static inline void* __WINE_ALLOC_SIZE(1) heap_alloc(size_t size)
+{
+    return heap_alloc(size);
+}
+
+static inline BOOL heap_free(void *mem)
+{
+    return heap_free(mem);
+}

@@ -71,12 +71,12 @@ static void output_writeconsole(const WCHAR *str, DWORD len)
      * If this occurs, we should use an OEM codepage and call WriteFile.
      */
     lenA = WideCharToMultiByte(GetConsoleOutputCP(), 0, str, len, NULL, 0, NULL, NULL);
-    strA = HeapAlloc(GetProcessHeap(), 0, lenA);
+    strA = heap_alloc(lenA);
     if (strA)
     {
         WideCharToMultiByte(GetConsoleOutputCP(), 0, str, len, strA, lenA, NULL, NULL);
         WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), strA, lenA, &written, FALSE);
-        HeapFree(GetProcessHeap(), 0, strA);
+        heap_free(strA);
     }
 }
 
@@ -245,12 +245,12 @@ static int FetchFromRootKey(HKEY root)
                 type == REG_DWORD && value == 1)
             {
                 static const WCHAR fmtW[] = {'m','s','i','e','x','e','c',' ','/','x','%','s',0};
-                command = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(fmtW) + lstrlenW(subKeyName)) * sizeof(WCHAR));
+                command = heap_alloc((lstrlenW(fmtW) + lstrlenW(subKeyName)) * sizeof(WCHAR));
                 wsprintfW(command, fmtW, subKeyName);
             }
             else if (!RegQueryValueExW(hkeyApp, UninstallCommandlineW, NULL, NULL, NULL, &uninstlen))
             {
-                command = HeapAlloc(GetProcessHeap(), 0, uninstlen);
+                command = heap_alloc(uninstlen);
                 RegQueryValueExW(hkeyApp, UninstallCommandlineW, 0, 0, (LPBYTE)command, &uninstlen);
             }
             else
@@ -260,11 +260,11 @@ static int FetchFromRootKey(HKEY root)
                 continue;
             }
             numentries++;
-            entries = HeapReAlloc(GetProcessHeap(), 0, entries, numentries*sizeof(uninst_entry));
+            entries = heap_realloc(entries, numentries*sizeof(uninst_entry));
             entries[numentries-1].root = root;
-            entries[numentries-1].key = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(subKeyName)+1)*sizeof(WCHAR));
+            entries[numentries-1].key = heap_alloc((lstrlenW(subKeyName)+1)*sizeof(WCHAR));
             lstrcpyW(entries[numentries-1].key, subKeyName);
-            entries[numentries-1].descr = HeapAlloc(GetProcessHeap(), 0, displen);
+            entries[numentries-1].descr = heap_alloc(displen);
             RegQueryValueExW(hkeyApp, DisplayNameW, 0, 0, (LPBYTE)entries[numentries-1].descr, &displen);
             entries[numentries-1].command = command;
             entries[numentries-1].active = 0;
@@ -289,7 +289,7 @@ static int FetchUninstallInformation(void)
     numentries = 0;
     oldsel = -1;
     if (!entries)
-        entries = HeapAlloc(GetProcessHeap(), 0, sizeof(uninst_entry));
+        entries = heap_alloc(sizeof(uninst_entry));
 
     if (!RegOpenKeyExW(HKEY_LOCAL_MACHINE, PathUninstallW, 0, KEY_READ, &root))
     {

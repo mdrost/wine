@@ -500,7 +500,7 @@ static UCHAR NetBTStoreCacheEntry(struct NBNameCache **nameCache,
          ?  NRC_GOODRET : NRC_OSRESNOTAV;
     else
     {
-        HeapFree(GetProcessHeap(), 0, cacheEntry);
+        heap_free(cacheEntry);
         ret = NRC_OSRESNOTAV;
     }
     return ret;
@@ -1242,7 +1242,7 @@ static UCHAR NetBTHangup(void *adapt, void *sess)
     session->bytesPending = 0;
     session->cs.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection(&session->cs);
-    HeapFree(GetProcessHeap(), 0, session);
+    heap_free(session);
 
     return NRC_GOODRET;
 }
@@ -1256,7 +1256,7 @@ static void NetBTCleanupAdapter(void *adapt)
 
         if (adapter->nameCache)
             NBNameCacheDestroy(adapter->nameCache);
-        HeapFree(GetProcessHeap(), 0, adapt);
+        heap_free(adapt);
     }
 }
 
@@ -1277,7 +1277,7 @@ static UCHAR NetBTRegisterAdapter(const MIB_IPADDRROW *ipRow)
 
     if (!ipRow) return NRC_BADDR;
 
-    adapter = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(NetBTAdapter));
+    adapter = heap_alloc_zero(sizeof(NetBTAdapter));
     if (adapter)
     {
         adapter->ipr = *ipRow;
@@ -1354,7 +1354,7 @@ static UCHAR NetBTEnum(void)
         DWORD numIPAddrs = (size - sizeof(MIB_IPADDRTABLE)) /
          sizeof(MIB_IPADDRROW) + 1;
 
-        ipAddrs = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+        ipAddrs = heap_alloc_zero(size);
         if (ipAddrs)
             coalesceTable = HeapAlloc(GetProcessHeap(),
              HEAP_ZERO_MEMORY, sizeof(MIB_IPADDRTABLE) +
@@ -1401,8 +1401,8 @@ static UCHAR NetBTEnum(void)
             }
             else
                 ret = NRC_SYSTEM;
-            HeapFree(GetProcessHeap(), 0, ipAddrs);
-            HeapFree(GetProcessHeap(), 0, coalesceTable);
+            heap_free(ipAddrs);
+            heap_free(coalesceTable);
         }
         else
             ret = NRC_OSRESNOTAV;

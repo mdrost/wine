@@ -300,7 +300,11 @@ static void test_RtlQueryRegistryValues(void)
     PRTL_QUERY_REGISTRY_TABLE QueryTable = NULL;
     RelativeTo = RTL_REGISTRY_ABSOLUTE;/*Only using absolute - no need to test all relativeto variables*/
 
-    QueryTable = pRtlAllocateHeap(GetProcessHeap(), 0, sizeof(RTL_QUERY_REGISTRY_TABLE)*26);
+#if 0
+    QueryTable = pmalloc(sizeof(RTL_QUERY_REGISTRY_TABLE)*26);
+#else
+    QueryTable = malloc(sizeof(RTL_QUERY_REGISTRY_TABLE)*26);
+#endif
 
     pRtlZeroMemory( QueryTable, sizeof(RTL_QUERY_REGISTRY_TABLE) * 26);
 
@@ -331,7 +335,11 @@ static void test_RtlQueryRegistryValues(void)
     status = pRtlQueryRegistryValues(RelativeTo, winetestpath.Buffer, QueryTable, 0, 0);
     ok(status == STATUS_SUCCESS, "RtlQueryRegistryValues return: 0x%08x\n", status);
 
-    pRtlFreeHeap(GetProcessHeap(), 0, QueryTable);
+#if 0
+    pfree(QueryTable);
+#else
+    free(QueryTable);
+#endif
 }
 
 static void test_NtOpenKey(void)
@@ -717,7 +725,7 @@ static void test_NtQueryValueKey(void)
     ok(status == STATUS_SUCCESS, "NtOpenKey Failed: 0x%08x\n", status);
 
     len = FIELD_OFFSET(KEY_VALUE_BASIC_INFORMATION, Name[0]);
-    basic_info = HeapAlloc(GetProcessHeap(), 0, len);
+    basic_info = heap_alloc(len);
     status = pNtQueryValueKey(key, &ValName, KeyValueBasicInformation, basic_info, len, &len);
     ok(status == STATUS_BUFFER_OVERFLOW, "NtQueryValueKey should have returned STATUS_BUFFER_OVERFLOW instead of 0x%08x\n", status);
     ok(basic_info->TitleIndex == 0, "NtQueryValueKey returned wrong TitleIndex %d\n", basic_info->TitleIndex);
@@ -725,7 +733,7 @@ static void test_NtQueryValueKey(void)
     ok(basic_info->NameLength == 20, "NtQueryValueKey returned wrong NameLength %d\n", basic_info->NameLength);
     ok(len == FIELD_OFFSET(KEY_VALUE_BASIC_INFORMATION, Name[basic_info->NameLength/sizeof(WCHAR)]), "NtQueryValueKey returned wrong len %d\n", len);
 
-    basic_info = HeapReAlloc(GetProcessHeap(), 0, basic_info, len);
+    basic_info = heap_realloc(basic_info, len);
     status = pNtQueryValueKey(key, &ValName, KeyValueBasicInformation, basic_info, len, &len);
     ok(status == STATUS_SUCCESS, "NtQueryValueKey should have returned STATUS_SUCCESS instead of 0x%08x\n", status);
     ok(basic_info->TitleIndex == 0, "NtQueryValueKey returned wrong TitleIndex %d\n", basic_info->TitleIndex);
@@ -733,10 +741,10 @@ static void test_NtQueryValueKey(void)
     ok(basic_info->NameLength == 20, "NtQueryValueKey returned wrong NameLength %d\n", basic_info->NameLength);
     ok(len == FIELD_OFFSET(KEY_VALUE_BASIC_INFORMATION, Name[basic_info->NameLength/sizeof(WCHAR)]), "NtQueryValueKey returned wrong len %d\n", len);
     ok(!memcmp(basic_info->Name, ValName.Buffer, ValName.Length), "incorrect Name returned\n");
-    HeapFree(GetProcessHeap(), 0, basic_info);
+    heap_free(basic_info);
 
     len = FIELD_OFFSET(KEY_VALUE_PARTIAL_INFORMATION, Data[0]);
-    partial_info = HeapAlloc(GetProcessHeap(), 0, len);
+    partial_info = heap_alloc(len);
     status = pNtQueryValueKey(key, &ValName, KeyValuePartialInformation, partial_info, len, &len);
     ok(status == STATUS_BUFFER_OVERFLOW, "NtQueryValueKey should have returned STATUS_BUFFER_OVERFLOW instead of 0x%08x\n", status);
     ok(partial_info->TitleIndex == 0, "NtQueryValueKey returned wrong TitleIndex %d\n", partial_info->TitleIndex);
@@ -744,7 +752,7 @@ static void test_NtQueryValueKey(void)
     ok(partial_info->DataLength == 4, "NtQueryValueKey returned wrong DataLength %d\n", partial_info->DataLength);
     ok(len == FIELD_OFFSET(KEY_VALUE_PARTIAL_INFORMATION, Data[partial_info->DataLength]), "NtQueryValueKey returned wrong len %d\n", len);
 
-    partial_info = HeapReAlloc(GetProcessHeap(), 0, partial_info, len);
+    partial_info = heap_realloc(partial_info, len);
     status = pNtQueryValueKey(key, &ValName, KeyValuePartialInformation, partial_info, len, &len);
     ok(status == STATUS_SUCCESS, "NtQueryValueKey should have returned STATUS_SUCCESS instead of 0x%08x\n", status);
     ok(partial_info->TitleIndex == 0, "NtQueryValueKey returned wrong TitleIndex %d\n", partial_info->TitleIndex);
@@ -752,10 +760,10 @@ static void test_NtQueryValueKey(void)
     ok(partial_info->DataLength == 4, "NtQueryValueKey returned wrong DataLength %d\n", partial_info->DataLength);
     ok(len == FIELD_OFFSET(KEY_VALUE_PARTIAL_INFORMATION, Data[partial_info->DataLength]), "NtQueryValueKey returned wrong len %d\n", len);
     ok(*(DWORD *)partial_info->Data == 711, "incorrect Data returned: 0x%x\n", *(DWORD *)partial_info->Data);
-    HeapFree(GetProcessHeap(), 0, partial_info);
+    heap_free(partial_info);
 
     len = FIELD_OFFSET(KEY_VALUE_FULL_INFORMATION, Name[0]);
-    full_info = HeapAlloc(GetProcessHeap(), 0, len);
+    full_info = heap_alloc(len);
     status = pNtQueryValueKey(key, &ValName, KeyValueFullInformation, full_info, len, &len);
     ok(status == STATUS_BUFFER_OVERFLOW, "NtQueryValueKey should have returned STATUS_BUFFER_OVERFLOW instead of 0x%08x\n", status);
     ok(full_info->TitleIndex == 0, "NtQueryValueKey returned wrong TitleIndex %d\n", full_info->TitleIndex);
@@ -766,7 +774,7 @@ static void test_NtQueryValueKey(void)
         "NtQueryValueKey returned wrong len %d\n", len);
     len = FIELD_OFFSET(KEY_VALUE_FULL_INFORMATION, Name[0]) + full_info->DataLength + full_info->NameLength;
 
-    full_info = HeapReAlloc(GetProcessHeap(), 0, full_info, len);
+    full_info = heap_realloc(full_info, len);
     status = pNtQueryValueKey(key, &ValName, KeyValueFullInformation, full_info, len, &len);
     ok(status == STATUS_SUCCESS, "NtQueryValueKey should have returned STATUS_SUCCESS instead of 0x%08x\n", status);
     ok(full_info->TitleIndex == 0, "NtQueryValueKey returned wrong TitleIndex %d\n", full_info->TitleIndex);
@@ -776,14 +784,14 @@ static void test_NtQueryValueKey(void)
     ok(!memcmp(full_info->Name, ValName.Buffer, ValName.Length), "incorrect Name returned\n");
     ok(*(DWORD *)((char *)full_info + full_info->DataOffset) == 711, "incorrect Data returned: 0x%x\n",
         *(DWORD *)((char *)full_info + full_info->DataOffset));
-    HeapFree(GetProcessHeap(), 0, full_info);
+    heap_free(full_info);
 
     pRtlFreeUnicodeString(&ValName);
     pRtlCreateUnicodeStringFromAsciiz(&ValName, "stringtest");
 
     status = pNtQueryValueKey(key, &ValName, KeyValuePartialInformation, NULL, 0, &len);
     ok(status == STATUS_BUFFER_TOO_SMALL, "NtQueryValueKey should have returned STATUS_BUFFER_TOO_SMALL instead of 0x%08x\n", status);
-    partial_info = HeapAlloc(GetProcessHeap(), 0, len+1);
+    partial_info = heap_alloc(len+1);
     memset(partial_info, 0xbd, len+1);
     status = pNtQueryValueKey(key, &ValName, KeyValuePartialInformation, partial_info, len, &len);
     ok(status == STATUS_SUCCESS, "NtQueryValueKey should have returned STATUS_SUCCESS instead of 0x%08x\n", status);
@@ -807,7 +815,7 @@ static void test_NtQueryValueKey(void)
     ok(status == STATUS_BUFFER_OVERFLOW, "NtQueryValueKey wrong status 0x%08x\n", status);
     ok(len == expected, "NtQueryValueKey wrong len %u\n", len);
 
-    HeapFree(GetProcessHeap(), 0, partial_info);
+    heap_free(partial_info);
     pRtlFreeUnicodeString(&ValName);
 
     pRtlCreateUnicodeStringFromAsciiz(&ValName, "custtest");
@@ -1045,7 +1053,11 @@ static void test_symlinks(void)
     pRtlInitUnicodeString( &value_str, valueW );
 
     target_len = winetestpath.Length + sizeof(targetW);
-    target = pRtlAllocateHeap( GetProcessHeap(), 0, target_len + sizeof(targetW) /*for loop test*/ );
+#if 0
+    target = pmalloc( target_len + sizeof(targetW) /*for loop test*/ );
+#else
+    target = malloc(target_len + sizeof(targetW));
+#endif
     memcpy( target, winetestpath.Buffer, winetestpath.Length );
     memcpy( target + winetestpath.Length/sizeof(WCHAR), targetW, sizeof(targetW) );
 
@@ -1321,7 +1333,11 @@ static void test_symlinks(void)
     ok( status == STATUS_SUCCESS, "NtDeleteKey failed: 0x%08x\n", status );
     pNtClose( root );
 
-    pRtlFreeHeap(GetProcessHeap(), 0, target);
+#if 0
+    pfree(target);
+#else
+    free(target);
+#endif
 }
 
 static WCHAR valueW[] = {'v','a','l','u','e'};
@@ -1697,7 +1713,7 @@ static void test_long_value_name(void)
 
     ValName.MaximumLength = 0xfffc;
     ValName.Length = ValName.MaximumLength - sizeof(WCHAR);
-    ValName.Buffer = HeapAlloc(GetProcessHeap(), 0, ValName.MaximumLength);
+    ValName.Buffer = heap_alloc(ValName.MaximumLength);
     for (i = 0; i < ValName.Length / sizeof(WCHAR); i++)
         ValName.Buffer[i] = 'a';
     ValName.Buffer[i] = 0;
@@ -1740,7 +1756,7 @@ static void test_NtQueryKey(void)
         return;
     }
     todo_wine ok(status == STATUS_BUFFER_TOO_SMALL, "NtQueryKey Failed: 0x%08x\n", status);
-    info = HeapAlloc(GetProcessHeap(), 0, length);
+    info = heap_alloc(length);
 
     /* non-zero buffer size, but insufficient */
     status = pNtQueryKey(key, KeyNameInformation, info, sizeof(*info), &len);
@@ -1761,7 +1777,7 @@ static void test_NtQueryKey(void)
        wine_dbgstr_wn(str.Buffer, str.Length/sizeof(WCHAR)),
        wine_dbgstr_wn(winetestpath.Buffer, winetestpath.Length/sizeof(WCHAR)));
 
-    HeapFree(GetProcessHeap(), 0, info);
+    heap_free(info);
 
     attr.RootDirectory = key;
     attr.ObjectName = &str;

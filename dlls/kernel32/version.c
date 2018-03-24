@@ -56,12 +56,16 @@ WINE_DEFAULT_DEBUG_CHANNEL(ver);
  */
 DWORD WINAPI GetVersion(void)
 {
+#if 0
     DWORD result = MAKELONG( MAKEWORD( NtCurrentTeb()->Peb->OSMajorVersion,
                                        NtCurrentTeb()->Peb->OSMinorVersion ),
                              (NtCurrentTeb()->Peb->OSPlatformId ^ 2) << 14 );
     if (NtCurrentTeb()->Peb->OSPlatformId == VER_PLATFORM_WIN32_NT)
         result |= LOWORD(NtCurrentTeb()->Peb->OSBuildNumber) << 16;
     return result;
+#else
+    return 0;
+#endif
 }
 
 
@@ -113,6 +117,7 @@ BOOL WINAPI GetVersionExW( OSVERSIONINFOW *info )
     {
         WARN("wrong OSVERSIONINFO size from app (got: %d)\n",
                         info->dwOSVersionInfoSize);
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
         return FALSE;
     }
     return (RtlGetVersion( (RTL_OSVERSIONINFOEXW *)info ) == STATUS_SUCCESS);

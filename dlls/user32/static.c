@@ -41,6 +41,7 @@
 #include "controls.h"
 #include "user_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(static);
 
@@ -629,13 +630,13 @@ static void STATIC_PaintTextfn( HWND hwnd, HDC hdc, DWORD style )
     }
 
     buf_size = 256;
-    if (!(text = HeapAlloc( GetProcessHeap(), 0, buf_size * sizeof(WCHAR) )))
+    if (!(text = heap_alloc( buf_size * sizeof(WCHAR) )))
         goto no_TextOut;
 
     while ((len = InternalGetWindowText( hwnd, text, buf_size )) == buf_size - 1)
     {
         buf_size *= 2;
-        if (!(text = HeapReAlloc( GetProcessHeap(), 0, text, buf_size * sizeof(WCHAR) )))
+        if (!(text = heap_realloc( text, buf_size * sizeof(WCHAR) )))
             goto no_TextOut;
     }
 
@@ -655,7 +656,7 @@ static void STATIC_PaintTextfn( HWND hwnd, HDC hdc, DWORD style )
     }
 
 no_TextOut:
-    HeapFree( GetProcessHeap(), 0, text );
+    heap_free( text );
 
     if (hFont)
         SelectObject( hdc, hOldFont );

@@ -427,7 +427,7 @@ static void test_slist(void)
     /* test with a lot of items */
     for (i = 0; i < 65536; i++)
     {
-        item = HeapAlloc(GetProcessHeap(), 0, sizeof(*item));
+        item = heap_alloc(sizeof(*item));
         item->value = i + 1;
         entry = InterlockedPushEntrySList(&slist_header, &item->entry);
         if (i)
@@ -451,7 +451,7 @@ static void test_slist(void)
         item = CONTAINING_RECORD(entry, struct item, entry);
         ok(item->value == i, "Expected item->value == %u, got %u\n", i, item->value);
         entry = item->entry.Next;
-        HeapFree(GetProcessHeap(), 0, item);
+        heap_free(item);
     }
     ok(entry == NULL, "Expected entry == NULL, got %p\n", entry);
     size = QueryDepthSList(&slist_header);

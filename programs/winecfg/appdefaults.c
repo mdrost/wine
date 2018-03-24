@@ -137,7 +137,7 @@ static void update_comboboxes(HWND dialog)
 
     if (!winver || !winver[0])
     {
-        HeapFree(GetProcessHeap(), 0, winver);
+        heap_free(winver);
 
         if (current_app) /* no explicit setting */
         {
@@ -162,7 +162,7 @@ static void update_comboboxes(HWND dialog)
 	}
     }
 
-    HeapFree(GetProcessHeap(), 0, winver);
+    heap_free(winver);
 }
 
 static void
@@ -389,7 +389,7 @@ static void on_remove_app_click(HWND dialog)
 
     set_reg_key(config_key, keypath(""), NULL, NULL); /* delete the section  */
     SendMessageW(listview, LVM_GETITEMW, 0, (LPARAM) &item);
-    HeapFree (GetProcessHeap(), 0, (void*)item.lParam);
+    heap_free((void*)item.lParam);
     SendMessageW(listview, LVM_DELETEITEM, selection, 0);
     item.mask = LVIF_STATE;
     item.state = LVIS_SELECTED | LVIS_FOCUSED;

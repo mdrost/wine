@@ -484,7 +484,7 @@ EMFDRV_Polylinegon( PHYSDEV dev, const POINT* pt, INT count, DWORD iType )
 
     size = use_small_emr ? offsetof( EMRPOLYLINE16, apts[count] ) : offsetof( EMRPOLYLINE, aptl[count] );
 
-    emr = HeapAlloc( GetProcessHeap(), 0, size );
+    emr = heap_alloc( size );
     emr->emr.iType = use_small_emr ? iType + EMR_POLYLINE16 - EMR_POLYLINE : iType;
     emr->emr.nSize = size;
     emr->cptl = count;
@@ -500,7 +500,7 @@ EMFDRV_Polylinegon( PHYSDEV dev, const POINT* pt, INT count, DWORD iType )
     ret = EMFDRV_WriteRecord( dev, &emr->emr );
     if (ret && !physDev->path)
         EMFDRV_UpdateBBox( dev, &emr->rclBounds );
-    HeapFree( GetProcessHeap(), 0, emr );
+    heap_free( emr );
     return ret;
 }
 
@@ -574,7 +574,7 @@ EMFDRV_PolyPolylinegon( PHYSDEV dev, const POINT* pt, const INT* counts, UINT po
     else
         size += cptl * sizeof(POINTL);
 
-    emr = HeapAlloc( GetProcessHeap(), 0, size );
+    emr = heap_alloc( size );
 
     emr->emr.iType = iType;
     if(use_small_emr) emr->emr.iType += EMR_POLYPOLYLINE16 - EMR_POLYPOLYLINE;
@@ -601,7 +601,7 @@ EMFDRV_PolyPolylinegon( PHYSDEV dev, const POINT* pt, const INT* counts, UINT po
     }
     if(ret && !physDev->path)
         EMFDRV_UpdateBBox( dev, &emr->rclBounds );
-    HeapFree( GetProcessHeap(), 0, emr );
+    heap_free( emr );
     return ret;
 }
 
@@ -638,7 +638,7 @@ BOOL EMFDRV_PolyDraw( PHYSDEV dev, const POINT *pts, const BYTE *types, DWORD co
     size = use_small_emr ? offsetof( EMRPOLYDRAW16, apts[count] ) : offsetof( EMRPOLYDRAW, aptl[count] );
     size += (count + 3) & ~3;
 
-    if (!(emr = HeapAlloc( GetProcessHeap(), 0, size ))) return FALSE;
+    if (!(emr = heap_alloc( size ))) return FALSE;
 
     emr->emr.iType = use_small_emr ? EMR_POLYDRAW16 : EMR_POLYDRAW;
     emr->emr.nSize = size;
@@ -655,7 +655,7 @@ BOOL EMFDRV_PolyDraw( PHYSDEV dev, const POINT *pts, const BYTE *types, DWORD co
 
     ret = EMFDRV_WriteRecord( dev, &emr->emr );
     if (ret && !physDev->path) EMFDRV_UpdateBBox( dev, &emr->rclBounds );
-    HeapFree( GetProcessHeap(), 0, emr );
+    heap_free( emr );
     return ret;
 }
 
@@ -692,7 +692,7 @@ BOOL EMFDRV_FillRgn( PHYSDEV dev, HRGN hrgn, HBRUSH hbrush )
 
     rgnsize = GetRegionData( hrgn, 0, NULL );
     size = rgnsize + offsetof(EMRFILLRGN,RgnData);
-    emr = HeapAlloc( GetProcessHeap(), 0, size );
+    emr = heap_alloc( size );
 
     GetRegionData( hrgn, rgnsize, (RGNDATA *)&emr->RgnData );
 
@@ -708,7 +708,7 @@ BOOL EMFDRV_FillRgn( PHYSDEV dev, HRGN hrgn, HBRUSH hbrush )
     ret = EMFDRV_WriteRecord( dev, &emr->emr );
     if(ret)
         EMFDRV_UpdateBBox( dev, &emr->rclBounds );
-    HeapFree( GetProcessHeap(), 0, emr );
+    heap_free( emr );
     return ret;
 }
 /*********************************************************************
@@ -725,7 +725,7 @@ BOOL EMFDRV_FrameRgn( PHYSDEV dev, HRGN hrgn, HBRUSH hbrush, INT width, INT heig
 
     rgnsize = GetRegionData( hrgn, 0, NULL );
     size = rgnsize + offsetof(EMRFRAMERGN,RgnData);
-    emr = HeapAlloc( GetProcessHeap(), 0, size );
+    emr = heap_alloc( size );
 
     GetRegionData( hrgn, rgnsize, (RGNDATA *)&emr->RgnData );
 
@@ -743,7 +743,7 @@ BOOL EMFDRV_FrameRgn( PHYSDEV dev, HRGN hrgn, HBRUSH hbrush, INT width, INT heig
     ret = EMFDRV_WriteRecord( dev, &emr->emr );
     if(ret)
         EMFDRV_UpdateBBox( dev, &emr->rclBounds );
-    HeapFree( GetProcessHeap(), 0, emr );
+    heap_free( emr );
     return ret;
 }
 
@@ -761,7 +761,7 @@ static BOOL EMFDRV_PaintInvertRgn( PHYSDEV dev, HRGN hrgn, DWORD iType )
 
     rgnsize = GetRegionData( hrgn, 0, NULL );
     size = rgnsize + offsetof(EMRINVERTRGN,RgnData);
-    emr = HeapAlloc( GetProcessHeap(), 0, size );
+    emr = heap_alloc( size );
 
     GetRegionData( hrgn, rgnsize, (RGNDATA *)&emr->RgnData );
 
@@ -776,7 +776,7 @@ static BOOL EMFDRV_PaintInvertRgn( PHYSDEV dev, HRGN hrgn, DWORD iType )
     ret = EMFDRV_WriteRecord( dev, &emr->emr );
     if(ret)
         EMFDRV_UpdateBBox( dev, &emr->rclBounds );
-    HeapFree( GetProcessHeap(), 0, emr );
+    heap_free( emr );
     return ret;
 }
 
@@ -817,7 +817,7 @@ BOOL EMFDRV_ExtTextOut( PHYSDEV dev, INT x, INT y, UINT flags, const RECT *lprec
 
     TRACE("%s %s count %d nSize = %d\n", debugstr_wn(str, count),
            wine_dbgstr_rect(lprect), count, nSize);
-    pemr = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, nSize);
+    pemr = heap_alloc_zero(nSize);
 
     if (graphicsMode == GM_COMPATIBLE)
     {
@@ -935,7 +935,7 @@ BOOL EMFDRV_ExtTextOut( PHYSDEV dev, INT x, INT y, UINT flags, const RECT *lprec
 
 no_bounds:
     ret = EMFDRV_WriteRecord( dev, &pemr->emr );
-    HeapFree( GetProcessHeap(), 0, pemr );
+    heap_free( pemr );
     return ret;
 }
 
@@ -952,7 +952,7 @@ BOOL EMFDRV_GradientFill( PHYSDEV dev, TRIVERTEX *vert_array, ULONG nvert,
 
     size = FIELD_OFFSET(EMRGRADIENTFILL, Ver[nvert]) + num_pts * sizeof(pts[0]);
 
-    emr = HeapAlloc( GetProcessHeap(), 0, size );
+    emr = heap_alloc( size );
     if (!emr) return FALSE;
 
     for (i = 0; i < num_pts; i++)
@@ -989,7 +989,7 @@ BOOL EMFDRV_GradientFill( PHYSDEV dev, TRIVERTEX *vert_array, ULONG nvert,
 
     EMFDRV_UpdateBBox( dev, &emr->rclBounds );
     ret = EMFDRV_WriteRecord( dev, &emr->emr );
-    HeapFree( GetProcessHeap(), 0, emr );
+    heap_free( emr );
     return ret;
 }
 

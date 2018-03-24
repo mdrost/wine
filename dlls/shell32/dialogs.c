@@ -326,14 +326,14 @@ static void FillList (HWND hCb, char *pszLatest, BOOL fShowDefault)
 
     if (icList > 0)
         {
-        pszList = heap_alloc(icList) ;
+        pszList = heap_alloc( icList) ;
         if (ERROR_SUCCESS != RegQueryValueExA (hkey, "MRUList", NULL, NULL, (LPBYTE)pszList, &icList))
             MessageBoxA (hCb, "Unable to grab MRUList !", "Nix", MB_OK) ;
         }
     else
         {
         icList = 1 ;
-        pszList = heap_alloc(icList) ;
+        pszList = heap_alloc( icList) ;
         pszList[0] = 0 ;
         }
 
@@ -427,9 +427,9 @@ static void FillList (HWND hCb, char *pszLatest, BOOL fShowDefault)
 
     RegSetValueExA (hkey, "MRUList", 0, REG_SZ, (LPBYTE)pszList, strlen (pszList) + 1) ;
 
-    heap_free(pszCmd) ;
-    heap_free(pszList) ;
-}
+    heap_free( pszCmd) ;
+    heap_free( pszList) ;
+    }
 
 /*************************************************************************
  * RunFileDlgA					[internal]

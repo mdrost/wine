@@ -229,7 +229,7 @@ static void xrandr10_init_modes(void)
 
     TRACE("XRandR modes: count=%d\n", nmodes);
 
-    if (!(xrandr10_modes = HeapAlloc( GetProcessHeap(), 0, sizeof(*xrandr10_modes) * nmodes )))
+    if (!(xrandr10_modes = heap_alloc( sizeof(*xrandr10_modes) * nmodes )))
     {
         ERR("Failed to allocate xrandr mode info array.\n");
         return;
@@ -435,7 +435,7 @@ static int xrandr12_init_modes(void)
         goto done;
     }
 
-    if (!(xrandr12_modes = HeapAlloc( GetProcessHeap(), 0, sizeof(*xrandr12_modes) * output_info->nmode )))
+    if (!(xrandr12_modes = heap_alloc( sizeof(*xrandr12_modes) * output_info->nmode )))
     {
         ERR("Failed to allocate xrandr mode info array.\n");
         goto done;
@@ -488,7 +488,7 @@ static int xrandr12_init_modes(void)
         ERR_(winediag)("Broken NVIDIA RandR detected, falling back to RandR 1.0. "
                        "Please consider using the Nouveau driver instead.\n");
         ret = -1;
-        HeapFree( GetProcessHeap(), 0, xrandr12_modes );
+        heap_free( xrandr12_modes );
         goto done;
     }
 

@@ -416,19 +416,19 @@ static void test_read(void)
     todo_wine
     ok(GetLastError() == ERROR_INVALID_PARAMETER, "Expected ERROR_INVALID_PARAMETER, got %d\n", GetLastError());
 
-    buf = HeapAlloc(GetProcessHeap(), 0, sizeof(EVENTLOGRECORD));
+    buf = heap_alloc(sizeof(EVENTLOGRECORD));
     SetLastError(0xdeadbeef);
     ret = ReadEventLogA(NULL, EVENTLOG_SEQUENTIAL_READ | EVENTLOG_FORWARDS_READ,
                         0, buf, sizeof(EVENTLOGRECORD), &read, &needed);
     ok(!ret, "Expected failure\n");
     todo_wine
     ok(GetLastError() == ERROR_INVALID_HANDLE, "Expected ERROR_INVALID_HANDLE, got %d\n", GetLastError());
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     handle = OpenEventLogA(NULL, "Application");
 
     /* Show that we need the proper dwFlags with a (for the rest) proper call */
-    buf = HeapAlloc(GetProcessHeap(), 0, sizeof(EVENTLOGRECORD));
+    buf = heap_alloc(sizeof(EVENTLOGRECORD));
 
     SetLastError(0xdeadbeef);
     ret = ReadEventLogA(handle, 0, 0, buf, sizeof(EVENTLOGRECORD), &read, &needed);
@@ -469,7 +469,7 @@ static void test_read(void)
     todo_wine
     ok(GetLastError() == ERROR_INVALID_PARAMETER, "Expected ERROR_INVALID_PARAMETER, got %d\n", GetLastError());
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     /* First check if there are any records (in practice only on Wine: FIXME) */
     count = 0;
@@ -482,7 +482,7 @@ static void test_read(void)
     }
 
     /* Get the buffer size for the first record */
-    buf = HeapAlloc(GetProcessHeap(), 0, sizeof(EVENTLOGRECORD));
+    buf = heap_alloc(sizeof(EVENTLOGRECORD));
     read = needed = 0xdeadbeef;
     SetLastError(0xdeadbeef);
     ret = ReadEventLogA(handle, EVENTLOG_SEQUENTIAL_READ | EVENTLOG_FORWARDS_READ,
@@ -494,7 +494,7 @@ static void test_read(void)
 
     /* Read the first record */
     toread = needed;
-    buf = HeapReAlloc(GetProcessHeap(), 0, buf, toread);
+    buf = heap_realloc(buf, toread);
     read = needed = 0xdeadbeef;
     SetLastError(0xdeadbeef);
     ret = ReadEventLogA(handle, EVENTLOG_SEQUENTIAL_READ | EVENTLOG_FORWARDS_READ, 0, buf, toread, &read, &needed);
@@ -503,7 +503,7 @@ static void test_read(void)
        broken(read < toread), /* NT4 wants a buffer size way bigger than just 1 record */
        "Expected the requested size to be read\n");
     ok(needed == 0, "Expected no extra bytes to be read\n");
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     CloseEventLog(handle);
 }
@@ -741,7 +741,7 @@ static void test_readwrite(void)
     if (pCreateWellKnownSid)
     {
         sidsize = SECURITY_MAX_SID_SIZE;
-        user = HeapAlloc(GetProcessHeap(), 0, sidsize);
+        user = heap_alloc(sidsize);
         SetLastError(0xdeadbeef);
         pCreateWellKnownSid(WinInteractiveSid, NULL, user, &sidsize);
         sidavailable = TRUE;
@@ -801,12 +801,12 @@ static void test_readwrite(void)
         ok(ret, "Expected success : %d\n", GetLastError());
 
         /* Needed to catch earlier Vista (with no ServicePack for example) */
-        buf = HeapAlloc(GetProcessHeap(), 0, sizeof(EVENTLOGRECORD));
+        buf = heap_alloc(sizeof(EVENTLOGRECORD));
         if (!(ret = ReadEventLogA(handle, EVENTLOG_SEQUENTIAL_READ | EVENTLOG_FORWARDS_READ,
                                   0, buf, sizeof(EVENTLOGRECORD), &read, &needed)) &&
             GetLastError() == ERROR_INSUFFICIENT_BUFFER)
         {
-            buf = HeapReAlloc(GetProcessHeap(), 0, buf, needed);
+            buf = heap_realloc(buf, needed);
             ret = ReadEventLogA(handle, EVENTLOG_SEQUENTIAL_READ | EVENTLOG_FORWARDS_READ,
                                 0, buf, needed, &read, &needed);
         }
@@ -820,7 +820,7 @@ static void test_readwrite(void)
             if (record->EventType == EVENTLOG_SUCCESS)
                 on_vista = TRUE;
         }
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
     }
 
     /* This will clear the eventlog. The record numbering for new
@@ -900,13 +900,13 @@ static void test_readwrite(void)
         size = 0;
         SetLastError(0xdeadbeef);
         pGetComputerNameExA(ComputerNameDnsFullyQualified, NULL, &size);
-        localcomputer = HeapAlloc(GetProcessHeap(), 0, size);
+        localcomputer = heap_alloc(size);
         pGetComputerNameExA(ComputerNameDnsFullyQualified, localcomputer, &size);
     }
     else
     {
         size = MAX_COMPUTERNAME_LENGTH + 1;
-        localcomputer = HeapAlloc(GetProcessHeap(), 0, size);
+        localcomputer = heap_alloc(size);
         GetComputerNameA(localcomputer, &size);
     }
 
@@ -924,19 +924,19 @@ static void test_readwrite(void)
         char *ptr;
         BOOL run_sidtests = read_write[i].evt_sid & sidavailable;
 
-        buf = HeapAlloc(GetProcessHeap(), 0, sizeof(EVENTLOGRECORD));
+        buf = heap_alloc(sizeof(EVENTLOGRECORD));
         SetLastError(0xdeadbeef);
         ret = ReadEventLogA(handle, EVENTLOG_SEQUENTIAL_READ | EVENTLOG_FORWARDS_READ,
                             0, buf, sizeof(EVENTLOGRECORD), &read, &needed);
         ok(!ret, "Expected failure\n");
         if (!ret && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         {
-            HeapFree(GetProcessHeap(), 0, buf);
+            heap_free(buf);
             ok(GetLastError() == ERROR_HANDLE_EOF, "record %d, got %d\n", i, GetLastError());
             break;
         }
 
-        buf = HeapReAlloc(GetProcessHeap(), 0, buf, needed);
+        buf = heap_realloc(buf, needed);
         ret = ReadEventLogA(handle, EVENTLOG_SEQUENTIAL_READ | EVENTLOG_FORWARDS_READ,
                             0, buf, needed, &read, &needed);
         ok(ret, "Expected success: %d\n", GetLastError());
@@ -1006,7 +1006,7 @@ static void test_readwrite(void)
         ok(record->Length == *(DWORD *)((BYTE *)buf + record->Length - sizeof(DWORD)),
            "Expected the closing DWORD to contain the length of the record\n");
 
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
         i++;
     }
     CloseEventLog(handle);
@@ -1027,8 +1027,8 @@ static void test_readwrite(void)
     CloseEventLog(handle);
 
 cleanup:
-    HeapFree(GetProcessHeap(), 0, localcomputer);
-    HeapFree(GetProcessHeap(), 0, user);
+    heap_free(localcomputer);
+    heap_free(user);
 }
 
 /* Before Vista:
@@ -1157,7 +1157,7 @@ static void test_start_trace(void)
     LONG ret;
 
     buffersize = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(sessionname) + sizeof(filepath);
-    properties = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, buffersize);
+    properties = heap_alloc_zero(buffersize);
     properties->Wnode.BufferSize = buffersize;
     properties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     properties->LogFileMode = EVENT_TRACE_FILE_MODE_NONE;
@@ -1234,7 +1234,7 @@ static void test_start_trace(void)
     /* clean up */
     ControlTraceA(handle, sessionname, properties, EVENT_TRACE_CONTROL_STOP);
 done:
-    HeapFree(GetProcessHeap(), 0, properties);
+    heap_free(properties);
     DeleteFileA(filepath);
 }
 

@@ -255,10 +255,10 @@ static void WCCURSES_ResizeScreenBuffer(struct inner_data* data)
     if (!PRIVATE(data)->pad)
         WINE_FIXME("Cannot create pad\n");
     if (PRIVATE(data)->line) 
-	PRIVATE(data)->line = HeapReAlloc(GetProcessHeap(), 0, PRIVATE(data)->line, 
+	PRIVATE(data)->line = heap_realloc(PRIVATE(data)->line, 
                                       sizeof(chtype) * data->curcfg.sb_width);
     else 
-	PRIVATE(data)->line = HeapAlloc(GetProcessHeap(), 0, 
+	PRIVATE(data)->line = heap_alloc(
                                       sizeof(chtype) * data->curcfg.sb_width);
 }
 
@@ -1002,8 +1002,8 @@ static void WCCURSES_DeleteBackend(struct inner_data* data)
     endwin();
 
     if (data->hWnd) DestroyWindow(data->hWnd);
-    HeapFree(GetProcessHeap(), 0, PRIVATE(data)->line);
-    HeapFree(GetProcessHeap(), 0, PRIVATE(data));
+    heap_free(PRIVATE(data)->line);
+    heap_free(PRIVATE(data));
     data->private = NULL;
 }
 
@@ -1048,7 +1048,7 @@ enum init_return WCCURSES_InitBackend(struct inner_data* data)
     if( !WCCURSES_bind_libcurses() )
         return init_not_supported;
 
-    data->private = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct inner_data_curse));
+    data->private = heap_alloc_zero(sizeof(struct inner_data_curse));
     if (!data->private) return init_failed;
 
     data->fnMainLoop           = WCCURSES_MainLoop;

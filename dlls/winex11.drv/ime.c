@@ -514,9 +514,9 @@ static void IME_AddToSelected(HIMC hIMC)
 {
     hSelectedCount++;
     if (hSelectedFrom)
-        hSelectedFrom = HeapReAlloc(GetProcessHeap(), 0, hSelectedFrom, hSelectedCount*sizeof(HIMC));
+        hSelectedFrom = heap_realloc(hSelectedFrom, hSelectedCount*sizeof(HIMC));
     else
-        hSelectedFrom = HeapAlloc(GetProcessHeap(), 0, sizeof(HIMC));
+        hSelectedFrom = heap_alloc(sizeof(HIMC));
     hSelectedFrom[hSelectedCount-1] = hIMC;
 }
 
@@ -561,7 +561,7 @@ DWORD WINAPI ImeConversionList(HIMC hIMC, LPCWSTR lpSource,
 BOOL WINAPI ImeDestroy(UINT uForce)
 {
     TRACE("\n");
-    HeapFree(GetProcessHeap(),0,hSelectedFrom);
+    heap_free(hSelectedFrom);
     hSelectedFrom = NULL;
     hSelectedCount = 0;
     return TRUE;

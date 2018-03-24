@@ -293,7 +293,7 @@ LPWINE_DRIVER	DRIVER_TryOpenDriver32(LPCWSTR fn, LPARAM lParam2)
 	if (*ptr == '\0') ptr = NULL;
     }
 
-    lpDrv = HeapAlloc(GetProcessHeap(), 0, sizeof(WINE_DRIVER));
+    lpDrv = heap_alloc(sizeof(WINE_DRIVER));
     if (lpDrv == NULL) {cause = "OOM"; goto exit;}
 
     if ((hModule = LoadLibraryW(fn)) == 0) {cause = "Not a 32 bit lib"; goto exit;}
@@ -336,7 +336,7 @@ LPWINE_DRIVER	DRIVER_TryOpenDriver32(LPCWSTR fn, LPARAM lParam2)
     return lpDrv;
  exit:
     FreeLibrary(hModule);
-    HeapFree(GetProcessHeap(), 0, lpDrv);
+    heap_free(lpDrv);
     TRACE("Unable to load 32 bit module %s: %s\n", debugstr_w(fn), cause);
     return NULL;
 }
@@ -358,7 +358,7 @@ HDRVR WINAPI OpenDriverA(LPCSTR lpDriverName, LPCSTR lpSectionName, LPARAM lPara
     if (lpDriverName)
     {
         len = MultiByteToWideChar( CP_ACP, 0, lpDriverName, -1, NULL, 0 );
-        dn = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        dn = heap_alloc( len * sizeof(WCHAR) );
         if (!dn) goto done;
         MultiByteToWideChar( CP_ACP, 0, lpDriverName, -1, dn, len );
     }
@@ -366,7 +366,7 @@ HDRVR WINAPI OpenDriverA(LPCSTR lpDriverName, LPCSTR lpSectionName, LPARAM lPara
     if (lpSectionName)
     {
         len = MultiByteToWideChar( CP_ACP, 0, lpSectionName, -1, NULL, 0 );
-        sn = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        sn = heap_alloc( len * sizeof(WCHAR) );
         if (!sn) goto done;
         MultiByteToWideChar( CP_ACP, 0, lpSectionName, -1, sn, len );
     }
@@ -374,8 +374,8 @@ HDRVR WINAPI OpenDriverA(LPCSTR lpDriverName, LPCSTR lpSectionName, LPARAM lPara
     ret = OpenDriver(dn, sn, lParam);
 
 done:
-    HeapFree(GetProcessHeap(), 0, dn);
-    HeapFree(GetProcessHeap(), 0, sn);
+    heap_free(dn);
+    heap_free(sn);
     return ret;
 }
 
@@ -447,11 +447,11 @@ LRESULT WINAPI CloseDriver(HDRVR hDrvr, LPARAM lParam1, LPARAM lParam2)
             DRIVER_SendMessage(lpDrv0, DRV_CLOSE, 0, 0);
             DRIVER_RemoveFromList(lpDrv0);
             FreeLibrary(lpDrv0->hModule);
-            HeapFree(GetProcessHeap(), 0, lpDrv0);
+            heap_free(lpDrv0);
         }
         FreeLibrary(lpDrv->hModule);
 
-        HeapFree(GetProcessHeap(), 0, lpDrv);
+        heap_free(lpDrv);
         ret = TRUE;
     }
     else

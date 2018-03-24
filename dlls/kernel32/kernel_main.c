@@ -41,6 +41,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(process);
 
 extern int CDECL __wine_set_signal_handler(unsigned, int (*)(unsigned));
 
+#if 0
 /***********************************************************************
  *           set_entry_point
  */
@@ -144,6 +145,7 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
     }
     return TRUE;
 }
+#endif
 
 /***********************************************************************
  *           MulDiv   (KERNEL32.@)

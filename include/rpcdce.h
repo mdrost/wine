@@ -43,7 +43,11 @@ typedef GUID UUID;
 #endif
 
 typedef unsigned char* RPC_CSTR;
+#if 0
 typedef unsigned short* RPC_WSTR;
+#else
+typedef WCHAR* RPC_WSTR;
+#endif
 typedef void* RPC_AUTH_IDENTITY_HANDLE;
 typedef void* RPC_AUTHZ_HANDLE;
 typedef void* RPC_IF_HANDLE;

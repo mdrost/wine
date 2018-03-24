@@ -111,6 +111,7 @@ static UINT tls_module_count;      /* number of modules with TLS directory */
 static IMAGE_TLS_DIRECTORY *tls_dirs;  /* array of TLS directories */
 LIST_ENTRY tls_links = { &tls_links, &tls_links };
 
+#if 0
 static RTL_CRITICAL_SECTION loader_section;
 static RTL_CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -119,6 +120,9 @@ static RTL_CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": loader_section") }
 };
 static RTL_CRITICAL_SECTION loader_section = { &critsect_debug, -1, 0, 0, 0, 0 };
+#else
+static pthread_mutex_t loader_section = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 static WINE_MODREF *cached_modref;
 static WINE_MODREF *current_modref;
@@ -150,6 +154,7 @@ static inline void ascii_to_unicode( WCHAR *dst, const char *src, size_t len )
 }
 
 
+#if 0
 /*************************************************************************
  *		call_dll_entry_point
  *
@@ -484,10 +489,10 @@ static FARPROC find_forwarded_export( HMODULE module, const char *forward, LPCWS
             {
                 WINE_MODREF **deps;
                 if (current_modref->nDeps)
-                    deps = RtlReAllocateHeap( GetProcessHeap(), 0, current_modref->deps,
+                    deps = realloc( current_modref->deps,
                                               (current_modref->nDeps + 1) * sizeof(*deps) );
                 else
-                    deps = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*deps) );
+                    deps = malloc( sizeof(*deps) );
                 if (deps)
                 {
                     deps[current_modref->nDeps++] = wm;
@@ -651,12 +656,12 @@ static BOOL import_dll( HMODULE module, const IMAGE_IMPORT_DESCRIPTOR *descr, LP
     }
     else  /* need to allocate a larger buffer */
     {
-        WCHAR *ptr = RtlAllocateHeap( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) );
+        WCHAR *ptr = malloc( (len + 1) * sizeof(WCHAR) );
         if (!ptr) return FALSE;
         ascii_to_unicode( ptr, name, len );
         ptr[len] = 0;
         status = load_dll( load_path, ptr, 0, &wmImp );
-        RtlFreeHeap( GetProcessHeap(), 0, ptr );
+        free( ptr );
     }
 
     if (status)
@@ -851,7 +856,7 @@ static SHORT alloc_tls_slot( LDR_MODULE *mod )
         UINT new_count = max( 32, tls_module_count * 2 );
 
         if (!tls_dirs)
-            new_ptr = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, new_count * sizeof(*tls_dirs) );
+            new_ptr = calloc( 1,  new_count * sizeof(*tls_dirs) );
         else
             new_ptr = RtlReAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, tls_dirs,
                                          new_count * sizeof(*tls_dirs) );
@@ -862,7 +867,7 @@ static SHORT alloc_tls_slot( LDR_MODULE *mod )
         {
             TEB *teb = CONTAINING_RECORD( entry, TEB, TlsLinks );
             void **old = teb->ThreadLocalStoragePointer;
-            void **new = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, new_count * sizeof(*new));
+            void **new = calloc( 1,  new_count * sizeof(*new));
 
             if (!new) return -1;
             if (old) memcpy( new, old, tls_module_count * sizeof(*new) );
@@ -884,14 +889,14 @@ static SHORT alloc_tls_slot( LDR_MODULE *mod )
     {
         TEB *teb = CONTAINING_RECORD( entry, TEB, TlsLinks );
 
-        if (!(new_ptr = RtlAllocateHeap( GetProcessHeap(), 0, size + dir->SizeOfZeroFill ))) return -1;
+        if (!(new_ptr = malloc( size + dir->SizeOfZeroFill ))) return -1;
         memcpy( new_ptr, (void *)dir->StartAddressOfRawData, size );
         memset( (char *)new_ptr + size, 0, dir->SizeOfZeroFill );
 
         TRACE( "thread %04lx slot %u: %u/%u bytes at %p\n",
                (ULONG_PTR)teb->ClientId.UniqueThread, i, size, dir->SizeOfZeroFill, new_ptr );
 
-        RtlFreeHeap( GetProcessHeap(), 0,
+        free(
                      interlocked_xchg_ptr( (void **)teb->ThreadLocalStoragePointer + i, new_ptr ));
     }
 
@@ -994,7 +999,7 @@ static NTSTATUS fixup_imports( WINE_MODREF *wm, LPCWSTR load_path )
 
     /* Allocate module dependency list */
     wm->nDeps = nb_imports;
-    wm->deps  = RtlAllocateHeap( GetProcessHeap(), 0, nb_imports*sizeof(WINE_MODREF *) );
+    wm->deps  = malloc( nb_imports*sizeof(WINE_MODREF *) );
 
     /* load the imported modules. They are automatically
      * added to the modref list of the process.
@@ -1078,7 +1083,7 @@ static NTSTATUS alloc_thread_tls(void)
 
     if (!tls_module_count) return STATUS_SUCCESS;
 
-    if (!(pointers = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY,
+    if (!(pointers = calloc( 1, 
                                       tls_module_count * sizeof(*pointers) )))
         return STATUS_NO_MEMORY;
 
@@ -1090,10 +1095,10 @@ static NTSTATUS alloc_thread_tls(void)
         size = dir->EndAddressOfRawData - dir->StartAddressOfRawData;
         if (!size && !dir->SizeOfZeroFill) continue;
 
-        if (!(pointers[i] = RtlAllocateHeap( GetProcessHeap(), 0, size + dir->SizeOfZeroFill )))
+        if (!(pointers[i] = malloc( size + dir->SizeOfZeroFill )))
         {
-            while (i) RtlFreeHeap( GetProcessHeap(), 0, pointers[--i] );
-            RtlFreeHeap( GetProcessHeap(), 0, pointers );
+            while (i) free( pointers[--i] );
+            free( pointers );
             return STATUS_NO_MEMORY;
         }
         memcpy( pointers[i], (void *)dir->StartAddressOfRawData, size );
@@ -1578,7 +1583,7 @@ static WCHAR *get_builtin_fullname( const WCHAR *path, const char *filename )
         {
             /* the filename matches, use path as the full path */
             len += p - path;
-            if ((fullname = RtlAllocateHeap( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) )))
+            if ((fullname = malloc( (len + 1) * sizeof(WCHAR) )))
             {
                 memcpy( fullname, path, len * sizeof(WCHAR) );
                 fullname[len] = 0;
@@ -1650,7 +1655,7 @@ static void load_builtin_callback( void *module, const char *filename )
     }
 
     wm = alloc_module( module, fullname );
-    RtlFreeHeap( GetProcessHeap(), 0, fullname );
+    free( fullname );
     if (!wm)
     {
         ERR( "can't load %s\n", filename );
@@ -2012,7 +2017,7 @@ static NTSTATUS load_builtin_dll( LPCWSTR load_path, LPCWSTR path, HANDLE file,
         handle = wine_dlopen( unix_name.Buffer, RTLD_NOW, error, sizeof(error) );
         builtin_load_info = prev_info;
         RtlFreeUnicodeString( &nt_name );
-        RtlFreeHeap( GetProcessHeap(), 0, unix_name.Buffer );
+        free( unix_name.Buffer );
         if (!handle)
         {
             WARN( "failed to load .so lib for builtin %s: %s\n", debugstr_w(path), error );
@@ -2120,7 +2125,7 @@ static NTSTATUS find_actctx_dll( LPCWSTR libname, LPWSTR *fullname )
 
     for (;;)
     {
-        if (!(info = RtlAllocateHeap( GetProcessHeap(), 0, size )))
+        if (!(info = malloc( size )))
         {
             status = STATUS_NO_MEMORY;
             goto done;
@@ -2130,7 +2135,7 @@ static NTSTATUS find_actctx_dll( LPCWSTR libname, LPWSTR *fullname )
                                                        info, size, &needed );
         if (status == STATUS_SUCCESS) break;
         if (status != STATUS_BUFFER_TOO_SMALL) goto done;
-        RtlFreeHeap( GetProcessHeap(), 0, info );
+        free( info );
         size = needed;
         /* restart with larger buffer */
     }
@@ -2152,7 +2157,7 @@ static NTSTATUS find_actctx_dll( LPCWSTR libname, LPWSTR *fullname )
              * windows/winsxs manifest; use the manifest directory name instead */
             dirlen = p - info->lpAssemblyManifestPath;
             needed = (dirlen + 1) * sizeof(WCHAR) + nameW.Length;
-            if (!(*fullname = p = RtlAllocateHeap( GetProcessHeap(), 0, needed )))
+            if (!(*fullname = p = malloc( needed )))
             {
                 status = STATUS_NO_MEMORY;
                 goto done;
@@ -2167,7 +2172,7 @@ static NTSTATUS find_actctx_dll( LPCWSTR libname, LPWSTR *fullname )
     needed = (strlenW(user_shared_data->NtSystemRoot) * sizeof(WCHAR) +
               sizeof(winsxsW) + info->ulAssemblyDirectoryNameLength + nameW.Length + 2*sizeof(WCHAR));
 
-    if (!(*fullname = p = RtlAllocateHeap( GetProcessHeap(), 0, needed )))
+    if (!(*fullname = p = malloc( needed )))
     {
         status = STATUS_NO_MEMORY;
         goto done;
@@ -2181,7 +2186,7 @@ static NTSTATUS find_actctx_dll( LPCWSTR libname, LPWSTR *fullname )
     *p++ = '\\';
     strcpyW( p, libname );
 done:
-    RtlFreeHeap( GetProcessHeap(), 0, info );
+    free( info );
     RtlReleaseActivationContext( data.hActCtx );
     return status;
 }
@@ -2244,7 +2249,7 @@ static NTSTATUS find_dll_file( const WCHAR *load_path, const WCHAR *libname,
     dllname = NULL;
     if (!(ext = strrchrW( libname, '.')) || strchrW( ext, '/' ) || strchrW( ext, '\\'))
     {
-        if (!(dllname = RtlAllocateHeap( GetProcessHeap(), 0,
+        if (!(dllname = malloc(
                                          (strlenW(libname) * sizeof(WCHAR)) + sizeof(dllW) )))
             return STATUS_NO_MEMORY;
         strcpyW( dllname, libname );
@@ -2265,12 +2270,12 @@ static NTSTATUS find_dll_file( const WCHAR *load_path, const WCHAR *libname,
         if (status == STATUS_SUCCESS)
         {
             TRACE ("found %s for %s\n", debugstr_w(fullname), debugstr_w(libname) );
-            RtlFreeHeap( GetProcessHeap(), 0, dllname );
+            free( dllname );
             libname = dllname = fullname;
         }
         else if (status != STATUS_SXS_KEY_NOT_FOUND)
         {
-            RtlFreeHeap( GetProcessHeap(), 0, dllname );
+            free( dllname );
             return status;
         }
     }
@@ -2286,7 +2291,7 @@ static NTSTATUS find_dll_file( const WCHAR *load_path, const WCHAR *libname,
 
             if (!RtlDosPathNameToNtPathName_U( filename, &nt_name, NULL, NULL ))
             {
-                RtlFreeHeap( GetProcessHeap(), 0, dllname );
+                free( dllname );
                 return STATUS_NO_MEMORY;
             }
             *handle = open_dll_file( &nt_name, pwm, st );
@@ -2310,7 +2315,7 @@ static NTSTATUS find_dll_file( const WCHAR *load_path, const WCHAR *libname,
 
     if (!RtlDosPathNameToNtPathName_U( libname, &nt_name, &file_part, NULL ))
     {
-        RtlFreeHeap( GetProcessHeap(), 0, dllname );
+        free( dllname );
         return STATUS_NO_MEMORY;
     }
     len = nt_name.Length - 4*sizeof(WCHAR);  /* for \??\ prefix */
@@ -2321,12 +2326,12 @@ static NTSTATUS find_dll_file( const WCHAR *load_path, const WCHAR *libname,
 
 found:
     RtlFreeUnicodeString( &nt_name );
-    RtlFreeHeap( GetProcessHeap(), 0, dllname );
+    free( dllname );
     return STATUS_SUCCESS;
 
 overflow:
     RtlFreeUnicodeString( &nt_name );
-    RtlFreeHeap( GetProcessHeap(), 0, dllname );
+    free( dllname );
     *size = len + sizeof(WCHAR);
     return STATUS_BUFFER_TOO_SMALL;
 }
@@ -2358,10 +2363,10 @@ static NTSTATUS load_dll( LPCWSTR load_path, LPCWSTR libname, DWORD flags, WINE_
     {
         nts = find_dll_file( load_path, libname, filename, &size, pwm, &handle, &st );
         if (nts == STATUS_SUCCESS) break;
-        if (filename != buffer) RtlFreeHeap( GetProcessHeap(), 0, filename );
+        if (filename != buffer) free( filename );
         if (nts != STATUS_BUFFER_TOO_SMALL) return nts;
         /* grow the buffer and retry */
-        if (!(filename = RtlAllocateHeap( GetProcessHeap(), 0, size ))) return STATUS_NO_MEMORY;
+        if (!(filename = malloc( size ))) return STATUS_NO_MEMORY;
     }
 
     if (*pwm)  /* found already loaded module */
@@ -2371,7 +2376,7 @@ static NTSTATUS load_dll( LPCWSTR load_path, LPCWSTR libname, DWORD flags, WINE_
         TRACE("Found %s for %s at %p, count=%d\n",
               debugstr_w((*pwm)->ldr.FullDllName.Buffer), debugstr_w(libname),
               (*pwm)->ldr.BaseAddress, (*pwm)->ldr.LoadCount);
-        if (filename != buffer) RtlFreeHeap( GetProcessHeap(), 0, filename );
+        if (filename != buffer) free( filename );
         return STATUS_SUCCESS;
     }
 
@@ -2434,13 +2439,13 @@ static NTSTATUS load_dll( LPCWSTR load_path, LPCWSTR libname, DWORD flags, WINE_
               ((*pwm)->ldr.Flags & LDR_WINE_INTERNAL) ? "builtin" : "native",
               (*pwm)->ldr.BaseAddress);
         if (handle) NtClose( handle );
-        if (filename != buffer) RtlFreeHeap( GetProcessHeap(), 0, filename );
+        if (filename != buffer) free( filename );
         return nts;
     }
 
     WARN("Failed to load module %s; status=%x\n", debugstr_w(libname), nts);
     if (handle) NtClose( handle );
-    if (filename != buffer) RtlFreeHeap( GetProcessHeap(), 0, filename );
+    if (filename != buffer) free( filename );
     return nts;
 }
 
@@ -2500,7 +2505,7 @@ NTSTATUS WINAPI LdrGetDllHandle( LPCWSTR load_path, ULONG flags, const UNICODE_S
         if (filename != buffer) RtlFreeHeap( GetProcessHeap(), 0, filename );
         if (status != STATUS_BUFFER_TOO_SMALL) break;
         /* grow the buffer and retry */
-        if (!(filename = RtlAllocateHeap( GetProcessHeap(), 0, size )))
+        if (!(filename = malloc( size )))
         {
             status = STATUS_NO_MEMORY;
             break;
@@ -2517,6 +2522,7 @@ NTSTATUS WINAPI LdrGetDllHandle( LPCWSTR load_path, ULONG flags, const UNICODE_S
     TRACE( "%s -> %p (load path %s)\n", debugstr_us(name), status ? NULL : *base, debugstr_w(load_path) );
     return status;
 }
+#endif
 
 
 /******************************************************************
@@ -2524,6 +2530,7 @@ NTSTATUS WINAPI LdrGetDllHandle( LPCWSTR load_path, ULONG flags, const UNICODE_S
  */
 NTSTATUS WINAPI LdrAddRefDll( ULONG flags, HMODULE module )
 {
+#if 0
     NTSTATUS ret = STATUS_SUCCESS;
     WINE_MODREF *wm;
 
@@ -2543,9 +2550,13 @@ NTSTATUS WINAPI LdrAddRefDll( ULONG flags, HMODULE module )
 
     RtlLeaveCriticalSection( &loader_section );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
+#if 0
 /***********************************************************************
  *           LdrProcessRelocationBlock  (NTDLL.@)
  *
@@ -2642,7 +2653,7 @@ NTSTATUS WINAPI LdrQueryProcessModuleInformation(PSYSTEM_MODULE_INFORMATION smi,
 
     smi->ModulesCount = 0;
 
-    RtlEnterCriticalSection( &loader_section );
+    pthread_mutex_lock( &loader_section );
     mark = &NtCurrentTeb()->Peb->LdrData->InLoadOrderModuleList;
     for (entry = mark->Flink; entry != mark; entry = entry->Flink)
     {
@@ -2670,7 +2681,7 @@ NTSTATUS WINAPI LdrQueryProcessModuleInformation(PSYSTEM_MODULE_INFORMATION smi,
         }
         else nts = STATUS_INFO_LENGTH_MISMATCH;
     }
-    RtlLeaveCriticalSection( &loader_section );
+    pthread_mutex_unlock( &loader_section );
 
     if (req_size) *req_size = size;
 
@@ -2714,7 +2725,7 @@ static NTSTATUS query_string_option( HANDLE hkey, LPCWSTR name, ULONG type,
     RtlInitUnicodeString( &str, name );
 
     size = info_size + in_size;
-    if (!(buffer = RtlAllocateHeap( GetProcessHeap(), 0, size ))) return STATUS_NO_MEMORY;
+    if (!(buffer = malloc( size ))) return STATUS_NO_MEMORY;
     info = (KEY_VALUE_PARTIAL_INFORMATION *)buffer;
     status = NtQueryValueKey( hkey, &str, KeyValuePartialInformation, buffer, size, &size );
     if (!status || status == STATUS_BUFFER_OVERFLOW)
@@ -2722,7 +2733,7 @@ static NTSTATUS query_string_option( HANDLE hkey, LPCWSTR name, ULONG type,
         if (out_size) *out_size = info->DataLength;
         if (data && !status) memcpy( data, info->Data, info->DataLength );
     }
-    RtlFreeHeap( GetProcessHeap(), 0, buffer );
+    free( buffer );
     return status;
 }
 
@@ -2914,11 +2925,11 @@ void WINAPI LdrShutdownThread(void)
 
     if ((pointers = NtCurrentTeb()->ThreadLocalStoragePointer))
     {
-        for (i = 0; i < tls_module_count; i++) RtlFreeHeap( GetProcessHeap(), 0, pointers[i] );
-        RtlFreeHeap( GetProcessHeap(), 0, pointers );
+        for (i = 0; i < tls_module_count; i++) free( pointers[i] );
+        free( pointers );
     }
-    RtlFreeHeap( GetProcessHeap(), 0, NtCurrentTeb()->FlsSlots );
-    RtlFreeHeap( GetProcessHeap(), 0, NtCurrentTeb()->TlsExpansionSlots );
+    free( NtCurrentTeb()->FlsSlots );
+    free( NtCurrentTeb()->TlsExpansionSlots );
     RtlLeaveCriticalSection( &loader_section );
 }
 
@@ -2953,8 +2964,8 @@ static void free_modref( WINE_MODREF *wm )
     NtUnmapViewOfSection( NtCurrentProcess(), wm->ldr.BaseAddress );
     if (cached_modref == wm) cached_modref = NULL;
     RtlFreeUnicodeString( &wm->ldr.FullDllName );
-    RtlFreeHeap( GetProcessHeap(), 0, wm->deps );
-    RtlFreeHeap( GetProcessHeap(), 0, wm );
+    free( wm->deps );
+    free( wm );
 }
 
 /***********************************************************************
@@ -3020,6 +3031,7 @@ static void MODULE_DecRefCount( WINE_MODREF *wm )
         wm->ldr.Flags &= ~LDR_UNLOAD_IN_PROGRESS;
     }
 }
+#endif
 
 /******************************************************************
  *		LdrUnloadDll (NTDLL.@)
@@ -3028,6 +3040,7 @@ static void MODULE_DecRefCount( WINE_MODREF *wm )
  */
 NTSTATUS WINAPI LdrUnloadDll( HMODULE hModule )
 {
+#if 0
     WINE_MODREF *wm;
     NTSTATUS retv = STATUS_SUCCESS;
 
@@ -3062,6 +3075,9 @@ NTSTATUS WINAPI LdrUnloadDll( HMODULE hModule )
     RtlLeaveCriticalSection( &loader_section );
 
     return retv;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /***********************************************************************
@@ -3091,6 +3107,7 @@ PIMAGE_NT_HEADERS WINAPI RtlImageNtHeader(HMODULE hModule)
 }
 
 
+#if 0
 /***********************************************************************
  *           attach_dlls
  *
@@ -3267,6 +3284,7 @@ void WINAPI LdrInitializeThunk( void *kernel_start, ULONG_PTR unknown2,
     }
     server_init_process_done();
 }
+#endif
 
 
 /***********************************************************************
@@ -3346,6 +3364,7 @@ PVOID WINAPI RtlImageRvaToVa( const IMAGE_NT_HEADERS *nt, HMODULE module,
 }
 
 
+#if 0
 /***********************************************************************
  *           RtlPcToFileHeader   (NTDLL.@)
  */
@@ -3434,3 +3453,4 @@ void __wine_process_init(void)
     }
     init_func();
 }
+#endif

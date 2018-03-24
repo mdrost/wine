@@ -738,10 +738,10 @@ static Cursor create_xcursor_cursor( HDC hdc, const ICONINFOEXW *iinfo, HANDLE i
 
     /* Retrieve the number of frames to render */
     if (!GetCursorFrameInfo(icon, 0x0 /* unknown parameter */, 0, &delay_jiffies, &nFrames)) return 0;
-    if (!(imgs = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(XcursorImage*)*nFrames ))) return 0;
+    if (!(imgs = heap_alloc_zero( sizeof(XcursorImage*)*nFrames ))) return 0;
 
     /* Allocate all of the resources necessary to obtain a cursor frame */
-    if (!(info = HeapAlloc( GetProcessHeap(), 0, FIELD_OFFSET( BITMAPINFO, bmiColors[256] )))) goto cleanup;
+    if (!(info = heap_alloc( FIELD_OFFSET( BITMAPINFO, bmiColors[256] )))) goto cleanup;
     info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     info->bmiHeader.biWidth = width;
     info->bmiHeader.biHeight = -height;
@@ -795,7 +795,7 @@ static Cursor create_xcursor_cursor( HDC hdc, const ICONINFOEXW *iinfo, HANDLE i
         images->images[images->nimage] = imgs[images->nimage];
     cursor = pXcursorImagesLoadCursor( gdi_display, images );
     pXcursorImagesDestroy( images ); /* Note: this frees each individual frame (calls XcursorImageDestroy) */
-    HeapFree( GetProcessHeap(), 0, imgs );
+    heap_free( imgs );
     imgs = NULL;
 
 cleanup:
@@ -804,12 +804,12 @@ cleanup:
         /* Failed to produce a cursor, free previously allocated frames */
         for (i=0; i<nFrames && imgs[i]; i++)
             pXcursorImageDestroy( imgs[i] );
-        HeapFree( GetProcessHeap(), 0, imgs );
+        heap_free( imgs );
     }
     /* Cleanup all of the resources used to obtain the frame data */
     if (hbmColor) DeleteObject( hbmColor );
     if (hbmMask) DeleteObject( hbmMask );
-    HeapFree( GetProcessHeap(), 0, info );
+    heap_free( info );
     return cursor;
 }
 
@@ -1099,7 +1099,7 @@ static Cursor create_xlib_monochrome_cursor( HDC hdc, const ICONINFOEXW *icon, i
     info->bmiHeader.biClrUsed = 0;
     info->bmiHeader.biClrImportant = 0;
 
-    if (!(mask_bits = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage ))) goto done;
+    if (!(mask_bits = heap_alloc( info->bmiHeader.biSizeImage ))) goto done;
     if (!GetDIBits( hdc, icon->hbmMask, 0, height * 2, mask_bits, info, DIB_RGB_COLORS )) goto done;
 
     vis.depth = 1;
@@ -1155,7 +1155,7 @@ static Cursor create_xlib_monochrome_cursor( HDC hdc, const ICONINFOEXW *icon, i
     XFreePixmap( gdi_display, mask_pixmap );
 
 done:
-    HeapFree( GetProcessHeap(), 0, mask_bits );
+    heap_free( mask_bits );
     return cursor;
 }
 
@@ -1229,13 +1229,13 @@ static Cursor create_xlib_color_cursor( HDC hdc, const ICONINFOEXW *icon, int wi
     info->bmiHeader.biClrUsed = 0;
     info->bmiHeader.biClrImportant = 0;
 
-    if (!(mask_bits = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage ))) goto done;
+    if (!(mask_bits = heap_alloc( info->bmiHeader.biSizeImage ))) goto done;
     if (!GetDIBits( hdc, icon->hbmMask, 0, height, mask_bits, info, DIB_RGB_COLORS )) goto done;
 
     info->bmiHeader.biBitCount = 32;
     info->bmiHeader.biSizeImage = width * height * 4;
-    if (!(color_bits = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage ))) goto done;
-    if (!(xor_bits = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, width_bytes * height ))) goto done;
+    if (!(color_bits = heap_alloc( info->bmiHeader.biSizeImage ))) goto done;
+    if (!(xor_bits = heap_alloc_zero( width_bytes * height ))) goto done;
     GetDIBits( hdc, icon->hbmColor, 0, height, color_bits, info, DIB_RGB_COLORS );
 
     /* compute fg/bg color and xor bitmap based on average of the color values */
@@ -1323,9 +1323,9 @@ static Cursor create_xlib_color_cursor( HDC hdc, const ICONINFOEXW *icon, int wi
     XFreePixmap( gdi_display, xor_pixmap );
 
 done:
-    HeapFree( GetProcessHeap(), 0, color_bits );
-    HeapFree( GetProcessHeap(), 0, xor_bits );
-    HeapFree( GetProcessHeap(), 0, mask_bits );
+    heap_free( color_bits );
+    heap_free( xor_bits );
+    heap_free( mask_bits );
     return cursor;
 }
 

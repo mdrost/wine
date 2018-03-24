@@ -898,7 +898,7 @@ static inline IEnumSTATSTGImpl *impl_from_IEnumSTATSTG(IEnumSTATSTG *iface)
 static void IEnumSTATSTGImpl_Destroy(IEnumSTATSTGImpl* This)
 {
   IStorage_Release(&This->parentStorage->IStorage_iface);
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This);
 }
 
 static HRESULT WINAPI IEnumSTATSTGImpl_QueryInterface(
@@ -1191,7 +1191,7 @@ static IEnumSTATSTGImpl* IEnumSTATSTGImpl_Construct(
 {
   IEnumSTATSTGImpl* newEnumeration;
 
-  newEnumeration = HeapAlloc(GetProcessHeap(), 0, sizeof(IEnumSTATSTGImpl));
+  newEnumeration = heap_alloc(sizeof(IEnumSTATSTGImpl));
 
   if (newEnumeration)
   {
@@ -1709,7 +1709,7 @@ static HRESULT WINAPI StorageBaseImpl_OpenStorage(
 
         if (FAILED(res))
         {
-          HeapFree(GetProcessHeap(), 0, newStorage);
+          heap_free(newStorage);
           goto end;
         }
 
@@ -3663,7 +3663,7 @@ static BlockChainStream* Storage32Impl_SmallBlocksToBigBlocks(
   offset.u.HighPart = 0;
   cbTotalRead.QuadPart = 0;
 
-  buffer = HeapAlloc(GetProcessHeap(),0,DEF_SMALL_BLOCK_SIZE);
+  buffer = heap_alloc(DEF_SMALL_BLOCK_SIZE);
   do
   {
     resRead = SmallBlockChainStream_ReadAt(*ppsbChain,
@@ -3695,7 +3695,7 @@ static BlockChainStream* Storage32Impl_SmallBlocksToBigBlocks(
         break;
     }
   } while (cbTotalRead.QuadPart < size.QuadPart);
-  HeapFree(GetProcessHeap(),0,buffer);
+  heap_free(buffer);
 
   size.u.HighPart = 0;
   size.u.LowPart  = 0;
@@ -3772,7 +3772,7 @@ static SmallBlockChainStream* Storage32Impl_BigBlocksToSmallBlocks(
     offset.u.HighPart = 0;
     offset.u.LowPart = 0;
     cbTotalRead.QuadPart = 0;
-    buffer = HeapAlloc(GetProcessHeap(), 0, This->bigBlockSize);
+    buffer = heap_alloc(This->bigBlockSize);
     while(cbTotalRead.QuadPart < size.QuadPart)
     {
         resRead = BlockChainStream_ReadAt(*ppbbChain, offset,
@@ -3800,7 +3800,7 @@ static SmallBlockChainStream* Storage32Impl_BigBlocksToSmallBlocks(
             break;
         }
     }
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 
     size.u.HighPart = 0;
     size.u.LowPart = 0;
@@ -3982,10 +3982,10 @@ static ULONG Storage32Impl_AddExtBlockDepot(StorageImpl* This)
   if (This->extBigBlockDepotLocationsSize == numExtBlocks)
   {
     ULONG new_cache_size = (This->extBigBlockDepotLocationsSize+1)*2;
-    ULONG *new_cache = HeapAlloc(GetProcessHeap(), 0, sizeof(ULONG) * new_cache_size);
+    ULONG *new_cache = heap_alloc(sizeof(ULONG) * new_cache_size);
 
     memcpy(new_cache, This->extBigBlockDepotLocations, sizeof(ULONG) * This->extBigBlockDepotLocationsSize);
-    HeapFree(GetProcessHeap(), 0, This->extBigBlockDepotLocations);
+    heap_free(This->extBigBlockDepotLocations);
 
     This->extBigBlockDepotLocations = new_cache;
     This->extBigBlockDepotLocationsSize = new_cache_size;
@@ -4710,7 +4710,7 @@ static HRESULT StorageImpl_Refresh(StorageImpl *This, BOOL new_object, BOOL crea
     ULONG cache_size = This->extBigBlockDepotCount * 2;
     ULONG i;
 
-    This->extBigBlockDepotLocations = HeapAlloc(GetProcessHeap(), 0, sizeof(ULONG) * cache_size);
+    This->extBigBlockDepotLocations = heap_alloc(sizeof(ULONG) * cache_size);
     if (!This->extBigBlockDepotLocations)
     {
       return E_OUTOFMEMORY;
@@ -5194,7 +5194,7 @@ static void StorageImpl_Destroy(StorageBaseImpl* iface)
 
   StorageImpl_Invalidate(iface);
 
-  HeapFree(GetProcessHeap(), 0, This->extBigBlockDepotLocations);
+  heap_free(This->extBigBlockDepotLocations);
 
   BlockChainStream_Destroy(This->smallBlockRootChain);
   BlockChainStream_Destroy(This->rootBlockChain);
@@ -5216,7 +5216,7 @@ static void StorageImpl_Destroy(StorageBaseImpl* iface)
 
   if (This->lockBytes)
     ILockBytes_Release(This->lockBytes);
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This);
 }
 
 
@@ -5283,7 +5283,7 @@ static HRESULT StorageImpl_Construct(
   if ( FAILED( validateSTGM(openFlags) ))
     return STG_E_INVALIDFLAG;
 
-  This = HeapAlloc(GetProcessHeap(), 0, sizeof(StorageImpl));
+  This = heap_alloc(sizeof(StorageImpl));
   if (!This)
     return E_OUTOFMEMORY;
 
@@ -5382,7 +5382,7 @@ static void StorageInternalImpl_Destroy( StorageBaseImpl *iface)
 
   StorageInternalImpl_Invalidate(&This->base);
 
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This);
 }
 
 static HRESULT StorageInternalImpl_Flush(StorageBaseImpl* iface)
@@ -5571,7 +5571,7 @@ static StorageInternalImpl* StorageInternalImpl_Construct(
 {
   StorageInternalImpl* newStorage;
 
-  newStorage = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(StorageInternalImpl));
+  newStorage = heap_alloc_zero(sizeof(StorageInternalImpl));
 
   if (newStorage!=0)
   {
@@ -5623,11 +5623,11 @@ static DirRef TransactedSnapshotImpl_FindFreeEntry(TransactedSnapshotImpl *This)
     ULONG new_size = This->entries_size * 2;
     TransactedDirEntry *new_entries;
 
-    new_entries = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(TransactedDirEntry) * new_size);
+    new_entries = heap_alloc_zero(sizeof(TransactedDirEntry) * new_size);
     if (!new_entries) return DIRENTRY_NULL;
 
     memcpy(new_entries, This->entries, sizeof(TransactedDirEntry) * This->entries_size);
-    HeapFree(GetProcessHeap(), 0, This->entries);
+    heap_free(This->entries);
 
     This->entries = new_entries;
     This->entries_size = new_size;
@@ -6142,8 +6142,8 @@ static void TransactedSnapshotImpl_Destroy( StorageBaseImpl *iface)
   IStorage_Revert(&This->base.IStorage_iface);
   IStorage_Release(&This->transactedParent->IStorage_iface);
   IStorage_Release(&This->scratch->IStorage_iface);
-  HeapFree(GetProcessHeap(), 0, This->entries);
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This->entries);
+  heap_free(This);
 }
 
 static HRESULT TransactedSnapshotImpl_Flush(StorageBaseImpl* iface)
@@ -6479,7 +6479,7 @@ static HRESULT TransactedSnapshotImpl_Construct(StorageBaseImpl *parentStorage,
 {
   HRESULT hr;
 
-  *result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(TransactedSnapshotImpl));
+  *result = heap_alloc_zero(sizeof(TransactedSnapshotImpl));
   if (*result)
   {
     IStorage *scratch;
@@ -6510,7 +6510,7 @@ static HRESULT TransactedSnapshotImpl_Construct(StorageBaseImpl *parentStorage,
     {
         ULONG num_entries = 20;
 
-        (*result)->entries = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(TransactedDirEntry) * num_entries);
+        (*result)->entries = heap_alloc_zero(sizeof(TransactedDirEntry) * num_entries);
         (*result)->entries_size = num_entries;
         (*result)->firstFreeEntry = 0;
 
@@ -6531,7 +6531,7 @@ static HRESULT TransactedSnapshotImpl_Construct(StorageBaseImpl *parentStorage,
         }
     }
 
-    if (FAILED(hr)) HeapFree(GetProcessHeap(), 0, *result);
+    if (FAILED(hr)) heap_free(*result);
 
     return hr;
   }
@@ -6563,7 +6563,7 @@ static void TransactedSharedImpl_Destroy( StorageBaseImpl *iface)
   TransactedSharedImpl_Invalidate(&This->base);
   IStorage_Release(&This->transactedParent->IStorage_iface);
   IStorage_Release(&This->scratch->base.IStorage_iface);
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This);
 }
 
 static HRESULT TransactedSharedImpl_Flush(StorageBaseImpl* iface)
@@ -6815,7 +6815,7 @@ static HRESULT TransactedSharedImpl_Construct(StorageBaseImpl *parentStorage,
 {
   HRESULT hr;
 
-  *result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(TransactedSharedImpl));
+  *result = heap_alloc_zero(sizeof(TransactedSharedImpl));
   if (*result)
   {
     IStorage *scratch;
@@ -6873,7 +6873,7 @@ static HRESULT TransactedSharedImpl_Construct(StorageBaseImpl *parentStorage,
       StorageBaseImpl_UnlockTransaction(parentStorage, FALSE);
     }
 
-    if (FAILED(hr)) HeapFree(GetProcessHeap(), 0, *result);
+    if (FAILED(hr)) heap_free(*result);
 
     return hr;
   }
@@ -7135,7 +7135,7 @@ static HRESULT BlockChainStream_UpdateIndexCache(BlockChainStream* This)
       /* Add the current block to the cache. */
       if (This->indexCacheSize == 0)
       {
-        This->indexCache = HeapAlloc(GetProcessHeap(), 0, sizeof(struct BlockChainRun)*16);
+        This->indexCache = heap_alloc(sizeof(struct BlockChainRun)*16);
         if (!This->indexCache) return E_OUTOFMEMORY;
         This->indexCacheSize = 16;
       }
@@ -7145,11 +7145,11 @@ static HRESULT BlockChainStream_UpdateIndexCache(BlockChainStream* This)
         ULONG new_size;
 
         new_size = This->indexCacheSize * 2;
-        new_cache = HeapAlloc(GetProcessHeap(), 0, sizeof(struct BlockChainRun)*new_size);
+        new_cache = heap_alloc(sizeof(struct BlockChainRun)*new_size);
         if (!new_cache) return E_OUTOFMEMORY;
         memcpy(new_cache, This->indexCache, sizeof(struct BlockChainRun)*This->indexCacheLen);
 
-        HeapFree(GetProcessHeap(), 0, This->indexCache);
+        heap_free(This->indexCache);
         This->indexCache = new_cache;
         This->indexCacheSize = new_size;
       }
@@ -7266,7 +7266,7 @@ BlockChainStream* BlockChainStream_Construct(
 {
   BlockChainStream* newStream;
 
-  newStream = HeapAlloc(GetProcessHeap(), 0, sizeof(BlockChainStream));
+  newStream = heap_alloc(sizeof(BlockChainStream));
   if(!newStream)
     return NULL;
 
@@ -7284,8 +7284,8 @@ BlockChainStream* BlockChainStream_Construct(
 
   if (FAILED(BlockChainStream_UpdateIndexCache(newStream)))
   {
-    HeapFree(GetProcessHeap(), 0, newStream->indexCache);
-    HeapFree(GetProcessHeap(), 0, newStream);
+    heap_free(newStream->indexCache);
+    heap_free(newStream);
     return NULL;
   }
 
@@ -7314,9 +7314,9 @@ void BlockChainStream_Destroy(BlockChainStream* This)
   if (This)
   {
     BlockChainStream_Flush(This);
-    HeapFree(GetProcessHeap(), 0, This->indexCache);
+    heap_free(This->indexCache);
   }
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This);
 }
 
 /******************************************************************************
@@ -7790,7 +7790,7 @@ SmallBlockChainStream* SmallBlockChainStream_Construct(
 {
   SmallBlockChainStream* newStream;
 
-  newStream = HeapAlloc(GetProcessHeap(), 0, sizeof(SmallBlockChainStream));
+  newStream = heap_alloc(sizeof(SmallBlockChainStream));
 
   newStream->parentStorage      = parentStorage;
   newStream->headOfStreamPlaceHolder = headOfStreamPlaceHolder;
@@ -7802,7 +7802,7 @@ SmallBlockChainStream* SmallBlockChainStream_Construct(
 void SmallBlockChainStream_Destroy(
   SmallBlockChainStream* This)
 {
-  HeapFree(GetProcessHeap(), 0, This);
+  heap_free(This);
 }
 
 /******************************************************************************
@@ -9711,7 +9711,7 @@ static HRESULT OLECONVERT_LoadOLE10(LPOLESTREAM pOleStream, OLECONVERT_OLESTREAM
 			{
 					if(pData->dwOleObjFileNameLength < 1) /* there is no file name exist */
 						pData->dwOleObjFileNameLength = sizeof(pData->dwOleObjFileNameLength);
-					pData->pstrOleObjFileName = HeapAlloc(GetProcessHeap(), 0, pData->dwOleObjFileNameLength);
+					pData->pstrOleObjFileName = heap_alloc(pData->dwOleObjFileNameLength);
 					if(pData->pstrOleObjFileName)
 					{
 						dwSize = pOleStream->lpstbl->Get(pOleStream, pData->pstrOleObjFileName, pData->dwOleObjFileNameLength);
@@ -9768,7 +9768,7 @@ static HRESULT OLECONVERT_LoadOLE10(LPOLESTREAM pOleStream, OLECONVERT_OLESTREAM
 			{
 				if(pData->dwDataLength > 0)
 				{
-					pData->pData = HeapAlloc(GetProcessHeap(),0,pData->dwDataLength);
+					pData->pData = heap_alloc(pData->dwDataLength);
 
 					/* Get Data (ex. IStorage, Metafile, or BMP) */
 					if(pData->pData)
@@ -9995,7 +9995,7 @@ static DWORD OLECONVERT_WriteOLE20ToBuffer(LPSTORAGE pStorage, BYTE **pData)
         if(hFile != INVALID_HANDLE_VALUE)
         {
             nDataLength = GetFileSize(hFile, NULL);
-            *pData = HeapAlloc(GetProcessHeap(),0,nDataLength);
+            *pData = heap_alloc(nDataLength);
             ReadFile(hFile, *pData, nDataLength, &nDataLength, 0);
             CloseHandle(hFile);
         }
@@ -10350,7 +10350,7 @@ static void OLECONVERT_GetOle10PresData(LPSTORAGE pStorage, OLECONVERT_OLESTREAM
         IStream_Read(pStream, &(pOleStreamData->dwDataLength), sizeof(pOleStreamData->dwDataLength), NULL);
         if(pOleStreamData->dwDataLength > 0)
         {
-            pOleStreamData->pData = HeapAlloc(GetProcessHeap(),0,pOleStreamData->dwDataLength);
+            pOleStreamData->pData = heap_alloc(pOleStreamData->dwDataLength);
             IStream_Read(pStream, pOleStreamData->pData, pOleStreamData->dwDataLength, NULL);
         }
         IStream_Release(pStream);
@@ -10439,7 +10439,7 @@ static void OLECONVERT_GetOle20PresData(LPSTORAGE pStorage, OLECONVERT_OLESTREAM
             MetaFilePict.hMF = 0;
 
             /* Get Metafile Data */
-            pOleStreamData[1].pData = HeapAlloc(GetProcessHeap(),0,pOleStreamData[1].dwDataLength);
+            pOleStreamData[1].pData = heap_alloc(pOleStreamData[1].dwDataLength);
             memcpy(pOleStreamData[1].pData, &MetaFilePict, sizeof(MetaFilePict));
             IStream_Read(pStream, &(pOleStreamData[1].pData[sizeof(MetaFilePict)]), pOleStreamData[1].dwDataLength-sizeof(METAFILEPICT16), NULL);
         }
@@ -10530,8 +10530,8 @@ HRESULT WINAPI OleConvertOLESTREAMToIStorage (
     /* Free allocated memory */
     for(i=0; i < 2; i++)
     {
-        HeapFree(GetProcessHeap(),0,pOleStreamData[i].pData);
-        HeapFree(GetProcessHeap(),0,pOleStreamData[i].pstrOleObjFileName);
+        heap_free(pOleStreamData[i].pData);
+        heap_free(pOleStreamData[i].pstrOleObjFileName);
         pOleStreamData[i].pstrOleObjFileName = NULL;
     }
     return hRes;
@@ -10602,7 +10602,7 @@ HRESULT WINAPI OleConvertIStorageToOLESTREAM (
     /* Free allocated memory */
     for(i=0; i < 2; i++)
     {
-        HeapFree(GetProcessHeap(),0,pOleStreamData[i].pData);
+        heap_free(pOleStreamData[i].pData);
     }
 
     return hRes;

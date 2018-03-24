@@ -1,0 +1,26 @@
+advapi32_test = executable('advapi32_test', [
+        'testlist.c',
+        #'cred.c',
+        'crypt.c',
+        #'crypt_lmhash.c',
+        #'crypt_md4.c',
+        #'crypt_md5.c',
+        #'crypt_sha.c',
+        #'eventlog.c',
+        #'lsa.c',
+        #'registry.c',
+        #'security.c',
+        #'service.c',
+    ],
+    link_args: [
+        #'-Wl,--warn-unresolved-symbols',
+    ],
+    dependencies: [
+        include_dep,
+        libs_wine_dep,
+        #dlls_ntdll_dep,
+        dlls_kernel32_dep,
+        dlls_advapi32_dep,
+        #dlls_user32_dep,
+    ],
+)

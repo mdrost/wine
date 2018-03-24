@@ -328,7 +328,7 @@ static DWORD CALLBACK host_object_proc(LPVOID p)
             DispatchMessageA(&msg);
     }
 
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data);
 
     CoUninitialize();
 
@@ -339,7 +339,7 @@ static DWORD start_host_object2(IStream *stream, REFIID riid, IUnknown *object, 
 {
     DWORD tid = 0;
     HANDLE marshal_event = CreateEventA(NULL, FALSE, FALSE, NULL);
-    struct host_object_data *data = HeapAlloc(GetProcessHeap(), 0, sizeof(*data));
+    struct host_object_data *data = heap_alloc(sizeof(*data));
 
     data->stream = stream;
     data->iid = *riid;
@@ -2119,7 +2119,7 @@ static ULONG WINAPI HeapUnknown_Release(IUnknown *iface)
 {
     HeapUnknown *This = impl_from_IUnknown(iface);
     ULONG refs = InterlockedDecrement((LONG*)&This->refs);
-    if (!refs) HeapFree(GetProcessHeap(), 0, This);
+    if (!refs) heap_free(This);
     return refs;
 }
 
@@ -2138,7 +2138,7 @@ static void test_proxybuffer(REFIID riid)
     LPVOID lpvtbl;
     ULONG refs;
     CLSID clsid;
-    HeapUnknown *pUnkOuter = HeapAlloc(GetProcessHeap(), 0, sizeof(*pUnkOuter));
+    HeapUnknown *pUnkOuter = heap_alloc(sizeof(*pUnkOuter));
 
     pUnkOuter->IUnknown_iface.lpVtbl = &HeapUnknown_Vtbl;
     pUnkOuter->refs = 1;

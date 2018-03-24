@@ -102,19 +102,19 @@ INT WINAPI StartDocA(HDC hdc, const DOCINFOA* doc)
     if (doc->lpszDocName)
     {
         len = MultiByteToWideChar(CP_ACP,0,doc->lpszDocName,-1,NULL,0);
-        szDocName = HeapAlloc(GetProcessHeap(),0,len*sizeof(WCHAR));
+        szDocName = heap_alloc(len*sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP,0,doc->lpszDocName,-1,szDocName,len);
     }
     if (doc->lpszOutput)
     {
         len = MultiByteToWideChar(CP_ACP,0,doc->lpszOutput,-1,NULL,0);
-        szOutput = HeapAlloc(GetProcessHeap(),0,len*sizeof(WCHAR));
+        szOutput = heap_alloc(len*sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP,0,doc->lpszOutput,-1,szOutput,len);
     }
     if (doc->lpszDatatype)
     {
         len = MultiByteToWideChar(CP_ACP,0,doc->lpszDatatype,-1,NULL,0);
-        szDatatype = HeapAlloc(GetProcessHeap(),0,len*sizeof(WCHAR));
+        szDatatype = heap_alloc(len*sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP,0,doc->lpszDatatype,-1,szDatatype,len);
     }
 
@@ -125,9 +125,9 @@ INT WINAPI StartDocA(HDC hdc, const DOCINFOA* doc)
 
     ret = StartDocW(hdc, &docW);
 
-    HeapFree( GetProcessHeap(), 0, szDocName );
-    HeapFree( GetProcessHeap(), 0, szOutput );
-    HeapFree( GetProcessHeap(), 0, szDatatype );
+    heap_free( szDocName );
+    heap_free( szOutput );
+    heap_free( szDatatype );
 
     return ret;
 }

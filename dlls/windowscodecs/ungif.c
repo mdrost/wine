@@ -60,22 +60,22 @@ WINE_DEFAULT_DEBUG_CHANNEL(wincodecs);
 
 static void *ungif_alloc( size_t sz )
 {
-    return HeapAlloc( GetProcessHeap(), 0, sz );
+    return heap_alloc( sz );
 }
 
 static void *ungif_calloc( size_t num, size_t sz )
 {
-    return HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, num*sz );
+    return heap_alloc_zero( num*sz );
 }
 
 static void *ungif_realloc( void *ptr, size_t sz )
 {
-    return HeapReAlloc( GetProcessHeap(), 0, ptr, sz );
+    return heap_realloc( ptr, sz );
 }
 
 static void ungif_free( void *ptr )
 {
-    HeapFree( GetProcessHeap(), 0, ptr );
+    heap_free( ptr );
 }
 
 #define LZ_MAX_CODE         4095    /* Biggest code possible in 12 bits. */

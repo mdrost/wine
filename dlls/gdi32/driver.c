@@ -80,7 +80,7 @@ static struct graphics_driver *create_driver( HMODULE module )
     const struct gdi_dc_funcs *funcs = NULL;
     struct graphics_driver *driver;
 
-    if (!(driver = HeapAlloc( GetProcessHeap(), 0, sizeof(*driver)))) return NULL;
+    if (!(driver = heap_alloc( sizeof(*driver) ))) return NULL;
     driver->module = module;
 
     if (module)
@@ -169,7 +169,7 @@ const struct gdi_dc_funcs *DRIVER_load_driver( LPCWSTR name )
     {
         if (driver->module != module) continue;
         FreeLibrary( module );
-        HeapFree( GetProcessHeap(), 0, new_driver );
+        heap_free( new_driver );
         goto done;
     }
     driver = new_driver;
@@ -198,7 +198,7 @@ void CDECL __wine_set_display_driver( HMODULE module )
         ExitProcess(1);
     }
     if (InterlockedCompareExchangePointer( (void **)&display_driver, driver, NULL ))
-        HeapFree( GetProcessHeap(), 0, driver );
+        heap_free( driver );
 }
 
 
@@ -311,7 +311,11 @@ static BOOL nulldrv_GetCharABCWidths( PHYSDEV dev, UINT first, UINT last, LPABC 
     return FALSE;
 }
 
+#if 0
 static BOOL nulldrv_GetCharABCWidthsI( PHYSDEV dev, UINT first, UINT count, WORD *indices, LPABC abc )
+#else
+static BOOL nulldrv_GetCharABCWidthsI( PHYSDEV dev, UINT first, UINT count, DWORD *indices, LPABC abc )
+#endif
 {
     return FALSE;
 }
@@ -417,7 +421,11 @@ static DWORD nulldrv_GetFontUnicodeRanges( PHYSDEV dev, LPGLYPHSET glyphs )
     return 0;
 }
 
+#if 0
 static DWORD nulldrv_GetGlyphIndices( PHYSDEV dev, LPCWSTR str, INT count, LPWORD indices, DWORD flags )
+#else
+static DWORD nulldrv_GetGlyphIndices( PHYSDEV dev, LPCWSTR str, INT count, LPDWORD indices, DWORD flags )
+#endif
 {
     return GDI_ERROR;
 }
@@ -459,7 +467,11 @@ static BOOL nulldrv_GetTextExtentExPoint( PHYSDEV dev, LPCWSTR str, INT count, I
     return FALSE;
 }
 
+#if 0
 static BOOL nulldrv_GetTextExtentExPointI( PHYSDEV dev, const WORD *indices, INT count, INT *dx )
+#else
+static BOOL nulldrv_GetTextExtentExPointI( PHYSDEV dev, const DWORD *indices, INT count, INT *dx )
+#endif
 {
     return FALSE;
 }
@@ -866,7 +878,11 @@ BOOL DRIVER_GetDriverName( LPCWSTR device, LPWSTR driver, DWORD size )
         return TRUE;
     }
 
+#if 0
     size = GetProfileStringW(devicesW, device, empty_strW, driver, size);
+#else
+    size = 0;
+#endif
     if(!size) {
         WARN("Unable to find %s in [devices] section of win.ini\n", debugstr_w(device));
         return FALSE;
@@ -904,7 +920,7 @@ DEVMODEW * WINAPI GdiConvertToDevmodeW(const DEVMODEA *dmA)
     if (dmA_size >= FIELD_OFFSET(DEVMODEA, dmFormName) + CCHFORMNAME)
         dmW_size += CCHFORMNAME;
 
-    dmW = HeapAlloc(GetProcessHeap(), 0, dmW_size + dmA->dmDriverExtra);
+    dmW = heap_alloc(dmW_size + dmA->dmDriverExtra);
     if (!dmW) return NULL;
 
     MultiByteToWideChar(CP_ACP, 0, (const char*) dmA->dmDeviceName, -1,
@@ -1115,7 +1131,7 @@ INT WINAPI Escape( HDC hdc, INT escape, INT in_count, LPCSTR in_data, LPVOID out
             /* in_data may not be 0 terminated so we must copy it */
             if (in_data)
             {
-                name = HeapAlloc( GetProcessHeap(), 0, in_count+1 );
+                name = heap_alloc( in_count+1 );
                 memcpy( name, in_data, in_count );
                 name[in_count] = 0;
             }
@@ -1131,7 +1147,7 @@ INT WINAPI Escape( HDC hdc, INT escape, INT in_count, LPCSTR in_data, LPVOID out
             }
             doc.lpszDocName = name;
             ret = StartDocA( hdc, &doc );
-            HeapFree( GetProcessHeap(), 0, name );
+            heap_free( name );
             if (ret > 0) ret = StartPage( hdc );
             return ret;
         }

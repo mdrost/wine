@@ -45,7 +45,10 @@
 #include "winerror.h"
 #include "win.h"
 #include "user_private.h"
+#include "wine/heap.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/debug.h"
 #include "wine/unicode.h"
 
@@ -85,6 +88,7 @@ static WORD get_key_state(void)
  */
 BOOL set_capture_window( HWND hwnd, UINT gui_flags, HWND *prev_ret )
 {
+#if 0
     HWND previous = 0;
     UINT flags = 0;
     BOOL ret;
@@ -113,7 +117,10 @@ BOOL set_capture_window( HWND hwnd, UINT gui_flags, HWND *prev_ret )
 
         if (prev_ret) *prev_ret = previous;
     }
-    return ret;
+    return ret
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -238,6 +245,7 @@ void WINAPI mouse_event( DWORD dwFlags, DWORD dx, DWORD dy,
  */
 BOOL WINAPI DECLSPEC_HOTPATCH GetCursorPos( POINT *pt )
 {
+#if 0
     BOOL ret;
     DWORD last_change;
 
@@ -257,6 +265,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH GetCursorPos( POINT *pt )
     /* query new position from graphics driver if we haven't updated recently */
     if (ret && GetTickCount() - last_change > 100) ret = USER_Driver->pGetCursorPos( pt );
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -265,6 +276,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH GetCursorPos( POINT *pt )
  */
 BOOL WINAPI GetCursorInfo( PCURSORINFO pci )
 {
+#if 0
     BOOL ret;
 
     if (!pci) return FALSE;
@@ -281,6 +293,9 @@ BOOL WINAPI GetCursorInfo( PCURSORINFO pci )
     SERVER_END_REQ;
     GetCursorPos(&pci->ptScreenPos);
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -299,6 +314,7 @@ BOOL WINAPI GetPhysicalCursorPos(POINT *point)
  */
 BOOL WINAPI DECLSPEC_HOTPATCH SetCursorPos( INT x, INT y )
 {
+#if 0
     BOOL ret;
     INT prev_x, prev_y, new_x, new_y;
 
@@ -318,6 +334,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH SetCursorPos( INT x, INT y )
     SERVER_END_REQ;
     if (ret && (prev_x != new_x || prev_y != new_y)) USER_Driver->pSetCursorPos( new_x, new_y );
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -361,6 +380,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH ReleaseCapture(void)
  */
 HWND WINAPI GetCapture(void)
 {
+#if 0
     HWND ret = 0;
 
     SERVER_START_REQ( get_thread_input )
@@ -370,6 +390,9 @@ HWND WINAPI GetCapture(void)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -388,6 +411,7 @@ static void check_for_events( UINT flags )
  */
 SHORT WINAPI DECLSPEC_HOTPATCH GetAsyncKeyState( INT key )
 {
+#if 0
     struct user_key_state_info *key_state_info = get_user_thread_info()->key_state;
     INT counter = global_key_state_counter;
     BYTE prev_key_state;
@@ -409,7 +433,7 @@ SHORT WINAPI DECLSPEC_HOTPATCH GetAsyncKeyState( INT key )
         }
         else if (!key_state_info)
         {
-            key_state_info = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*key_state_info) );
+            key_state_info = heap_alloc_zero( sizeof(*key_state_info) );
             get_user_thread_info()->key_state = key_state_info;
         }
 
@@ -443,6 +467,9 @@ SHORT WINAPI DECLSPEC_HOTPATCH GetAsyncKeyState( INT key )
         SERVER_END_REQ;
     }
     return ret;
+#else
+    return 0;
+#endif
 }
 
 
@@ -451,6 +478,7 @@ SHORT WINAPI DECLSPEC_HOTPATCH GetAsyncKeyState( INT key )
  */
 DWORD WINAPI GetQueueStatus( UINT flags )
 {
+#if 0
     DWORD ret;
 
     if (flags & ~(QS_ALLINPUT | QS_ALLPOSTMESSAGE | QS_SMRESULT))
@@ -469,6 +497,10 @@ DWORD WINAPI GetQueueStatus( UINT flags )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
@@ -477,6 +509,7 @@ DWORD WINAPI GetQueueStatus( UINT flags )
  */
 BOOL WINAPI GetInputState(void)
 {
+#if 0
     DWORD ret;
 
     check_for_events( QS_INPUT );
@@ -489,6 +522,9 @@ BOOL WINAPI GetInputState(void)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -501,6 +537,7 @@ BOOL WINAPI GetLastInputInfo(PLASTINPUTINFO plii)
 
     TRACE("%p\n", plii);
 
+#if 0
     if (plii->cbSize != sizeof (*plii) )
     {
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -515,6 +552,9 @@ BOOL WINAPI GetLastInputInfo(PLASTINPUTINFO plii)
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -570,13 +610,14 @@ BOOL WINAPI DECLSPEC_HOTPATCH RegisterRawInputDevices(RAWINPUTDEVICE *devices, U
 
     TRACE("devices %p, device_count %u, size %u.\n", devices, device_count, size);
 
+#if 0
     if (size != sizeof(*devices))
     {
         WARN("Invalid structure size %u.\n", size);
         return FALSE;
     }
 
-    if (!(d = HeapAlloc( GetProcessHeap(), 0, device_count * sizeof(*d) ))) return FALSE;
+    if (!(d = heap_alloc( device_count * sizeof(*d) ))) return FALSE;
 
     for (i = 0; i < device_count; ++i)
     {
@@ -599,9 +640,12 @@ BOOL WINAPI DECLSPEC_HOTPATCH RegisterRawInputDevices(RAWINPUTDEVICE *devices, U
     }
     SERVER_END_REQ;
 
-    HeapFree( GetProcessHeap(), 0, d );
+    heap_free( d );
 
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -777,6 +821,7 @@ LRESULT WINAPI DefRawInputProc(PRAWINPUT *paRawInput, INT nInput, UINT cbSizeHea
  */
 BOOL WINAPI AttachThreadInput( DWORD from, DWORD to, BOOL attach )
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( attach_thread_input )
@@ -788,6 +833,9 @@ BOOL WINAPI AttachThreadInput( DWORD from, DWORD to, BOOL attach )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -802,6 +850,7 @@ SHORT WINAPI DECLSPEC_HOTPATCH GetKeyState(INT vkey)
 {
     SHORT retval = 0;
 
+#if 0
     SERVER_START_REQ( get_key_state )
     {
         req->tid = GetCurrentThreadId();
@@ -810,6 +859,7 @@ SHORT WINAPI DECLSPEC_HOTPATCH GetKeyState(INT vkey)
     }
     SERVER_END_REQ;
     TRACE("key (0x%x) -> %x\n", vkey, retval);
+#endif
     return retval;
 }
 
@@ -823,6 +873,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH GetKeyboardState( LPBYTE state )
 
     TRACE("(%p)\n", state);
 
+#if 0
     memset( state, 0, 256 );
     SERVER_START_REQ( get_key_state )
     {
@@ -833,6 +884,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH GetKeyboardState( LPBYTE state )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -841,6 +895,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH GetKeyboardState( LPBYTE state )
  */
 BOOL WINAPI SetKeyboardState( LPBYTE state )
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( set_key_state )
@@ -851,6 +906,9 @@ BOOL WINAPI SetKeyboardState( LPBYTE state )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -1163,6 +1221,7 @@ BOOL WINAPI RegisterHotKey(HWND hwnd,INT id,UINT modifiers,UINT vk)
 
     TRACE_(keyboard)("(%p,%d,0x%08x,%X)\n",hwnd,id,modifiers,vk);
 
+#if 0
     if ((hwnd == NULL || WIN_IsCurrentThread(hwnd)) &&
         !USER_Driver->pRegisterHotKey(hwnd, modifiers, vk))
         return FALSE;
@@ -1186,6 +1245,9 @@ BOOL WINAPI RegisterHotKey(HWND hwnd,INT id,UINT modifiers,UINT vk)
         USER_Driver->pUnregisterHotKey(hwnd, modifiers, vk);
 
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -1198,6 +1260,7 @@ BOOL WINAPI UnregisterHotKey(HWND hwnd,INT id)
 
     TRACE_(keyboard)("(%p,%d)\n",hwnd,id);
 
+#if 0
     SERVER_START_REQ( unregister_hotkey )
     {
         req->window = wine_server_user_handle( hwnd );
@@ -1214,6 +1277,9 @@ BOOL WINAPI UnregisterHotKey(HWND hwnd,INT id)
         USER_Driver->pUnregisterHotKey(hwnd, modifiers, vk);
 
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 /***********************************************************************

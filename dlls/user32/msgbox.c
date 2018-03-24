@@ -30,6 +30,7 @@
 #include "user_private.h"
 #include "resources.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(dialog);
 WINE_DECLARE_DEBUG_CHANNEL(msgbox);
@@ -49,7 +50,7 @@ static BOOL CALLBACK MSGBOX_EnumProc(HWND hwnd, LPARAM lParam)
     {
         if(threadWindows->numHandles >= threadWindows->numAllocs)
         {
-            threadWindows->handles = HeapReAlloc(GetProcessHeap(), 0, threadWindows->handles,
+            threadWindows->handles = heap_realloc(threadWindows->handles,
                                                  (threadWindows->numAllocs*2)*sizeof(HWND));
             threadWindows->numAllocs *= 2;
         }
@@ -87,19 +88,19 @@ static void MSGBOX_OnInit(HWND hwnd, LPMSGBOXPARAMSW lpmb)
     } else {
         UINT len = LoadStringW( lpmb->hInstance, LOWORD(lpmb->lpszCaption), (LPWSTR)&ptr, 0 );
         if (!len) len = LoadStringW( user32_module, IDS_ERROR, (LPWSTR)&ptr, 0 );
-        buffer = HeapAlloc( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) );
+        buffer = heap_alloc( (len + 1) * sizeof(WCHAR) );
         if (buffer)
         {
             memcpy( buffer, ptr, len * sizeof(WCHAR) );
             buffer[len] = 0;
             SetWindowTextW( hwnd, buffer );
-            HeapFree( GetProcessHeap(), 0, buffer );
+            heap_free( buffer );
             buffer = NULL;
         }
     }
     if (IS_INTRESOURCE(lpmb->lpszText)) {
         UINT len = LoadStringW( lpmb->hInstance, LOWORD(lpmb->lpszText), (LPWSTR)&ptr, 0 );
-        lpszText = buffer = HeapAlloc( GetProcessHeap(), 0, (len + 1) * sizeof(WCHAR) );
+        lpszText = buffer = heap_alloc( (len + 1) * sizeof(WCHAR) );
         if (buffer)
         {
             memcpy( buffer, ptr, len * sizeof(WCHAR) );
@@ -313,7 +314,7 @@ static void MSGBOX_OnInit(HWND hwnd, LPMSGBOXPARAMSW lpmb)
     if (((lpmb->dwStyle & MB_TASKMODAL) && (lpmb->hwndOwner==NULL)) || (lpmb->dwStyle & MB_SYSTEMMODAL))
         SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
 }
 
 
@@ -534,7 +535,7 @@ INT WINAPI MessageBoxIndirectW( LPMSGBOXPARAMSW msgbox )
     {
         threadWindows.numHandles = 0;
         threadWindows.numAllocs = 10;
-        threadWindows.handles = HeapAlloc(GetProcessHeap(), 0, 10*sizeof(HWND));
+        threadWindows.handles = heap_alloc(10*sizeof(HWND));
         EnumThreadWindows(GetCurrentThreadId(), MSGBOX_EnumProc, (LPARAM)&threadWindows);
     }
 
@@ -545,7 +546,7 @@ INT WINAPI MessageBoxIndirectW( LPMSGBOXPARAMSW msgbox )
     {
         for (i = 0; i < threadWindows.numHandles; i++)
             EnableWindow(threadWindows.handles[i], TRUE);
-        HeapFree(GetProcessHeap(), 0, threadWindows.handles);
+        heap_free(threadWindows.handles);
     }
     return ret;
 }

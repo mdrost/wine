@@ -788,7 +788,7 @@ static HDDEDATA CALLBACK server_ddeml_callback(UINT uType, UINT uFmt, HCONV hcon
 
             size = DdeGetData(hdata, NULL, 0, 0);
             ok(size == 17, "DdeGetData should have returned 17 not %d\n", size);
-            ptr = HeapAlloc(GetProcessHeap(), 0, size);
+            ptr = heap_alloc(size);
             ok(ptr != NULL,"HeapAlloc should have returned ptr not NULL\n");
             rsize = DdeGetData(hdata, (LPBYTE)ptr, size, 0);
             ok(rsize == size, "DdeGetData did not return %d bytes but %d\n", size, rsize);
@@ -797,7 +797,7 @@ static HDDEDATA CALLBACK server_ddeml_callback(UINT uType, UINT uFmt, HCONV hcon
             ok(size == 17, "Expected 17, got %d\n", size);
             ret = (HDDEDATA)DDE_FACK;
 
-            HeapFree(GetProcessHeap(), 0, ptr);
+            heap_free(ptr);
         }
 
         return ret;
@@ -2467,7 +2467,7 @@ static HDDEDATA CALLBACK server_end_to_end_callback(UINT uType, UINT uFmt, HCONV
         ok(size == 12, "Expected 12, got %d, msg_index=%d\n", size, msg_index);
 
         size = DdeGetData(hdata, NULL, 0, 0);
-        ok((buffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size)) != NULL, "should not be null\n");
+        ok((buffer = heap_alloc_zero(size)) != NULL, "should not be null\n");
         rsize = DdeGetData(hdata, buffer, size, 0);
         ok(rsize == size, "Incorrect size returned, expected %d got %d, msg_index=%d\n",
            size, rsize, msg_index);
@@ -2589,7 +2589,7 @@ static HDDEDATA CALLBACK server_end_to_end_callback(UINT uType, UINT uFmt, HCONV
             ok( 0, "Invalid message %u\n", msg_index );
             break;
         }
-        HeapFree(GetProcessHeap(), 0, buffer);
+        heap_free(buffer);
         return (HDDEDATA) DDE_FACK;
     }
     case XTYP_DISCONNECT:

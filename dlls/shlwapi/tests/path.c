@@ -190,7 +190,7 @@ static LPWSTR GetWideString(const char *src)
   if (!src)
     return NULL;
 
-  ret = HeapAlloc(GetProcessHeap(), 0, (2*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
+  ret = heap_alloc((2*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
 
   MultiByteToWideChar(CP_ACP, 0, src, -1, ret, INTERNET_MAX_URL_LENGTH);
 
@@ -199,14 +199,14 @@ static LPWSTR GetWideString(const char *src)
 
 static void FreeWideString(LPWSTR wszString)
 {
-   HeapFree(GetProcessHeap(), 0, wszString);
+   heap_free(wszString);
 }
 
 static LPSTR strdupA(LPCSTR p)
 {
     LPSTR ret;
     DWORD len = (strlen(p) + 1);
-    ret = HeapAlloc(GetProcessHeap(), 0, len);
+    ret = heap_alloc(len);
     memcpy(ret, p, len);
     return ret;
 }
@@ -340,7 +340,7 @@ static void test_PathCreateFromUrl(void)
         ret = pPathCreateFromUrlAlloc(fileW, &pathW, 0);
         ok(ret == S_OK, "got 0x%08x expected S_OK\n", ret);
         ok(lstrcmpiW(pathW, fooW) == 0, "got %s expected %s\n", wine_dbgstr_w(pathW), wine_dbgstr_w(fooW));
-        HeapFree(GetProcessHeap(), 0, pathW);
+        heap_free(pathW);
     }
 }
 
@@ -513,7 +513,7 @@ static void test_PathCombineW(void)
         return;
     }
 
-    wszString2 = HeapAlloc(GetProcessHeap(), 0, MAX_PATH * sizeof(WCHAR));
+    wszString2 = heap_alloc(MAX_PATH * sizeof(WCHAR));
 
     /* NULL test */
     wszString = pPathCombineW(NULL, NULL, NULL);
@@ -529,7 +529,7 @@ static void test_PathCombineW(void)
         broken(wszString2[0] == 'a'), /* Win95 and some W2K */
         "Destination string not empty\n");
 
-    HeapFree(GetProcessHeap(), 0, wszString2);
+    heap_free(wszString2);
 
     /* overflow test */
     wstr2[0] = wstr2[1] = wstr2[2] = 'A';
@@ -1419,7 +1419,7 @@ static void test_PathUnquoteSpaces(void)
            TEST_PATH_UNQUOTE_SPACES[i].path);
         FreeWideString(pathW);
         FreeWideString(resultW);
-        HeapFree(GetProcessHeap(), 0, path);
+        heap_free(path);
     }
 }
 

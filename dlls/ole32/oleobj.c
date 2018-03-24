@@ -117,9 +117,9 @@ static ULONG WINAPI EnumSTATDATA_Release(IEnumSTATDATA *iface)
         DWORD i;
         for(i = 0; i < This->num_of_elems; i++)
             release_statdata(This->statdata + i);
-        HeapFree(GetProcessHeap(), 0, This->statdata);
+        heap_free(This->statdata);
         if (This->holder) IUnknown_Release(This->holder);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return refs;
 }
@@ -200,7 +200,7 @@ static const IEnumSTATDATAVtbl EnumSTATDATA_VTable =
 HRESULT EnumSTATDATA_Construct(IUnknown *holder, ULONG index, DWORD array_len, STATDATA *data,
                                BOOL copy, IEnumSTATDATA **ppenum)
 {
-    EnumSTATDATA *This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    EnumSTATDATA *This = heap_alloc(sizeof(*This));
     DWORD i, count;
 
     if (!This) return E_OUTOFMEMORY;
@@ -211,10 +211,10 @@ HRESULT EnumSTATDATA_Construct(IUnknown *holder, ULONG index, DWORD array_len, S
 
     if (copy)
     {
-        This->statdata = HeapAlloc(GetProcessHeap(), 0, array_len * sizeof(*This->statdata));
+        This->statdata = heap_alloc(array_len * sizeof(*This->statdata));
         if(!This->statdata)
         {
-            HeapFree(GetProcessHeap(), 0, This);
+            heap_free(This);
             return E_OUTOFMEMORY;
         }
 
@@ -272,8 +272,8 @@ static void OleAdviseHolderImpl_Destructor(OleAdviseHolderImpl *This)
             release_statdata(This->connections + index);
     }
 
-    HeapFree(GetProcessHeap(), 0, This->connections);
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This->connections);
+    heap_free(This);
 }
 
 /**************************************************************************
@@ -346,6 +346,7 @@ static HRESULT WINAPI OleAdviseHolderImpl_Advise(IOleAdviseHolder *iface,
 
   TRACE("(%p)->(%p, %p)\n", This, pAdvise, pdwConnection);
 
+#if 0
   if (pdwConnection==NULL)
     return E_POINTER;
 
@@ -374,6 +375,9 @@ static HRESULT WINAPI OleAdviseHolderImpl_Advise(IOleAdviseHolder *iface,
   *pdwConnection = new_conn.dwConnection;
 
   return S_OK;
+#else
+  return E_NOTIMPL;
+#endif
 }
 
 /******************************************************************************
@@ -517,13 +521,12 @@ static IOleAdviseHolder *OleAdviseHolderImpl_Constructor(void)
 {
   OleAdviseHolderImpl* lpoah;
 
-  lpoah = HeapAlloc(GetProcessHeap(), 0, sizeof(OleAdviseHolderImpl));
+  lpoah = heap_alloc(sizeof(OleAdviseHolderImpl));
 
   lpoah->IOleAdviseHolder_iface.lpVtbl = &oahvt;
   lpoah->ref = 1;
   lpoah->max_cons = INITIAL_SINKS;
-  lpoah->connections = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                 lpoah->max_cons * sizeof(*lpoah->connections));
+  lpoah->connections = heap_alloc_zero(lpoah->max_cons * sizeof(*lpoah->connections));
 
   TRACE("returning %p\n",  &lpoah->IOleAdviseHolder_iface);
   return &lpoah->IOleAdviseHolder_iface;
@@ -563,7 +566,7 @@ static void DataAdviseHolder_Destructor(DataAdviseHolder* ptrToDestroy)
   {
     if (ptrToDestroy->connections[index].pAdvSink != NULL)
     {
-      if (ptrToDestroy->delegate && 
+      if (ptrToDestroy->delegate &&
           (ptrToDestroy->connections[index].advf & WINE_ADVF_REMOTE))
         IDataObject_DUnadvise(ptrToDestroy->delegate,
           ptrToDestroy->remote_connections[index]);
@@ -572,9 +575,9 @@ static void DataAdviseHolder_Destructor(DataAdviseHolder* ptrToDestroy)
     }
   }
 
-  HeapFree(GetProcessHeap(), 0, ptrToDestroy->remote_connections);
-  HeapFree(GetProcessHeap(), 0, ptrToDestroy->connections);
-  HeapFree(GetProcessHeap(), 0, ptrToDestroy);
+  heap_free(ptrToDestroy->remote_connections);
+  heap_free(ptrToDestroy->connections);
+  heap_free(ptrToDestroy);
 }
 
 /************************************************************************
@@ -647,6 +650,7 @@ static HRESULT WINAPI DataAdviseHolder_Advise(IDataAdviseHolder *iface,
   TRACE("(%p)->(%p, %p, %08x, %p, %p)\n", This, pDataObject, pFetc, advf,
 	pAdvise, pdwConnection);
 
+#if 0
   if (pdwConnection==NULL)
     return E_POINTER;
 
@@ -702,6 +706,9 @@ static HRESULT WINAPI DataAdviseHolder_Advise(IDataAdviseHolder *iface,
   *pdwConnection = new_conn.dwConnection;
 
   return S_OK;
+#else
+  return E_NOTIMPL;
+#endif
 }
 
 /******************************************************************************
@@ -853,15 +860,13 @@ static IDataAdviseHolder *DataAdviseHolder_Constructor(void)
 {
   DataAdviseHolder* newHolder;
 
-  newHolder = HeapAlloc(GetProcessHeap(), 0, sizeof(DataAdviseHolder));
+  newHolder = heap_alloc(sizeof(DataAdviseHolder));
 
   newHolder->IDataAdviseHolder_iface.lpVtbl = &DataAdviseHolderImpl_VTable;
   newHolder->ref = 1;
   newHolder->maxCons = INITIAL_SINKS;
-  newHolder->connections = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                     newHolder->maxCons * sizeof(*newHolder->connections));
-  newHolder->remote_connections = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                            newHolder->maxCons * sizeof(*newHolder->remote_connections));
+  newHolder->connections = heap_alloc_zero(newHolder->maxCons * sizeof(*newHolder->connections));
+  newHolder->remote_connections = heap_alloc_zero(newHolder->maxCons * sizeof(*newHolder->remote_connections));
   newHolder->delegate = NULL;
 
   TRACE("returning %p\n", &newHolder->IDataAdviseHolder_iface);

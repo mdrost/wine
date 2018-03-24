@@ -32,6 +32,7 @@
 #include "winnls.h"
 #include "wine/debug.h"
 #include "ole2.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "moniker.h"
 
@@ -178,24 +179,24 @@ static HRESULT WINAPI ItemMonikerImpl_Load(IMoniker* iface,IStream* pStm)
         return E_FAIL;
 
     /* read item delimiter string */
-    if (!(itemDelimiterA=HeapAlloc(GetProcessHeap(),0,delimiterLength)))
+    if (!(itemDelimiterA=heap_alloc(delimiterLength)))
         return E_OUTOFMEMORY;
     res=IStream_Read(pStm,itemDelimiterA,delimiterLength,&bread);
     if (bread != delimiterLength)
     {
-        HeapFree( GetProcessHeap(), 0, itemDelimiterA );
+        heap_free( itemDelimiterA );
         return E_FAIL;
     }
 
     lenW = MultiByteToWideChar( CP_ACP, 0, itemDelimiterA, -1, NULL, 0 );
-    This->itemDelimiter=HeapReAlloc(GetProcessHeap(),0,This->itemDelimiter,lenW*sizeof(WCHAR));
+    This->itemDelimiter=heap_realloc(This->itemDelimiter,lenW*sizeof(WCHAR));
     if (!This->itemDelimiter)
     {
-        HeapFree( GetProcessHeap(), 0, itemDelimiterA );
+        heap_free( itemDelimiterA );
         return E_OUTOFMEMORY;
     }
     MultiByteToWideChar( CP_ACP, 0, itemDelimiterA, -1, This->itemDelimiter, lenW );
-    HeapFree( GetProcessHeap(), 0, itemDelimiterA );
+    heap_free( itemDelimiterA );
 
     /* read item name string length + 1*/
     res=IStream_Read(pStm,&nameLength,sizeof(DWORD),&bread);
@@ -203,24 +204,24 @@ static HRESULT WINAPI ItemMonikerImpl_Load(IMoniker* iface,IStream* pStm)
         return E_FAIL;
 
     /* read item name string */
-    if (!(itemNameA=HeapAlloc(GetProcessHeap(),0,nameLength)))
+    if (!(itemNameA=heap_alloc(nameLength)))
         return E_OUTOFMEMORY;
     res=IStream_Read(pStm,itemNameA,nameLength,&bread);
     if (bread != nameLength)
     {
-        HeapFree( GetProcessHeap(), 0, itemNameA );
+        heap_free( itemNameA );
         return E_FAIL;
     }
 
     lenW = MultiByteToWideChar( CP_ACP, 0, itemNameA, -1, NULL, 0 );
-    This->itemName=HeapReAlloc(GetProcessHeap(),0,This->itemName,lenW*sizeof(WCHAR));
+    This->itemName=heap_realloc(This->itemName,lenW*sizeof(WCHAR));
     if (!This->itemName)
     {
-        HeapFree( GetProcessHeap(), 0, itemNameA );
+        heap_free( itemNameA );
         return E_OUTOFMEMORY;
     }
     MultiByteToWideChar( CP_ACP, 0, itemNameA, -1, This->itemName, lenW );
-    HeapFree( GetProcessHeap(), 0, itemNameA );
+    heap_free( itemNameA );
 
     return res;
 }
@@ -241,8 +242,8 @@ static HRESULT WINAPI ItemMonikerImpl_Save(IMoniker* iface, IStream* pStm, BOOL 
 
     DWORD nameLength = WideCharToMultiByte( CP_ACP, 0, This->itemName, -1, NULL, 0, NULL, NULL);
     DWORD delimiterLength = WideCharToMultiByte( CP_ACP, 0, This->itemDelimiter, -1, NULL, 0, NULL, NULL);
-    itemNameA=HeapAlloc(GetProcessHeap(),0,nameLength);
-    itemDelimiterA=HeapAlloc(GetProcessHeap(),0,delimiterLength);
+    itemNameA=heap_alloc(nameLength);
+    itemDelimiterA=heap_alloc(delimiterLength);
     WideCharToMultiByte( CP_ACP, 0, This->itemName, -1, itemNameA, nameLength, NULL, NULL);
     WideCharToMultiByte( CP_ACP, 0, This->itemDelimiter, -1, itemDelimiterA, delimiterLength, NULL, NULL);
 
@@ -253,8 +254,8 @@ static HRESULT WINAPI ItemMonikerImpl_Save(IMoniker* iface, IStream* pStm, BOOL 
     res=IStream_Write(pStm,&nameLength,sizeof(DWORD),NULL);
     res=IStream_Write(pStm,itemNameA,nameLength * sizeof(CHAR),NULL);
 
-    HeapFree(GetProcessHeap(), 0, itemNameA);
-    HeapFree(GetProcessHeap(), 0, itemDelimiterA);
+    heap_free(itemNameA);
+    heap_free(itemDelimiterA);
 
     return res;
 }
@@ -639,7 +640,7 @@ static HRESULT WINAPI ItemMonikerImpl_Inverse(IMoniker* iface,IMoniker** ppmk)
 static HRESULT WINAPI ItemMonikerImpl_CommonPrefixWith(IMoniker* iface,IMoniker* pmkOther,IMoniker** ppmkPrefix)
 {
     DWORD mkSys;
-    
+
     TRACE("(%p,%p)\n", pmkOther, ppmkPrefix);
 
     IMoniker_IsSystemMoniker(pmkOther,&mkSys);
@@ -895,7 +896,7 @@ static HRESULT ItemMonikerImpl_Construct(ItemMonikerImpl* This, LPCOLESTR lpszDe
     This->ref          = 0;
     This->pMarshal     = NULL;
 
-    This->itemName=HeapAlloc(GetProcessHeap(),0,sizeof(WCHAR)*(sizeStr1+1));
+    This->itemName=heap_alloc(sizeof(WCHAR)*(sizeStr1+1));
     if (!This->itemName)
 	return E_OUTOFMEMORY;
     lstrcpyW(This->itemName,lpszItem);
@@ -906,9 +907,9 @@ static HRESULT ItemMonikerImpl_Construct(ItemMonikerImpl* This, LPCOLESTR lpszDe
     delim = lpszDelim ? lpszDelim : emptystr;
 
     sizeStr2=lstrlenW(delim);
-    This->itemDelimiter=HeapAlloc(GetProcessHeap(),0,sizeof(WCHAR)*(sizeStr2+1));
+    This->itemDelimiter=heap_alloc(sizeof(WCHAR)*(sizeStr2+1));
     if (!This->itemDelimiter) {
-	HeapFree(GetProcessHeap(),0,This->itemName);
+	heap_free(This->itemName);
 	return E_OUTOFMEMORY;
     }
     lstrcpyW(This->itemDelimiter,delim);
@@ -923,9 +924,9 @@ static HRESULT ItemMonikerImpl_Destroy(ItemMonikerImpl* This)
     TRACE("(%p)\n",This);
 
     if (This->pMarshal) IUnknown_Release(This->pMarshal);
-    HeapFree(GetProcessHeap(),0,This->itemName);
-    HeapFree(GetProcessHeap(),0,This->itemDelimiter);
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This->itemName);
+    heap_free(This->itemDelimiter);
+    heap_free(This);
 
     return S_OK;
 }
@@ -940,7 +941,7 @@ HRESULT WINAPI CreateItemMoniker(LPCOLESTR lpszDelim, LPCOLESTR  lpszItem, IMoni
 
     TRACE("(%s,%s,%p)\n",debugstr_w(lpszDelim),debugstr_w(lpszItem),ppmk);
 
-    newItemMoniker = HeapAlloc(GetProcessHeap(), 0, sizeof(ItemMonikerImpl));
+    newItemMoniker = heap_alloc(sizeof(ItemMonikerImpl));
 
     if (!newItemMoniker)
         return STG_E_INSUFFICIENTMEMORY;
@@ -948,7 +949,7 @@ HRESULT WINAPI CreateItemMoniker(LPCOLESTR lpszDelim, LPCOLESTR  lpszItem, IMoni
     hr = ItemMonikerImpl_Construct(newItemMoniker,lpszDelim,lpszItem);
 
     if (FAILED(hr)){
-        HeapFree(GetProcessHeap(),0,newItemMoniker);
+        heap_free(newItemMoniker);
         return hr;
     }
 
@@ -970,7 +971,7 @@ HRESULT WINAPI ItemMoniker_CreateInstance(IClassFactory *iface,
     if (pUnk)
         return CLASS_E_NOAGGREGATION;
 
-    newItemMoniker = HeapAlloc(GetProcessHeap(), 0, sizeof(ItemMonikerImpl));
+    newItemMoniker = heap_alloc(sizeof(ItemMonikerImpl));
     if (!newItemMoniker)
         return E_OUTOFMEMORY;
 
@@ -979,7 +980,7 @@ HRESULT WINAPI ItemMoniker_CreateInstance(IClassFactory *iface,
     if (SUCCEEDED(hr))
         hr = ItemMonikerImpl_QueryInterface(&newItemMoniker->IMoniker_iface, riid, ppv);
     if (FAILED(hr))
-        HeapFree(GetProcessHeap(),0,newItemMoniker);
+        heap_free(newItemMoniker);
 
     return hr;
 }

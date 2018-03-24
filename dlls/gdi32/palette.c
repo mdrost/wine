@@ -118,21 +118,21 @@ HPALETTE WINAPI CreatePalette(
     if (!palette) return 0;
     TRACE("entries=%i\n", palette->palNumEntries);
 
-    if (!(palettePtr = HeapAlloc( GetProcessHeap(), 0, sizeof(*palettePtr) ))) return 0;
+    if (!(palettePtr = heap_alloc( sizeof(*palettePtr) ))) return 0;
     palettePtr->unrealize = NULL;
     palettePtr->version = palette->palVersion;
     palettePtr->count   = palette->palNumEntries;
     size = palettePtr->count * sizeof(*palettePtr->entries);
-    if (!(palettePtr->entries = HeapAlloc( GetProcessHeap(), 0, size )))
+    if (!(palettePtr->entries = heap_alloc( size )))
     {
-        HeapFree( GetProcessHeap(), 0, palettePtr );
+        heap_free( palettePtr );
         return 0;
     }
     memcpy( palettePtr->entries, palette->palPalEntry, size );
     if (!(hpalette = alloc_gdi_handle( palettePtr, OBJ_PAL, &palette_funcs )))
     {
-        HeapFree( GetProcessHeap(), 0, palettePtr->entries );
-        HeapFree( GetProcessHeap(), 0, palettePtr );
+        heap_free( palettePtr->entries );
+        heap_free( palettePtr );
     }
     TRACE("   returning %p\n", hpalette);
     return hpalette;
@@ -276,6 +276,7 @@ BOOL WINAPI ResizePalette(
     if( !palPtr ) return FALSE;
     TRACE("hpal = %p, prev = %i, new = %i\n", hPal, palPtr->count, cEntries );
 
+#if 0
     if (!(entries = HeapReAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
                                  palPtr->entries, cEntries * sizeof(*palPtr->entries) )))
     {
@@ -288,6 +289,10 @@ BOOL WINAPI ResizePalette(
     GDI_ReleaseObj( hPal );
     PALETTE_UnrealizeObject( hPal );
     return TRUE;
+#else
+    GDI_ReleaseObj( hPal );
+    return FALSE;
+#endif
 }
 
 
@@ -328,7 +333,7 @@ BOOL WINAPI AnimatePalette(
           return FALSE;
         }
         if (StartIndex+NumEntries > pal_entries) NumEntries = pal_entries - StartIndex;
-        
+
         for (NumEntries += StartIndex; StartIndex < NumEntries; StartIndex++, pptr++) {
           /* According to MSDN, only animate PC_RESERVED colours */
           if (palPtr->entries[StartIndex].peFlags & PC_RESERVED) {
@@ -609,8 +614,8 @@ static BOOL PALETTE_DeleteObject( HGDIOBJ handle )
 
     PALETTE_UnrealizeObject( handle );
     if (!(obj = free_gdi_handle( handle ))) return FALSE;
-    HeapFree( GetProcessHeap(), 0, obj->entries );
-    HeapFree( GetProcessHeap(), 0, obj );
+    heap_free( obj->entries );
+    heap_free( obj );
     return TRUE;
 }
 

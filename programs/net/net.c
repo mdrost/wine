@@ -43,14 +43,14 @@ static int output_write(const WCHAR* str, int len)
          */
         lenA = WideCharToMultiByte(GetConsoleOutputCP(), 0, str, len,
                                    NULL, 0, NULL, NULL);
-        strA = HeapAlloc(GetProcessHeap(), 0, lenA);
+        strA = heap_alloc(lenA);
         if (!strA)
             return 0;
 
         WideCharToMultiByte(GetConsoleOutputCP(), 0, str, len, strA, lenA,
                             NULL, NULL);
         WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), strA, lenA, &count, FALSE);
-        HeapFree(GetProcessHeap(), 0, strA);
+        heap_free(strA);
     }
     return count;
 }
@@ -121,7 +121,7 @@ static BOOL net_use(int argc, const WCHAR* argv[])
         /* Load the status strings */
         for (i = 0; i < sizeof(status)/sizeof(*status); i++)
         {
-            status[i] = HeapAlloc(GetProcessHeap(), 0, 1024 * sizeof(**status));
+            status[i] = heap_alloc(1024 * sizeof(**status));
             LoadStringW(hmod, STRING_OK+i, status[i], 1024);
         }
 
@@ -148,7 +148,7 @@ static BOOL net_use(int argc, const WCHAR* argv[])
 
         /* Release the status strings */
         for (i = 0; i < sizeof(status)/sizeof(*status); i++)
-            HeapFree(GetProcessHeap(), 0, status[i]);
+            heap_free(status[i]);
 
 	return TRUE;
     }
@@ -177,7 +177,7 @@ static BOOL net_enum_services(void)
         output_error_string(GetLastError());
         goto end;
     }
-    services = HeapAlloc(GetProcessHeap(), 0, size);
+    services = heap_alloc(size);
     resume = 0;
     if(!EnumServicesStatusExW(SCManager, SC_ENUM_PROCESS_INFO, SERVICE_WIN32, SERVICE_ACTIVE, (LPBYTE)services, size, &size, &count, &resume, NULL))
     {
@@ -213,7 +213,7 @@ static BOOL StopService(SC_HANDLE SCManager, SC_HANDLE serviceHandle)
 
     if(!result && (GetLastError() == ERROR_MORE_DATA))
     {
-        dependencies = HeapAlloc(GetProcessHeap(), 0, buffer_size);
+        dependencies = heap_alloc(buffer_size);
         if(EnumDependentServicesW(serviceHandle, SERVICE_ACTIVE, dependencies, buffer_size, &buffer_size, &count))
         {
             for(counter = 0; counter < count; counter++)
@@ -231,7 +231,7 @@ static BOOL StopService(SC_HANDLE SCManager, SC_HANDLE serviceHandle)
     }
 
     if(result) result = ControlService(serviceHandle, SERVICE_CONTROL_STOP, (LPSERVICE_STATUS)&ssp);
-    HeapFree(GetProcessHeap(), 0, dependencies);
+    heap_free(dependencies);
     return result;
 }
 

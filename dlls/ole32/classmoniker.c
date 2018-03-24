@@ -31,6 +31,7 @@
 #include "winuser.h"
 #include "wine/debug.h"
 #include "ole2.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "moniker.h"
 
@@ -132,7 +133,7 @@ static ULONG WINAPI ClassMoniker_Release(IMoniker* iface)
     if (ref == 0)
     {
         if (This->pMarshal) IUnknown_Release(This->pMarshal);
-        HeapFree(GetProcessHeap(),0,This);
+        heap_free(This);
     }
 
     return ref;
@@ -706,7 +707,7 @@ HRESULT WINAPI CreateClassMoniker(REFCLSID rclsid, IMoniker **ppmk)
 
     TRACE("(%s,%p)\n", debugstr_guid(rclsid), ppmk);
 
-    newClassMoniker = HeapAlloc(GetProcessHeap(), 0, sizeof(ClassMoniker));
+    newClassMoniker = heap_alloc(sizeof(ClassMoniker));
 
     if (!newClassMoniker)
         return STG_E_INSUFFICIENTMEMORY;
@@ -715,7 +716,7 @@ HRESULT WINAPI CreateClassMoniker(REFCLSID rclsid, IMoniker **ppmk)
 
     if (FAILED(hr))
     {
-        HeapFree(GetProcessHeap(), 0, newClassMoniker);
+        heap_free(newClassMoniker);
         return hr;
     }
 

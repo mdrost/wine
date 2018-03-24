@@ -48,6 +48,7 @@
 #include "winbase.h"
 #include "lzexpand.h"
 
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -191,19 +192,19 @@ HFILE WINAPI LZInit( HFILE hfSrc )
 	}
         for (i = 0; i < MAX_LZSTATES; i++) if (!lzstates[i]) break;
         if (i == MAX_LZSTATES) return LZERROR_GLOBALLOC;
-	lzstates[i] = lzs = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*lzs) );
+	lzstates[i] = lzs = heap_alloc_zero( sizeof(*lzs) );
 	if(lzs == NULL) return LZERROR_GLOBALLOC;
 
 	lzs->realfd	= hfSrc;
 	lzs->lastchar	= head.lastchar;
 	lzs->reallength = head.reallength;
 
-	lzs->get	= HeapAlloc( GetProcessHeap(), 0, GETLEN );
+	lzs->get	= heap_alloc( GETLEN );
 	lzs->getlen	= 0;
 	lzs->getcur	= 0;
 
 	if(lzs->get == NULL) {
-		HeapFree(GetProcessHeap(), 0, lzs);
+		heap_free(lzs);
 		lzstates[i] = NULL;
 		return LZERROR_GLOBALLOC;
 	}
@@ -310,13 +311,13 @@ INT WINAPI GetExpandedNameW( LPWSTR in, LPWSTR out )
 {
     INT ret;
     DWORD len = WideCharToMultiByte( CP_ACP, 0, in, -1, NULL, 0, NULL, NULL );
-    char *xin = HeapAlloc( GetProcessHeap(), 0, len );
-    char *xout = HeapAlloc( GetProcessHeap(), 0, len+3 );
+    char *xin = heap_alloc( len );
+    char *xout = heap_alloc( len+3 );
     WideCharToMultiByte( CP_ACP, 0, in, -1, xin, len, NULL, NULL );
     if ((ret = GetExpandedNameA( xin, xout )) > 0)
         MultiByteToWideChar( CP_ACP, 0, xout, -1, out, strlenW(in)+4 );
-    HeapFree( GetProcessHeap(), 0, xin );
-    HeapFree( GetProcessHeap(), 0, xout );
+    heap_free( xin );
+    heap_free( xout );
     return ret;
 }
 
@@ -511,7 +512,7 @@ LONG WINAPI LZCopy( HFILE src, HFILE dest )
 static LPSTR LZEXPAND_MangleName( LPCSTR fn )
 {
     char *p;
-    char *mfn = HeapAlloc( GetProcessHeap(), 0, strlen(fn) + 3 ); /* "._" and \0 */
+    char *mfn = heap_alloc( strlen(fn) + 3 ); /* "._" and \0 */
     if(mfn == NULL) return NULL;
     strcpy( mfn, fn );
     if (!(p = strrchr( mfn, '\\' ))) p = mfn;
@@ -543,7 +544,7 @@ HFILE WINAPI LZOpenFileA( LPSTR fn, LPOFSTRUCT ofs, WORD mode )
         {
             LPSTR mfn = LZEXPAND_MangleName(fn);
             fd = OpenFile(mfn,ofs,mode);
-            HeapFree( GetProcessHeap(), 0, mfn );
+            heap_free( mfn );
 	}
 	if (fd==HFILE_ERROR)
 		ofs->cBytes = ofs_cBytes;
@@ -564,10 +565,10 @@ HFILE WINAPI LZOpenFileW( LPWSTR fn, LPOFSTRUCT ofs, WORD mode )
 {
     HFILE ret;
     DWORD len = WideCharToMultiByte( CP_ACP, 0, fn, -1, NULL, 0, NULL, NULL );
-    LPSTR xfn = HeapAlloc( GetProcessHeap(), 0, len );
+    LPSTR xfn = heap_alloc( len );
     WideCharToMultiByte( CP_ACP, 0, fn, -1, xfn, len, NULL, NULL );
     ret = LZOpenFileA(xfn,ofs,mode);
-    HeapFree( GetProcessHeap(), 0, xfn );
+    heap_free( xfn );
     return ret;
 }
 
@@ -583,9 +584,9 @@ void WINAPI LZClose( HFILE fd )
         if (!(lzs = GET_LZ_STATE(fd))) _lclose(fd);
         else
         {
-            HeapFree( GetProcessHeap(), 0, lzs->get );
+            heap_free( lzs->get );
             CloseHandle( LongToHandle(lzs->realfd) );
             lzstates[fd - LZ_MIN_HANDLE] = NULL;
-            HeapFree( GetProcessHeap(), 0, lzs );
+            heap_free( lzs );
         }
 }

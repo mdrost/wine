@@ -826,7 +826,7 @@ static void test_metadata_IFD(void)
     else
         persist_options = WICPersistOptionLittleEndian;
 
-    IFD_data_swapped = HeapAlloc(GetProcessHeap(), 0, sizeof(IFD_data));
+    IFD_data_swapped = heap_alloc(sizeof(IFD_data));
     memcpy(IFD_data_swapped, &IFD_data, sizeof(IFD_data));
     byte_swap_ifd_data(IFD_data_swapped);
     load_stream((IUnknown *)reader, IFD_data_swapped, sizeof(IFD_data), persist_options);
@@ -834,7 +834,7 @@ static void test_metadata_IFD(void)
     ok(hr == S_OK, "GetCount error %#x\n", hr);
     ok(count == sizeof(td)/sizeof(td[0]), "unexpected count %u\n", count);
     compare_metadata(reader, td, count);
-    HeapFree(GetProcessHeap(), 0, IFD_data_swapped);
+    heap_free(IFD_data_swapped);
 
     hr = IWICMetadataReader_GetMetadataFormat(reader, &format);
     ok(hr == S_OK, "GetMetadataFormat error %#x\n", hr);

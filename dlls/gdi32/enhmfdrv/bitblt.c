@@ -105,7 +105,7 @@ BOOL EMFDRV_StretchBlt( PHYSDEV devDst, struct bitblt_coords *dst,
 
    size = emrSize + bmiSize + bitsSize;
 
-    pEMR = HeapAlloc(GetProcessHeap(), 0, size);
+    pEMR = heap_alloc(size);
     if (!pEMR) return FALSE;
 
     /* Initialize EMR */
@@ -165,7 +165,7 @@ BOOL EMFDRV_StretchBlt( PHYSDEV devDst, struct bitblt_coords *dst,
     else
         ret = FALSE;
 
-    HeapFree( GetProcessHeap(), 0, pEMR);
+    heap_free( pEMR);
     return ret;
 }
 
@@ -181,7 +181,7 @@ INT EMFDRV_StretchDIBits( PHYSDEV dev, INT xDst, INT yDst, INT widthDst, INT hei
     bmi_size = get_dib_info_size(info, wUsage);
 
     emr_size = sizeof (EMRSTRETCHDIBITS) + bmi_size + info->bmiHeader.biSizeImage;
-    emr = HeapAlloc(GetProcessHeap(), 0, emr_size );
+    emr = heap_alloc(emr_size );
     if (!emr) return 0;
 
     /* write a bitmap info header (with colours) to the record */
@@ -221,7 +221,7 @@ INT EMFDRV_StretchDIBits( PHYSDEV dev, INT xDst, INT yDst, INT widthDst, INT hei
     if(ret)
         EMFDRV_UpdateBBox( dev, &emr->rclBounds );
 
-    HeapFree(GetProcessHeap(), 0, emr);
+    heap_free(emr);
 
     return ret ? heightSrc : GDI_ERROR;
 }
@@ -234,7 +234,7 @@ INT EMFDRV_SetDIBitsToDevice( PHYSDEV dev, INT xDst, INT yDst, DWORD width, DWOR
     DWORD bmiSize = get_dib_info_size(info, wUsage);
     DWORD size = sizeof(EMRSETDIBITSTODEVICE) + bmiSize + info->bmiHeader.biSizeImage;
 
-    pEMR = HeapAlloc(GetProcessHeap(), 0, size);
+    pEMR = heap_alloc(size);
     if (!pEMR) return 0;
 
     pEMR->emr.iType = EMR_SETDIBITSTODEVICE;
@@ -262,6 +262,6 @@ INT EMFDRV_SetDIBitsToDevice( PHYSDEV dev, INT xDst, INT yDst, DWORD width, DWOR
     if (EMFDRV_WriteRecord(dev, (EMR*)pEMR))
         EMFDRV_UpdateBBox(dev, &(pEMR->rclBounds));
 
-    HeapFree( GetProcessHeap(), 0, pEMR);
+    heap_free( pEMR);
     return lines;
 }

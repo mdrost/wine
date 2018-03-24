@@ -916,7 +916,7 @@ BOOL X11DRV_StretchBlt( PHYSDEV dst_dev, struct bitblt_coords *dst,
 
 static void free_heap_bits( struct gdi_image_bits *bits )
 {
-    HeapFree( GetProcessHeap(), 0, bits->ptr );
+    heap_free( bits->ptr );
 }
 
 static void free_ximage_bits( struct gdi_image_bits *bits )
@@ -1177,7 +1177,7 @@ DWORD copy_image_bits( BITMAPINFO *info, BOOL is_r8g8b8, XImage *image,
     {
         width_bytes = (width_bytes + 3) & ~3;
         info->bmiHeader.biSizeImage = height * width_bytes;
-        if (!(dst_bits->ptr = HeapAlloc( GetProcessHeap(), 0, info->bmiHeader.biSizeImage )))
+        if (!(dst_bits->ptr = heap_alloc( info->bmiHeader.biSizeImage )))
             return ERROR_OUTOFMEMORY;
         dst_bits->is_copy = TRUE;
         dst_bits->free = free_heap_bits;
@@ -1735,7 +1735,7 @@ static void update_surface_region( struct x11drv_window_surface *surface )
     {
         XShapeCombineRectangles( gdi_display, surface->window, ShapeBounding, 0, 0,
                                  (XRectangle *)data->Buffer, data->rdh.nCount, ShapeSet, YXBanded );
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
 
     DeleteObject( rgn );
@@ -1877,7 +1877,7 @@ static void x11drv_surface_set_region( struct window_surface *window_surface, HR
         {
             XSetClipRectangles( gdi_display, surface->gc, 0, 0,
                                 (XRectangle *)data->Buffer, data->rdh.nCount, YXBanded );
-            HeapFree( GetProcessHeap(), 0, data );
+            heap_free( data );
         }
     }
     window_surface->funcs->unlock( window_surface );
@@ -1964,7 +1964,7 @@ static void x11drv_surface_destroy( struct window_surface *window_surface )
     if (surface->gc) XFreeGC( gdi_display, surface->gc );
     if (surface->image)
     {
-        if (surface->image->data != surface->bits) HeapFree( GetProcessHeap(), 0, surface->bits );
+        if (surface->image->data != surface->bits) heap_free( surface->bits );
 #ifdef HAVE_LIBXXSHM
         if (surface->shminfo.shmid != -1)
         {
@@ -1973,14 +1973,14 @@ static void x11drv_surface_destroy( struct window_surface *window_surface )
         }
         else
 #endif
-        HeapFree( GetProcessHeap(), 0, surface->image->data );
+        heap_free( surface->image->data );
         surface->image->data = NULL;
         XDestroyImage( surface->image );
     }
     surface->crit.DebugInfo->Spare[0] = 0;
     DeleteCriticalSection( &surface->crit );
     if (surface->region) DeleteObject( surface->region );
-    HeapFree( GetProcessHeap(), 0, surface );
+    heap_free( surface );
 }
 
 static const struct window_surface_funcs x11drv_surface_funcs =
@@ -2005,7 +2005,7 @@ struct window_surface *create_surface( Window window, const XVisualInfo *vis, co
     int width = rect->right - rect->left, height = rect->bottom - rect->top;
     int colors = format->bits_per_pixel <= 8 ? 1 << format->bits_per_pixel : 3;
 
-    surface = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
+    surface = heap_alloc_zero(
                          FIELD_OFFSET( struct x11drv_window_surface, info.bmiColors[colors] ));
     if (!surface) return NULL;
     surface->info.bmiHeader.biSize        = sizeof(surface->info.bmiHeader);
@@ -2035,7 +2035,7 @@ struct window_surface *create_surface( Window window, const XVisualInfo *vis, co
         surface->image = XCreateImage( gdi_display, vis->visual, vis->depth, ZPixmap, 0, NULL,
                                        width, height, 32, 0 );
         if (!surface->image) goto failed;
-        surface->image->data = HeapAlloc( GetProcessHeap(), 0, surface->info.bmiHeader.biSizeImage );
+        surface->image->data = heap_alloc( surface->info.bmiHeader.biSizeImage );
         if (!surface->image->data) goto failed;
     }
 
@@ -2049,7 +2049,7 @@ struct window_surface *create_surface( Window window, const XVisualInfo *vis, co
     if (surface->byteswap || format->bits_per_pixel == 4 || format->bits_per_pixel == 8)
     {
         /* allocate separate surface bits if byte swapping or palette mapping is required */
-        if (!(surface->bits  = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
+        if (!(surface->bits  = heap_alloc_zero(
                                           surface->info.bmiHeader.biSizeImage )))
             goto failed;
     }

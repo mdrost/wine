@@ -2518,7 +2518,7 @@ static void test_WSASocket(void)
     ok(err == WSAENOBUFS, "WSAEnumProtocolsA error is %d, not WSAENOBUFS(%d)\n",
             err, WSAENOBUFS);
 
-    pi = HeapAlloc(GetProcessHeap(), 0, pi_size);
+    pi = heap_alloc(pi_size);
     ok(pi != NULL, "Failed to allocate memory\n");
     if (pi == NULL) {
         skip("Can't continue without memory.\n");
@@ -2531,7 +2531,7 @@ static void test_WSASocket(void)
 
     if (items == 0) {
         skip("No protocols enumerated.\n");
-        HeapFree(GetProcessHeap(), 0, pi);
+        heap_free(pi);
         return;
     }
 
@@ -2590,7 +2590,7 @@ static void test_WSASocket(void)
        SOCK_STREAM, socktype);
     closesocket(sock);
 
-    HeapFree(GetProcessHeap(), 0, pi);
+    heap_free(pi);
 
     pi_size = 0;
     items = WSAEnumProtocolsA(NULL, NULL, &pi_size);
@@ -2600,7 +2600,7 @@ static void test_WSASocket(void)
     ok(err == WSAENOBUFS, "WSAEnumProtocolsA error is %d, not WSAENOBUFS(%d)\n",
             err, WSAENOBUFS);
 
-    pi = HeapAlloc(GetProcessHeap(), 0, pi_size);
+    pi = heap_alloc(pi_size);
     ok(pi != NULL, "Failed to allocate memory\n");
     if (pi == NULL) {
         skip("Can't continue without memory.\n");
@@ -2664,7 +2664,7 @@ static void test_WSASocket(void)
         closesocket(sock);
     }
 
-    HeapFree(GetProcessHeap(), 0, pi);
+    heap_free(pi);
 
     SetLastError(0xdeadbeef);
     /* starting on vista the socket function returns error during the socket
@@ -4700,8 +4700,8 @@ static void test_gethostbyname(void)
     ret = pGetIpForwardTable(NULL, &route_size, FALSE);
     ok (ret == ERROR_INSUFFICIENT_BUFFER, "GetIpForwardTable failed with a different error: %d\n", ret);
 
-    adapters = HeapAlloc(GetProcessHeap(), 0, adap_size);
-    routes = HeapAlloc(GetProcessHeap(), 0, route_size);
+    adapters = heap_alloc(adap_size);
+    routes = heap_alloc(route_size);
 
     ret = pGetAdaptersInfo(adapters, &adap_size);
     ok (ret  == NO_ERROR, "GetAdaptersInfo failed, error: %d\n", ret);
@@ -4738,8 +4738,8 @@ static void test_gethostbyname(void)
     ok (found_default, "failed to find the first IP from gethostbyname!\n");
 
 cleanup:
-    HeapFree(GetProcessHeap(), 0, adapters);
-    HeapFree(GetProcessHeap(), 0, routes);
+    heap_free(adapters);
+    heap_free(routes);
 }
 
 static void test_gethostbyname_hack(void)
@@ -5355,7 +5355,7 @@ static void test_send(void)
         goto end;
     }
 
-    buffer = HeapAlloc(GetProcessHeap(), 0, buflen);
+    buffer = heap_alloc(buflen);
     if (buffer == NULL)
     {
         ok(0, "HeapAlloc failed, error %d\n", GetLastError());
@@ -5441,7 +5441,7 @@ end:
     }
     if (ov.hEvent)
         CloseHandle(ov.hEvent);
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 }
 
 typedef struct async_message
@@ -5461,7 +5461,7 @@ static LRESULT CALLBACK ws2_test_WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPA
     switch (msg)
     {
     case WM_SOCKET:
-        message = HeapAlloc(GetProcessHeap(), 0, sizeof(*message));
+        message = heap_alloc(sizeof(*message));
         message->socket = (SOCKET) wparam;
         message->lparam = lparam;
         message->next = NULL;
@@ -5603,7 +5603,7 @@ static void flush_events(SOCKET s, HANDLE hEvent)
                 if (prev) prev->next = curr->next;
                 else messages_received = curr->next;
 
-                HeapFree(GetProcessHeap(), 0, curr);
+                heap_free(curr);
 
                 if (prev) curr = prev->next;
                 else curr = messages_received;
@@ -5960,7 +5960,7 @@ static void test_events(int useMessages)
         goto end;
     }
 
-    buffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, bufferSize);
+    buffer = heap_alloc_zero(bufferSize);
     if (buffer == NULL)
     {
         ok(0, "could not allocate memory for test\n");
@@ -6275,7 +6275,7 @@ end:
         flush_events(src2, hEvent2);
         closesocket(src2);
     }
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
     if (server != INVALID_SOCKET)
         closesocket(server);
     if (dst != INVALID_SOCKET)
@@ -10399,7 +10399,7 @@ static void test_address_list_query(void)
 
     size = bytes_returned;
     bytes_returned = 0;
-    address_list = HeapAlloc(GetProcessHeap(), 0, size * 2);
+    address_list = heap_alloc(size * 2);
     ret = WSAIoctl(s, SIO_ADDRESS_LIST_QUERY, NULL, 0, address_list, size * 2, &bytes_returned, NULL, NULL);
     ok(!ret, "Got unexpected ret %d, error %d.\n", ret, WSAGetLastError());
     ok(bytes_returned == size, "Got unexpected bytes_returned %u, expected %u.\n", bytes_returned, size);
@@ -10432,7 +10432,7 @@ static void test_address_list_query(void)
     ok(WSAGetLastError() == WSAEFAULT, "Got unexpected error %d.\n", WSAGetLastError());
     ok(bytes_returned == size, "Got unexpected bytes_returned %u, expected %u.\n", bytes_returned, size);
 
-    HeapFree(GetProcessHeap(), 0, address_list);
+    heap_free(address_list);
     closesocket(s);
 }
 
@@ -10685,7 +10685,7 @@ todo_wine
 todo_wine
     ok(error == WSAEFAULT, "Expected 10014, got %u\n", error);
 
-    name = HeapAlloc(GetProcessHeap(), 0, blen);
+    name = heap_alloc(blen);
     if (!name)
     {
         skip("Failed to alloc memory\n");
@@ -10716,7 +10716,7 @@ todo_wine
         trace("\tVersion: %d\n", name[i].dwVersion);
     }
 
-    HeapFree(GetProcessHeap(), 0, name);
+    heap_free(name);
 }
 
 static void test_WSAEnumNameSpaceProvidersW(void)
@@ -10762,7 +10762,7 @@ todo_wine
 todo_wine
     ok(error == WSAEFAULT, "Expected 10014, got %u\n", error);
 
-    name = HeapAlloc(GetProcessHeap(), 0, blen);
+    name = heap_alloc(blen);
     if (!name)
     {
         skip("Failed to alloc memory\n");
@@ -10793,7 +10793,7 @@ todo_wine
         trace("\tVersion: %d\n", name[i].dwVersion);
     }
 
-    HeapFree(GetProcessHeap(), 0, name);
+    heap_free(name);
 }
 
 static void sync_read(SOCKET src, SOCKET dst)

@@ -177,7 +177,7 @@ StdGlobalInterfaceTable_RegisterInterfaceInGlobal(
   zero.QuadPart = 0;
   IStream_Seek(stream, zero, STREAM_SEEK_SET, NULL);
 
-  entry = HeapAlloc(GetProcessHeap(), 0, sizeof(StdGITEntry));
+  entry = heap_alloc(sizeof(StdGITEntry));
   if (!entry)
   {
       CoReleaseMarshalData(stream);
@@ -236,7 +236,7 @@ StdGlobalInterfaceTable_RevokeInterfaceFromGlobal(
   }
   IStream_Release(entry->stream);
 		    
-  HeapFree(GetProcessHeap(), 0, entry);
+  heap_free(entry);
   return S_OK;
 }
 
@@ -363,7 +363,7 @@ IGlobalInterfaceTable* get_std_git(void)
   {
     StdGlobalInterfaceTableImpl* newGIT;
 
-    newGIT = HeapAlloc(GetProcessHeap(), 0, sizeof(StdGlobalInterfaceTableImpl));
+    newGIT = heap_alloc(sizeof(StdGlobalInterfaceTableImpl));
     if (!newGIT) return NULL;
 
     newGIT->IGlobalInterfaceTable_iface.lpVtbl = &StdGlobalInterfaceTableImpl_Vtbl;
@@ -372,7 +372,7 @@ IGlobalInterfaceTable* get_std_git(void)
 
     if (InterlockedCompareExchangePointer((void**)&std_git, &newGIT->IGlobalInterfaceTable_iface, NULL))
     {
-      HeapFree(GetProcessHeap(), 0, newGIT);
+      heap_free(newGIT);
     }
     else
       TRACE("Created the GIT at %p\n", newGIT);
@@ -395,8 +395,8 @@ void release_std_git(void)
 
       CoReleaseMarshalData(entry->stream);
       IStream_Release(entry->stream);
-      HeapFree(GetProcessHeap(), 0, entry);
+      heap_free(entry);
   }
 
-  HeapFree(GetProcessHeap(), 0, git);
+  heap_free(git);
 }

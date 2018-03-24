@@ -33,3 +33,18 @@ extern WCHAR **argums;
 extern int numOfArgs;
 
 extern VARIANT_BOOL wshInteractive;
+
+static inline void * __WINE_ALLOC_SIZE(1) heap_alloc(size_t len)
+{
+    return heap_alloc(len);
+}
+
+static inline void * __WINE_ALLOC_SIZE(1) heap_alloc_zero(size_t len)
+{
+    return heap_alloc_zero(len);
+}
+
+static inline BOOL heap_free(void *mem)
+{
+    return heap_free(mem);
+}

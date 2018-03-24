@@ -391,7 +391,7 @@ static IClassFactory * IDefClF_fnConstructor(LPFNCREATEINSTANCE lpfnCI, PLONG pc
 {
 	IDefClFImpl* lpclf;
 
-	lpclf = heap_alloc(sizeof(*lpclf));
+	lpclf = heap_alloc(sizeof(IDefClFImpl));
 	lpclf->ref = 1;
 	lpclf->IClassFactory_iface.lpVtbl = &dclfvt;
 	lpclf->lpfnCI = lpfnCI;
@@ -452,8 +452,8 @@ static ULONG WINAPI IDefClF_fnRelease(LPCLASSFACTORY iface)
 
 	  TRACE("-- destroying IClassFactory(%p)\n",This);
 	  heap_free(This);
+	  return 0;
 	}
-
 	return refCount;
 }
 /******************************************************************************

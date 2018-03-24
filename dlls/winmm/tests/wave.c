@@ -98,7 +98,7 @@ static char* wave_generate_la(WAVEFORMATEX* wfx, double duration, DWORD* size)
 
     nb_samples=(int)(duration*wfx->nSamplesPerSec);
     *size=nb_samples*wfx->nBlockAlign;
-    b=buf=HeapAlloc(GetProcessHeap(), 0, *size);
+    b=buf=heap_alloc(*size);
     for (i=0;i<nb_samples;i++) {
         double y=sin(440.0*2*PI*i/wfx->nSamplesPerSec);
         if (wfx->wBitsPerSample==8) {
@@ -157,7 +157,7 @@ static char* wave_generate_silence(WAVEFORMATEX* wfx, double duration, DWORD* si
 
     nb_samples=(int)(duration*wfx->nSamplesPerSec);
     *size=nb_samples*wfx->nBlockAlign;
-    b=buf=HeapAlloc(GetProcessHeap(), 0, *size);
+    b=buf=heap_alloc(*size);
     for (i=0;i<nb_samples;i++) {
         if (wfx->wBitsPerSample==8) {
             for (j = 0; j < wfx->nChannels; j++)
@@ -691,7 +691,7 @@ static void wave_out_test_deviceOut(int device, double duration, int headers, in
        pwfx->nSamplesPerSec, pwfx->wBitsPerSample,
        pwfx->nChannels, nSamplesPerSec, wBitsPerSample, nChannels);
 
-    frags = HeapAlloc(GetProcessHeap(), 0, headers * sizeof(WAVEHDR));
+    frags = heap_alloc(headers * sizeof(WAVEHDR));
 
     if (sine)
         buffer=wave_generate_la(pwfx,duration / (loops + 1),&length);
@@ -861,14 +861,14 @@ static void wave_out_test_deviceOut(int device, double duration, int headers, in
     ok(rc==WAIT_TIMEOUT, "Notification from %s rc=%x\n",
        wave_open_flags(flags|WAVE_FORMAT_QUERY),rc);
 
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 EXIT:
     if ((flags & CALLBACK_TYPEMASK) == CALLBACK_THREAD) {
         PostThreadMessageW(thread_id, WM_APP, 0, 0);
         WaitForSingleObject(hevent,10000);
     }
     CloseHandle(hevent);
-    HeapFree(GetProcessHeap(), 0, frags);
+    heap_free(frags);
 }
 
 static void wave_out_test_device(UINT_PTR device)
@@ -954,21 +954,21 @@ static void wave_out_test_device(UINT_PTR device)
        "waveOutMessage(%s): failed to get interface size, rc=%s\n",
        dev_name(device),wave_out_error(rc));
     if (rc==MMSYSERR_NOERROR) {
-        nameW = HeapAlloc(GetProcessHeap(), 0, size);
+        nameW = heap_alloc(size);
         rc=waveOutMessage((HWAVEOUT)device, DRV_QUERYDEVICEINTERFACE,
                           (DWORD_PTR)nameW, size);
         ok(rc==MMSYSERR_NOERROR,"waveOutMessage(%s): failed to get interface "
            "name, rc=%s\n",dev_name(device),wave_out_error(rc));
         ok(lstrlenW(nameW)+1==size/sizeof(WCHAR),"got an incorrect size %d\n",size);
         if (rc==MMSYSERR_NOERROR) {
-            nameA = HeapAlloc(GetProcessHeap(), 0, size/sizeof(WCHAR));
+            nameA = heap_alloc(size/sizeof(WCHAR));
             WideCharToMultiByte(CP_ACP, 0, nameW, size/sizeof(WCHAR), nameA,
                                 size/sizeof(WCHAR), NULL, NULL);
         }
-        HeapFree(GetProcessHeap(), 0, nameW);
+        heap_free(nameW);
     }
     else if (rc==MMSYSERR_NOTSUPPORTED) {
-        nameA=HeapAlloc(GetProcessHeap(), 0, sizeof("not supported"));
+        nameA=heap_alloc(sizeof("not supported"));
         strcpy(nameA, "not supported");
     }
 
@@ -978,7 +978,7 @@ static void wave_out_test_device(UINT_PTR device)
        dev_name(device),wave_out_error(rc));
     if (rc!=MMSYSERR_NOERROR)
     {
-        HeapFree(GetProcessHeap(), 0, nameA);
+        heap_free(nameA);
         return;
     }
 
@@ -988,7 +988,7 @@ static void wave_out_test_device(UINT_PTR device)
     trace("     channels=%d formats=%05x support=%04x\n",
           capsA.wChannels,capsA.dwFormats,capsA.dwSupport);
     trace("     %s\n",wave_out_caps(capsA.dwSupport));
-    HeapFree(GetProcessHeap(), 0, nameA);
+    heap_free(nameA);
 
     if (winetest_interactive && (device != WAVE_MAPPER))
     {
@@ -1565,7 +1565,7 @@ static void test_fragmentsize(void)
     hdr[0].dwBufferLength = (fmt.nSamplesPerSec * fmt.nBlockAlign / 4) + 1;
     hdr[1].dwBufferLength = hdr[0].dwBufferLength - 2;
     hdr[1].lpData = hdr[0].lpData =
-        HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, hdr[0].dwBufferLength);
+        heap_alloc_zero(hdr[0].dwBufferLength);
 
     rc = waveOutPrepareHeader(wout, &hdr[0], sizeof(hdr[0]));
     ok(rc == MMSYSERR_NOERROR, "waveOutPrepareHeader failed: %s\n", wave_out_error(rc));
@@ -1599,7 +1599,7 @@ static void test_fragmentsize(void)
     rc = waveOutClose(wout);
     ok(rc == MMSYSERR_NOERROR, "waveOutClose failed: %s\n", wave_out_error(rc));
 
-    HeapFree(GetProcessHeap(), 0, hdr[0].lpData);
+    heap_free(hdr[0].lpData);
     CloseHandle(hevent);
 }
 
@@ -1646,7 +1646,7 @@ static void create_wav_file(char *temp_file)
     ok(written == length, "mmioWrite failed, got %d\n", written);
     rc = mmioAscend(h, &chunk, 0);
     ok(rc == MMSYSERR_NOERROR, "mmioAscend failed, got %d\n", rc);
-    HeapFree(GetProcessHeap(), 0, buffer);
+    heap_free(buffer);
 
     rc = mmioAscend(h, &riff_chunk, 0);
     ok(rc == MMSYSERR_NOERROR, "mmioAscend failed, got %d\n", rc);

@@ -138,8 +138,8 @@ static int query_screens(void)
         !pXineramaQueryExtension( gdi_display, &event_base, &error_base ) ||
         !(screens = pXineramaQueryScreens( gdi_display, &count ))) return 0;
 
-    if (monitors != &default_monitor) HeapFree( GetProcessHeap(), 0, monitors );
-    if ((monitors = HeapAlloc( GetProcessHeap(), 0, count * sizeof(*monitors) )))
+    if (monitors != &default_monitor) heap_free( monitors );
+    if ((monitors = heap_alloc( count * sizeof(*monitors) )))
     {
         nb_monitors = count;
         for (i = 0; i < nb_monitors; i++)

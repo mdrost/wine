@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <wine/unicode.h>
 #include <wine/debug.h>
-#include <wine/heap.h>
 #include "reg.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(reg);
@@ -93,7 +92,12 @@ void *heap_xalloc(size_t size)
 
 void *heap_xrealloc(void *buf, size_t size)
 {
-    void *new_buf = heap_realloc(buf, size);
+    void *new_buf;
+
+    if (buf)
+        new_buf = heap_realloc(buf, size);
+    else
+        new_buf = heap_alloc(size);
 
     if (!new_buf)
     {
@@ -102,6 +106,11 @@ void *heap_xrealloc(void *buf, size_t size)
     }
 
     return new_buf;
+}
+
+BOOL heap_free(void *buf)
+{
+    return heap_free(buf);
 }
 
 void output_writeconsole(const WCHAR *str, DWORD wlen)

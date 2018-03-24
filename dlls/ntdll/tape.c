@@ -56,7 +56,9 @@
 #include "winioctl.h"
 #include "ddk/ntddtape.h"
 #include "ntdll_misc.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(tape);
@@ -521,6 +523,7 @@ NTSTATUS TAPE_DeviceIoControl( HANDLE device, HANDLE event,
     ULONG io_control, LPVOID in_buffer, DWORD in_size,
     LPVOID out_buffer, DWORD out_size )
 {
+#if 0
     DWORD sz = 0;
     NTSTATUS status = STATUS_INVALID_PARAMETER;
     int fd, needs_close;
@@ -587,4 +590,7 @@ error:
     io_status->Information = sz;
     if (event) NtSetEvent( event, NULL );
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }

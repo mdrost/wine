@@ -324,7 +324,7 @@ ULONG WINAPI CStdStubBuffer2_Release(IRpcStubBuffer *This) \
     }
 
 #define REGISTER_PROXY_DLL_ROUTINES(pfl, factory_clsid) \
-    HINSTANCE hProxyDll DECLSPEC_HIDDEN = NULL; \
+    HINSTANCE hProxyDll = NULL; \
     \
     BOOL WINAPI DLLMAIN_ENTRY(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) DECLSPEC_HIDDEN; \
     BOOL WINAPI DLLMAIN_ENTRY(HINSTANCE hinstDLL, DWORD fdwReason, \

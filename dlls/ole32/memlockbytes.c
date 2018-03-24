@@ -34,6 +34,7 @@
 #include "objbase.h"
 #include "ole2.h"
 #include "winerror.h"
+#include "wine/heap.h"
 
 #include "wine/debug.h"
 
@@ -101,7 +102,7 @@ HRESULT WINAPI CreateILockBytesOnHGlobal(HGLOBAL global, BOOL delete_on_release,
 {
   HGLOBALLockBytesImpl* lockbytes;
 
-  lockbytes = HeapAlloc(GetProcessHeap(), 0, sizeof(HGLOBALLockBytesImpl));
+  lockbytes = heap_alloc(sizeof(HGLOBALLockBytesImpl));
   if (!lockbytes) return E_OUTOFMEMORY;
 
   lockbytes->ILockBytes_iface.lpVtbl = &HGLOBALLockBytesImpl_Vtbl;
@@ -244,7 +245,7 @@ static ULONG WINAPI HGLOBALLockBytesImpl_Release(ILockBytes* iface)
       GlobalFree(This->supportHandle);
       This->supportHandle = 0;
     }
-    HeapFree(GetProcessHeap(), 0, This);
+    heap_free(This);
   }
 
   return ref;

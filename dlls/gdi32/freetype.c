@@ -845,7 +845,7 @@ static char **expand_mac_font(const char *path)
 
     ret.size = 0;
     ret.max_size = 10;
-    ret.array = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, ret.max_size * sizeof(*ret.array));
+    ret.array = heap_alloc_zero(ret.max_size * sizeof(*ret.array));
     if(!ret.array)
     {
         CloseResFile(res_ref);
@@ -905,7 +905,7 @@ static char **expand_mac_font(const char *path)
                 continue;
             }
 
-            output = HeapAlloc(GetProcessHeap(), 0, output_len);
+            output = heap_alloc(output_len);
             if(output)
             {
                 int fd;
@@ -935,7 +935,7 @@ static char **expand_mac_font(const char *path)
                 else
                 {
                     WARN("unable to create %s\n", output);
-                    HeapFree(GetProcessHeap(), 0, output);
+                    heap_free(output);
                 }
             }
             ReleaseResource(sfnt);
@@ -1094,7 +1094,7 @@ static LPWSTR strdupW(LPCWSTR p)
 {
     LPWSTR ret;
     DWORD len = (strlenW(p) + 1) * sizeof(WCHAR);
-    ret = HeapAlloc(GetProcessHeap(), 0, len);
+    ret = heap_alloc(len);
     memcpy(ret, p, len);
     return ret;
 }
@@ -1126,9 +1126,9 @@ static BOOL add_font_subst(struct list *subst_list, FontSubst *subst, INT flags)
     if(from_exist && (flags & ADD_FONT_SUBST_FORCE))
     {
         list_remove(&from_exist->entry);
-        HeapFree(GetProcessHeap(), 0, from_exist->from.name);
-        HeapFree(GetProcessHeap(), 0, from_exist->to.name);
-        HeapFree(GetProcessHeap(), 0, from_exist);
+        heap_free(from_exist->from.name);
+        heap_free(from_exist->to.name);
+        heap_free(from_exist);
         from_exist = NULL;
     }
 
@@ -1138,7 +1138,7 @@ static BOOL add_font_subst(struct list *subst_list, FontSubst *subst, INT flags)
 
         if(to_exist)
         {
-            HeapFree(GetProcessHeap(), 0, subst->to.name);
+            heap_free(subst->to.name);
             subst->to.name = strdupW(to_exist->to.name);
         }
             
@@ -1147,9 +1147,9 @@ static BOOL add_font_subst(struct list *subst_list, FontSubst *subst, INT flags)
         return TRUE;
     }
 
-    HeapFree(GetProcessHeap(), 0, subst->from.name);
-    HeapFree(GetProcessHeap(), 0, subst->to.name);
-    HeapFree(GetProcessHeap(), 0, subst);
+    heap_free(subst->from.name);
+    heap_free(subst->to.name);
+    heap_free(subst);
     return FALSE;
 }
 
@@ -1159,7 +1159,7 @@ static WCHAR *towstr(UINT cp, const char *str)
     WCHAR *wstr;
 
     len = MultiByteToWideChar(cp, 0, str, -1, NULL, 0);
-    wstr = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    wstr = heap_alloc(len * sizeof(WCHAR));
     MultiByteToWideChar(cp, 0, str, -1, wstr, len);
     return wstr;
 }
@@ -1167,7 +1167,7 @@ static WCHAR *towstr(UINT cp, const char *str)
 static char *strWtoA(UINT cp, const WCHAR *str)
 {
     int len = WideCharToMultiByte( cp, 0, str, -1, NULL, 0, NULL, NULL );
-    char *ret = HeapAlloc( GetProcessHeap(), 0, len );
+    char *ret = heap_alloc( len );
     WideCharToMultiByte( cp, 0, str, -1, ret, len, NULL, NULL );
     return ret;
 }
@@ -1200,8 +1200,8 @@ static void LoadSubstList(void)
 			 &valuelen, &datalen, NULL, NULL);
 
 	valuelen++; /* returned value doesn't include room for '\0' */
-	value = HeapAlloc(GetProcessHeap(), 0, valuelen * sizeof(CHAR));
-	data = HeapAlloc(GetProcessHeap(), 0, datalen);
+	value = heap_alloc(valuelen * sizeof(CHAR));
+	data = heap_alloc(datalen);
 
 	dlen = datalen;
 	vlen = valuelen;
@@ -1209,7 +1209,7 @@ static void LoadSubstList(void)
 			    &dlen) == ERROR_SUCCESS) {
 	    TRACE("Got %s=%s\n", debugstr_a(value), debugstr_a(data));
 
-	    psub = HeapAlloc(GetProcessHeap(), 0, sizeof(*psub));
+	    psub = heap_alloc(sizeof(*psub));
 	    split_subst_info(&psub->from, value);
 	    split_subst_info(&psub->to, data);
 
@@ -1217,9 +1217,9 @@ static void LoadSubstList(void)
 	       or mapping of DEFAULT_CHARSET */
 	    if ((psub->from.charset && psub->to.charset != psub->from.charset) ||
 	       psub->to.charset == DEFAULT_CHARSET) {
-	        HeapFree(GetProcessHeap(), 0, psub->to.name);
-		HeapFree(GetProcessHeap(), 0, psub->from.name);
-		HeapFree(GetProcessHeap(), 0, psub);
+	        heap_free(psub->to.name);
+		heap_free(psub->from.name);
+		heap_free(psub);
 	    } else {
 	        add_font_subst(&font_subst_list, psub, 0);
 	    }
@@ -1227,8 +1227,8 @@ static void LoadSubstList(void)
 	    dlen = datalen;
 	    vlen = valuelen;
 	}
-	HeapFree(GetProcessHeap(), 0, data);
-	HeapFree(GetProcessHeap(), 0, value);
+	heap_free(data);
+	heap_free(value);
 	RegCloseKey(hkey);
     }
 }
@@ -1421,7 +1421,7 @@ static WCHAR *copy_name_table_string( const FT_SfntName *name )
     {
     case TT_PLATFORM_APPLE_UNICODE:
     case TT_PLATFORM_MICROSOFT:
-        ret = HeapAlloc( GetProcessHeap(), 0, name->string_len + sizeof(WCHAR) );
+        ret = heap_alloc( name->string_len + sizeof(WCHAR) );
         for (i = 0; i < name->string_len / 2; i++)
             ret[i] = (name->string[i * 2] << 8) | name->string[i * 2 + 1];
         ret[i] = 0;
@@ -1429,7 +1429,7 @@ static WCHAR *copy_name_table_string( const FT_SfntName *name )
     case TT_PLATFORM_MACINTOSH:
         codepage = get_mac_code_page( name );
         i = MultiByteToWideChar( codepage, 0, (char *)name->string, name->string_len, NULL, 0 );
-        ret = HeapAlloc( GetProcessHeap(), 0, (i + 1) * sizeof(WCHAR) );
+        ret = heap_alloc( (i + 1) * sizeof(WCHAR) );
         MultiByteToWideChar( codepage, 0, (char *)name->string, name->string_len, ret, i );
         ret[i] = 0;
         return ret;
@@ -1482,9 +1482,9 @@ static void release_family( Family *family )
     if (--family->refcount) return;
     assert( list_empty( &family->faces ));
     list_remove( &family->entry );
-    HeapFree( GetProcessHeap(), 0, family->FamilyName );
-    HeapFree( GetProcessHeap(), 0, family->EnglishName );
-    HeapFree( GetProcessHeap(), 0, family );
+    heap_free( family->FamilyName );
+    heap_free( family->EnglishName );
+    heap_free( family );
 }
 
 static void release_face( Face *face )
@@ -1496,11 +1496,11 @@ static void release_face( Face *face )
         list_remove( &face->entry );
         release_family( face->family );
     }
-    HeapFree( GetProcessHeap(), 0, face->file );
-    HeapFree( GetProcessHeap(), 0, face->StyleName );
-    HeapFree( GetProcessHeap(), 0, face->FullName );
-    HeapFree( GetProcessHeap(), 0, face->cached_enum_data );
-    HeapFree( GetProcessHeap(), 0, face );
+    heap_free( face->file );
+    heap_free( face->StyleName );
+    heap_free( face->FullName );
+    heap_free( face->cached_enum_data );
+    heap_free( face );
 }
 
 static inline int style_order(const Face *face)
@@ -1580,7 +1580,7 @@ static BOOL insert_face_in_family_list( Face *face, Family *family )
  */
 static Family *create_family( WCHAR *name, WCHAR *english_name )
 {
-    Family * const family = HeapAlloc( GetProcessHeap(), 0, sizeof(*family) );
+    Family * const family = heap_alloc( sizeof(*family) );
     family->refcount = 1;
     family->FamilyName = name;
     family->EnglishName = english_name;
@@ -1636,7 +1636,7 @@ static void load_face(HKEY hkey_face, WCHAR *face_name, Family *family, void *bu
     if (RegQueryValueExW(hkey_face, face_file_name_value, NULL, NULL, buffer, &needed) == ERROR_SUCCESS)
     {
         Face *face;
-        face = HeapAlloc(GetProcessHeap(), 0, sizeof(*face));
+        face = heap_alloc(sizeof(*face));
         face->cached_enum_data = NULL;
         face->family = NULL;
 
@@ -1758,7 +1758,7 @@ static void load_font_list_from_cache(HKEY hkey_font_cache)
 
         if(english_family)
         {
-            FontSubst *subst = HeapAlloc(GetProcessHeap(), 0, sizeof(*subst));
+            FontSubst *subst = heap_alloc(sizeof(*subst));
             subst->from.name = strdupW(english_family);
             subst->from.charset = -1;
             subst->to.name = strdupW(family_name);
@@ -1777,7 +1777,7 @@ static void load_font_list_from_cache(HKEY hkey_font_cache)
                 load_face(hkey_face, face_name, family, buffer, sizeof(buffer));
                 RegCloseKey(hkey_face);
             }
-            HeapFree( GetProcessHeap(), 0, face_name );
+            heap_free( face_name );
             size = sizeof(buffer);
         }
         RegCloseKey(hkey_family);
@@ -1824,13 +1824,13 @@ static void add_face_to_cache(Face *face)
     else
     {
         static const WCHAR fmtW[] = {'%','s','\\','%','d',0};
-        face_key_name = HeapAlloc(GetProcessHeap(), 0, (strlenW(face->StyleName) + 10) * sizeof(WCHAR));
+        face_key_name = heap_alloc((strlenW(face->StyleName) + 10) * sizeof(WCHAR));
         sprintfW(face_key_name, fmtW, face->StyleName, face->size.y_ppem);
     }
     RegCreateKeyExW(hkey_family, face_key_name, 0, NULL, REG_OPTION_VOLATILE, KEY_ALL_ACCESS, NULL,
                     &hkey_face, NULL);
     if(!face->scalable)
-        HeapFree(GetProcessHeap(), 0, face_key_name);
+        heap_free(face_key_name);
 
     RegSetValueExW(hkey_face, face_file_name_value, 0, REG_SZ, (BYTE *)face->file,
                    (strlenW(face->file) + 1) * sizeof(WCHAR));
@@ -1871,10 +1871,10 @@ static void remove_face_from_cache( Face *face )
     else
     {
         static const WCHAR fmtW[] = {'%','s','\\','%','d',0};
-        WCHAR *face_key_name = HeapAlloc(GetProcessHeap(), 0, (strlenW(face->StyleName) + 10) * sizeof(WCHAR));
+        WCHAR *face_key_name = heap_alloc((strlenW(face->StyleName) + 10) * sizeof(WCHAR));
         sprintfW(face_key_name, fmtW, face->StyleName, face->size.y_ppem);
         RegDeleteKeyW( hkey_family, face_key_name );
-        HeapFree(GetProcessHeap(), 0, face_key_name);
+        heap_free(face_key_name);
     }
     RegCloseKey(hkey_family);
 }
@@ -1886,10 +1886,10 @@ static WCHAR *prepend_at(WCHAR *family)
     if (!family)
         return NULL;
 
-    str = HeapAlloc(GetProcessHeap(), 0, sizeof (WCHAR) * (strlenW(family) + 2));
+    str = heap_alloc(sizeof (WCHAR) * (strlenW(family) + 2));
     str[0] = '@';
     strcpyW(str + 1, family);
-    HeapFree(GetProcessHeap(), 0, family);
+    heap_free(family);
     return str;
 }
 
@@ -1906,7 +1906,7 @@ static void get_family_names( FT_Face ft_face, WCHAR **name, WCHAR **english, BO
     }
     else if (!strcmpiW( *name, *english ))
     {
-        HeapFree( GetProcessHeap(), 0, *english );
+        heap_free( *english );
         *english = NULL;
     }
 
@@ -1931,7 +1931,7 @@ static Family *get_family( FT_Face ft_face, BOOL vertical )
         family = create_family( name, english_name );
         if (english_name)
         {
-            FontSubst *subst = HeapAlloc( GetProcessHeap(), 0, sizeof(*subst) );
+            FontSubst *subst = heap_alloc( sizeof(*subst) );
             subst->from.name = strdupW( english_name );
             subst->from.charset = -1;
             subst->to.name = strdupW( name );
@@ -1941,8 +1941,8 @@ static Family *get_family( FT_Face ft_face, BOOL vertical )
     }
     else
     {
-        HeapFree( GetProcessHeap(), 0, name );
-        HeapFree( GetProcessHeap(), 0, english_name );
+        heap_free( name );
+        heap_free( english_name );
         family->refcount++;
     }
 
@@ -2074,7 +2074,7 @@ static Face *create_face( FT_Face ft_face, FT_Long face_index, const char *file,
                           DWORD flags )
 {
     struct stat st;
-    Face *face = HeapAlloc( GetProcessHeap(), 0, sizeof(*face) );
+    Face *face = heap_alloc( sizeof(*face) );
 
     face->refcount = 1;
     face->StyleName = get_face_name( ft_face, TT_NAME_ID_FONT_SUBFAMILY, GetSystemDefaultLangID() );
@@ -2251,9 +2251,9 @@ static INT AddFontToList(const char *file, void *font_data_ptr, DWORD font_data_
             {
                 had_one = TRUE;
                 AddFontToList(*cursor, NULL, 0, flags);
-                HeapFree(GetProcessHeap(), 0, *cursor);
+                heap_free(*cursor);
             }
-            HeapFree(GetProcessHeap(), 0, mac_list);
+            heap_free(mac_list);
             if(had_one)
                 return 1;
         }
@@ -2339,7 +2339,7 @@ static BOOL map_font_family(const WCHAR *orig, const WCHAR *repl)
     Family *family = find_family_from_any_name(repl);
     if (family != NULL)
     {
-        Family *new_family = HeapAlloc(GetProcessHeap(), 0, sizeof(*new_family));
+        Family *new_family = heap_alloc(sizeof(*new_family));
         if (new_family != NULL)
         {
             TRACE("mapping %s to %s\n", debugstr_w(repl), debugstr_w(orig));
@@ -2381,8 +2381,8 @@ static void LoadReplaceList(void)
 			 &valuelen, &datalen, NULL, NULL);
 
 	valuelen++; /* returned value doesn't include room for '\0' */
-	value = HeapAlloc(GetProcessHeap(), 0, valuelen * sizeof(WCHAR));
-	data = HeapAlloc(GetProcessHeap(), 0, datalen);
+	value = heap_alloc(valuelen * sizeof(WCHAR));
+	data = heap_alloc(datalen);
 
 	dlen = datalen;
 	vlen = valuelen;
@@ -2411,8 +2411,8 @@ static void LoadReplaceList(void)
 	    dlen = datalen;
 	    vlen = valuelen;
 	}
-	HeapFree(GetProcessHeap(), 0, data);
-	HeapFree(GetProcessHeap(), 0, value);
+	heap_free(data);
+	heap_free(value);
 	RegCloseKey(hkey);
     }
 }
@@ -2495,7 +2495,7 @@ static void populate_system_links(const WCHAR *name, const WCHAR *const *values)
         font_link = find_font_link(name);
         if (font_link == NULL)
         {
-            font_link = HeapAlloc(GetProcessHeap(), 0, sizeof(*font_link));
+            font_link = heap_alloc(sizeof(*font_link));
             font_link->font_name = strdupW(name);
             list_init(&font_link->links);
             list_add_tail(&system_links, &font_link->entry);
@@ -2539,7 +2539,7 @@ static void populate_system_links(const WCHAR *name, const WCHAR *const *values)
                 continue;
             }
 
-            child_font = HeapAlloc(GetProcessHeap(), 0, sizeof(*child_font));
+            child_font = heap_alloc(sizeof(*child_font));
             child_font->face = face;
             child_font->font = NULL;
             font_link->fs.fsCsb[0] |= face->fs.fsCsb[0];
@@ -2576,8 +2576,8 @@ static BOOL init_system_links(void)
     if(RegOpenKeyW(HKEY_LOCAL_MACHINE, system_link, &hkey) == ERROR_SUCCESS)
     {
         RegQueryInfoKeyW(hkey, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &max_val, &max_data, NULL, NULL);
-        value = HeapAlloc(GetProcessHeap(), 0, (max_val + 1) * sizeof(WCHAR));
-        data = HeapAlloc(GetProcessHeap(), 0, max_data);
+        value = heap_alloc((max_val + 1) * sizeof(WCHAR));
+        data = heap_alloc(max_data);
         val_len = max_val + 1;
         data_len = max_data;
         index = 0;
@@ -2590,7 +2590,7 @@ static BOOL init_system_links(void)
                 TRACE("%s: SystemLink entry for substituted font, ignoring\n", debugstr_w(value));
                 goto next;
             }
-            font_link = HeapAlloc(GetProcessHeap(), 0, sizeof(*font_link));
+            font_link = heap_alloc(sizeof(*font_link));
             font_link->font_name = strdupW(value);
             memset(&font_link->fs, 0, sizeof font_link->fs);
             list_init(&font_link->links);
@@ -2621,7 +2621,7 @@ static BOOL init_system_links(void)
                     continue;
                 }
 
-                child_font = HeapAlloc(GetProcessHeap(), 0, sizeof(*child_font));
+                child_font = heap_alloc(sizeof(*child_font));
                 child_font->face = face;
                 child_font->font = NULL;
                 font_link->fs.fsCsb[0] |= face->fs.fsCsb[0];
@@ -2636,8 +2636,8 @@ static BOOL init_system_links(void)
             data_len = max_data;
         }
 
-        HeapFree(GetProcessHeap(), 0, value);
-        HeapFree(GetProcessHeap(), 0, data);
+        heap_free(value);
+        heap_free(data);
         RegCloseKey(hkey);
     }
 
@@ -2672,7 +2672,7 @@ skip_internal:
     /* Explicitly add an entry for the system font, this links to Tahoma and any links
        that Tahoma has */
 
-    system_font_link = HeapAlloc(GetProcessHeap(), 0, sizeof(*system_font_link));
+    system_font_link = heap_alloc(sizeof(*system_font_link));
     system_font_link->font_name = strdupW(System);
     memset(&system_font_link->fs, 0, sizeof system_font_link->fs);
     list_init(&system_font_link->links);    
@@ -2680,7 +2680,7 @@ skip_internal:
     face = find_face_from_filename(tahoma_ttf, Tahoma);
     if(face)
     {
-        child_font = HeapAlloc(GetProcessHeap(), 0, sizeof(*child_font));
+        child_font = heap_alloc(sizeof(*child_font));
         child_font->face = face;
         child_font->font = NULL;
         system_font_link->fs.fsCsb[0] |= face->fs.fsCsb[0];
@@ -2696,7 +2696,7 @@ skip_internal:
         LIST_FOR_EACH_ENTRY(font_link_entry, &font_link->links, CHILD_FONT, entry)
         {
             CHILD_FONT *new_child;
-            new_child = HeapAlloc(GetProcessHeap(), 0, sizeof(*new_child));
+            new_child = heap_alloc(sizeof(*new_child));
             new_child->face = font_link_entry->face;
             new_child->font = NULL;
             new_child->face->refcount++;
@@ -2875,13 +2875,13 @@ static void load_mac_font_callback(const void *value, void *context)
     char* path;
 
     len = CFStringGetMaximumSizeOfFileSystemRepresentation(pathStr);
-    path = HeapAlloc(GetProcessHeap(), 0, len);
+    path = heap_alloc(len);
     if (path && CFStringGetFileSystemRepresentation(pathStr, path, len))
     {
         TRACE("font file %s\n", path);
         AddFontToList(path, NULL, 0, ADDFONT_EXTERNAL_FONT | ADDFONT_ADD_TO_CACHE);
     }
-    HeapFree(GetProcessHeap(), 0, path);
+    heap_free(path);
 }
 
 static void load_mac_fonts(void)
@@ -2997,7 +2997,7 @@ static char *get_font_dir(void)
 
     if ((data_dir = wine_get_data_dir()))
     {
-        if (!(name = HeapAlloc( GetProcessHeap(), 0, strlen(data_dir) + 1 + sizeof(WINE_FONT_DIR) )))
+        if (!(name = heap_alloc( strlen(data_dir) + 1 + sizeof(WINE_FONT_DIR) )))
             return NULL;
         strcpy( name, data_dir );
         strcat( name, "/" );
@@ -3005,7 +3005,7 @@ static char *get_font_dir(void)
     }
     else if ((build_dir = wine_get_build_dir()))
     {
-        if (!(name = HeapAlloc( GetProcessHeap(), 0, strlen(build_dir) + sizeof("/fonts") )))
+        if (!(name = heap_alloc( strlen(build_dir) + sizeof("/fonts") )))
             return NULL;
         strcpy( name, build_dir );
         strcat( name, "/fonts" );
@@ -3022,12 +3022,12 @@ static char *get_data_dir_path( LPCWSTR file )
     {
         INT len = WideCharToMultiByte(CP_UNIXCP, 0, file, -1, NULL, 0, NULL, NULL);
 
-        unix_name = HeapAlloc(GetProcessHeap(), 0, strlen(font_dir) + len + 1 );
+        unix_name = heap_alloc(strlen(font_dir) + len + 1 );
         strcpy(unix_name, font_dir);
         strcat(unix_name, "/");
 
         WideCharToMultiByte(CP_UNIXCP, 0, file, -1, unix_name + strlen(unix_name), len, NULL, NULL);
-        HeapFree( GetProcessHeap(), 0, font_dir );
+        heap_free( font_dir );
     }
     return unix_name;
 }
@@ -3042,7 +3042,7 @@ static BOOL load_font_from_data_dir(LPCWSTR file)
         EnterCriticalSection( &freetype_cs );
         ret = AddFontToList(unix_name, NULL, 0, ADDFONT_ALLOW_BITMAP | ADDFONT_ADD_TO_CACHE);
         LeaveCriticalSection( &freetype_cs );
-        HeapFree(GetProcessHeap(), 0, unix_name);
+        heap_free(unix_name);
     }
     return ret;
 }
@@ -3080,7 +3080,7 @@ static void load_system_fonts(void)
                 sprintfW(pathW, fmtW, windowsdir, data);
                 if((unixname = wine_get_unix_file_name(pathW))) {
                     added = AddFontToList(unixname, NULL, 0, ADDFONT_ALLOW_BITMAP | ADDFONT_ADD_TO_CACHE);
-                    HeapFree(GetProcessHeap(), 0, unixname);
+                    heap_free(unixname);
                 }
                 if (!added)
                     load_font_from_data_dir(data);
@@ -3140,7 +3140,7 @@ static void update_reg_entries(void)
             if (face->scalable)
                 len += sizeof(TrueType) / sizeof(WCHAR);
 
-            valueW = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+            valueW = heap_alloc(len * sizeof(WCHAR));
             strcpyW(valueW, name);
 
             if (face->scalable)
@@ -3148,7 +3148,7 @@ static void update_reg_entries(void)
 
             buffer = strWtoA( CP_UNIXCP, face->file );
             path = wine_get_dos_file_name( buffer );
-            HeapFree( GetProcessHeap(), 0, buffer );
+            heap_free( buffer );
 
             if (path)
                 file = path;
@@ -3162,8 +3162,8 @@ static void update_reg_entries(void)
             RegSetValueExW(win9x_key, valueW, 0, REG_SZ, (BYTE*)file, len * sizeof(WCHAR));
             RegSetValueExW(external_key, valueW, 0, REG_SZ, (BYTE*)file, len * sizeof(WCHAR));
 
-            HeapFree(GetProcessHeap(), 0, path);
-            HeapFree(GetProcessHeap(), 0, valueW);
+            heap_free(path);
+            heap_free(valueW);
         }
     }
  end:
@@ -3202,9 +3202,9 @@ static void delete_external_font_keys(void)
     RegQueryInfoKeyW(external_key, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                      &valuelen, &datalen, NULL, NULL);
     valuelen++; /* returned value doesn't include room for '\0' */
-    valueW = HeapAlloc(GetProcessHeap(), 0, valuelen * sizeof(WCHAR));
-    data = HeapAlloc(GetProcessHeap(), 0, datalen);
-    path = HeapAlloc(GetProcessHeap(), 0, datalen);
+    valueW = heap_alloc(valuelen * sizeof(WCHAR));
+    data = heap_alloc(datalen);
+    path = heap_alloc(datalen);
 
     dlen = datalen;
     vlen = valuelen;
@@ -3225,9 +3225,9 @@ static void delete_external_font_keys(void)
         dlen = datalen;
         vlen = valuelen;
     }
-    HeapFree(GetProcessHeap(), 0, path);
-    HeapFree(GetProcessHeap(), 0, data);
-    HeapFree(GetProcessHeap(), 0, valueW);
+    heap_free(path);
+    heap_free(data);
+    heap_free(valueW);
 
     /* Delete the old external fonts key */
     RegCloseKey(external_key);
@@ -3260,20 +3260,20 @@ INT WineEngAddFontResourceEx(LPCWSTR file, DWORD flags, PVOID pdv)
 
             if(!(flags & FR_PRIVATE)) addfont_flags |= ADDFONT_ADD_TO_CACHE;
             ret = AddFontToList(unixname, NULL, 0, addfont_flags);
-            HeapFree(GetProcessHeap(), 0, unixname);
+            heap_free(unixname);
         }
         if (!ret && !strchrW(file, '\\')) {
             /* Try in %WINDIR%/fonts, needed for Fotobuch Designer */
             if ((unixname = get_winfonts_dir_path( file )))
             {
                 ret = AddFontToList(unixname, NULL, 0, ADDFONT_ALLOW_BITMAP | ADDFONT_ADD_RESOURCE);
-                HeapFree(GetProcessHeap(), 0, unixname);
+                heap_free(unixname);
             }
             /* Try in datadir/fonts (or builddir/fonts), needed for Magic the Gathering Online */
             if (!ret && (unixname = get_data_dir_path( file )))
             {
                 ret = AddFontToList(unixname, NULL, 0, ADDFONT_ALLOW_BITMAP | ADDFONT_ADD_RESOURCE);
-                HeapFree(GetProcessHeap(), 0, unixname);
+                heap_free(unixname);
             }
         }
 
@@ -3292,7 +3292,7 @@ HANDLE WineEngAddFontMemResourceEx(PVOID pbFont, DWORD cbFont, PVOID pdv, DWORD 
 
     if (ft_handle)  /* do it only if we have freetype up and running */
     {
-        PVOID pFontCopy = HeapAlloc(GetProcessHeap(), 0, cbFont);
+        PVOID pFontCopy = heap_alloc(cbFont);
 
         TRACE("Copying %d bytes of data from %p to %p\n", cbFont, pbFont, pFontCopy);
         memcpy(pFontCopy, pbFont, cbFont);
@@ -3304,7 +3304,7 @@ HANDLE WineEngAddFontMemResourceEx(PVOID pbFont, DWORD cbFont, PVOID pdv, DWORD 
         if (*pcFonts == 0)
         {
             TRACE("AddFontToList failed\n");
-            HeapFree(GetProcessHeap(), 0, pFontCopy);
+            heap_free(pFontCopy);
             return 0;
         }
         /* FIXME: is the handle only for use in RemoveFontMemResourceEx or should it be a true handle?
@@ -3340,19 +3340,19 @@ BOOL WineEngRemoveFontResourceEx(LPCWSTR file, DWORD flags, PVOID pdv)
 
             if(!(flags & FR_PRIVATE)) addfont_flags |= ADDFONT_ADD_TO_CACHE;
             ret = remove_font_resource( unixname, addfont_flags );
-            HeapFree(GetProcessHeap(), 0, unixname);
+            heap_free(unixname);
         }
         if (!ret && !strchrW(file, '\\'))
         {
             if ((unixname = get_winfonts_dir_path( file )))
             {
                 ret = remove_font_resource( unixname, ADDFONT_ALLOW_BITMAP | ADDFONT_ADD_RESOURCE );
-                HeapFree(GetProcessHeap(), 0, unixname);
+                heap_free(unixname);
             }
             if (!ret && (unixname = get_data_dir_path( file )))
             {
                 ret = remove_font_resource( unixname, ADDFONT_ALLOW_BITMAP | ADDFONT_ADD_RESOURCE );
-                HeapFree(GetProcessHeap(), 0, unixname);
+                heap_free(unixname);
             }
         }
 
@@ -3374,7 +3374,7 @@ static char *get_ttf_file_name( LPCWSTR font_file, LPCWSTR font_path )
     if (font_path && font_path[0])
     {
         int path_len = strlenW( font_path );
-        fullname = HeapAlloc( GetProcessHeap(), 0, (file_len + path_len + 2) * sizeof(WCHAR) );
+        fullname = heap_alloc( (file_len + path_len + 2) * sizeof(WCHAR) );
         if (!fullname) return NULL;
         memcpy( fullname, font_path, path_len * sizeof(WCHAR) );
         fullname[path_len] = '\\';
@@ -3384,13 +3384,13 @@ static char *get_ttf_file_name( LPCWSTR font_file, LPCWSTR font_path )
     {
         int len = GetFullPathNameW( font_file, 0, NULL, NULL );
         if (!len) return NULL;
-        fullname = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) );
+        fullname = heap_alloc( len * sizeof(WCHAR) );
         if (!fullname) return NULL;
         GetFullPathNameW( font_file, len, fullname, NULL );
     }
 
     unix_name = wine_get_unix_file_name( fullname );
-    HeapFree( GetProcessHeap(), 0, fullname );
+    heap_free( fullname );
     return unix_name;
 }
 
@@ -3451,8 +3451,8 @@ static BOOL get_fontdir( const char *unix_name, struct fontdir *fd )
 
     GetEnumStructs( face, name, &elf, &ntm, &type );
     release_face( face );
-    HeapFree( GetProcessHeap(), 0, name );
-    HeapFree( GetProcessHeap(), 0, english_name );
+    heap_free( name );
+    heap_free( english_name );
 
     if ((type & TRUETYPE_FONTTYPE) == 0) return FALSE;
 
@@ -3565,7 +3565,7 @@ static BOOL create_fot( const WCHAR *resource, const WCHAR *font_file, const str
        non-resident name is "FONTRES:" + lfFaceName */
 
     font_file_len = WideCharToMultiByte( CP_ACP, 0, font_file, -1, NULL, 0, NULL, NULL );
-    font_fileA = HeapAlloc( GetProcessHeap(), 0, font_file_len );
+    font_fileA = heap_alloc( font_file_len );
     WideCharToMultiByte( CP_ACP, 0, font_file, -1, font_fileA, font_file_len, NULL, NULL );
 
     last_part = strrchr( font_fileA, '\\' );
@@ -3592,11 +3592,11 @@ static BOOL create_fot( const WCHAR *resource, const WCHAR *font_file, const str
     rsrc_tab.fontdir_name.len  = (fontdir->dfSize + 0xf) >> 4;
 
     size = (rsrc_tab.fontdir_name.off + rsrc_tab.fontdir_name.len) << 4;
-    start = ptr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size );
+    start = ptr = heap_alloc_zero( size );
 
     if (!ptr)
     {
-        HeapFree( GetProcessHeap(), 0, font_fileA );
+        heap_free( font_fileA );
         return FALSE;
     }
 
@@ -3634,8 +3634,8 @@ static BOOL create_fot( const WCHAR *resource, const WCHAR *font_file, const str
         CloseHandle( file );
     }
 
-    HeapFree( GetProcessHeap(), 0, start );
-    HeapFree( GetProcessHeap(), 0, font_fileA );
+    heap_free( start );
+    heap_free( font_fileA );
 
     return ret;
 }
@@ -3659,7 +3659,7 @@ BOOL WineEngCreateScalableFontResource( DWORD hidden, LPCWSTR resource,
         ret = create_fot( resource, font_file, &fontdir );
     }
 
-    HeapFree( GetProcessHeap(), 0, unix_name );
+    heap_free( unix_name );
     return ret;
 }
 
@@ -4191,14 +4191,14 @@ static void init_font_list(void)
     if((unixname = wine_get_unix_file_name(windowsdir)))
     {
         ReadFontDir(unixname, FALSE);
-        HeapFree(GetProcessHeap(), 0, unixname);
+        heap_free(unixname);
     }
 
     /* load the wine fonts */
     if ((unixname = get_font_dir()))
     {
         ReadFontDir(unixname, TRUE);
-        HeapFree(GetProcessHeap(), 0, unixname);
+        heap_free(unixname);
     }
 
     /* now look under HKLM\Software\Microsoft\Windows[ NT]\CurrentVersion\Fonts
@@ -4214,8 +4214,8 @@ static void init_font_list(void)
                          &valuelen, &datalen, NULL, NULL);
 
         valuelen++; /* returned value doesn't include room for '\0' */
-        valueW = HeapAlloc(GetProcessHeap(), 0, valuelen * sizeof(WCHAR));
-        data = HeapAlloc(GetProcessHeap(), 0, datalen * sizeof(WCHAR));
+        valueW = heap_alloc(valuelen * sizeof(WCHAR));
+        data = heap_alloc(datalen * sizeof(WCHAR));
         if (valueW && data)
         {
             dlen = datalen * sizeof(WCHAR);
@@ -4228,7 +4228,7 @@ static void init_font_list(void)
                     if((unixname = wine_get_unix_file_name(data)))
                     {
                         AddFontToList(unixname, NULL, 0, ADDFONT_ALLOW_BITMAP | ADDFONT_ADD_TO_CACHE);
-                        HeapFree(GetProcessHeap(), 0, unixname);
+                        heap_free(unixname);
                     }
                 }
                 else if(dlen / 2 >= 6 && !strcmpiW(data + dlen / 2 - 5, dot_fonW))
@@ -4241,7 +4241,7 @@ static void init_font_list(void)
                     if((unixname = wine_get_unix_file_name(pathW)))
                     {
                         added = AddFontToList(unixname, NULL, 0, ADDFONT_ALLOW_BITMAP | ADDFONT_ADD_TO_CACHE);
-                        HeapFree(GetProcessHeap(), 0, unixname);
+                        heap_free(unixname);
                     }
                     if (!added)
                         load_font_from_data_dir(data);
@@ -4251,8 +4251,8 @@ static void init_font_list(void)
                 vlen = valuelen;
             }
         }
-        HeapFree(GetProcessHeap(), 0, data);
-        HeapFree(GetProcessHeap(), 0, valueW);
+        heap_free(data);
+        heap_free(valueW);
         RegCloseKey(hkey);
     }
 
@@ -4275,11 +4275,11 @@ static void init_font_list(void)
         if (RegQueryValueExW( hkey, pathW, NULL, NULL, NULL, &len ) == ERROR_SUCCESS)
         {
             len += sizeof(WCHAR);
-            valueW = HeapAlloc( GetProcessHeap(), 0, len );
+            valueW = heap_alloc( len );
             if (RegQueryValueExW( hkey, pathW, NULL, NULL, (LPBYTE)valueW, &len ) == ERROR_SUCCESS)
             {
                 len = WideCharToMultiByte( CP_UNIXCP, 0, valueW, -1, NULL, 0, NULL, NULL );
-                valueA = HeapAlloc( GetProcessHeap(), 0, len );
+                valueA = heap_alloc( len );
                 WideCharToMultiByte( CP_UNIXCP, 0, valueW, -1, valueA, len, NULL, NULL );
                 TRACE( "got font path %s\n", debugstr_a(valueA) );
                 ptr = valueA;
@@ -4289,20 +4289,20 @@ static void init_font_list(void)
                     LPSTR next = strchr( ptr, ':' );
                     if (next) *next++ = 0;
                     if (ptr[0] == '~' && ptr[1] == '/' && (home = getenv( "HOME" )) &&
-                        (unixname = HeapAlloc( GetProcessHeap(), 0, strlen(ptr) + strlen(home) )))
+                        (unixname = heap_alloc( strlen(ptr) + strlen(home) )))
                     {
                         strcpy( unixname, home );
                         strcat( unixname, ptr + 1 );
                         ReadFontDir( unixname, TRUE );
-                        HeapFree( GetProcessHeap(), 0, unixname );
+                        heap_free( unixname );
                     }
                     else
                         ReadFontDir( ptr, TRUE );
                     ptr = next;
                 }
-                HeapFree( GetProcessHeap(), 0, valueA );
+                heap_free( valueA );
             }
-            HeapFree( GetProcessHeap(), 0, valueW );
+            heap_free( valueW );
         }
         RegCloseKey(hkey);
     }
@@ -4484,7 +4484,7 @@ static struct font_mapping *map_font_file( const char *name )
             return mapping;
         }
     }
-    if (!(mapping = HeapAlloc( GetProcessHeap(), 0, sizeof(*mapping) )))
+    if (!(mapping = heap_alloc( sizeof(*mapping) )))
         goto error;
 
     mapping->data = mmap( NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0 );
@@ -4492,7 +4492,7 @@ static struct font_mapping *map_font_file( const char *name )
 
     if (mapping->data == MAP_FAILED)
     {
-        HeapFree( GetProcessHeap(), 0, mapping );
+        heap_free( mapping );
         return NULL;
     }
     mapping->refcount = 1;
@@ -4513,7 +4513,7 @@ static void unmap_font_file( struct font_mapping *mapping )
     {
         list_remove( &mapping->entry );
         munmap( mapping->data, mapping->size );
-        HeapFree( GetProcessHeap(), 0, mapping );
+        heap_free( mapping );
     }
 }
 
@@ -4532,7 +4532,7 @@ static FT_Face OpenFontFace(GdiFont *font, Face *face, LONG width, LONG height)
     {
         char *filename = strWtoA( CP_UNIXCP, face->file );
         font->mapping = map_font_file( filename );
-        HeapFree( GetProcessHeap(), 0, filename );
+        heap_free( filename );
         if (!font->mapping)
         {
             WARN("failed to map %s\n", debugstr_w(face->file));
@@ -4635,11 +4635,11 @@ static int get_nearest_charset(const WCHAR *family_name, Face *face, int *cp)
 
 static GdiFont *alloc_font(void)
 {
-    GdiFont *ret = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*ret));
+    GdiFont *ret = heap_alloc_zero(sizeof(*ret));
     ret->refcount = 1;
     ret->gmsize = 1;
-    ret->gm = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(GM*));
-    ret->gm[0] = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(GM) * GM_BLOCK_SIZE);
+    ret->gm = heap_alloc_zero(sizeof(GM*));
+    ret->gm[0] = heap_alloc_zero(sizeof(GM) * GM_BLOCK_SIZE);
     ret->potm = NULL;
     ret->font_desc.matrix.eM11 = ret->font_desc.matrix.eM22 = 1.0;
     ret->total_kern_pairs = (DWORD)-1;
@@ -4660,21 +4660,21 @@ static void free_font(GdiFont *font)
         if(child->font)
             free_font(child->font);
         release_face( child->face );
-        HeapFree(GetProcessHeap(), 0, child);
+        heap_free(child);
     }
 
-    HeapFree(GetProcessHeap(), 0, font->fileinfo);
+    heap_free(font->fileinfo);
     free_font_handle(font->instance_id);
     if (font->ft_face) pFT_Done_Face(font->ft_face);
     if (font->mapping) unmap_font_file( font->mapping );
-    HeapFree(GetProcessHeap(), 0, font->kern_pairs);
-    HeapFree(GetProcessHeap(), 0, font->potm);
-    HeapFree(GetProcessHeap(), 0, font->name);
+    heap_free(font->kern_pairs);
+    heap_free(font->potm);
+    heap_free(font->name);
     for (i = 0; i < font->gmsize; i++)
-        HeapFree(GetProcessHeap(),0,font->gm[i]);
-    HeapFree(GetProcessHeap(), 0, font->gm);
-    HeapFree(GetProcessHeap(), 0, font->GSUB_Table);
-    HeapFree(GetProcessHeap(), 0, font);
+        heap_free(font->gm[i]);
+    heap_free(font->gm);
+    heap_free(font->GSUB_Table);
+    heap_free(font);
 }
 
 
@@ -4816,7 +4816,7 @@ static LONG load_VDMX(GdiFont *font, LONG height)
 
 	TRACE("recs=%d  startsz=%d  endsz=%d\n", recs, startsz, endsz);
 
-	vTable = HeapAlloc(GetProcessHeap(), 0, recs * sizeof(VDMX_vTable));
+	vTable = heap_alloc(recs * sizeof(VDMX_vTable));
 	result = get_font_data(font, MS_VDMX_TAG, offset + sizeof(group), vTable, recs * sizeof(VDMX_vTable));
 	if(result == GDI_ERROR) {
 	    FIXME("Failed to retrieve vTable\n");
@@ -4878,7 +4878,7 @@ static LONG load_VDMX(GdiFont *font, LONG height)
 	    }
 	}
 	end:
-	HeapFree(GetProcessHeap(), 0, vTable);
+	heap_free(vTable);
     }
 
     return ppem;
@@ -5010,7 +5010,7 @@ static BOOL create_child_font_list(GdiFont *font)
         TRACE("found entry in system list\n");
         LIST_FOR_EACH_ENTRY(font_link_entry, &font_link->links, CHILD_FONT, entry)
         {
-            new_child = HeapAlloc(GetProcessHeap(), 0, sizeof(*new_child));
+            new_child = heap_alloc(sizeof(*new_child));
             new_child->face = font_link_entry->face;
             new_child->font = NULL;
             new_child->face->refcount++;
@@ -5033,7 +5033,7 @@ static BOOL create_child_font_list(GdiFont *font)
             TRACE("found entry in default fallback list\n");
             LIST_FOR_EACH_ENTRY(font_link_entry, &font_link->links, CHILD_FONT, entry)
             {
-                new_child = HeapAlloc(GetProcessHeap(), 0, sizeof(*new_child));
+                new_child = heap_alloc(sizeof(*new_child));
                 new_child->face = font_link_entry->face;
                 new_child->font = NULL;
                 new_child->face->refcount++;
@@ -5104,7 +5104,7 @@ static BOOL select_charmap(FT_Face ft_face, FT_Encoding encoding)
 static BOOL freetype_CreateDC( PHYSDEV *dev, LPCWSTR driver, LPCWSTR device,
                                LPCWSTR output, const DEVMODEW *devmode )
 {
-    struct freetype_physdev *physdev = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*physdev) );
+    struct freetype_physdev *physdev = heap_alloc_zero( sizeof(*physdev) );
 
     if (!physdev) return FALSE;
     push_dc_driver( dev, &physdev->dev, &freetype_funcs );
@@ -5119,7 +5119,7 @@ static BOOL freetype_DeleteDC( PHYSDEV dev )
 {
     struct freetype_physdev *physdev = get_freetype_dev( dev );
     release_font( physdev->font );
-    HeapFree( GetProcessHeap(), 0, physdev );
+    heap_free( physdev );
     return TRUE;
 }
 
@@ -5160,7 +5160,7 @@ static BOOL get_gasp_flags( GdiFont *font, WORD *flags )
     if (size < 4 * sizeof(WORD)) return FALSE;
     if (size > sizeof(buf))
     {
-        ptr = alloced = HeapAlloc( GetProcessHeap(), 0, size );
+        ptr = alloced = heap_alloc( size );
         if (!ptr) return FALSE;
     }
 
@@ -5185,7 +5185,7 @@ static BOOL get_gasp_flags( GdiFont *font, WORD *flags )
     ret = TRUE;
 
 done:
-    HeapFree( GetProcessHeap(), 0, alloced );
+    heap_free( alloced );
     return ret;
 }
 
@@ -5327,12 +5327,12 @@ static void fill_fileinfo_from_face( GdiFont *font, Face *face )
 
     if (!face->file)
     {
-        font->fileinfo = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*font->fileinfo));
+        font->fileinfo = heap_alloc_zero(sizeof(*font->fileinfo));
         return;
     }
 
     len = strlenW(face->file);
-    font->fileinfo = HeapAlloc(GetProcessHeap(), 0, sizeof(*font->fileinfo) + len * sizeof(WCHAR));
+    font->fileinfo = heap_alloc(sizeof(*font->fileinfo) + len * sizeof(WCHAR));
     if (GetFileAttributesExW(face->file, GetFileExInfoStandard, &info))
     {
         font->fileinfo->writetime = info.ftLastWriteTime;
@@ -5752,14 +5752,14 @@ found_face:
         int length = get_font_data(ret, MS_GSUB_TAG , 0, NULL, 0);
         if (length != GDI_ERROR)
         {
-            ret->GSUB_Table = HeapAlloc(GetProcessHeap(),0,length);
+            ret->GSUB_Table = heap_alloc(length);
             get_font_data(ret, MS_GSUB_TAG , 0, ret->GSUB_Table, length);
             TRACE("Loaded GSUB table of %i bytes\n",length);
             ret->vert_feature = get_GSUB_vert_feature(ret);
             if (!ret->vert_feature)
             {
                 TRACE("Vertical feature not found\n");
-                HeapFree(GetProcessHeap(), 0, ret->GSUB_Table);
+                heap_free(ret->GSUB_Table);
                 ret->GSUB_Table = NULL;
             }
         }
@@ -6014,7 +6014,7 @@ static void GetEnumStructs(Face *face, const WCHAR *family_name, LPENUMLOGFONTEX
     if(!(pntm->ntmTm.tmPitchAndFamily & TMPF_VECTOR))
         *ptype |= RASTER_FONTTYPE;
 
-    face->cached_enum_data = HeapAlloc(GetProcessHeap(), 0, sizeof(*face->cached_enum_data));
+    face->cached_enum_data = heap_alloc(sizeof(*face->cached_enum_data));
     if (face->cached_enum_data)
     {
         face->cached_enum_data->elf = *pelf;
@@ -6393,11 +6393,19 @@ static FT_UInt get_default_char_index(GdiFont *font)
 /*************************************************************
  * freetype_GetGlyphIndices
  */
+#if 0
 static DWORD freetype_GetGlyphIndices( PHYSDEV dev, LPCWSTR lpstr, INT count, LPWORD pgi, DWORD flags )
+#else
+static DWORD freetype_GetGlyphIndices( PHYSDEV dev, LPCWSTR lpstr, INT count, LPDWORD pgi, DWORD flags )
+#endif
 {
     struct freetype_physdev *physdev = get_freetype_dev( dev );
     int i;
+#if 0
     WORD default_char;
+#else
+    DWORD default_char;
+#endif
     BOOL got_default = FALSE;
 
     if (!physdev->font)
@@ -6408,7 +6416,7 @@ static DWORD freetype_GetGlyphIndices( PHYSDEV dev, LPCWSTR lpstr, INT count, LP
 
     if (flags & GGI_MARK_NONEXISTING_GLYPHS)
     {
-        default_char = 0xffff;  /* XP would use 0x1f for bitmap fonts */
+        default_char = ~0;  /* XP would use 0x1f for bitmap fonts */
         got_default = TRUE;
     }
 
@@ -6850,7 +6858,7 @@ static DWORD get_glyph_outline(GdiFont *incoming_font, UINT glyph, UINT format,
     }
 
     if (!font->gm[original_index / GM_BLOCK_SIZE])
-        font->gm[original_index / GM_BLOCK_SIZE] = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY, sizeof(GM) * GM_BLOCK_SIZE);
+        font->gm[original_index / GM_BLOCK_SIZE] = heap_alloc_zero( sizeof(GM) * GM_BLOCK_SIZE);
 
     /* Scaling factor */
     if (font->aveWidth)
@@ -7472,7 +7480,7 @@ static BOOL get_bitmap_text_metrics(GdiFont *font)
     FT_Face ft_face = font->ft_face;
     FT_WinFNT_HeaderRec winfnt_header;
     const DWORD size = offsetof(OUTLINETEXTMETRICW, otmFiller); 
-    font->potm = HeapAlloc(GetProcessHeap(), 0, size);
+    font->potm = heap_alloc(size);
     font->potm->otmSize = size;
 
 #define TM font->potm->otmTextMetrics
@@ -7743,7 +7751,7 @@ static BOOL get_outline_text_metrics(GdiFont *font)
 	  pHori->Ascender, pHori->Descender, pHori->Line_Gap,
 	  ft_face->bbox.yMax, ft_face->bbox.yMin);
 
-    font->potm = HeapAlloc(GetProcessHeap(), 0, needed);
+    font->potm = heap_alloc(needed);
     font->potm->otmSize = needed;
 
 #define TM font->potm->otmTextMetrics
@@ -7978,10 +7986,10 @@ static BOOL get_outline_text_metrics(GdiFont *font)
     ret = TRUE;
 
 end:
-    HeapFree(GetProcessHeap(), 0, style_nameW);
-    HeapFree(GetProcessHeap(), 0, family_nameW);
-    HeapFree(GetProcessHeap(), 0, face_nameW);
-    HeapFree(GetProcessHeap(), 0, full_nameW);
+    heap_free(style_nameW);
+    heap_free(family_nameW);
+    heap_free(face_nameW);
+    heap_free(full_nameW);
     return ret;
 }
 
@@ -8665,7 +8673,7 @@ static DWORD freetype_GetKerningPairs( PHYSDEV dev, DWORD cPairs, KERNINGPAIR *k
         return 0;
     }
 
-    buf = HeapAlloc(GetProcessHeap(), 0, length);
+    buf = heap_alloc(length);
     if (!buf)
     {
         WARN("Out of memory\n");
@@ -8676,11 +8684,11 @@ static DWORD freetype_GetKerningPairs( PHYSDEV dev, DWORD cPairs, KERNINGPAIR *k
     get_font_data(font, MS_KERN_TAG, 0, buf, length);
 
     /* build a glyph index to char code map */
-    glyph_to_char = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(USHORT) * 65536);
+    glyph_to_char = heap_alloc_zero(sizeof(USHORT) * 65536);
     if (!glyph_to_char)
     {
         WARN("Out of memory allocating a glyph index to char code map\n");
-        HeapFree(GetProcessHeap(), 0, buf);
+        heap_free(buf);
         LeaveCriticalSection( &freetype_cs );
         return 0;
     }
@@ -8754,7 +8762,7 @@ static DWORD freetype_GetKerningPairs( PHYSDEV dev, DWORD cPairs, KERNINGPAIR *k
                 font->kern_pairs = HeapAlloc(GetProcessHeap(), 0,
                                              font->total_kern_pairs * sizeof(*font->kern_pairs));
             else
-                font->kern_pairs = HeapReAlloc(GetProcessHeap(), 0, font->kern_pairs,
+                font->kern_pairs = heap_realloc(font->kern_pairs,
                                                font->total_kern_pairs * sizeof(*font->kern_pairs));
 
             parse_format0_kern_subtable(font, (const struct TT_format0_kern_subtable *)(tt_kern_subtable + 1),
@@ -8766,8 +8774,8 @@ static DWORD freetype_GetKerningPairs( PHYSDEV dev, DWORD cPairs, KERNINGPAIR *k
         tt_kern_subtable = (const struct TT_kern_subtable *)((const char *)tt_kern_subtable + tt_kern_subtable_copy.length);
     }
 
-    HeapFree(GetProcessHeap(), 0, glyph_to_char);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(glyph_to_char);
+    heap_free(buf);
 
     if (cPairs && kern_pair)
     {

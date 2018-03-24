@@ -22,9 +22,14 @@
 #include "wine/port.h"
 
 #include <string.h>
+#ifdef HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+#include <limits.h>
+#include <semaphore.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -40,6 +45,7 @@
 #include "winioctl.h"
 #include "ddk/wdm.h"
 
+#include "wine/heap.h"
 #include "wine/library.h"
 #include "wine/unicode.h"
 #include "kernel_private.h"
@@ -70,7 +76,11 @@ static HANDLE get_BaseNamedObjects_handle(void)
     {
         HANDLE dir;
 
+#if 0
         sprintfW( buffer, basenameW, NtCurrentTeb()->Peb->SessionId );
+#else
+        sprintfW( buffer, basenameW, getsid(0) );
+#endif
         RtlInitUnicodeString( &str, buffer );
         InitializeObjectAttributes(&attr, &str, 0, 0, NULL);
         NtOpenDirectoryObject(&dir, DIRECTORY_CREATE_OBJECT|DIRECTORY_TRAVERSE,
@@ -136,12 +146,17 @@ VOID WINAPI DECLSPEC_HOTPATCH Sleep( DWORD timeout )
  */
 DWORD WINAPI SleepEx( DWORD timeout, BOOL alertable )
 {
+#if 0
     NTSTATUS status;
     LARGE_INTEGER time;
 
     status = NtDelayExecution( alertable, get_nt_timeout( &time, timeout ) );
     if (status == STATUS_USER_APC) return WAIT_IO_COMPLETION;
     return 0;
+#else
+    usleep(timeout * 1000);
+    return 0;
+#endif
 }
 
 
@@ -182,6 +197,7 @@ DWORD WINAPI WaitForMultipleObjects( DWORD count, const HANDLE *handles,
     return WaitForMultipleObjectsEx( count, handles, wait_all, timeout, FALSE );
 }
 
+#if 0
 static HANDLE normalize_handle_if_console(HANDLE handle)
 {
     if ((handle == (HANDLE)STD_INPUT_HANDLE) ||
@@ -199,6 +215,7 @@ static HANDLE normalize_handle_if_console(HANDLE handle)
     }
     return handle;
 }
+#endif
 
 /***********************************************************************
  *           WaitForMultipleObjectsEx   (KERNEL32.@)
@@ -217,6 +234,7 @@ DWORD WINAPI WaitForMultipleObjectsEx( DWORD count, const HANDLE *handles,
         SetLastError(ERROR_INVALID_PARAMETER);
         return WAIT_FAILED;
     }
+#if 0
     for (i = 0; i < count; i++)
         hloc[i] = normalize_handle_if_console(handles[i]);
 
@@ -229,6 +247,10 @@ DWORD WINAPI WaitForMultipleObjectsEx( DWORD count, const HANDLE *handles,
         status = WAIT_FAILED;
     }
     return status;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return WAIT_FAILED;
+#endif
 }
 
 
@@ -244,6 +266,7 @@ BOOL WINAPI RegisterWaitForSingleObject(PHANDLE phNewWaitObject, HANDLE hObject,
     TRACE("%p %p %p %p %d %d\n",
           phNewWaitObject,hObject,Callback,Context,dwMilliseconds,dwFlags);
 
+#if 0
     hObject = normalize_handle_if_console(hObject);
     status = RtlRegisterWait( phNewWaitObject, hObject, Callback, Context, dwMilliseconds, dwFlags );
     if (status != STATUS_SUCCESS)
@@ -252,6 +275,10 @@ BOOL WINAPI RegisterWaitForSingleObject(PHANDLE phNewWaitObject, HANDLE hObject,
         return FALSE;
     }
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -267,6 +294,7 @@ HANDLE WINAPI RegisterWaitForSingleObjectEx( HANDLE hObject,
     TRACE("%p %p %p %d %d\n",
           hObject,Callback,Context,dwMilliseconds,dwFlags);
 
+#if 0
     hObject = normalize_handle_if_console(hObject);
     status = RtlRegisterWait( &hNewWaitObject, hObject, Callback, Context, dwMilliseconds, dwFlags );
     if (status != STATUS_SUCCESS)
@@ -275,12 +303,16 @@ HANDLE WINAPI RegisterWaitForSingleObjectEx( HANDLE hObject,
         return NULL;
     }
     return hNewWaitObject;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return NULL;
+#endif
 }
 
 /***********************************************************************
  *           UnregisterWait   (KERNEL32.@)
  */
-BOOL WINAPI UnregisterWait( HANDLE WaitHandle ) 
+BOOL WINAPI UnregisterWait( HANDLE WaitHandle )
 {
     NTSTATUS status;
 
@@ -298,7 +330,7 @@ BOOL WINAPI UnregisterWait( HANDLE WaitHandle )
 /***********************************************************************
  *           UnregisterWaitEx   (KERNEL32.@)
  */
-BOOL WINAPI UnregisterWaitEx( HANDLE WaitHandle, HANDLE CompletionEvent ) 
+BOOL WINAPI UnregisterWaitEx( HANDLE WaitHandle, HANDLE CompletionEvent )
 {
     NTSTATUS status;
 
@@ -400,12 +432,14 @@ BOOL WINAPI InitializeCriticalSectionEx( CRITICAL_SECTION *crit, DWORD spincount
  */
 void WINAPI MakeCriticalSectionGlobal( CRITICAL_SECTION *crit )
 {
+#if 0
     /* let's assume that only one thread at a time will try to do this */
     HANDLE sem = crit->LockSemaphore;
     if (!sem) NtCreateSemaphore( &sem, SEMAPHORE_ALL_ACCESS, NULL, 0, 1 );
     crit->LockSemaphore = ConvertToGlobalHandle( sem );
-    RtlFreeHeap( GetProcessHeap(), 0, crit->DebugInfo );
+    heap_free( crit->DebugInfo );
     crit->DebugInfo = NULL;
+#endif
 }
 
 
@@ -423,7 +457,11 @@ void WINAPI MakeCriticalSectionGlobal( CRITICAL_SECTION *crit )
 void WINAPI ReinitializeCriticalSection( CRITICAL_SECTION *crit )
 {
     if ( !crit->LockSemaphore )
+#if 0
         RtlInitializeCriticalSection( crit );
+#else
+        InitializeCriticalSection( crit );
+#endif
 }
 
 
@@ -440,7 +478,473 @@ void WINAPI ReinitializeCriticalSection( CRITICAL_SECTION *crit )
  */
 void WINAPI UninitializeCriticalSection( CRITICAL_SECTION *crit )
 {
+#if 0
     RtlDeleteCriticalSection( crit );
+#else
+    DeleteCriticalSection( crit );
+#endif
+}
+
+
+static inline LONG interlocked_inc( PLONG dest )
+{
+    return interlocked_xchg_add( dest, 1 ) + 1;
+}
+
+static inline LONG interlocked_dec( PLONG dest )
+{
+    return interlocked_xchg_add( dest, -1 ) - 1;
+}
+
+static inline void small_pause(void)
+{
+#ifdef __i386__
+    __asm__ __volatile__( "rep;nop" : : : "memory" );
+#else
+    __asm__ __volatile__( "" : : : "memory" );
+#endif
+}
+
+#ifdef __linux__
+
+static int wait_op = 128; /*FUTEX_WAIT|FUTEX_PRIVATE_FLAG*/
+static int wake_op = 129; /*FUTEX_WAKE|FUTEX_PRIVATE_FLAG*/
+
+static inline int futex_wait( int *addr, int val, struct timespec *timeout )
+{
+    return syscall( __NR_futex, addr, wait_op, val, timeout, 0, 0 );
+}
+
+static inline int futex_wake( int *addr, int val )
+{
+    return syscall( __NR_futex, addr, wake_op, val, NULL, 0, 0 );
+}
+
+static inline int use_futexes(void)
+{
+    static int supported = -1;
+
+    if (supported == -1)
+    {
+        futex_wait( &supported, 10, NULL );
+        if (errno == ENOSYS)
+        {
+            wait_op = 0; /*FUTEX_WAIT*/
+            wake_op = 1; /*FUTEX_WAKE*/
+            futex_wait( &supported, 10, NULL );
+        }
+        supported = (errno != ENOSYS);
+    }
+    return supported;
+}
+
+static inline NTSTATUS fast_wait( CRITICAL_SECTION *crit, int timeout )
+{
+    int val;
+    struct timespec timespec;
+
+    if (!use_futexes()) return STATUS_NOT_IMPLEMENTED;
+
+    timespec.tv_sec  = timeout;
+    timespec.tv_nsec = 0;
+    while ((val = interlocked_cmpxchg( (int *)&crit->LockSemaphore, 0, 1 )) != 1)
+    {
+        /* note: this may wait longer than specified in case of signals or */
+        /*       multiple wake-ups, but that shouldn't be a problem */
+        if (futex_wait( (int *)&crit->LockSemaphore, val, &timespec ) == -1 && errno == ETIMEDOUT)
+            return STATUS_TIMEOUT;
+    }
+    return STATUS_WAIT_0;
+}
+
+static inline NTSTATUS fast_wake( CRITICAL_SECTION *crit )
+{
+    if (!use_futexes()) return STATUS_NOT_IMPLEMENTED;
+
+    *(int *)&crit->LockSemaphore = 1;
+    futex_wake( (int *)&crit->LockSemaphore, 1 );
+    return STATUS_SUCCESS;
+}
+
+static inline void close_semaphore( CRITICAL_SECTION *crit )
+{
+    if (!use_futexes()) CloseHandle( crit->LockSemaphore );
+}
+
+#elif defined(__APPLE__)
+
+#include <mach/mach.h>
+#include <mach/task.h>
+#include <mach/semaphore.h>
+
+static inline semaphore_t get_mach_semaphore( CRITICAL_SECTION *crit )
+{
+    semaphore_t ret = *(int *)&crit->LockSemaphore;
+    if (!ret)
+    {
+        semaphore_t sem;
+        if (semaphore_create( mach_task_self(), &sem, SYNC_POLICY_FIFO, 0 )) return 0;
+        if (!(ret = interlocked_cmpxchg( (int *)&crit->LockSemaphore, sem, 0 )))
+            ret = sem;
+        else
+            semaphore_destroy( mach_task_self(), sem );  /* somebody beat us to it */
+    }
+    return ret;
+}
+
+static inline NTSTATUS fast_wait( CRITICAL_SECTION *crit, int timeout )
+{
+    mach_timespec_t timespec;
+    semaphore_t sem = get_mach_semaphore( crit );
+
+    timespec.tv_sec = timeout;
+    timespec.tv_nsec = 0;
+    for (;;)
+    {
+        switch( semaphore_timedwait( sem, timespec ))
+        {
+        case KERN_SUCCESS:
+            return STATUS_WAIT_0;
+        case KERN_ABORTED:
+            continue;  /* got a signal, restart */
+        case KERN_OPERATION_TIMED_OUT:
+            return STATUS_TIMEOUT;
+        default:
+            return STATUS_INVALID_HANDLE;
+        }
+    }
+}
+
+static inline NTSTATUS fast_wake( CRITICAL_SECTION *crit )
+{
+    semaphore_t sem = get_mach_semaphore( crit );
+    semaphore_signal( sem );
+    return STATUS_SUCCESS;
+}
+
+static inline void close_semaphore( CRITICAL_SECTION *crit )
+{
+    semaphore_destroy( mach_task_self(), *(int *)&crit->LockSemaphore );
+}
+
+#else  /* __APPLE__ */
+
+static inline NTSTATUS fast_wait( CRITICAL_SECTION *crit, int timeout )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static inline NTSTATUS fast_wake( CRITICAL_SECTION *crit )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static inline void close_semaphore( CRITICAL_SECTION *crit )
+{
+    NtClose( crit->LockSemaphore );
+}
+
+#endif
+
+/***********************************************************************
+ *           get_semaphore
+ */
+static inline HANDLE get_semaphore( CRITICAL_SECTION *crit )
+{
+    HANDLE ret = crit->LockSemaphore;
+    if (!ret)
+    {
+        HANDLE sem;
+#if 0
+        if (NtCreateSemaphore( &sem, SEMAPHORE_ALL_ACCESS, NULL, 0, 1 )) return 0;
+#else
+        SECURITY_ATTRIBUTES sa;
+        sa.nLength = sizeof(sa);
+        if (!(sem = CreateSemaphoreA( SEMAPHORE_ALL_ACCESS, 0, 1, NULL ))) return 0;
+#endif
+        if (!(ret = interlocked_cmpxchg_ptr( &crit->LockSemaphore, sem, 0 )))
+            ret = sem;
+        else
+            CloseHandle(sem);  /* somebody beat us to it */
+    }
+    return ret;
+}
+
+/***********************************************************************
+ *           RtlpUnWaitCriticalSection   (NTDLL.@)
+ *
+ * Notifies other threads waiting on the busy critical section that it has
+ * become free.
+ * 
+ * PARAMS
+ *  crit [I/O] Critical section
+ *
+ * RETURNS
+ *  Success: STATUS_SUCCESS.
+ *  Failure: Any error returned by ReleaseSemaphore()
+ *
+ * NOTES
+ *  Use LeaveCriticalSection() instead of this function as it is often much
+ *  faster.
+ *
+ * SEE
+ *  InitializeCriticalSectionEx(),
+ *  InitializeCriticalSection(), InitializeCriticalSectionAndSpinCount(),
+ *  DeleteCriticalSection(), EnterCriticalSection(),
+ *  LeaveCriticalSection(), TryEnterCriticalSection()
+ */
+static NTSTATUS WINAPI SYNC_UnWaitCriticalSection( CRITICAL_SECTION *crit )
+{
+    NTSTATUS ret;
+
+    /* debug info is cleared by MakeCriticalSectionGlobal */
+    if (!crit->DebugInfo || ((ret = fast_wake( crit )) == STATUS_NOT_IMPLEMENTED))
+    {
+        HANDLE sem = get_semaphore( crit );
+        ret = ReleaseSemaphore( sem, 1, NULL );
+    }
+#if 0
+    if (ret) RtlRaiseStatus( ret );
+#endif
+    return ret;
+}
+
+/***********************************************************************
+ *           RtlpWaitForCriticalSection   (NTDLL.@)
+ *
+ * Waits for a busy critical section to become free.
+ * 
+ * PARAMS
+ *  crit [I/O] Critical section to wait for
+ *
+ * RETURNS
+ *  STATUS_SUCCESS.
+ *
+ * NOTES
+ *  Use EnterCriticalSection() instead of this function as it is often much
+ *  faster.
+ *
+ * SEE
+ *  InitializeCriticalSectionEx(),
+ *  InitializeCriticalSection(), InitializeCriticalSectionAndSpinCount(),
+ *  DeleteCriticalSection(), EnterCriticalSection(),
+ *  LeaveCriticalSection(), TryEnterCriticalSection()
+ */
+static NTSTATUS WINAPI SYNC_WaitForCriticalSection( CRITICAL_SECTION *crit )
+{
+#if 0
+    LONGLONG timeout = NtCurrentTeb()->Peb->CriticalSectionTimeout.QuadPart / -10000000;
+    for (;;)
+    {
+        EXCEPTION_RECORD rec;
+        NTSTATUS status = wait_semaphore( crit, 5 );
+        timeout -= 5;
+
+        if ( status == STATUS_TIMEOUT )
+        {
+            const char *name = NULL;
+            if (crit->DebugInfo) name = (char *)crit->DebugInfo->Spare[0];
+            if (!name) name = "?";
+            ERR( "section %p %s wait timed out in thread %04x, blocked by %04x, retrying (60 sec)\n",
+                 crit, debugstr_a(name), GetCurrentThreadId(), HandleToULong(crit->OwningThread) );
+            status = wait_semaphore( crit, 60 );
+            timeout -= 60;
+
+            if ( status == STATUS_TIMEOUT && TRACE_ON(relay) )
+            {
+                ERR( "section %p %s wait timed out in thread %04x, blocked by %04x, retrying (5 min)\n",
+                     crit, debugstr_a(name), GetCurrentThreadId(), HandleToULong(crit->OwningThread) );
+                status = wait_semaphore( crit, 300 );
+                timeout -= 300;
+            }
+        }
+        if (status == STATUS_WAIT_0) break;
+
+        /* Throw exception only for Wine internal locks */
+        if ((!crit->DebugInfo) || (!crit->DebugInfo->Spare[0])) continue;
+
+        /* only throw deadlock exception if configured timeout is reached */
+        if (timeout > 0) continue;
+
+        rec.ExceptionCode    = STATUS_POSSIBLE_DEADLOCK;
+        rec.ExceptionFlags   = 0;
+        rec.ExceptionRecord  = NULL;
+        rec.ExceptionAddress = RtlRaiseException;  /* sic */
+        rec.NumberParameters = 1;
+        rec.ExceptionInformation[0] = (ULONG_PTR)crit;
+        RtlRaiseException( &rec );
+    }
+    if (crit->DebugInfo) crit->DebugInfo->ContentionCount++;
+    return STATUS_SUCCESS;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
+}
+
+/***********************************************************************
+ *           EnterCriticalSection   (KERNEL32.@)
+ *
+ * Enters a critical section, waiting for it to become available if necessary.
+ *
+ * PARAMS
+ *  crit [I/O] Critical section to enter
+ *
+ * RETURNS
+ *  Nothing.
+ *  
+ * SEE
+ *  InitializeCriticalSectionEx(),
+ *  InitializeCriticalSection(), InitializeCriticalSectionAndSpinCount(),
+ *  DeleteCriticalSection(), SetCriticalSectionSpinCount(),
+ *  LeaveCriticalSection(), TryEnterCriticalSection()
+ */
+WINBASEAPI void WINAPI EnterCriticalSection( CRITICAL_SECTION *crit )
+{
+    if (crit->SpinCount)
+    {
+        ULONG count;
+
+        if (TryEnterCriticalSection( crit )) return;
+        for (count = crit->SpinCount; count > 0; count--)
+        {
+            if (crit->LockCount > 0) break;  /* more than one waiter, don't bother spinning */
+            if (crit->LockCount == -1)       /* try again */
+            {
+                if (interlocked_cmpxchg( &crit->LockCount, 0, -1 ) == -1) goto done;
+            }
+            small_pause();
+        }
+    }
+
+    if (interlocked_inc( &crit->LockCount ))
+    {
+        if (crit->OwningThread == ULongToHandle(GetCurrentThreadId()))
+        {
+            crit->RecursionCount++;
+            return;
+        }
+
+        /* Now wait for it */
+        SYNC_WaitForCriticalSection( crit );
+    }
+done:
+    crit->OwningThread   = ULongToHandle(GetCurrentThreadId());
+    crit->RecursionCount = 1;
+    return;
+}
+
+
+/***********************************************************************
+ *           TryEnterCriticalSection   (KERNEL32.@)
+ *
+ * Tries to enter a critical section without waiting.
+ *
+ * PARAMS
+ *  crit [I/O] Critical section to enter
+ *
+ * RETURNS
+ *  Success: TRUE. The critical section is held by the caller.
+ *  Failure: FALSE. The critical section is currently held by another thread.
+ *
+ * SEE
+ *  InitializeCriticalSectionEx(),
+ *  InitializeCriticalSection(), InitializeCriticalSectionAndSpinCount(),
+ *  DeleteCriticalSection(), EnterCriticalSection(),
+ *  LeaveCriticalSection(), SetCriticalSectionSpinCount()
+ */
+WINBASEAPI BOOL WINAPI TryEnterCriticalSection( CRITICAL_SECTION *crit )
+{
+    BOOL ret = FALSE;
+    if (interlocked_cmpxchg( &crit->LockCount, 0, -1 ) == -1)
+    {
+        crit->OwningThread   = ULongToHandle(GetCurrentThreadId());
+        crit->RecursionCount = 1;
+        ret = TRUE;
+    }
+    else if (crit->OwningThread == ULongToHandle(GetCurrentThreadId()))
+    {
+        interlocked_inc( &crit->LockCount );
+        crit->RecursionCount++;
+        ret = TRUE;
+    }
+    return ret;
+}
+
+
+/***********************************************************************
+ *           LeaveCriticalSection   (KERNEL32.@)
+ *
+ * Leaves a critical section.
+ *
+ * PARAMS
+ *  crit [I/O] Critical section to leave.
+ *
+ * RETURNS
+ *  Nothing.
+ *
+ * SEE
+ *  InitializeCriticalSectionEx(),
+ *  InitializeCriticalSection(), InitializeCriticalSectionAndSpinCount(),
+ *  DeleteCriticalSection(), EnterCriticalSection(),
+ *  SetCriticalSectionSpinCount(), TryEnterCriticalSection()
+ */
+WINBASEAPI void WINAPI LeaveCriticalSection( CRITICAL_SECTION *crit )
+{
+    if (--crit->RecursionCount)
+    {
+        if (crit->RecursionCount > 0) interlocked_dec( &crit->LockCount );
+        else ERR( "section %p is not acquired\n", crit );
+    }
+    else
+    {
+        crit->OwningThread = 0;
+        if (interlocked_dec( &crit->LockCount ) >= 0)
+        {
+            /* someone is waiting */
+#if 0
+            RtlpUnWaitCriticalSection( crit );
+#else
+            SYNC_UnWaitCriticalSection( crit );
+#endif
+        }
+    }
+}
+
+
+/***********************************************************************
+ *           DeleteCriticalSection   (KERNEL32.@)
+ *
+ * Frees the resources used by a critical section.
+ *
+ * PARAMS
+ *  crit [I/O] Critical section to free
+ *
+ * RETURNS
+ *  Nothing.
+ *
+ * SEE
+ *  InitializeCriticalSectionEx(),
+ *  InitializeCriticalSection(), InitializeCriticalSectionAndSpinCount(),
+ *  DeleteCriticalSection(), EnterCriticalSection(),
+ *  LeaveCriticalSection(), TryEnterCriticalSection()
+ */
+WINBASEAPI void WINAPI DeleteCriticalSection( CRITICAL_SECTION *crit )
+{
+    crit->LockCount      = -1;
+    crit->RecursionCount = 0;
+    crit->OwningThread   = 0;
+    if (crit->DebugInfo)
+    {
+        /* only free the ones we made in here */
+        if (!crit->DebugInfo->Spare[0])
+        {
+            free( crit->DebugInfo );
+            crit->DebugInfo = NULL;
+        }
+        close_semaphore( crit );
+    }
+    else CloseHandle( crit->LockSemaphore );
+    crit->LockSemaphore = 0;
 }
 
 
@@ -546,6 +1050,7 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenEventA( DWORD access, BOOL inherit, LPCSTR n
  */
 HANDLE WINAPI DECLSPEC_HOTPATCH OpenEventW( DWORD access, BOOL inherit, LPCWSTR name )
 {
+#if 0
     HANDLE ret;
     UNICODE_STRING nameW;
     OBJECT_ATTRIBUTES attr;
@@ -564,6 +1069,10 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenEventW( DWORD access, BOOL inherit, LPCWSTR 
         return 0;
     }
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 /***********************************************************************
@@ -571,11 +1080,16 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenEventW( DWORD access, BOOL inherit, LPCWSTR 
  */
 BOOL WINAPI DECLSPEC_HOTPATCH PulseEvent( HANDLE handle )
 {
+#if 0
     NTSTATUS status;
 
     if ((status = NtPulseEvent( handle, NULL )))
         SetLastError( RtlNtStatusToDosError(status) );
     return !status;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -584,11 +1098,16 @@ BOOL WINAPI DECLSPEC_HOTPATCH PulseEvent( HANDLE handle )
  */
 BOOL WINAPI DECLSPEC_HOTPATCH SetEvent( HANDLE handle )
 {
+#if 0
     NTSTATUS status;
 
     if ((status = NtSetEvent( handle, NULL )))
         SetLastError( RtlNtStatusToDosError(status) );
     return !status;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -597,11 +1116,16 @@ BOOL WINAPI DECLSPEC_HOTPATCH SetEvent( HANDLE handle )
  */
 BOOL WINAPI DECLSPEC_HOTPATCH ResetEvent( HANDLE handle )
 {
+#if 0
     NTSTATUS status;
 
     if ((status = NtResetEvent( handle, NULL )))
         SetLastError( RtlNtStatusToDosError(status) );
     return !status;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -628,6 +1152,7 @@ HANDLE WINAPI DECLSPEC_HOTPATCH CreateMutexW( SECURITY_ATTRIBUTES *sa, BOOL owne
  */
 HANDLE WINAPI DECLSPEC_HOTPATCH CreateMutexExA( SECURITY_ATTRIBUTES *sa, LPCSTR name, DWORD flags, DWORD access )
 {
+#if 0
     ANSI_STRING nameA;
     NTSTATUS status;
 
@@ -641,6 +1166,10 @@ HANDLE WINAPI DECLSPEC_HOTPATCH CreateMutexExA( SECURITY_ATTRIBUTES *sa, LPCSTR 
         return 0;
     }
     return CreateMutexExW( sa, NtCurrentTeb()->StaticUnicodeString.Buffer, flags, access );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return NULL;
+#endif
 }
 
 
@@ -650,6 +1179,7 @@ HANDLE WINAPI DECLSPEC_HOTPATCH CreateMutexExA( SECURITY_ATTRIBUTES *sa, LPCSTR 
 HANDLE WINAPI DECLSPEC_HOTPATCH CreateMutexExW( SECURITY_ATTRIBUTES *sa, LPCWSTR name, DWORD flags, DWORD access )
 {
     HANDLE ret = 0;
+#if 0
     UNICODE_STRING nameW;
     OBJECT_ATTRIBUTES attr;
     NTSTATUS status;
@@ -661,6 +1191,9 @@ HANDLE WINAPI DECLSPEC_HOTPATCH CreateMutexExW( SECURITY_ATTRIBUTES *sa, LPCWSTR
         SetLastError( ERROR_ALREADY_EXISTS );
     else
         SetLastError( RtlNtStatusToDosError(status) );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return ret;
 }
 
@@ -688,6 +1221,7 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenMutexA( DWORD access, BOOL inherit, LPCSTR n
  */
 HANDLE WINAPI DECLSPEC_HOTPATCH OpenMutexW( DWORD access, BOOL inherit, LPCWSTR name )
 {
+#if 0
     HANDLE ret;
     UNICODE_STRING nameW;
     OBJECT_ATTRIBUTES attr;
@@ -706,6 +1240,10 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenMutexW( DWORD access, BOOL inherit, LPCWSTR 
         return 0;
     }
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
@@ -714,6 +1252,7 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenMutexW( DWORD access, BOOL inherit, LPCWSTR 
  */
 BOOL WINAPI DECLSPEC_HOTPATCH ReleaseMutex( HANDLE handle )
 {
+#if 0
     NTSTATUS    status;
 
     status = NtReleaseMutant(handle, NULL);
@@ -723,6 +1262,10 @@ BOOL WINAPI DECLSPEC_HOTPATCH ReleaseMutex( HANDLE handle )
         return FALSE;
     }
     return TRUE;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -755,6 +1298,7 @@ HANDLE WINAPI DECLSPEC_HOTPATCH CreateSemaphoreW( SECURITY_ATTRIBUTES *sa, LONG 
 HANDLE WINAPI DECLSPEC_HOTPATCH CreateSemaphoreExA( SECURITY_ATTRIBUTES *sa, LONG initial, LONG max,
                                                     LPCSTR name, DWORD flags, DWORD access )
 {
+#if 0
     WCHAR buffer[MAX_PATH];
 
     if (!name) return CreateSemaphoreExW( sa, initial, max, NULL, flags, access );
@@ -765,6 +1309,17 @@ HANDLE WINAPI DECLSPEC_HOTPATCH CreateSemaphoreExA( SECURITY_ATTRIBUTES *sa, LON
         return 0;
     }
     return CreateSemaphoreExW( sa, initial, max, buffer, flags, access );
+#else
+    sem_t *sem;
+    int oflag = O_CREAT;
+
+    if ((sem = sem_open(name, oflag)) == SEM_FAILED)
+    {
+        return NULL;
+    }
+
+    return (HANDLE)sem;
+#endif
 }
 
 
@@ -774,6 +1329,7 @@ HANDLE WINAPI DECLSPEC_HOTPATCH CreateSemaphoreExA( SECURITY_ATTRIBUTES *sa, LON
 HANDLE WINAPI DECLSPEC_HOTPATCH CreateSemaphoreExW( SECURITY_ATTRIBUTES *sa, LONG initial, LONG max,
                                                     LPCWSTR name, DWORD flags, DWORD access )
 {
+#if 0
     HANDLE ret = 0;
     UNICODE_STRING nameW;
     OBJECT_ATTRIBUTES attr;
@@ -787,6 +1343,18 @@ HANDLE WINAPI DECLSPEC_HOTPATCH CreateSemaphoreExW( SECURITY_ATTRIBUTES *sa, LON
     else
         SetLastError( RtlNtStatusToDosError(status) );
     return ret;
+#else
+    char buffer[MAX_PATH];
+
+    if (!name) return CreateSemaphoreExA( sa, initial, max, NULL, flags, access );
+
+    if (!WideCharToMultiByte( CP_UNIXCP, 0, name, -1, buffer, MAX_PATH, NULL, NULL ))
+    {
+        SetLastError( ERROR_FILENAME_EXCED_RANGE );
+        return 0;
+    }
+    return CreateSemaphoreExA( sa, initial, max, buffer, flags, access );
+#endif
 }
 
 
@@ -795,6 +1363,7 @@ HANDLE WINAPI DECLSPEC_HOTPATCH CreateSemaphoreExW( SECURITY_ATTRIBUTES *sa, LON
  */
 HANDLE WINAPI DECLSPEC_HOTPATCH OpenSemaphoreA( DWORD access, BOOL inherit, LPCSTR name )
 {
+#if 0
     WCHAR buffer[MAX_PATH];
 
     if (!name) return OpenSemaphoreW( access, inherit, NULL );
@@ -805,6 +1374,17 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenSemaphoreA( DWORD access, BOOL inherit, LPCS
         return 0;
     }
     return OpenSemaphoreW( access, inherit, buffer );
+#else
+    sem_t *sem;
+    int oflag = 0;
+
+    if ((sem = sem_open(name, oflag)) == SEM_FAILED)
+    {
+        return NULL;
+    }
+
+    return (HANDLE)sem;
+#endif
 }
 
 
@@ -813,6 +1393,7 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenSemaphoreA( DWORD access, BOOL inherit, LPCS
  */
 HANDLE WINAPI DECLSPEC_HOTPATCH OpenSemaphoreW( DWORD access, BOOL inherit, LPCWSTR name )
 {
+#if 0
     HANDLE ret;
     UNICODE_STRING nameW;
     OBJECT_ATTRIBUTES attr;
@@ -831,6 +1412,18 @@ HANDLE WINAPI DECLSPEC_HOTPATCH OpenSemaphoreW( DWORD access, BOOL inherit, LPCW
         return 0;
     }
     return ret;
+#else
+    char buffer[NAME_MAX - 3];
+
+    if (!name) return OpenSemaphoreA( access, inherit, NULL );
+
+    if (!WideCharToMultiByte( CP_UNIXCP, 0, name, -1, buffer, NAME_MAX - 3, NULL, NULL ))
+    {
+        SetLastError( ERROR_FILENAME_EXCED_RANGE );
+        return 0;
+    }
+    return OpenSemaphoreA( access, inherit, buffer );
+#endif
 }
 
 
@@ -1536,8 +2129,7 @@ BOOL WINAPI PeekNamedPipe( HANDLE hPipe, LPVOID lpvBuffer, DWORD cbBuffer,
     IO_STATUS_BLOCK io;
     NTSTATUS status;
 
-    if (cbBuffer && !(buffer = HeapAlloc( GetProcessHeap(), 0,
-                                          FIELD_OFFSET( FILE_PIPE_PEEK_BUFFER, Data[cbBuffer] ))))
+    if (cbBuffer && !(buffer = heap_alloc( FIELD_OFFSET( FILE_PIPE_PEEK_BUFFER, Data[cbBuffer] ) )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return FALSE;
@@ -1555,7 +2147,7 @@ BOOL WINAPI PeekNamedPipe( HANDLE hPipe, LPVOID lpvBuffer, DWORD cbBuffer,
     }
     else SetLastError( RtlNtStatusToDosError(status) );
 
-    if (buffer != &local_buffer) HeapFree( GetProcessHeap(), 0, buffer );
+    if (buffer != &local_buffer) heap_free( buffer );
     return !status;
 }
 
@@ -1616,7 +2208,7 @@ BOOL WINAPI WaitNamedPipeW (LPCWSTR name, DWORD nTimeOut)
     }
 
     sz_pipe_wait = sizeof(*pipe_wait) + nt_name.Length - sizeof(leadin) - sizeof(WCHAR);
-    if (!(pipe_wait = HeapAlloc( GetProcessHeap(), 0,  sz_pipe_wait)))
+    if (!(pipe_wait = heap_alloc( sz_pipe_wait )))
     {
         RtlFreeUnicodeString( &nt_name );
         SetLastError( ERROR_OUTOFMEMORY );
@@ -1632,7 +2224,7 @@ BOOL WINAPI WaitNamedPipeW (LPCWSTR name, DWORD nTimeOut)
                          FILE_SYNCHRONOUS_IO_NONALERT);
     if (status != STATUS_SUCCESS)
     {
-        HeapFree( GetProcessHeap(), 0, pipe_wait);
+        heap_free( pipe_wait);
         RtlFreeUnicodeString( &nt_name );
         SetLastError( ERROR_PATH_NOT_FOUND );
         return FALSE;
@@ -1651,7 +2243,7 @@ BOOL WINAPI WaitNamedPipeW (LPCWSTR name, DWORD nTimeOut)
     status = NtFsControlFile( pipe_dev, NULL, NULL, NULL, &iosb, FSCTL_PIPE_WAIT,
                               pipe_wait, sz_pipe_wait, NULL, 0 );
 
-    HeapFree( GetProcessHeap(), 0, pipe_wait );
+    heap_free( pipe_wait );
     NtClose( pipe_dev );
 
     if(status != STATUS_SUCCESS)
@@ -1931,13 +2523,13 @@ BOOL WINAPI CallNamedPipeA(
     if( lpNamedPipeName )
     {
         len = MultiByteToWideChar( CP_ACP, 0, lpNamedPipeName, -1, NULL, 0 );
-        str = HeapAlloc( GetProcessHeap(), 0, len*sizeof(WCHAR) );
+        str = heap_alloc( len*sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, lpNamedPipeName, -1, str, len );
     }
     ret = CallNamedPipeW( str, lpInput, dwInputSize, lpOutput,
                           dwOutputSize, lpBytesRead, nTimeout );
     if( lpNamedPipeName )
-        HeapFree( GetProcessHeap(), 0, str );
+        heap_free( str );
 
     return ret;
 }
@@ -2028,7 +2620,7 @@ BOOL WINAPI CreatePipe( PHANDLE hReadPipe, PHANDLE hWritePipe,
         status = NtCreateNamedPipeFile(&hr, GENERIC_READ | SYNCHRONIZE, &attr, &iosb,
                                        FILE_SHARE_WRITE, FILE_OVERWRITE_IF,
                                        FILE_SYNCHRONOUS_IO_NONALERT,
-                                       FALSE, FALSE, FALSE, 
+                                       FALSE, FALSE, FALSE,
                                        1, size, size, &timeout);
         if (status)
         {
@@ -2042,7 +2634,7 @@ BOOL WINAPI CreatePipe( PHANDLE hReadPipe, PHANDLE hWritePipe,
     status = NtOpenFile(&hw, GENERIC_WRITE | SYNCHRONIZE, &attr, &iosb, 0,
                         FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE);
 
-    if (status) 
+    if (status)
     {
         SetLastError( RtlNtStatusToDosError(status) );
         NtClose(hr);
@@ -2073,13 +2665,13 @@ HANDLE WINAPI CreateMailslotA( LPCSTR lpName, DWORD nMaxMessageSize,
     if( lpName )
     {
         len = MultiByteToWideChar( CP_ACP, 0, lpName, -1, NULL, 0 );
-        name = HeapAlloc( GetProcessHeap(), 0, len*sizeof(WCHAR) );
+        name = heap_alloc( len*sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, lpName, -1, name, len );
     }
 
     handle = CreateMailslotW( name, nMaxMessageSize, lReadTimeout, sa );
 
-    HeapFree( GetProcessHeap(), 0, name );
+    heap_free( name );
 
     return handle;
 }
@@ -2533,4 +3125,44 @@ BOOL WINAPI SleepConditionVariableSRW( RTL_CONDITION_VARIABLE *variable, RTL_SRW
         return FALSE;
     }
     return TRUE;
+}
+
+/*************************************************************************
+ * InitializeSListHead   [KERNEL32.@]
+ */
+WINBASEAPI VOID WINAPI InitializeSListHead(PSLIST_HEADER list)
+{
+    RtlInitializeSListHead(list);
+}
+
+/*************************************************************************
+ * QueryDepthSList   [KERNEL32.@]
+ */
+WINBASEAPI USHORT WINAPI QueryDepthSList(PSLIST_HEADER list)
+{
+    return RtlQueryDepthSList(list);
+}
+
+/*************************************************************************
+ * InterlockedFlushSList   [KERNEL32.@]
+ */
+WINBASEAPI PSLIST_ENTRY WINAPI InterlockedFlushSList(PSLIST_HEADER list)
+{
+    return RtlInterlockedFlushSList(list);
+}
+
+/*************************************************************************
+ * InterlockedPushEntrySList   [KERNEL32.@]
+ */
+WINBASEAPI PSLIST_ENTRY WINAPI InterlockedPushEntrySList(PSLIST_HEADER list, PSLIST_ENTRY entry)
+{
+    return RtlInterlockedPushEntrySList(list, entry);
+}
+
+/*************************************************************************
+ * InterlockedPopEntrySList   [KERNEL32.@]
+ */
+WINBASEAPI PSLIST_ENTRY WINAPI InterlockedPopEntrySList(PSLIST_HEADER list)
+{
+    return RtlInterlockedPopEntrySList(list);
 }

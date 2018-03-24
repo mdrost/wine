@@ -176,10 +176,10 @@ static void report_error(int code)
             {
                 static const char s[] = "Could not open your mountpoint description table.\n\nOpening of /etc/fstab failed: %s";
                 len = snprintf(NULL, 0, s, strerror(errno));
-                buffer = HeapAlloc(GetProcessHeap(), 0, len + 1);
+                buffer = heap_alloc(len + 1);
                 snprintf(buffer, len, s, strerror(errno));
                 MessageBoxA(NULL, s, "", MB_OK | MB_ICONEXCLAMATION);
-                HeapFree(GetProcessHeap(), 0, buffer);
+                heap_free(buffer);
             }
             else
             {
@@ -285,7 +285,7 @@ static void ensure_drive_c_is_mapped(void)
     if (drives[2].in_use) return;
 
     len = snprintf(NULL, 0, "%s/../drive_c", configdir);
-    drive_c_dir = HeapAlloc(GetProcessHeap(), 0, len);
+    drive_c_dir = heap_alloc(len);
     snprintf(drive_c_dir, len, "%s/../drive_c", configdir);
 
     if (stat(drive_c_dir, &buf) == 0)
@@ -299,7 +299,7 @@ static void ensure_drive_c_is_mapped(void)
     {
         report_error(NO_DRIVE_C);
     }
-    HeapFree(GetProcessHeap(), 0, drive_c_dir);
+    heap_free(drive_c_dir);
 }
 
 BOOL autodetect_drives(void)

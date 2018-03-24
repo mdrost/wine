@@ -27,6 +27,7 @@
 #include "winbase.h"
 #include "winnls.h"
 #include "winerror.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wininet.h"
 #include "winreg.h"
@@ -50,7 +51,7 @@ static inline WCHAR *heap_strdupAtoW(const char *str)
         DWORD len;
 
         len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-        ret = HeapAlloc(GetProcessHeap(), 0, len*sizeof(WCHAR));
+        ret = heap_alloc(len*sizeof(WCHAR));
         MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
     }
 
@@ -257,10 +258,10 @@ HRESULT WINAPI UrlCanonicalizeA(LPCSTR pszUrl, LPSTR pszCanonicalized,
 	return E_INVALIDARG;
 
     url = heap_strdupAtoW(pszUrl);
-    canonical = HeapAlloc(GetProcessHeap(), 0, *pcchCanonicalized*sizeof(WCHAR));
+    canonical = heap_alloc(*pcchCanonicalized*sizeof(WCHAR));
     if(!url || !canonical) {
-        HeapFree(GetProcessHeap(), 0, url);
-        HeapFree(GetProcessHeap(), 0, canonical);
+        heap_free(url);
+        heap_free(canonical);
         return E_OUTOFMEMORY;
     }
 
@@ -269,8 +270,8 @@ HRESULT WINAPI UrlCanonicalizeA(LPCSTR pszUrl, LPSTR pszCanonicalized,
         WideCharToMultiByte(CP_ACP, 0, canonical, -1, pszCanonicalized,
                             *pcchCanonicalized+1, NULL, NULL);
 
-    HeapFree(GetProcessHeap(), 0, url);
-    HeapFree(GetProcessHeap(), 0, canonical);
+    heap_free(url);
+    heap_free(canonical);
     return ret;
 }
 
@@ -310,7 +311,7 @@ HRESULT WINAPI UrlCanonicalizeW(LPCWSTR pszUrl, LPWSTR pszCanonicalized,
 
     /* Remove '\t' characters from URL */
     nByteLen = (strlenW(pszUrl) + 1) * sizeof(WCHAR); /* length in bytes */
-    url = HeapAlloc(GetProcessHeap(), 0, nByteLen);
+    url = heap_alloc(nByteLen);
     if(!url)
         return E_OUTOFMEMORY;
 
@@ -324,10 +325,9 @@ HRESULT WINAPI UrlCanonicalizeW(LPCWSTR pszUrl, LPWSTR pszCanonicalized,
 
     /* Allocate memory for simplified URL (before escaping) */
     nByteLen = (wk2-url)*sizeof(WCHAR);
-    lpszUrlCpy = HeapAlloc(GetProcessHeap(), 0,
-            nByteLen+sizeof(wszFilePrefix)+sizeof(WCHAR));
+    lpszUrlCpy = heap_alloc(nByteLen+sizeof(wszFilePrefix)+sizeof(WCHAR));
     if(!lpszUrlCpy) {
-        HeapFree(GetProcessHeap(), 0, url);
+        heap_free(url);
         return E_OUTOFMEMORY;
     }
 
@@ -549,8 +549,8 @@ HRESULT WINAPI UrlCanonicalizeW(LPCWSTR pszUrl, LPWSTR pszCanonicalized,
             break;
         default:
             FIXME("how did we get here - state=%d\n", state);
-            HeapFree(GetProcessHeap(), 0, lpszUrlCpy);
-            HeapFree(GetProcessHeap(), 0, url);
+            heap_free(lpszUrlCpy);
+            heap_free(url);
             return E_INVALIDARG;
         }
         *wk2 = '\0';
@@ -585,8 +585,8 @@ HRESULT WINAPI UrlCanonicalizeW(LPCWSTR pszUrl, LPWSTR pszCanonicalized,
 	*pcchCanonicalized = nLen;
     }
 
-    HeapFree(GetProcessHeap(), 0, lpszUrlCpy);
-    HeapFree(GetProcessHeap(), 0, url);
+    heap_free(lpszUrlCpy);
+    heap_free(url);
 
     if (hr == S_OK)
 	TRACE("result %s\n", debugstr_w(pszCanonicalized));
@@ -625,8 +625,7 @@ HRESULT WINAPI UrlCombineA(LPCSTR pszBase, LPCSTR pszRelative,
     if(!pszBase || !pszRelative || !pcchCombined)
 	return E_INVALIDARG;
 
-    base = HeapAlloc(GetProcessHeap(), 0,
-			      (3*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
+    base = heap_alloc((3*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
     relative = base + INTERNET_MAX_URL_LENGTH;
     combined = relative + INTERNET_MAX_URL_LENGTH;
 
@@ -637,20 +636,20 @@ HRESULT WINAPI UrlCombineA(LPCSTR pszBase, LPCSTR pszRelative,
     ret = UrlCombineW(base, relative, pszCombined?combined:NULL, &len, dwFlags);
     if (ret != S_OK) {
 	*pcchCombined = len;
-	HeapFree(GetProcessHeap(), 0, base);
+	heap_free(base);
 	return ret;
     }
 
     len2 = WideCharToMultiByte(CP_ACP, 0, combined, len, NULL, 0, NULL, NULL);
     if (len2 > *pcchCombined) {
 	*pcchCombined = len2;
-	HeapFree(GetProcessHeap(), 0, base);
+	heap_free(base);
 	return E_POINTER;
     }
     WideCharToMultiByte(CP_ACP, 0, combined, len+1, pszCombined, (*pcchCombined)+1,
 			NULL, NULL);
     *pcchCombined = len2;
-    HeapFree(GetProcessHeap(), 0, base);
+    heap_free(base);
     return S_OK;
 }
 
@@ -682,7 +681,7 @@ HRESULT WINAPI UrlCombineW(LPCWSTR pszBase, LPCWSTR pszRelative,
     relative.cbSize = sizeof(relative);
 
     /* Get space for duplicates of the input and the output */
-    preliminary = HeapAlloc(GetProcessHeap(), 0, (3*INTERNET_MAX_URL_LENGTH) *
+    preliminary = heap_alloc((3*INTERNET_MAX_URL_LENGTH) *
 			    sizeof(WCHAR));
     mbase = preliminary + INTERNET_MAX_URL_LENGTH;
     mrelative = mbase + INTERNET_MAX_URL_LENGTH;
@@ -936,7 +935,7 @@ HRESULT WINAPI UrlCombineW(LPCWSTR pszBase, LPCWSTR pszRelative,
 	TRACE("return-%d len=%d, %s\n",
 	      process_case, *pcchCombined, debugstr_w(pszCombined));
     }
-    HeapFree(GetProcessHeap(), 0, preliminary);
+    heap_free(preliminary);
     return ret;
 }
 
@@ -966,7 +965,7 @@ HRESULT WINAPI UrlEscapeA(
         return E_NOTIMPL;
     }
     if((ret = UrlEscapeW(urlW.Buffer, escapedW, &lenW, dwFlags)) == E_POINTER) {
-        escapedW = HeapAlloc(GetProcessHeap(), 0, lenW * sizeof(WCHAR));
+        escapedW = heap_alloc(lenW * sizeof(WCHAR));
         ret = UrlEscapeW(urlW.Buffer, escapedW, &lenW, dwFlags);
     }
     if(ret == S_OK) {
@@ -980,7 +979,7 @@ HRESULT WINAPI UrlEscapeA(
             ret = E_POINTER;
         }
     }
-    if(escapedW != bufW) HeapFree(GetProcessHeap(), 0, escapedW);
+    if(escapedW != bufW) heap_free(escapedW);
     RtlFreeUnicodeString(&urlW);
     return ret;
 }
@@ -1099,7 +1098,7 @@ HRESULT WINAPI UrlEscapeW(
 		   URL_ESCAPE_AS_UTF8))
         FIXME("Unimplemented flags: %08x\n", dwFlags);
 
-    dst_ptr = dst = HeapAlloc(GetProcessHeap(), 0, *pcchEscaped*sizeof(WCHAR));
+    dst_ptr = dst = heap_alloc(*pcchEscaped*sizeof(WCHAR));
     if(!dst_ptr)
         return E_OUTOFMEMORY;
 
@@ -1257,7 +1256,7 @@ HRESULT WINAPI UrlEscapeW(
     }
     *pcchEscaped = needed;
 
-    HeapFree(GetProcessHeap(), 0, dst_ptr);
+    heap_free(dst_ptr);
     return ret;
 }
 
@@ -1657,8 +1656,7 @@ HRESULT WINAPI UrlApplySchemeA(LPCSTR pszIn, LPSTR pszOut, LPDWORD pcchOut, DWOR
 
     if (!pszIn || !pszOut || !pcchOut) return E_INVALIDARG;
 
-    in = HeapAlloc(GetProcessHeap(), 0,
-                  (2*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
+    in = heap_alloc((2*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
     out = in + INTERNET_MAX_URL_LENGTH;
 
     MultiByteToWideChar(CP_ACP, 0, pszIn, -1, in, INTERNET_MAX_URL_LENGTH);
@@ -1666,7 +1664,7 @@ HRESULT WINAPI UrlApplySchemeA(LPCSTR pszIn, LPSTR pszOut, LPDWORD pcchOut, DWOR
 
     ret = UrlApplySchemeW(in, out, &len, dwFlags);
     if (ret != S_OK) {
-        HeapFree(GetProcessHeap(), 0, in);
+        heap_free(in);
         return ret;
     }
 
@@ -1681,7 +1679,7 @@ HRESULT WINAPI UrlApplySchemeA(LPCSTR pszIn, LPSTR pszOut, LPDWORD pcchOut, DWOR
 
 cleanup:
     *pcchOut = len;
-    HeapFree(GetProcessHeap(), 0, in);
+    heap_free(in);
     return ret;
 }
 
@@ -1756,13 +1754,13 @@ static HRESULT URL_CreateFromPath(LPCWSTR pszPath, LPWSTR pszUrl, LPDWORD pcchUr
         }
     }
 
-    pszNewUrl = HeapAlloc(GetProcessHeap(), 0, (strlenW(pszPath) + 9) * sizeof(WCHAR)); /* "file:///" + pszPath_len + 1 */
+    pszNewUrl = heap_alloc((strlenW(pszPath) + 9) * sizeof(WCHAR)); /* "file:///" + pszPath_len + 1 */
     strcpyW(pszNewUrl, file_colonW);
     if(isalphaW(pszPath[0]) && pszPath[1] == ':')
         strcatW(pszNewUrl, three_slashesW);
     strcatW(pszNewUrl, pszPath);
     ret = UrlEscapeW(pszNewUrl, pszUrl, pcchUrl, URL_ESCAPE_PERCENT);
-    HeapFree(GetProcessHeap(), 0, pszNewUrl);
+    heap_free(pszNewUrl);
     return ret;
 }
 
@@ -2222,8 +2220,7 @@ HRESULT WINAPI UrlGetPartA(LPCSTR pszIn, LPSTR pszOut, LPDWORD pcchOut,
     if(!pszIn || !pszOut || !pcchOut || *pcchOut <= 0)
         return E_INVALIDARG;
 
-    in = HeapAlloc(GetProcessHeap(), 0,
-			      (2*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
+    in = heap_alloc((2*INTERNET_MAX_URL_LENGTH) * sizeof(WCHAR));
     out = in + INTERNET_MAX_URL_LENGTH;
 
     MultiByteToWideChar(CP_ACP, 0, pszIn, -1, in, INTERNET_MAX_URL_LENGTH);
@@ -2232,19 +2229,19 @@ HRESULT WINAPI UrlGetPartA(LPCSTR pszIn, LPSTR pszOut, LPDWORD pcchOut,
     ret = UrlGetPartW(in, out, &len, dwPart, dwFlags);
 
     if (FAILED(ret)) {
-	HeapFree(GetProcessHeap(), 0, in);
+	heap_free(in);
 	return ret;
     }
 
     len2 = WideCharToMultiByte(CP_ACP, 0, out, len, NULL, 0, NULL, NULL);
     if (len2 > *pcchOut) {
 	*pcchOut = len2+1;
-	HeapFree(GetProcessHeap(), 0, in);
+	heap_free(in);
 	return E_POINTER;
     }
     len2 = WideCharToMultiByte(CP_ACP, 0, out, len+1, pszOut, *pcchOut, NULL, NULL);
     *pcchOut = len2-1;
-    HeapFree(GetProcessHeap(), 0, in);
+    heap_free(in);
     return ret;
 }
 
@@ -2447,7 +2444,7 @@ HRESULT WINAPI UrlCreateFromPathA(LPCSTR pszPath, LPSTR pszUrl, LPDWORD pcchUrl,
     if(!RtlCreateUnicodeStringFromAsciiz(&pathW, pszPath))
         return E_INVALIDARG;
     if((ret = UrlCreateFromPathW(pathW.Buffer, urlW, &lenW, dwReserved)) == E_POINTER) {
-        urlW = HeapAlloc(GetProcessHeap(), 0, lenW * sizeof(WCHAR));
+        urlW = heap_alloc(lenW * sizeof(WCHAR));
         ret = UrlCreateFromPathW(pathW.Buffer, urlW, &lenW, dwReserved);
     }
     if(ret == S_OK || ret == S_FALSE) {
@@ -2461,7 +2458,7 @@ HRESULT WINAPI UrlCreateFromPathA(LPCSTR pszPath, LPSTR pszUrl, LPDWORD pcchUrl,
             ret = E_POINTER;
         }
     }
-    if(urlW != bufW) HeapFree(GetProcessHeap(), 0, urlW);
+    if(urlW != bufW) heap_free(urlW);
     RtlFreeUnicodeString(&pathW);
     return ret;
 }

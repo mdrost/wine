@@ -32,13 +32,16 @@
 #include "winerror.h"
 #include "winternl.h"
 
+#if 0
 #include "wine/exception.h"
+#endif
 #include "wine/unicode.h"
 #include "kernel_private.h"
 
 #define MAX_ATOM_LEN 255
 #define IS_INTATOM(x)   (((ULONG_PTR)(x) >> 16) == 0)
 
+#if 0
 /******************************************************************
  *		get_local_table
  *
@@ -97,6 +100,7 @@ static inline BOOL check_integral_atom( const void* ptr, ATOM* patom)
     }
     return TRUE;
 }
+#endif
 
 /***********************************************************************
  *           GlobalAddAtomA   (KERNEL32.@)
@@ -111,6 +115,7 @@ static inline BOOL check_integral_atom( const void* ptr, ATOM* patom)
 ATOM WINAPI GlobalAddAtomA( LPCSTR str /* [in] String to add */ )
 {
     ATOM atom = 0;
+#if 0
     __TRY
     {
         if (!check_integral_atom( str, &atom ))
@@ -135,10 +140,14 @@ ATOM WINAPI GlobalAddAtomA( LPCSTR str /* [in] String to add */ )
         atom = 0;
     }
     __ENDTRY
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return atom;
 }
 
 
+#if 0
 /***********************************************************************
  *           AddAtomA   (KERNEL32.@)
  *
@@ -173,6 +182,7 @@ ATOM WINAPI AddAtomA( LPCSTR str /* [in] String to add */ )
     }
     return atom;
 }
+#endif
 
 /***********************************************************************
  *           GlobalAddAtomW   (KERNEL32.@)
@@ -182,6 +192,7 @@ ATOM WINAPI AddAtomA( LPCSTR str /* [in] String to add */ )
 ATOM WINAPI GlobalAddAtomW( LPCWSTR str )
 {
     ATOM        atom = 0;
+#if 0
     NTSTATUS    status;
 
     if (!check_integral_atom( str, &atom ) && 
@@ -190,6 +201,9 @@ ATOM WINAPI GlobalAddAtomW( LPCWSTR str )
         SetLastError( RtlNtStatusToDosError( status ) );
         atom = 0;
     }
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return atom;
 }
 
@@ -202,6 +216,7 @@ ATOM WINAPI GlobalAddAtomW( LPCWSTR str )
 ATOM WINAPI AddAtomW( LPCWSTR str )
 {
     ATOM                atom = 0;
+#if 0
     RTL_ATOM_TABLE      table;
 
     if (!check_integral_atom( str, &atom ) && (table = get_local_table( 0 )))
@@ -213,10 +228,14 @@ ATOM WINAPI AddAtomW( LPCWSTR str )
             atom = 0;
         }
     }
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return atom;
 }
 
 
+#if 0
 /***********************************************************************
  *           GlobalDeleteAtom   (KERNEL32.@)
  *
@@ -382,6 +401,7 @@ ATOM WINAPI FindAtomW( LPCWSTR str )
     }
     return atom;
 }
+#endif
 
 
 /***********************************************************************
@@ -420,6 +440,7 @@ UINT WINAPI GlobalGetAtomNameA(
 }
 
 
+#if 0
 /***********************************************************************
  *           GetAtomNameA   (KERNEL32.@)
  *
@@ -454,6 +475,7 @@ UINT WINAPI GetAtomNameA(
     }
     return len;
 }
+#endif
 
 
 /***********************************************************************
@@ -463,6 +485,7 @@ UINT WINAPI GetAtomNameA(
  */
 UINT WINAPI GlobalGetAtomNameW( ATOM atom, LPWSTR buffer, INT count )
 {
+#if 0
     char        ptr[sizeof(ATOM_BASIC_INFORMATION) + MAX_ATOM_LEN * sizeof(WCHAR)];
     ATOM_BASIC_INFORMATION*     abi = (ATOM_BASIC_INFORMATION*)ptr;
     ULONG       ptr_size = sizeof(ATOM_BASIC_INFORMATION) + MAX_ATOM_LEN * sizeof(WCHAR);
@@ -491,9 +514,14 @@ UINT WINAPI GlobalGetAtomNameW( ATOM atom, LPWSTR buffer, INT count )
         else if (length < count) buffer[length] = '\0';
     }
     return length;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return 0;
+#endif
 }
 
 
+#if 0
 /***********************************************************************
  *           GetAtomNameW   (KERNEL32.@)
  *
@@ -526,3 +554,4 @@ UINT WINAPI GetAtomNameW( ATOM atom, LPWSTR buffer, INT count )
     buffer[length] = '\0';
     return length;
 }
+#endif

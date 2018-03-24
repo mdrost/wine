@@ -96,7 +96,7 @@ static WCHAR* AtoW( const char* p )
 {
     WCHAR* buffer;
     DWORD len = MultiByteToWideChar( CP_ACP, 0, p, -1, NULL, 0 );
-    buffer = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR) );
+    buffer = heap_alloc(len * sizeof(WCHAR) );
     MultiByteToWideChar( CP_ACP, 0, p, -1, buffer, len );
     return buffer;
 }
@@ -104,7 +104,7 @@ static WCHAR* AtoW( const char* p )
 
 static void InitFunctionPtrs(void)
 {
-    hntdll = LoadLibraryA("ntdll.dll");
+    hntdll = LoadLibraryA("/home/mateusz/git/wine/build/dlls/ntdll/libwinapi-ntdll.so");
     ok(hntdll != 0, "LoadLibrary failed\n");
     if (hntdll) {
 	pRtlAnsiStringToUnicodeString = (void *)GetProcAddress(hntdll, "RtlAnsiStringToUnicodeString");
@@ -209,7 +209,7 @@ static void test_RtlInitUnicodeStringEx(void)
         return;
     }
 
-    teststring2 = HeapAlloc(GetProcessHeap(), 0, (TESTSTRING2_LEN + 1) * sizeof(WCHAR));
+    teststring2 = heap_alloc((TESTSTRING2_LEN + 1) * sizeof(WCHAR));
     memset(teststring2, 'X', TESTSTRING2_LEN * sizeof(WCHAR));
     teststring2[TESTSTRING2_LEN] = '\0';
 
@@ -220,12 +220,12 @@ static void test_RtlInitUnicodeStringEx(void)
     ok(result == STATUS_SUCCESS,
        "pRtlInitUnicodeStringEx(&uni, 0) returns %x, expected 0\n",
        result);
-    ok(uni.Length == 32,
-       "pRtlInitUnicodeStringEx(&uni, 0) sets Length to %u, expected %u\n",
-       uni.Length, 32);
-    ok(uni.MaximumLength == 34,
-       "pRtlInitUnicodeStringEx(&uni, 0) sets MaximumLength to %u, expected %u\n",
-       uni.MaximumLength, 34);
+    ok(uni.Length == (16 * sizeof(WCHAR)),
+       "pRtlInitUnicodeStringEx(&uni, 0) sets Length to %u, expected %lu\n",
+       uni.Length, (16 * sizeof(WCHAR)));
+    ok(uni.MaximumLength == (17 * sizeof(WCHAR)),
+       "pRtlInitUnicodeStringEx(&uni, 0) sets MaximumLength to %u, expected %lu\n",
+       uni.MaximumLength, (17 * sizeof(WCHAR)));
     ok(uni.Buffer == teststring,
        "pRtlInitUnicodeStringEx(&uni, 0) sets Buffer to %p, expected %p\n",
        uni.Buffer, teststring);
@@ -234,12 +234,12 @@ static void test_RtlInitUnicodeStringEx(void)
     uni.MaximumLength = 12345;
     uni.Buffer = (void *) 0xdeadbeef;
     pRtlInitUnicodeString(&uni, teststring);
-    ok(uni.Length == 32,
-       "pRtlInitUnicodeString(&uni, 0) sets Length to %u, expected %u\n",
-       uni.Length, 32);
-    ok(uni.MaximumLength == 34,
-       "pRtlInitUnicodeString(&uni, 0) sets MaximumLength to %u, expected %u\n",
-       uni.MaximumLength, 34);
+    ok(uni.Length == (16 * sizeof(WCHAR)),
+       "pRtlInitUnicodeString(&uni, 0) sets Length to %u, expected %lu\n",
+       uni.Length, (16 * sizeof(WCHAR)));
+    ok(uni.MaximumLength == (17 * sizeof(WCHAR)),
+       "pRtlInitUnicodeString(&uni, 0) sets MaximumLength to %u, expected %lu\n",
+       uni.MaximumLength, (17 * sizeof(WCHAR)));
     ok(uni.Buffer == teststring,
        "pRtlInitUnicodeString(&uni, 0) sets Buffer to %p, expected %p\n",
        uni.Buffer, teststring);
@@ -311,7 +311,7 @@ static void test_RtlInitUnicodeStringEx(void)
        "pRtlInitUnicodeString(&uni, 0) sets Buffer to %p, expected %p\n",
        uni.Buffer, NULL);
 
-    HeapFree(GetProcessHeap(), 0, teststring2);
+    heap_free(teststring2);
 }
 
 
@@ -333,78 +333,78 @@ typedef struct {
 } dupl_ustr_t;
 
 static const dupl_ustr_t dupl_ustr[] = {
-    { 0, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 32, 32, 32, "This is a string",     STATUS_SUCCESS},
-    { 0, 32, 32, 32, "This is a string", 40, 42, 42, "--------------------", 32, 32, 32, "This is a string",     STATUS_SUCCESS},
-    { 0, 32, 30, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 0, 32, 34, 34, "This is a string", 40, 42, 42, NULL,                   32, 32, 32, "This is a string",     STATUS_SUCCESS},
-    { 0, 32, 32, 32, "This is a string", 40, 42, 42, NULL,                   32, 32, 32, "This is a string",     STATUS_SUCCESS},
-    { 0, 32, 30, 34, "This is a string", 40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 1, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 32, 34, 34, "This is a string",     STATUS_SUCCESS},
-    { 1, 32, 32, 32, "This is a string", 40, 42, 42, "--------------------", 32, 34, 34, "This is a string",     STATUS_SUCCESS},
-    { 1, 32, 30, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 1, 32, 34, 34, "This is a string", 40, 42, 42, NULL,                   32, 34, 34, "This is a string",     STATUS_SUCCESS},
-    { 1, 32, 32, 32, "This is a string", 40, 42, 42, NULL,                   32, 34, 34, "This is a string",     STATUS_SUCCESS},
-    { 1, 32, 30, 34, "This is a string", 40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 2, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 2, 32, 32, 32, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 2, 32, 30, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 2, 32, 34, 34, "This is a string", 40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 2, 32, 32, 32, "This is a string", 40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 2, 32, 30, 34, "This is a string", 40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 3, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 32, 34, 34, "This is a string",     STATUS_SUCCESS},
-    { 3, 32, 32, 32, "This is a string", 40, 42, 42, "--------------------", 32, 34, 34, "This is a string",     STATUS_SUCCESS},
-    { 3, 32, 30, 32, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 3, 32, 34, 34, "This is a string", 40, 42, 42, NULL,                   32, 34, 34, "This is a string",     STATUS_SUCCESS},
-    { 3, 32, 32, 32, "This is a string", 40, 42, 42, NULL,                   32, 34, 34, "This is a string",     STATUS_SUCCESS},
-    { 3, 32, 30, 32, "This is a string", 40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 4, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 5, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 6, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 7, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 8, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 9, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {10, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {11, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {12, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {13, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {14, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {15, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {16, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {-1, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {-5, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    {-9, 32, 34, 34, "This is a string", 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 0,  0,  2,  2, "",                 40, 42, 42, "--------------------",  0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 0,  0,  0,  0, "",                 40, 42, 42, "--------------------",  0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 0,  0,  2,  2, "",                 40, 42, 42, NULL,                    0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 0,  0,  0,  0, "",                 40, 42, 42, NULL,                    0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 0,  0,  2,  2, NULL,               40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 0,  0,  0,  0, NULL,               40, 42, 42, "--------------------",  0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 0,  0,  2,  2, NULL,               40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 0,  0,  0,  0, NULL,               40, 42, 42, NULL,                    0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 1,  0,  2,  2, "",                 40, 42, 42, "--------------------",  0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 1,  0,  0,  0, "",                 40, 42, 42, "--------------------",  0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 1,  0,  2,  2, "",                 40, 42, 42, NULL,                    0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 1,  0,  0,  0, "",                 40, 42, 42, NULL,                    0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 1,  0,  2,  2, NULL,               40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 1,  0,  0,  0, NULL,               40, 42, 42, "--------------------",  0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 1,  0,  2,  2, NULL,               40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 1,  0,  0,  0, NULL,               40, 42, 42, NULL,                    0,  0,  0, NULL,                   STATUS_SUCCESS},
-    { 2,  0,  2,  2, "",                 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 2,  0,  0,  0, "",                 40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 2,  0,  2,  2, "",                 40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 2,  0,  0,  0, "",                 40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 2,  0,  2,  2, NULL,               40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 2,  0,  0,  0, NULL,               40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 2,  0,  2,  2, NULL,               40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 2,  0,  0,  0, NULL,               40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 3,  0,  2,  2, "",                 40, 42, 42, "--------------------",  0,  2,  2, "",                     STATUS_SUCCESS},
-    { 3,  0,  0,  0, "",                 40, 42, 42, "--------------------",  0,  2,  2, "",                     STATUS_SUCCESS},
-    { 3,  0,  2,  2, "",                 40, 42, 42, NULL,                    0,  2,  2, "",                     STATUS_SUCCESS},
-    { 3,  0,  0,  0, "",                 40, 42, 42, NULL,                    0,  2,  2, "",                     STATUS_SUCCESS},
-    { 3,  0,  2,  2, NULL,               40, 42, 42, "--------------------", 40, 42, 42, "--------------------", STATUS_INVALID_PARAMETER},
-    { 3,  0,  0,  0, NULL,               40, 42, 42, "--------------------",  0,  2,  2, "",                     STATUS_SUCCESS},
-    { 3,  0,  2,  2, NULL,               40, 42, 42, NULL,                   40, 42,  0, NULL,                   STATUS_INVALID_PARAMETER},
-    { 3,  0,  0,  0, NULL,               40, 42, 42, NULL,                    0,  2,  2, "",                     STATUS_SUCCESS},
+    { 0, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 0, 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 0, 16*sizeof(WCHAR), 15*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 0, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 0, 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 0, 16*sizeof(WCHAR), 15*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 1, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 1, 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 1, 16*sizeof(WCHAR), 15*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 1, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 1, 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 1, 16*sizeof(WCHAR), 15*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 2, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 2, 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 2, 16*sizeof(WCHAR), 15*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 2, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 2, 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 2, 16*sizeof(WCHAR), 15*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 3, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 3, 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 3, 16*sizeof(WCHAR), 15*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 3, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 3, 16*sizeof(WCHAR), 16*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string",     STATUS_SUCCESS},
+    { 3, 16*sizeof(WCHAR), 15*sizeof(WCHAR), 16*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 4, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 5, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 6, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 7, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 8, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 9, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {10, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {11, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {12, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {13, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {14, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {15, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {16, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {-1, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {-5, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    {-9, 16*sizeof(WCHAR), 17*sizeof(WCHAR), 17*sizeof(WCHAR), "This is a string", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 0,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------",  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 0,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------",  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 0,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                    0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 0,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                    0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 0,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 0,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------",  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 0,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 0,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                    0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 1,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------",  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 1,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------",  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 1,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                    0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 1,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                    0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 1,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 1,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------",  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 1,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 1,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                    0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_SUCCESS},
+    { 2,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 2,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 2,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 2,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 2,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 2,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 2,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 2,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 3,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------",  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                     STATUS_SUCCESS},
+    { 3,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------",  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                     STATUS_SUCCESS},
+    { 3,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                    0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                     STATUS_SUCCESS},
+    { 3,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), "",                 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                    0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                     STATUS_SUCCESS},
+    { 3,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", 20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------", STATUS_INVALID_PARAMETER},
+    { 3,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), "--------------------",  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                     STATUS_SUCCESS},
+    { 3,  0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                   20*sizeof(WCHAR), 21*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,                   STATUS_INVALID_PARAMETER},
+    { 3,  0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), NULL,               20*sizeof(WCHAR), 21*sizeof(WCHAR), 21*sizeof(WCHAR), NULL,                    0*sizeof(WCHAR),  1*sizeof(WCHAR),  1*sizeof(WCHAR), "",                     STATUS_SUCCESS},
 };
 #define NB_DUPL_USTR (sizeof(dupl_ustr)/sizeof(*dupl_ustr))
 
@@ -758,22 +758,78 @@ typedef struct {
 } ustr2astr_t;
 
 static const ustr2astr_t ustr2astr[] = {
-    { 10, 12, 12, "------------",  0,  0,  0, "",       TRUE,  0, 1, 1, "",       STATUS_SUCCESS},
-    { 10, 12, 12, "------------", 12, 12, 12, "abcdef", TRUE,  6, 7, 7, "abcdef", STATUS_SUCCESS},
-    {  0,  2, 12, "------------", 12, 12, 12, "abcdef", TRUE,  6, 7, 7, "abcdef", STATUS_SUCCESS},
-    { 10, 12, 12, NULL,           12, 12, 12, "abcdef", TRUE,  6, 7, 7, "abcdef", STATUS_SUCCESS},
-    {  0,  0, 12, "------------", 12, 12, 12, "abcdef", FALSE, 6, 0, 0, "",       STATUS_BUFFER_OVERFLOW},
-    {  0,  1, 12, "------------", 12, 12, 12, "abcdef", FALSE, 0, 1, 1, "",       STATUS_BUFFER_OVERFLOW},
-    {  0,  2, 12, "------------", 12, 12, 12, "abcdef", FALSE, 1, 2, 2, "a",      STATUS_BUFFER_OVERFLOW},
-    {  0,  3, 12, "------------", 12, 12, 12, "abcdef", FALSE, 2, 3, 3, "ab",     STATUS_BUFFER_OVERFLOW},
-    {  0,  5, 12, "------------", 12, 12, 12, "abcdef", FALSE, 4, 5, 5, "abcd",   STATUS_BUFFER_OVERFLOW},
-    {  8,  5, 12, "------------", 12, 12, 12, "abcdef", FALSE, 4, 5, 5, "abcd",   STATUS_BUFFER_OVERFLOW},
-    {  8,  6, 12, "------------", 12, 12, 12, "abcdef", FALSE, 5, 6, 6, "abcde",  STATUS_BUFFER_OVERFLOW},
-    {  8,  7, 12, "------------", 12, 12, 12, "abcdef", FALSE, 6, 7, 7, "abcdef", STATUS_SUCCESS},
-    {  8,  7, 12, "------------",  0, 12, 12,  NULL,    FALSE, 0, 7, 0, "",       STATUS_SUCCESS},
+    {10,               12,               12,               "------------",
+      0*sizeof(WCHAR),  0*sizeof(WCHAR),  0*sizeof(WCHAR), "",
+     TRUE,
+      0,                1,                1,               "",
+     STATUS_SUCCESS},
+    {10,               12,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     TRUE,
+      6,                7,                7,               "abcdef",
+     STATUS_SUCCESS},
+    { 0,                2,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     TRUE,
+      6,                7,                7,               "abcdef",
+     STATUS_SUCCESS},
+    {10,               12,               12,               NULL,
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     TRUE,
+      6,                7,                7,               "abcdef",
+     STATUS_SUCCESS},
+    { 0,                0,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     FALSE,
+      6,                0,                0,               "",
+     STATUS_BUFFER_OVERFLOW},
+    { 0,                1,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     FALSE,
+      0,                1,                1,               "",
+     STATUS_BUFFER_OVERFLOW},
+    { 0,                2,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     FALSE,
+      1,                2,                2,               "a",
+     STATUS_BUFFER_OVERFLOW},
+    { 0,                3,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     FALSE,
+      2,                3,                3,               "ab",
+     STATUS_BUFFER_OVERFLOW},
+    { 0,                5,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     FALSE,
+      4,                5,                5,               "abcd",
+     STATUS_BUFFER_OVERFLOW},
+    { 8,                5,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     FALSE,
+      4,                5,                5,               "abcd",
+     STATUS_BUFFER_OVERFLOW},
+    { 8,                6,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     FALSE,
+      5,                6,                6,               "abcde",
+     STATUS_BUFFER_OVERFLOW},
+    { 8,                7,               12,               "------------",
+      6*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), "abcdef",
+     FALSE,
+      6,                7,                7,               "abcdef",
+     STATUS_SUCCESS},
+    { 8,                7,               12,               "------------",
+      0*sizeof(WCHAR),  6*sizeof(WCHAR),  6*sizeof(WCHAR), NULL,
+     FALSE,
+      0,                7,                0,               "",
+     STATUS_SUCCESS},
 #if 0
     /* crashes on Japanese and Chinese XP */
-    {  0,  0, 12, NULL,           10, 10, 12,  NULL,    FALSE, 5, 0, 0, NULL,     STATUS_BUFFER_OVERFLOW},
+    { 0,                0,               12,               NULL,
+      5*sizeof(WCHAR),  5*sizeof(WCHAR),  6*sizeof(WCHAR), NULL,
+     FALSE,
+      5,                0,                0,               NULL,
+     STATUS_BUFFER_OVERFLOW},
 #endif
 };
 #define NB_USTR2ASTR (sizeof(ustr2astr)/sizeof(*ustr2astr))
@@ -1142,52 +1198,52 @@ typedef struct {
 } find_ch_in_ustr_t;
 
 static const find_ch_in_ustr_t find_ch_in_ustr[] = {
-    { 0, "Some Wild String",           "S",       2, STATUS_SUCCESS},
-    { 0, "This is a String",           "String",  6, STATUS_SUCCESS},
-    { 1, "This is a String",           "String", 30, STATUS_SUCCESS},
-    { 2, "This is a String",           "String",  2, STATUS_SUCCESS},
-    { 3, "This is a String",           "String", 18, STATUS_SUCCESS},
-    { 0, "This is a String",           "Wild",    6, STATUS_SUCCESS},
-    { 1, "This is a String",           "Wild",   26, STATUS_SUCCESS},
-    { 2, "This is a String",           "Wild",    2, STATUS_SUCCESS},
-    { 3, "This is a String",           "Wild",   30, STATUS_SUCCESS},
-    { 0, "abcdefghijklmnopqrstuvwxyz", "",        0, STATUS_NOT_FOUND},
-    { 0, "abcdefghijklmnopqrstuvwxyz", "123",     0, STATUS_NOT_FOUND},
-    { 0, "abcdefghijklmnopqrstuvwxyz", "a",       2, STATUS_SUCCESS},
-    { 0, "abcdefghijklmnopqrstuvwxyz", "12a34",   2, STATUS_SUCCESS},
-    { 0, "abcdefghijklmnopqrstuvwxyz", "12b34",   4, STATUS_SUCCESS},
-    { 0, "abcdefghijklmnopqrstuvwxyz", "12y34",  50, STATUS_SUCCESS},
-    { 0, "abcdefghijklmnopqrstuvwxyz", "12z34",  52, STATUS_SUCCESS},
-    { 0, "abcdefghijklmnopqrstuvwxyz", "rvz",    36, STATUS_SUCCESS},
-    { 0, "abcdefghijklmmlkjihgfedcba", "egik",   10, STATUS_SUCCESS},
-    { 1, "abcdefghijklmnopqrstuvwxyz", "",        0, STATUS_NOT_FOUND},
-    { 1, "abcdefghijklmnopqrstuvwxyz", "rvz",    50, STATUS_SUCCESS},
-    { 1, "abcdefghijklmnopqrstuvwxyz", "ravy",   48, STATUS_SUCCESS},
-    { 1, "abcdefghijklmnopqrstuvwxyz", "raxv",   46, STATUS_SUCCESS},
-    { 2, "abcdefghijklmnopqrstuvwxyz", "",        2, STATUS_SUCCESS},
-    { 2, "abcdefghijklmnopqrstuvwxyz", "rvz",     2, STATUS_SUCCESS},
-    { 2, "abcdefghijklmnopqrstuvwxyz", "vaz",     4, STATUS_SUCCESS},
-    { 2, "abcdefghijklmnopqrstuvwxyz", "ravbz",   6, STATUS_SUCCESS},
-    { 3, "abcdefghijklmnopqrstuvwxyz", "",       50, STATUS_SUCCESS},
-    { 3, "abcdefghijklmnopqrstuvwxyz", "123",    50, STATUS_SUCCESS},
-    { 3, "abcdefghijklmnopqrstuvwxyz", "ahp",    50, STATUS_SUCCESS},
-    { 3, "abcdefghijklmnopqrstuvwxyz", "rvz",    48, STATUS_SUCCESS},
-    { 0, NULL,                         "abc",     0, STATUS_NOT_FOUND},
-    { 1, NULL,                         "abc",     0, STATUS_NOT_FOUND},
-    { 2, NULL,                         "abc",     0, STATUS_NOT_FOUND},
-    { 3, NULL,                         "abc",     0, STATUS_NOT_FOUND},
-    { 0, "abcdefghijklmnopqrstuvwxyz", NULL,      0, STATUS_NOT_FOUND},
-    { 1, "abcdefghijklmnopqrstuvwxyz", NULL,      0, STATUS_NOT_FOUND},
-    { 2, "abcdefghijklmnopqrstuvwxyz", NULL,      2, STATUS_SUCCESS},
-    { 3, "abcdefghijklmnopqrstuvwxyz", NULL,     50, STATUS_SUCCESS},
-    { 0, NULL,                         NULL,      0, STATUS_NOT_FOUND},
-    { 1, NULL,                         NULL,      0, STATUS_NOT_FOUND},
-    { 2, NULL,                         NULL,      0, STATUS_NOT_FOUND},
-    { 3, NULL,                         NULL,      0, STATUS_NOT_FOUND},
-    { 0, "abcdabcdabcdabcdabcdabcd",   "abcd",    2, STATUS_SUCCESS},
-    { 1, "abcdabcdabcdabcdabcdabcd",   "abcd",   46, STATUS_SUCCESS},
-    { 2, "abcdabcdabcdabcdabcdabcd",   "abcd",    0, STATUS_NOT_FOUND},
-    { 3, "abcdabcdabcdabcdabcdabcd",   "abcd",    0, STATUS_NOT_FOUND},
+    { 0, "Some Wild String",           "S",       1*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, "This is a String",           "String",  3*sizeof(WCHAR), STATUS_SUCCESS},
+    { 1, "This is a String",           "String", 15*sizeof(WCHAR), STATUS_SUCCESS},
+    { 2, "This is a String",           "String",  1*sizeof(WCHAR), STATUS_SUCCESS},
+    { 3, "This is a String",           "String",  9*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, "This is a String",           "Wild",    3*sizeof(WCHAR), STATUS_SUCCESS},
+    { 1, "This is a String",           "Wild",   13*sizeof(WCHAR), STATUS_SUCCESS},
+    { 2, "This is a String",           "Wild",    1*sizeof(WCHAR), STATUS_SUCCESS},
+    { 3, "This is a String",           "Wild",   15*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, "abcdefghijklmnopqrstuvwxyz", "",        0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 0, "abcdefghijklmnopqrstuvwxyz", "123",     0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 0, "abcdefghijklmnopqrstuvwxyz", "a",       1*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, "abcdefghijklmnopqrstuvwxyz", "12a34",   1*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, "abcdefghijklmnopqrstuvwxyz", "12b34",   2*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, "abcdefghijklmnopqrstuvwxyz", "12y34",  25*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, "abcdefghijklmnopqrstuvwxyz", "12z34",  26*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, "abcdefghijklmnopqrstuvwxyz", "rvz",    18*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, "abcdefghijklmmlkjihgfedcba", "egik",    5*sizeof(WCHAR), STATUS_SUCCESS},
+    { 1, "abcdefghijklmnopqrstuvwxyz", "",        0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 1, "abcdefghijklmnopqrstuvwxyz", "rvz",    25*sizeof(WCHAR), STATUS_SUCCESS},
+    { 1, "abcdefghijklmnopqrstuvwxyz", "ravy",   24*sizeof(WCHAR), STATUS_SUCCESS},
+    { 1, "abcdefghijklmnopqrstuvwxyz", "raxv",   23*sizeof(WCHAR), STATUS_SUCCESS},
+    { 2, "abcdefghijklmnopqrstuvwxyz", "",        1*sizeof(WCHAR), STATUS_SUCCESS},
+    { 2, "abcdefghijklmnopqrstuvwxyz", "rvz",     1*sizeof(WCHAR), STATUS_SUCCESS},
+    { 2, "abcdefghijklmnopqrstuvwxyz", "vaz",     2*sizeof(WCHAR), STATUS_SUCCESS},
+    { 2, "abcdefghijklmnopqrstuvwxyz", "ravbz",   3*sizeof(WCHAR), STATUS_SUCCESS},
+    { 3, "abcdefghijklmnopqrstuvwxyz", "",       25*sizeof(WCHAR), STATUS_SUCCESS},
+    { 3, "abcdefghijklmnopqrstuvwxyz", "123",    25*sizeof(WCHAR), STATUS_SUCCESS},
+    { 3, "abcdefghijklmnopqrstuvwxyz", "ahp",    25*sizeof(WCHAR), STATUS_SUCCESS},
+    { 3, "abcdefghijklmnopqrstuvwxyz", "rvz",    24*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, NULL,                         "abc",     0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 1, NULL,                         "abc",     0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 2, NULL,                         "abc",     0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 3, NULL,                         "abc",     0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 0, "abcdefghijklmnopqrstuvwxyz", NULL,      0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 1, "abcdefghijklmnopqrstuvwxyz", NULL,      0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 2, "abcdefghijklmnopqrstuvwxyz", NULL,      1*sizeof(WCHAR), STATUS_SUCCESS},
+    { 3, "abcdefghijklmnopqrstuvwxyz", NULL,     25*sizeof(WCHAR), STATUS_SUCCESS},
+    { 0, NULL,                         NULL,      0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 1, NULL,                         NULL,      0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 2, NULL,                         NULL,      0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 3, NULL,                         NULL,      0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 0, "abcdabcdabcdabcdabcdabcd",   "abcd",    1*sizeof(WCHAR), STATUS_SUCCESS},
+    { 1, "abcdabcdabcdabcdabcdabcd",   "abcd",   23*sizeof(WCHAR), STATUS_SUCCESS},
+    { 2, "abcdabcdabcdabcdabcdabcd",   "abcd",    0*sizeof(WCHAR), STATUS_NOT_FOUND},
+    { 3, "abcdabcdabcdabcdabcdabcd",   "abcd",    0*sizeof(WCHAR), STATUS_NOT_FOUND},
 };
 #define NB_FIND_CH_IN_USTR (sizeof(find_ch_in_ustr)/sizeof(*find_ch_in_ustr))
 
@@ -1401,7 +1457,7 @@ static void test_RtlUnicodeStringToInteger(void)
             ok(value == 0xdeadbeef || value == 0 /* vista */,
                "(test %d): RtlUnicodeStringToInteger(\"%s\", %d, [out]) assigns value %d, expected 0 or deadbeef\n",
                test_num, str2int[test_num].str, str2int[test_num].base, value);
-	HeapFree(GetProcessHeap(), 0, wstr);
+	heap_free(wstr);
     }
 
     wstr = AtoW(str2int[1].str);
@@ -1415,7 +1471,7 @@ static void test_RtlUnicodeStringToInteger(void)
        "call failed: RtlUnicodeStringToInteger(\"%s\", 20, NULL) has result %x\n",
        str2int[1].str, result);
 
-    uni.Length = 10; /* Make Length shorter (5 WCHARS instead of 7) */
+    uni.Length = 5 * sizeof(WCHAR); /* Make Length shorter (5 WCHARS instead of 7) */
     result = pRtlUnicodeStringToInteger(&uni, str2int[1].base, &value);
     ok(result == STATUS_SUCCESS,
        "call failed: RtlUnicodeStringToInteger(\"12345\", %d, [out]) has result %x\n",
@@ -1424,7 +1480,7 @@ static void test_RtlUnicodeStringToInteger(void)
        "didn't return expected value (test a): expected: %d, got: %d\n",
        12345, value);
 
-    uni.Length = 5; /* Use odd Length (2.5 WCHARS) */
+    uni.Length = 2.5 * sizeof(WCHAR); /* Use odd Length (2.5 WCHARS) */
     result = pRtlUnicodeStringToInteger(&uni, str2int[1].base, &value);
     ok(result == STATUS_SUCCESS || result == STATUS_INVALID_PARAMETER /* vista */,
        "call failed: RtlUnicodeStringToInteger(\"12\", %d, [out]) has result %x\n",
@@ -1432,7 +1488,7 @@ static void test_RtlUnicodeStringToInteger(void)
     if (result == STATUS_SUCCESS)
         ok(value == 12, "didn't return expected value (test b): expected: %d, got: %d\n", 12, value);
 
-    uni.Length = 2;
+    uni.Length = 1 * sizeof(WCHAR);
     result = pRtlUnicodeStringToInteger(&uni, str2int[1].base, &value);
     ok(result == STATUS_SUCCESS,
        "call failed: RtlUnicodeStringToInteger(\"1\", %d, [out]) has result %x\n",
@@ -1441,7 +1497,7 @@ static void test_RtlUnicodeStringToInteger(void)
        "didn't return expected value (test c): expected: %d, got: %d\n",
        1, value);
     /* w2k: uni.Length = 0 returns value 11234567 instead of 0 */
-    HeapFree(GetProcessHeap(), 0, wstr);
+    heap_free(wstr);
 }
 
 
@@ -1767,7 +1823,7 @@ static void test_RtlIsTextUnicode(void)
     ok(!pRtlIsTextUnicode(unicode, sizeof(unicode) - 1, &flags), "Odd length test should have passed\n");
     ok(flags == IS_TEXT_UNICODE_ODD_LENGTH, "Expected flags 0x200, obtained %x\n", flags);
 
-    be_unicode = HeapAlloc(GetProcessHeap(), 0, sizeof(unicode) + sizeof(WCHAR));
+    be_unicode = heap_alloc(sizeof(unicode) + sizeof(WCHAR));
     be_unicode[0] = 0xfffe;
     for (i = 0; i < sizeof(unicode)/sizeof(unicode[0]); i++)
     {
@@ -1788,7 +1844,7 @@ static void test_RtlIsTextUnicode(void)
        "Expected flags 0xc0, obtained %x\n", flags);
 
     /* build byte reversed unicode string with no control chars */
-    be_unicode_no_controls = HeapAlloc(GetProcessHeap(), 0, sizeof(unicode) + sizeof(WCHAR));
+    be_unicode_no_controls = heap_alloc(sizeof(unicode) + sizeof(WCHAR));
     ok(be_unicode_no_controls != NULL, "Expected HeapAlloc to succeed.\n");
     be_unicode_no_controls[0] = 0xfffe;
     for (i = 0; i < sizeof(unicode_no_controls)/sizeof(unicode_no_controls[0]); i++)
@@ -1855,8 +1911,8 @@ static void test_RtlIsTextUnicode(void)
 
     ok(!pRtlIsTextUnicode(&false_negative, sizeof(false_negative), NULL), "Test should fail on 0x0d0a (MALAYALAM LETTER UU).\n");
 
-    HeapFree(GetProcessHeap(), 0, be_unicode);
-    HeapFree(GetProcessHeap(), 0, be_unicode_no_controls);
+    heap_free(be_unicode);
+    heap_free(be_unicode_no_controls);
 }
 
 static void test_RtlCompareUnicodeString(void)

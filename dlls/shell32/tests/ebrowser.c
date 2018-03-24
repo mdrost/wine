@@ -26,7 +26,6 @@
 #include "shlobj.h"
 #include "shlwapi.h"
 
-#include "wine/heap.h"
 #include "wine/test.h"
 
 #include "initguid.h"
@@ -286,7 +285,7 @@ static IExplorerPaneVisibilityImpl *create_explorerpanevisibility(void)
 {
     IExplorerPaneVisibilityImpl *epv;
 
-    epv = heap_alloc_zero(sizeof(*epv));
+    epv = heap_alloc_zero(sizeof(IExplorerPaneVisibilityImpl));
     epv->IExplorerPaneVisibility_iface.lpVtbl = &epvvt;
     epv->ref = 1;
 
@@ -440,7 +439,7 @@ static ICommDlgBrowser3Impl *create_commdlgbrowser3(void)
 {
     ICommDlgBrowser3Impl *cdb;
 
-    cdb = heap_alloc_zero(sizeof(*cdb));
+    cdb = heap_alloc_zero(sizeof(ICommDlgBrowser3Impl));
     cdb->ICommDlgBrowser3_iface.lpVtbl = &cdbvtbl;
     cdb->ref = 1;
 
@@ -549,7 +548,7 @@ static const IServiceProviderVtbl spvtbl =
 
 static IServiceProviderImpl *create_serviceprovider(void)
 {
-    IServiceProviderImpl *sp = heap_alloc(sizeof(*sp));
+    IServiceProviderImpl *sp = heap_alloc(sizeof(IServiceProviderImpl));
     sp->IServiceProvider_iface.lpVtbl = &spvtbl;
     sp->ref = 1;
     return sp;

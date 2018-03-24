@@ -26,6 +26,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define __USE_GNU
+#include <pthread.h>
+#include <gio/gio.h>
+
 #define NONAMELESSUNION
 #define NONAMELESSSTRUCT
 
@@ -40,6 +44,7 @@
 #include "controls.h"
 #include "user_private.h"
 #include "wine/gdi_driver.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
 
@@ -73,6 +78,7 @@ enum parameter_key
     NB_PARAM_KEYS
 };
 
+#if 0
 static const WCHAR COLORS_REGKEY[] =   {'C','o','n','t','r','o','l',' ','P','a','n','e','l','\\','C','o','l','o','r','s',0};
 static const WCHAR DESKTOP_REGKEY[] =  {'C','o','n','t','r','o','l',' ','P','a','n','e','l','\\','D','e','s','k','t','o','p',0};
 static const WCHAR KEYBOARD_REGKEY[] = {'C','o','n','t','r','o','l',' ','P','a','n','e','l','\\','K','e','y','b','o','a','r','d',0};
@@ -94,8 +100,24 @@ static const WCHAR KEYBOARDPREF_REGKEY[] = {'C','o','n','t','r','o','l',' ','P',
 static const WCHAR SCREENREADER_REGKEY[] = {'C','o','n','t','r','o','l',' ','P','a','n','e','l','\\',
                                             'A','c','c','e','s','s','i','b','i','l','i','t','y','\\',
                                             'B','l','i','n','d',' ','A','c','c','e','s','s',0};
+#else
+static const char COLORS_REGKEY[] =   "";
+static const char DESKTOP_REGKEY[] =  "com.canonical.desktop";
+static const char KEYBOARD_REGKEY[] = "org.gnome.desktop.peripherals.keyboard";
+static const char MOUSE_REGKEY[] =    "org.gnome.desktop.peripherals.mouse";
+static const char METRICS_REGKEY[] =  "";
+static const char SOUND_REGKEY[]=     "";
+static const char VERSION_REGKEY[] =  "";
+static const char SHOWSOUNDS_REGKEY[] =   "";
+static const char KEYBOARDPREF_REGKEY[] = "";
+static const char SCREENREADER_REGKEY[] = "";
+#endif
 
+#if 0
 static const WCHAR *parameter_key_names[NB_PARAM_KEYS] =
+#else
+static const char *parameter_key_names[NB_PARAM_KEYS] =
+#endif
 {
     COLORS_REGKEY,
     DESKTOP_REGKEY,
@@ -110,6 +132,7 @@ static const WCHAR *parameter_key_names[NB_PARAM_KEYS] =
 };
 
 /* parameter key values; the first char is actually an enum parameter_key to specify the key */
+#if 0
 static const WCHAR BEEP_VALNAME[]=                     {SOUND_KEY,'B','e','e','p',0};
 static const WCHAR MOUSETHRESHOLD1_VALNAME[]=          {MOUSE_KEY,'M','o','u','s','e','T','h','r','e','s','h','o','l','d','1',0};
 static const WCHAR MOUSETHRESHOLD2_VALNAME[]=          {MOUSE_KEY,'M','o','u','s','e','T','h','r','e','s','h','o','l','d','2',0};
@@ -215,6 +238,113 @@ static const WCHAR COLOR_GRADIENTACTIVECAPTION_VALNAME[] = {COLORS_KEY,'G','r','
 static const WCHAR COLOR_GRADIENTINACTIVECAPTION_VALNAME[] = {COLORS_KEY,'G','r','a','d','i','e','n','t','I','n','a','c','t','i','v','e','T','i','t','l','e',0};
 static const WCHAR COLOR_MENUHILIGHT_VALNAME[] =       {COLORS_KEY,'M','e','n','u','H','i','l','i','g','h','t',0};
 static const WCHAR COLOR_MENUBAR_VALNAME[] =           {COLORS_KEY,'M','e','n','u','B','a','r',0};
+#else
+//static const char BEEP_VALNAME[]=                     {SOUND_KEY,'B','e','e','p',0};
+//static const char MOUSETHRESHOLD1_VALNAME[]=          {MOUSE_KEY,'M','o','u','s','e','T','h','r','e','s','h','o','l','d','1',0};
+//static const char MOUSETHRESHOLD2_VALNAME[]=          {MOUSE_KEY,'M','o','u','s','e','T','h','r','e','s','h','o','l','d','2',0};
+//static const char MOUSEACCELERATION_VALNAME[]=        {MOUSE_KEY,'M','o','u','s','e','S','p','e','e','d',0};
+//static const char BORDER_VALNAME[]=                   {METRICS_KEY,'B','o','r','d','e','r','W','i','d','t','h',0};
+static const char KEYBOARDSPEED_VALNAME[]=            {KEYBOARD_KEY,'r','e','p','e','a','t','-','i','n','t','e','r','v','a','l',0};
+//static const char ICONHORIZONTALSPACING_VALNAME[]=    {METRICS_KEY,'I','c','o','n','S','p','a','c','i','n','g',0};
+//static const char SCREENSAVETIMEOUT_VALNAME[]=        {DESKTOP_KEY,'S','c','r','e','e','n','S','a','v','e','T','i','m','e','O','u','t',0};
+//static const char SCREENSAVEACTIVE_VALNAME[]=         {DESKTOP_KEY,'S','c','r','e','e','n','S','a','v','e','A','c','t','i','v','e',0};
+//static const char GRIDGRANULARITY_VALNAME[]=          {DESKTOP_KEY,'G','r','i','d','G','r','a','n','u','l','a','r','i','t','y',0};
+static const char KEYBOARDDELAY_VALNAME[]=            {KEYBOARD_KEY,'d','e','l','a','y',0};
+//static const char ICONVERTICALSPACING_VALNAME[]=      {METRICS_KEY,'I','c','o','n','V','e','r','t','i','c','a','l','S','p','a','c','i','n','g',0};
+//static const char ICONTITLEWRAP_VALNAME[]=            {DESKTOP_KEY,'I','c','o','n','T','i','t','l','e','W','r','a','p',0};
+//static const char ICONTITLEWRAP_MIRROR[]=             {METRICS_KEY,'I','c','o','n','T','i','t','l','e','W','r','a','p',0};
+//static const char ICONTITLELOGFONT_VALNAME[]=         {METRICS_KEY,'I','c','o','n','F','o','n','t',0};
+//static const char MENUDROPALIGNMENT_VALNAME[]=        {DESKTOP_KEY,'M','e','n','u','D','r','o','p','A','l','i','g','n','m','e','n','t',0};
+//static const char MENUDROPALIGNMENT_MIRROR[]=         {VERSION_KEY,'M','e','n','u','D','r','o','p','A','l','i','g','n','m','e','n','t',0};
+//static const char MOUSETRAILS_VALNAME[]=              {MOUSE_KEY,'M','o','u','s','e','T','r','a','i','l','s',0};
+//static const char SNAPTODEFBUTTON_VALNAME[]=          {MOUSE_KEY,'S','n','a','p','T','o','D','e','f','a','u','l','t','B','u','t','t','o','n',0};
+//static const char DOUBLECLKWIDTH_VALNAME[]=           {MOUSE_KEY,'D','o','u','b','l','e','C','l','i','c','k','W','i','d','t','h',0};
+//static const char DOUBLECLKWIDTH_MIRROR[]=            {DESKTOP_KEY,'D','o','u','b','l','e','C','l','i','c','k','W','i','d','t','h',0};
+//static const char DOUBLECLKHEIGHT_VALNAME[]=          {MOUSE_KEY,'D','o','u','b','l','e','C','l','i','c','k','H','e','i','g','h','t',0};
+//static const char DOUBLECLKHEIGHT_MIRROR[]=           {DESKTOP_KEY,'D','o','u','b','l','e','C','l','i','c','k','H','e','i','g','h','t',0};
+static const char DOUBLECLICKTIME_VALNAME[]=          {MOUSE_KEY,'d','o','u','b','l','e','-','c','l','i','c','k',0};
+static const char MOUSEBUTTONSWAP_VALNAME[]=          {MOUSE_KEY,'l','e','f','t','-','h','a','n','d','e','d',0};
+//static const char DRAGFULLWINDOWS_VALNAME[]=          {DESKTOP_KEY,'D','r','a','g','F','u','l','l','W','i','n','d','o','w','s',0};
+//static const char SHOWSOUNDS_VALNAME[]=               {SHOWSOUNDS_KEY,'O','n',0};
+//static const char KEYBOARDPREF_VALNAME[]=             {KEYBOARDPREF_KEY,'O','n',0};
+//static const char SCREENREADER_VALNAME[]=             {SCREENREADER_KEY,'O','n',0};
+//static const char DESKWALLPAPER_VALNAME[]=            {DESKTOP_KEY,'W','a','l','l','p','a','p','e','r',0};
+//static const char DESKPATTERN_VALNAME[]=              {DESKTOP_KEY,'P','a','t','t','e','r','n',0};
+//static const char FONTSMOOTHING_VALNAME[]=            {DESKTOP_KEY,'F','o','n','t','S','m','o','o','t','h','i','n','g',0};
+//static const char DRAGWIDTH_VALNAME[]=                {DESKTOP_KEY,'D','r','a','g','W','i','d','t','h',0};
+//static const char DRAGHEIGHT_VALNAME[]=               {DESKTOP_KEY,'D','r','a','g','H','e','i','g','h','t',0};
+//static const char LOWPOWERACTIVE_VALNAME[]=           {DESKTOP_KEY,'L','o','w','P','o','w','e','r','A','c','t','i','v','e',0};
+//static const char POWEROFFACTIVE_VALNAME[]=           {DESKTOP_KEY,'P','o','w','e','r','O','f','f','A','c','t','i','v','e',0};
+//static const char USERPREFERENCESMASK_VALNAME[]=      {DESKTOP_KEY,'U','s','e','r','P','r','e','f','e','r','e','n','c','e','s','M','a','s','k',0};
+//static const char MOUSEHOVERWIDTH_VALNAME[]=          {MOUSE_KEY,'M','o','u','s','e','H','o','v','e','r','W','i','d','t','h',0};
+//static const char MOUSEHOVERHEIGHT_VALNAME[]=         {MOUSE_KEY,'M','o','u','s','e','H','o','v','e','r','H','e','i','g','h','t',0};
+//static const char MOUSEHOVERTIME_VALNAME[]=           {MOUSE_KEY,'M','o','u','s','e','H','o','v','e','r','T','i','m','e',0};
+//static const char WHEELSCROLLCHARS_VALNAME[]=         {DESKTOP_KEY,'W','h','e','e','l','S','c','r','o','l','l','C','h','a','r','s',0};
+//static const char WHEELSCROLLLINES_VALNAME[]=         {DESKTOP_KEY,'W','h','e','e','l','S','c','r','o','l','l','L','i','n','e','s',0};
+//static const char ACTIVEWINDOWTRACKING_VALNAME[]=     {MOUSE_KEY,'A','c','t','i','v','e','W','i','n','d','o','w','T','r','a','c','k','i','n','g',0};
+//static const char MENUSHOWDELAY_VALNAME[]=            {DESKTOP_KEY,'M','e','n','u','S','h','o','w','D','e','l','a','y',0};
+//static const char BLOCKSENDINPUTRESETS_VALNAME[]=     {DESKTOP_KEY,'B','l','o','c','k','S','e','n','d','I','n','p','u','t','R','e','s','e','t','s',0};
+//static const char FOREGROUNDLOCKTIMEOUT_VALNAME[]=    {DESKTOP_KEY,'F','o','r','e','g','r','o','u','n','d','L','o','c','k','T','i','m','e','o','u','t',0};
+//static const char ACTIVEWNDTRKTIMEOUT_VALNAME[]=      {DESKTOP_KEY,'A','c','t','i','v','e','W','n','d','T','r','a','c','k','T','i','m','e','o','u','t',0};
+//static const char FOREGROUNDFLASHCOUNT_VALNAME[]=     {DESKTOP_KEY,'F','o','r','e','g','r','o','u','n','d','F','l','a','s','h','C','o','u','n','t',0};
+//static const char CARETWIDTH_VALNAME[]=               {DESKTOP_KEY,'C','a','r','e','t','W','i','d','t','h',0};
+//static const char MOUSECLICKLOCKTIME_VALNAME[]=       {DESKTOP_KEY,'C','l','i','c','k','L','o','c','k','T','i','m','e',0};
+static const char MOUSESPEED_VALNAME[]=               {MOUSE_KEY,'s','p','e','e','d',0};
+//static const char FONTSMOOTHINGTYPE_VALNAME[]=        {DESKTOP_KEY,'F','o','n','t','S','m','o','o','t','h','i','n','g','T','y','p','e',0};
+//static const char FONTSMOOTHINGCONTRAST_VALNAME[]=    {DESKTOP_KEY,'F','o','n','t','S','m','o','o','t','h','i','n','g','G','a','m','m','a',0};
+//static const char FONTSMOOTHINGORIENTATION_VALNAME[]= {DESKTOP_KEY,'F','o','n','t','S','m','o','o','t','h','i','n','g','O','r','i','e','n','t','a','t','i','o','n',0};
+//static const char FOCUSBORDERWIDTH_VALNAME[]=         {DESKTOP_KEY,'F','o','c','u','s','B','o','r','d','e','r','W','i','d','t','h',0};
+//static const char FOCUSBORDERHEIGHT_VALNAME[]=        {DESKTOP_KEY,'F','o','c','u','s','B','o','r','d','e','r','H','e','i','g','h','t',0};
+//static const char SCROLLWIDTH_VALNAME[]=              {METRICS_KEY,'S','c','r','o','l','l','W','i','d','t','h',0};
+//static const char SCROLLHEIGHT_VALNAME[]=             {METRICS_KEY,'S','c','r','o','l','l','H','e','i','g','h','t',0};
+//static const char CAPTIONWIDTH_VALNAME[]=             {METRICS_KEY,'C','a','p','t','i','o','n','W','i','d','t','h',0};
+//static const char CAPTIONHEIGHT_VALNAME[]=            {METRICS_KEY,'C','a','p','t','i','o','n','H','e','i','g','h','t',0};
+//static const char SMCAPTIONWIDTH_VALNAME[]=           {METRICS_KEY,'S','m','C','a','p','t','i','o','n','W','i','d','t','h',0};
+//static const char SMCAPTIONHEIGHT_VALNAME[]=          {METRICS_KEY,'S','m','C','a','p','t','i','o','n','H','e','i','g','h','t',0};
+//static const char MENUWIDTH_VALNAME[]=                {METRICS_KEY,'M','e','n','u','W','i','d','t','h',0};
+//static const char MENUHEIGHT_VALNAME[]=               {METRICS_KEY,'M','e','n','u','H','e','i','g','h','t',0};
+//static const char PADDEDBORDERWIDTH_VALNAME[]=        {METRICS_KEY,'P','a','d','d','e','d','B','o','r','d','e','r','W','i','d','t','h',0};
+//static const char CAPTIONLOGFONT_VALNAME[]=           {METRICS_KEY,'C','a','p','t','i','o','n','F','o','n','t',0};
+//static const char SMCAPTIONLOGFONT_VALNAME[]=         {METRICS_KEY,'S','m','C','a','p','t','i','o','n','F','o','n','t',0};
+//static const char MENULOGFONT_VALNAME[]=              {METRICS_KEY,'M','e','n','u','F','o','n','t',0};
+//static const char MESSAGELOGFONT_VALNAME[]=           {METRICS_KEY,'M','e','s','s','a','g','e','F','o','n','t',0};
+//static const char STATUSLOGFONT_VALNAME[]=            {METRICS_KEY,'S','t','a','t','u','s','F','o','n','t',0};
+//static const char MINWIDTH_VALNAME[] =                {METRICS_KEY,'M','i','n','W','i','d','t','h',0};
+//static const char MINHORZGAP_VALNAME[] =              {METRICS_KEY,'M','i','n','H','o','r','z','G','a','p',0};
+//static const char MINVERTGAP_VALNAME[] =              {METRICS_KEY,'M','i','n','V','e','r','t','G','a','p',0};
+//static const char MINARRANGE_VALNAME[] =              {METRICS_KEY,'M','i','n','A','r','r','a','n','g','e',0};
+//static const char COLOR_SCROLLBAR_VALNAME[] =         {COLORS_KEY,'S','c','r','o','l','l','b','a','r',0};
+//static const char COLOR_BACKGROUND_VALNAME[] =        {COLORS_KEY,'B','a','c','k','g','r','o','u','n','d',0};
+//static const char COLOR_ACTIVECAPTION_VALNAME[] =     {COLORS_KEY,'A','c','t','i','v','e','T','i','t','l','e',0};
+//static const char COLOR_INACTIVECAPTION_VALNAME[] =   {COLORS_KEY,'I','n','a','c','t','i','v','e','T','i','t','l','e',0};
+//static const char COLOR_MENU_VALNAME[] =              {COLORS_KEY,'M','e','n','u',0};
+//static const char COLOR_WINDOW_VALNAME[] =            {COLORS_KEY,'W','i','n','d','o','w',0};
+//static const char COLOR_WINDOWFRAME_VALNAME[] =       {COLORS_KEY,'W','i','n','d','o','w','F','r','a','m','e',0};
+//static const char COLOR_MENUTEXT_VALNAME[] =          {COLORS_KEY,'M','e','n','u','T','e','x','t',0};
+//static const char COLOR_WINDOWTEXT_VALNAME[] =        {COLORS_KEY,'W','i','n','d','o','w','T','e','x','t',0};
+//static const char COLOR_CAPTIONTEXT_VALNAME[] =       {COLORS_KEY,'T','i','t','l','e','T','e','x','t',0};
+//static const char COLOR_ACTIVEBORDER_VALNAME[] =      {COLORS_KEY,'A','c','t','i','v','e','B','o','r','d','e','r',0};
+//static const char COLOR_INACTIVEBORDER_VALNAME[] =    {COLORS_KEY,'I','n','a','c','t','i','v','e','B','o','r','d','e','r',0};
+//static const char COLOR_APPWORKSPACE_VALNAME[] =      {COLORS_KEY,'A','p','p','W','o','r','k','S','p','a','c','e',0};
+//static const char COLOR_HIGHLIGHT_VALNAME[] =         {COLORS_KEY,'H','i','l','i','g','h','t',0};
+//static const char COLOR_HIGHLIGHTTEXT_VALNAME[] =     {COLORS_KEY,'H','i','l','i','g','h','t','T','e','x','t',0};
+//static const char COLOR_BTNFACE_VALNAME[] =           {COLORS_KEY,'B','u','t','t','o','n','F','a','c','e',0};
+//static const char COLOR_BTNSHADOW_VALNAME[] =         {COLORS_KEY,'B','u','t','t','o','n','S','h','a','d','o','w',0};
+//static const char COLOR_GRAYTEXT_VALNAME[] =          {COLORS_KEY,'G','r','a','y','T','e','x','t',0};
+//static const char COLOR_BTNTEXT_VALNAME[] =           {COLORS_KEY,'B','u','t','t','o','n','T','e','x','t',0};
+//static const char COLOR_INACTIVECAPTIONTEXT_VALNAME[] = {COLORS_KEY,'I','n','a','c','t','i','v','e','T','i','t','l','e','T','e','x','t',0};
+//static const char COLOR_BTNHIGHLIGHT_VALNAME[] =      {COLORS_KEY,'B','u','t','t','o','n','H','i','l','i','g','h','t',0};
+//static const char COLOR_3DDKSHADOW_VALNAME[] =        {COLORS_KEY,'B','u','t','t','o','n','D','k','S','h','a','d','o','w',0};
+//static const char COLOR_3DLIGHT_VALNAME[] =           {COLORS_KEY,'B','u','t','t','o','n','L','i','g','h','t',0};
+//static const char COLOR_INFOTEXT_VALNAME[] =          {COLORS_KEY,'I','n','f','o','T','e','x','t',0};
+//static const char COLOR_INFOBK_VALNAME[] =            {COLORS_KEY,'I','n','f','o','W','i','n','d','o','w',0};
+//static const char COLOR_ALTERNATEBTNFACE_VALNAME[] =  {COLORS_KEY,'B','u','t','t','o','n','A','l','t','e','r','n','a','t','e','F','a','c','e',0};
+//static const char COLOR_HOTLIGHT_VALNAME[] =          {COLORS_KEY,'H','o','t','T','r','a','c','k','i','n','g','C','o','l','o','r',0};
+//static const char COLOR_GRADIENTACTIVECAPTION_VALNAME[] = {COLORS_KEY,'G','r','a','d','i','e','n','t','A','c','t','i','v','e','T','i','t','l','e',0};
+//static const char COLOR_GRADIENTINACTIVECAPTION_VALNAME[] = {COLORS_KEY,'G','r','a','d','i','e','n','t','I','n','a','c','t','i','v','e','T','i','t','l','e',0};
+//static const char COLOR_MENUHILIGHT_VALNAME[] =       {COLORS_KEY,'M','e','n','u','H','i','l','i','g','h','t',0};
+//static const char COLOR_MENUBAR_VALNAME[] =           {COLORS_KEY,'M','e','n','u','B','a','r',0};
+#endif
 
 /* FIXME - real value */
 static const WCHAR SCREENSAVERRUNNING_VALNAME[]=  {DESKTOP_KEY,'W','I','N','E','_','S','c','r','e','e','n','S','a','v','e','r','R','u','n','n','i','n','g',0};
@@ -234,6 +364,7 @@ static const WCHAR CSd[] =   {'%','d',0};
 static const WCHAR CSrgb[] = {'%','u',' ','%','u',' ','%','u',0};
 
 static HDC display_dc;
+#if 0
 static CRITICAL_SECTION display_dc_section;
 static CRITICAL_SECTION_DEBUG critsect_debug =
 {
@@ -242,6 +373,9 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": display_dc_section") }
 };
 static CRITICAL_SECTION display_dc_section = { &critsect_debug, -1 ,0, 0, 0, 0 };
+#else
+static pthread_mutex_t display_dc_section = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 
 /* Indicators whether system parameter value is loaded */
@@ -252,7 +386,9 @@ static BOOL notify_change = TRUE;
 /* System parameters storage */
 static RECT work_area;
 
+#if 0
 static HKEY volatile_base_key;
+#endif
 
 union sysparam_all_entry;
 
@@ -261,8 +397,13 @@ struct sysparam_entry
     BOOL       (*get)( union sysparam_all_entry *entry, UINT int_param, void *ptr_param );
     BOOL       (*set)( union sysparam_all_entry *entry, UINT int_param, void *ptr_param, UINT flags );
     BOOL       (*init)( union sysparam_all_entry *entry );
+#if 0
     const WCHAR *regval;
     const WCHAR *mirror;
+#else
+    const char *regval;
+    const char *mirror;
+#endif
     BOOL         loaded;
 };
 
@@ -493,6 +634,7 @@ static void get_text_metr_size( HDC hdc, LOGFONTW *plf, TEXTMETRICW * ptm, UINT 
     DeleteObject( hfont);
 }
 
+#if 0
 /***********************************************************************
  *           SYSPARAMS_NotifyChange
  *
@@ -542,11 +684,13 @@ static BOOL get_base_keys( enum parameter_key index, HKEY *base_key, HKEY *volat
     if (volatile_key) *volatile_key = volatile_keys[index];
     return TRUE;
 }
+#endif
 
 /* load a value to a registry entry */
 static DWORD load_entry( struct sysparam_entry *entry, void *data, DWORD size )
 {
     DWORD type, count;
+#if 0
     HKEY base_key, volatile_key;
 
     if (!get_base_keys( entry->regval[0], &base_key, &volatile_key )) return FALSE;
@@ -560,6 +704,38 @@ static DWORD load_entry( struct sysparam_entry *entry, void *data, DWORD size )
     /* make sure strings are null-terminated */
     if (size && count == size && type == REG_SZ) ((WCHAR *)data)[count / sizeof(WCHAR) - 1] = 0;
     entry->loaded = TRUE;
+#else
+    GSettings *settings;
+    GVariantClass class;
+    GVariant *value;
+    enum parameter_key index = entry->regval[0];
+    
+    if (!(settings = g_settings_new(parameter_key_names[index]))) return 0;
+    value = g_settings_get_value(settings, entry->regval + 1);
+    if (value)
+    {
+        class = g_variant_classify(value);
+        if (class == G_VARIANT_CLASS_STRING || class == G_VARIANT_CLASS_OBJECT_PATH || class == G_VARIANT_CLASS_SIGNATURE)
+        {
+            count = MultiByteToWideChar(CP_UNIXCP, 0, g_variant_get_string(value, NULL), -1, data, size / sizeof(WCHAR));
+            ((WCHAR *)data)[size / sizeof(WCHAR) - 1] = 0;
+        }
+        else
+        {
+            if (g_variant_get_size(value) <= size)
+            {
+                count = g_variant_get_size(value);
+                g_variant_store(value, data);
+            }
+            else
+                count = 0;
+        }
+        g_variant_unref(value);
+    }
+    g_object_unref(settings);
+    if (count)
+        entry->loaded = TRUE;
+#endif
     return count;
 }
 
@@ -567,6 +743,7 @@ static DWORD load_entry( struct sysparam_entry *entry, void *data, DWORD size )
 static BOOL save_entry( const struct sysparam_entry *entry, const void *data, DWORD size,
                         DWORD type, UINT flags )
 {
+#if 0
     HKEY base_key, volatile_key;
 
     if (flags & SPIF_UPDATEINIFILE)
@@ -584,6 +761,9 @@ static BOOL save_entry( const struct sysparam_entry *entry, const void *data, DW
         if (RegSetValueExW( volatile_key, entry->regval + 1, 0, type, data, size )) return FALSE;
     }
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 /* save a string value to a registry entry */
@@ -595,6 +775,7 @@ static BOOL save_entry_string( const struct sysparam_entry *entry, const WCHAR *
 /* initialize an entry in the registry if missing */
 static BOOL init_entry( struct sysparam_entry *entry, const void *data, DWORD size, DWORD type )
 {
+#if 0
     HKEY base_key;
 
     if (!get_base_keys( entry->regval[0], &base_key, NULL )) return FALSE;
@@ -604,6 +785,9 @@ static BOOL init_entry( struct sysparam_entry *entry, const void *data, DWORD si
         RegSetValueExW( base_key, entry->mirror + 1, 0, type, data, size );
     entry->loaded = TRUE;
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 /* initialize a string value in the registry if missing */
@@ -615,14 +799,22 @@ static BOOL init_entry_string( struct sysparam_entry *entry, const WCHAR *str )
 HDC get_display_dc(void)
 {
     static const WCHAR DISPLAY[] = {'D','I','S','P','L','A','Y',0};
+#if 0
     EnterCriticalSection( &display_dc_section );
+#else
+    pthread_mutex_lock( &display_dc_section );
+#endif
     if (!display_dc) display_dc = CreateDCW( DISPLAY, NULL, NULL, NULL );
     return display_dc;
 }
 
 void release_display_dc( HDC hdc )
 {
+#if 0
     LeaveCriticalSection( &display_dc_section );
+#else
+    pthread_mutex_unlock( &display_dc_section );
+#endif
 }
 
 static inline int get_display_dpi(void)
@@ -638,6 +830,7 @@ static inline int get_display_dpi(void)
     return display_dpi;
 }
 
+#if 0
 static INT CALLBACK real_fontname_proc(const LOGFONTW *lf, const TEXTMETRICW *ntm, DWORD type, LPARAM lparam)
 {
     const ENUMLOGFONTW *elf = (const ENUMLOGFONTW *)lf;
@@ -692,6 +885,7 @@ static BOOL CALLBACK enum_monitors( HMONITOR monitor, HDC hdc, LPRECT rect, LPAR
     }
     return TRUE;
 }
+#endif
 
 /* load a uint parameter from the registry */
 static BOOL get_uint_entry( union sysparam_all_entry *entry, UINT int_param, void *ptr_param )
@@ -753,6 +947,7 @@ static BOOL init_int_entry( union sysparam_all_entry *entry )
 /* load a twips parameter from the registry */
 static BOOL get_twips_entry( union sysparam_all_entry *entry, UINT int_param, void *ptr_param )
 {
+#if 0
     if (!ptr_param) return FALSE;
 
     if (!entry->hdr.loaded)
@@ -774,6 +969,9 @@ static BOOL get_twips_entry( union sysparam_all_entry *entry, UINT int_param, vo
     }
     *(UINT *)ptr_param = entry->uint.val;
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 /* load a bool parameter from the registry */
@@ -942,6 +1140,7 @@ static BOOL init_rgb_entry( union sysparam_all_entry *entry )
 /* load a font (binary) parameter from the registry */
 static BOOL get_font_entry( union sysparam_all_entry *entry, UINT int_param, void *ptr_param )
 {
+#if 0
     if (!ptr_param) return FALSE;
 
     if (!entry->hdr.loaded)
@@ -975,6 +1174,9 @@ static BOOL get_font_entry( union sysparam_all_entry *entry, UINT int_param, voi
     }
     *(LOGFONTW *)ptr_param = entry->font.val;
     return TRUE;
+#else
+    return FALSE;
+#endif
 }
 
 /* set a font (binary) parameter in the registry */
@@ -1047,7 +1249,7 @@ static BOOL get_binary_entry( union sysparam_all_entry *entry, UINT int_param, v
 
     if (!entry->hdr.loaded)
     {
-        void *buffer = HeapAlloc( GetProcessHeap(), 0, entry->bin.size );
+        void *buffer = heap_alloc( entry->bin.size );
         DWORD len = load_entry( &entry->hdr, buffer, entry->bin.size );
 
         if (len)
@@ -1055,7 +1257,7 @@ static BOOL get_binary_entry( union sysparam_all_entry *entry, UINT int_param, v
             memcpy( entry->bin.ptr, buffer, entry->bin.size );
             memset( (char *)entry->bin.ptr + len, 0, entry->bin.size - len );
         }
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
     }
     memcpy( ptr_param, entry->bin.ptr, min( int_param, entry->bin.size ) );
     return TRUE;
@@ -1065,7 +1267,7 @@ static BOOL get_binary_entry( union sysparam_all_entry *entry, UINT int_param, v
 static BOOL set_binary_entry( union sysparam_all_entry *entry, UINT int_param, void *ptr_param, UINT flags )
 {
     BOOL ret;
-    void *buffer = HeapAlloc( GetProcessHeap(), 0, entry->bin.size );
+    void *buffer = heap_alloc( entry->bin.size );
 
     memcpy( buffer, entry->bin.ptr, entry->bin.size );
     memcpy( buffer, ptr_param, min( int_param, entry->bin.size ));
@@ -1075,7 +1277,7 @@ static BOOL set_binary_entry( union sysparam_all_entry *entry, UINT int_param, v
         memcpy( entry->bin.ptr, buffer, entry->bin.size );
         entry->hdr.loaded = TRUE;
     }
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
     return ret;
 }
 
@@ -1119,11 +1321,13 @@ static BOOL get_entry( void *ptr, UINT int_param, void *ptr_param )
     return entry->hdr.get( entry, int_param, ptr_param );
 }
 
+#if 0
 static BOOL set_entry( void *ptr, UINT int_param, void *ptr_param, UINT flags )
 {
     union sysparam_all_entry *entry = ptr;
     return entry->hdr.set( entry, int_param, ptr_param, flags );
 }
+#endif
 
 #define UINT_ENTRY(name,val) \
     struct sysparam_uint_entry entry_##name = { { get_uint_entry, set_uint_entry, init_uint_entry, \
@@ -1173,13 +1377,18 @@ static BOOL set_entry( void *ptr, UINT int_param, void *ptr_param, UINT flags )
     struct sysparam_pref_entry entry_##name = { { get_userpref_entry, set_userpref_entry }, \
                                                 &entry_USERPREFERENCESMASK, (offset), (mask) }
 
+#if 0
 static UINT_ENTRY( DRAGWIDTH, 4 );
 static UINT_ENTRY( DRAGHEIGHT, 4 );
+#endif
 static UINT_ENTRY( DOUBLECLICKTIME, 500 );
+#if 0
 static UINT_ENTRY( FONTSMOOTHING, 2 );
 static UINT_ENTRY( GRIDGRANULARITY, 0 );
+#endif
 static UINT_ENTRY( KEYBOARDDELAY, 1 );
 static UINT_ENTRY( KEYBOARDSPEED, 31 );
+#if 0
 static UINT_ENTRY( MENUSHOWDELAY, 400 );
 static UINT_ENTRY( MINARRANGE, ARW_HIDE );
 static UINT_ENTRY( MINHORZGAP, 0 );
@@ -1188,7 +1397,9 @@ static UINT_ENTRY( MINWIDTH, 154 );
 static UINT_ENTRY( MOUSEHOVERHEIGHT, 4 );
 static UINT_ENTRY( MOUSEHOVERTIME, 400 );
 static UINT_ENTRY( MOUSEHOVERWIDTH, 4 );
+#endif
 static UINT_ENTRY( MOUSESPEED, 10 );
+#if 0
 static UINT_ENTRY( MOUSETRAILS, 0 );
 static UINT_ENTRY( SCREENSAVETIMEOUT, 300 );
 static UINT_ENTRY( WHEELSCROLLCHARS, 3 );
@@ -1205,7 +1416,9 @@ static BOOL_ENTRY( BLOCKSENDINPUTRESETS, FALSE );
 static BOOL_ENTRY( DRAGFULLWINDOWS, FALSE );
 static BOOL_ENTRY( KEYBOARDPREF, TRUE );
 static BOOL_ENTRY( LOWPOWERACTIVE, FALSE );
+#endif
 static BOOL_ENTRY( MOUSEBUTTONSWAP, FALSE );
+#if 0
 static BOOL_ENTRY( POWEROFFACTIVE, FALSE );
 static BOOL_ENTRY( SCREENREADER, FALSE );
 static BOOL_ENTRY( SCREENSAVEACTIVE, TRUE );
@@ -1276,10 +1489,12 @@ static USERPREF_ENTRY( DISABLEOVERLAPPEDCONTENT, 4, 0x01 );
 static USERPREF_ENTRY( CLIENTAREAANIMATION,      4, 0x02 );
 static USERPREF_ENTRY( CLEARTYPE,                4, 0x10 );
 static USERPREF_ENTRY( SPEECHRECOGNITION,        4, 0x20 );
+#endif
 
 static struct sysparam_rgb_entry system_colors[] =
 {
 #define RGB_ENTRY(name,val) { { get_rgb_entry, set_rgb_entry, init_rgb_entry, name ##_VALNAME }, (val) }
+#if 0
     RGB_ENTRY( COLOR_SCROLLBAR, RGB(212, 208, 200) ),
     RGB_ENTRY( COLOR_BACKGROUND, RGB(58, 110, 165) ),
     RGB_ENTRY( COLOR_ACTIVECAPTION, RGB(10, 36, 106) ),
@@ -1311,10 +1526,12 @@ static struct sysparam_rgb_entry system_colors[] =
     RGB_ENTRY( COLOR_GRADIENTINACTIVECAPTION, RGB(192, 192, 192) ),
     RGB_ENTRY( COLOR_MENUHILIGHT, RGB(10, 36, 106) ),
     RGB_ENTRY( COLOR_MENUBAR, RGB(212, 208, 200) )
+#endif
 #undef RGB_ENTRY
 };
 #define NUM_SYS_COLORS (sizeof(system_colors) / sizeof(system_colors[0]))
 
+#if 0
 /* entries that are initialized by default in the registry */
 static union sysparam_all_entry * const default_entries[] =
 {
@@ -1418,6 +1635,7 @@ static BOOL update_desktop_wallpaper(void)
     else SendMessageW( GetDesktopWindow(), WM_SETTINGCHANGE, SPI_SETDESKWALLPAPER, 0 );
     return TRUE;
 }
+#endif
 
 /***********************************************************************
  *		SystemParametersInfoW (USER32.@)
@@ -1470,6 +1688,7 @@ BOOL WINAPI SystemParametersInfoW( UINT uiAction, UINT uiParam,
 
     if (!ret) switch (uiAction)
     {
+#if 0
     case SPI_GETBEEP:
         ret = get_entry( &entry_BEEP, uiParam, pvParam );
         break;
@@ -2233,6 +2452,7 @@ BOOL WINAPI SystemParametersInfoW( UINT uiAction, UINT uiParam,
     case SPI_SETFONTSMOOTHINGORIENTATION:
         ret = set_entry( &entry_FONTSMOOTHINGORIENTATION, uiParam, pvParam, fWinIni );
         break;
+#endif
 
     default:
 	FIXME( "Unknown action: %u\n", uiAction );
@@ -2241,8 +2461,10 @@ BOOL WINAPI SystemParametersInfoW( UINT uiAction, UINT uiParam,
 	break;
     }
 
+#if 0
     if (ret)
         SYSPARAMS_NotifyChange( uiAction, fWinIni );
+#endif
     TRACE("(%u, %u, %p, %u) ret %d\n",
             uiAction, uiParam, pvParam, fWinIni, ret);
     return ret;
@@ -2404,6 +2626,7 @@ INT WINAPI GetSystemMetrics( INT index )
     /* some metrics are dynamic */
     switch (index)
     {
+#if 0
     case SM_CXSCREEN:
         hdc = get_display_dc();
         ret = GetDeviceCaps( hdc, HORZRES );
@@ -2418,6 +2641,7 @@ INT WINAPI GetSystemMetrics( INT index )
     case SM_CYHSCROLL:
         get_entry( &entry_SCROLLWIDTH, 0, &ret );
         return max( 8, ret );
+#endif
     case SM_CYCAPTION:
         return GetSystemMetrics( SM_CYSIZE ) + 1;
     case SM_CXBORDER:
@@ -2427,6 +2651,7 @@ INT WINAPI GetSystemMetrics( INT index )
     case SM_CXDLGFRAME:
     case SM_CYDLGFRAME:
         return 3;
+#if 0
     case SM_CYVTHUMB:
     case SM_CXHTHUMB:
     case SM_CYVSCROLL:
@@ -2448,6 +2673,7 @@ INT WINAPI GetSystemMetrics( INT index )
             if (ret >= 48) return 48;
         }
         return 32;
+#endif
     case SM_CYMENU:
         return GetSystemMetrics(SM_CYMENUSIZE) + 1;
     case SM_CXFULLSCREEN:
@@ -2472,6 +2698,7 @@ INT WINAPI GetSystemMetrics( INT index )
     case SM_RESERVED3:
     case SM_RESERVED4:
         return 0;
+#if 0
     case SM_CXMIN:
         ncm.cbSize = sizeof(ncm);
         SystemParametersInfoW( SPI_GETNONCLIENTMETRICS, 0, &ncm, 0 );
@@ -2479,25 +2706,31 @@ INT WINAPI GetSystemMetrics( INT index )
         get_text_metr_size( hdc, &ncm.lfCaptionFont, NULL, &ret );
         release_display_dc( hdc );
         return 3 * ncm.iCaptionWidth + ncm.iCaptionHeight + 4 * ret + 2 * GetSystemMetrics(SM_CXFRAME) + 4;
+#endif
     case SM_CYMIN:
         return GetSystemMetrics( SM_CYCAPTION) + 2 * GetSystemMetrics( SM_CYFRAME);
+#if 0
     case SM_CXSIZE:
         get_entry( &entry_CAPTIONWIDTH, 0, &ret );
         return max( 8, ret );
+#endif
     case SM_CYSIZE:
         ncm.cbSize = sizeof(ncm);
         SystemParametersInfoW( SPI_GETNONCLIENTMETRICS, 0, &ncm, 0 );
         return ncm.iCaptionHeight;
+#if 0
     case SM_CXFRAME:
         get_entry( &entry_BORDER, 0, &ret );
         return GetSystemMetrics(SM_CXDLGFRAME) + max( 1, ret );
     case SM_CYFRAME:
         get_entry( &entry_BORDER, 0, &ret );
         return GetSystemMetrics(SM_CYDLGFRAME) + max( 1, ret );
+#endif
     case SM_CXMINTRACK:
         return GetSystemMetrics(SM_CXMIN);
     case SM_CYMINTRACK:
         return GetSystemMetrics(SM_CYMIN);
+#if 0
     case SM_CXDOUBLECLK:
         get_entry( &entry_DOUBLECLKWIDTH, 0, &ret );
         return ret;
@@ -2513,6 +2746,7 @@ INT WINAPI GetSystemMetrics( INT index )
     case SM_MENUDROPALIGNMENT:
         get_entry( &entry_MENUDROPALIGNMENT, 0, &ret );
         return ret;
+#endif
     case SM_PENWINDOWS:
         return 0;
     case SM_DBCSENABLED:
@@ -2529,6 +2763,7 @@ INT WINAPI GetSystemMetrics( INT index )
         return GetSystemMetrics(SM_CXBORDER) + 1;
     case SM_CYEDGE:
         return GetSystemMetrics(SM_CYBORDER) + 1;
+#if 0
     case SM_CXMINSPACING:
         get_entry( &entry_MINHORZGAP, 0, &ret );
         return GetSystemMetrics(SM_CXMINIMIZED) + max( 0, (INT)ret );
@@ -2541,28 +2776,35 @@ INT WINAPI GetSystemMetrics( INT index )
         if (IsProcessDPIAware())
             ret = MulDiv( ret, get_display_dpi(), USER_DEFAULT_SCREEN_DPI ) & ~1;
         return ret;
+#endif
     case SM_CYSMCAPTION:
         return GetSystemMetrics(SM_CYSMSIZE) + 1;
+#if 0
     case SM_CXSMSIZE:
         get_entry( &entry_SMCAPTIONWIDTH, 0, &ret );
         return ret;
+#endif
     case SM_CYSMSIZE:
         ncm.cbSize = sizeof(ncm);
         SystemParametersInfoW( SPI_GETNONCLIENTMETRICS, 0, &ncm, 0 );
         return ncm.iSmCaptionHeight;
+#if 0
     case SM_CXMENUSIZE:
         get_entry( &entry_MENUWIDTH, 0, &ret );
         return ret;
+#endif
     case SM_CYMENUSIZE:
         ncm.cbSize = sizeof(ncm);
         SystemParametersInfoW( SPI_GETNONCLIENTMETRICS, 0, &ncm, 0 );
         return ncm.iMenuHeight;
+#if 0
     case SM_ARRANGE:
         get_entry( &entry_MINARRANGE, 0, &ret );
         return ret & 0x0f;
     case SM_CXMINIMIZED:
         get_entry( &entry_MINWIDTH, 0, &ret );
         return max( 0, (INT)ret ) + 6;
+#endif
     case SM_CYMINIMIZED:
         return GetSystemMetrics( SM_CYSIZE ) + 6;
     case SM_CXMAXTRACK:
@@ -2579,6 +2821,7 @@ INT WINAPI GetSystemMetrics( INT index )
         return 3;  /* FIXME */
     case SM_CLEANBOOT:
         return 0; /* 0 = ok, 1 = failsafe, 2 = failsafe + network */
+#if 0
     case SM_CXDRAG:
         get_entry( &entry_DRAGWIDTH, 0, &ret );
         return ret;
@@ -2599,6 +2842,7 @@ INT WINAPI GetSystemMetrics( INT index )
         release_display_dc( hdc );
         return tm.tmHeight <= 0 ? 13 : ((tm.tmHeight + tm.tmExternalLeading + 1) / 2) * 2 - 1;
     }
+#endif
     case SM_SLOWMACHINE:
         return 0;  /* Never true */
     case SM_MIDEASTENABLED:
@@ -2649,6 +2893,7 @@ INT WINAPI GetSystemMetrics( INT index )
 }
 
 
+#if 0
 /***********************************************************************
  *		SwapMouseButton (USER32.@)
  *  Reverse or restore the meaning of the left and right mouse buttons
@@ -2684,6 +2929,7 @@ UINT WINAPI GetDoubleClickTime(void)
     if (!time) time = 500;
     return time;
 }
+#endif
 
 
 /*************************************************************************
@@ -2698,6 +2944,7 @@ COLORREF WINAPI DECLSPEC_HOTPATCH GetSysColor( INT nIndex )
 }
 
 
+#if 0
 /*************************************************************************
  *		SetSysColors (USER32.@)
  */
@@ -2721,6 +2968,7 @@ BOOL WINAPI SetSysColors( INT count, const INT *colors, const COLORREF *values )
                 RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW | RDW_ALLCHILDREN );
     return TRUE;
 }
+#endif
 
 
 /*************************************************************************
@@ -2799,6 +3047,7 @@ HBRUSH SYSCOLOR_Get55AABrush(void)
     return brush_55aa;
 }
 
+#if 0
 /***********************************************************************
  *		ChangeDisplaySettingsA (USER32.@)
  */
@@ -2841,7 +3090,7 @@ LONG WINAPI ChangeDisplaySettingsExA( LPCSTR devname, LPDEVMODEA devmode, HWND h
         if (devmodeW)
         {
             ret = ChangeDisplaySettingsExW(nameW.Buffer, devmodeW, hwnd, flags, lparam);
-            HeapFree(GetProcessHeap(), 0, devmodeW);
+            heap_free(devmodeW);
         }
         else
             ret = DISP_CHANGE_SUCCESSFUL;
@@ -2854,6 +3103,7 @@ LONG WINAPI ChangeDisplaySettingsExA( LPCSTR devname, LPDEVMODEA devmode, HWND h
     if (devname) RtlFreeUnicodeString(&nameW);
     return ret;
 }
+#endif
 
 
 /***********************************************************************
@@ -2945,6 +3195,7 @@ BOOL WINAPI EnumDisplaySettingsExW(LPCWSTR lpszDeviceName, DWORD iModeNum,
     return USER_Driver->pEnumDisplaySettingsEx(lpszDeviceName, iModeNum, lpDevMode, dwFlags);
 }
 
+#if 0
 /***********************************************************************
  *              SetProcessDPIAware   (USER32.@)
  */
@@ -2982,3 +3233,4 @@ BOOL WINAPI GetDisplayAutoRotationPreferences( ORIENTATION_PREFERENCE *orientati
     *orientation = ORIENTATION_PREFERENCE_NONE;
     return TRUE;
 }
+#endif

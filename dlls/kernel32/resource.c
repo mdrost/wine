@@ -33,6 +33,7 @@
 #include "winbase.h"
 #include "winternl.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 #include "wine/exception.h"
 #include "wine/unicode.h"
 #include "wine/list.h"
@@ -96,8 +97,10 @@ static HRSRC find_resourceA( HMODULE hModule, LPCSTR type, LPCSTR name, WORD lan
     nameW.Buffer = NULL;
     typeW.Buffer = NULL;
 
+#if 0
     __TRY
     {
+#endif
         if ((status = get_res_nameA( name, &nameW )) != STATUS_SUCCESS) goto done;
         if ((status = get_res_nameA( type, &typeW )) != STATUS_SUCCESS) goto done;
         info.Type = (ULONG_PTR)typeW.Buffer;
@@ -106,15 +109,17 @@ static HRSRC find_resourceA( HMODULE hModule, LPCSTR type, LPCSTR name, WORD lan
         status = LdrFindResource_U( hModule, &info, 3, &entry );
     done:
         if (status != STATUS_SUCCESS) SetLastError( RtlNtStatusToDosError(status) );
+#if 0
     }
     __EXCEPT_PAGE_FAULT
     {
         SetLastError( ERROR_INVALID_PARAMETER );
     }
     __ENDTRY
+#endif
 
-    if (!IS_INTRESOURCE(nameW.Buffer)) HeapFree( GetProcessHeap(), 0, nameW.Buffer );
-    if (!IS_INTRESOURCE(typeW.Buffer)) HeapFree( GetProcessHeap(), 0, typeW.Buffer );
+    if (!IS_INTRESOURCE(nameW.Buffer)) heap_free( nameW.Buffer );
+    if (!IS_INTRESOURCE(typeW.Buffer)) heap_free( typeW.Buffer );
     return (HRSRC)entry;
 }
 
@@ -129,8 +134,10 @@ static HRSRC find_resourceW( HMODULE hModule, LPCWSTR type, LPCWSTR name, WORD l
 
     nameW.Buffer = typeW.Buffer = NULL;
 
+#if 0
     __TRY
     {
+#endif
         if ((status = get_res_nameW( name, &nameW )) != STATUS_SUCCESS) goto done;
         if ((status = get_res_nameW( type, &typeW )) != STATUS_SUCCESS) goto done;
         info.Type = (ULONG_PTR)typeW.Buffer;
@@ -139,15 +146,17 @@ static HRSRC find_resourceW( HMODULE hModule, LPCWSTR type, LPCWSTR name, WORD l
         status = LdrFindResource_U( hModule, &info, 3, &entry );
     done:
         if (status != STATUS_SUCCESS) SetLastError( RtlNtStatusToDosError(status) );
+#if 0
     }
     __EXCEPT_PAGE_FAULT
     {
         SetLastError( ERROR_INVALID_PARAMETER );
     }
     __ENDTRY
+#endif
 
-    if (!IS_INTRESOURCE(nameW.Buffer)) HeapFree( GetProcessHeap(), 0, nameW.Buffer );
-    if (!IS_INTRESOURCE(typeW.Buffer)) HeapFree( GetProcessHeap(), 0, typeW.Buffer );
+    if (!IS_INTRESOURCE(nameW.Buffer)) heap_free( nameW.Buffer );
+    if (!IS_INTRESOURCE(typeW.Buffer)) heap_free( typeW.Buffer );
     return (HRSRC)entry;
 }
 
@@ -198,6 +207,7 @@ HRSRC WINAPI FindResourceW( HINSTANCE hModule, LPCWSTR name, LPCWSTR type )
  */
 BOOL WINAPI EnumResourceTypesA( HMODULE hmod, ENUMRESTYPEPROCA lpfun, LONG_PTR lparam )
 {
+#if 0
     int i;
     BOOL ret = FALSE;
     LPSTR type = NULL;
@@ -226,8 +236,8 @@ BOOL WINAPI EnumResourceTypesA( HMODULE hmod, ENUMRESTYPEPROCA lpfun, LONG_PTR l
             if (newlen + 1 > len)
             {
                 len = newlen + 1;
-                HeapFree( GetProcessHeap(), 0, type );
-                if (!(type = HeapAlloc( GetProcessHeap(), 0, len ))) return FALSE;
+                heap_free( type );
+                if (!(type = heap_alloc( len ))) return FALSE;
             }
             WideCharToMultiByte( CP_ACP, 0, str->NameString, str->Length, type, len, NULL, NULL);
             type[newlen] = 0;
@@ -239,8 +249,12 @@ BOOL WINAPI EnumResourceTypesA( HMODULE hmod, ENUMRESTYPEPROCA lpfun, LONG_PTR l
         }
         if (!ret) break;
     }
-    HeapFree( GetProcessHeap(), 0, type );
+    heap_free( type );
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -249,6 +263,7 @@ BOOL WINAPI EnumResourceTypesA( HMODULE hmod, ENUMRESTYPEPROCA lpfun, LONG_PTR l
  */
 BOOL WINAPI EnumResourceTypesW( HMODULE hmod, ENUMRESTYPEPROCW lpfun, LONG_PTR lparam )
 {
+#if 0
     int i, len = 0;
     BOOL ret = FALSE;
     LPWSTR type = NULL;
@@ -275,8 +290,8 @@ BOOL WINAPI EnumResourceTypesW( HMODULE hmod, ENUMRESTYPEPROCW lpfun, LONG_PTR l
             if (str->Length + 1 > len)
             {
                 len = str->Length + 1;
-                HeapFree( GetProcessHeap(), 0, type );
-                if (!(type = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) ))) return FALSE;
+                heap_free( type );
+                if (!(type = heap_alloc( len * sizeof(WCHAR) ))) return FALSE;
             }
             memcpy(type, str->NameString, str->Length * sizeof (WCHAR));
             type[str->Length] = 0;
@@ -288,8 +303,12 @@ BOOL WINAPI EnumResourceTypesW( HMODULE hmod, ENUMRESTYPEPROCW lpfun, LONG_PTR l
         }
         if (!ret) break;
     }
-    HeapFree( GetProcessHeap(), 0, type );
+    heap_free( type );
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -298,6 +317,7 @@ BOOL WINAPI EnumResourceTypesW( HMODULE hmod, ENUMRESTYPEPROCW lpfun, LONG_PTR l
  */
 BOOL WINAPI EnumResourceNamesA( HMODULE hmod, LPCSTR type, ENUMRESNAMEPROCA lpfun, LONG_PTR lparam )
 {
+#if 0
     int i;
     BOOL ret = FALSE;
     DWORD len = 0, newlen;
@@ -333,8 +353,8 @@ BOOL WINAPI EnumResourceNamesA( HMODULE hmod, LPCSTR type, ENUMRESNAMEPROCA lpfu
                 if (newlen + 1 > len)
                 {
                     len = newlen + 1;
-                    HeapFree( GetProcessHeap(), 0, name );
-                    if (!(name = HeapAlloc(GetProcessHeap(), 0, len + 1 )))
+                    heap_free( name );
+                    if (!(name = heap_alloc( len + 1 )))
                     {
                         ret = FALSE;
                         break;
@@ -359,10 +379,14 @@ BOOL WINAPI EnumResourceNamesA( HMODULE hmod, LPCSTR type, ENUMRESNAMEPROCA lpfu
     __ENDTRY
 
 done:
-    HeapFree( GetProcessHeap(), 0, name );
-    if (!IS_INTRESOURCE(typeW.Buffer)) HeapFree( GetProcessHeap(), 0, typeW.Buffer );
+    heap_free( name );
+    if (!IS_INTRESOURCE(typeW.Buffer)) heap_free( typeW.Buffer );
     if (status != STATUS_SUCCESS) SetLastError( RtlNtStatusToDosError(status) );
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -371,6 +395,7 @@ done:
  */
 BOOL WINAPI EnumResourceNamesW( HMODULE hmod, LPCWSTR type, ENUMRESNAMEPROCW lpfun, LONG_PTR lparam )
 {
+#if 0
     int i, len = 0;
     BOOL ret = FALSE;
     LPWSTR name = NULL;
@@ -404,8 +429,8 @@ BOOL WINAPI EnumResourceNamesW( HMODULE hmod, LPCWSTR type, ENUMRESNAMEPROCW lpf
                 if (str->Length + 1 > len)
                 {
                     len = str->Length + 1;
-                    HeapFree( GetProcessHeap(), 0, name );
-                    if (!(name = HeapAlloc( GetProcessHeap(), 0, len * sizeof(WCHAR) )))
+                    heap_free( name );
+                    if (!(name = heap_alloc( len * sizeof(WCHAR) )))
                     {
                         ret = FALSE;
                         break;
@@ -429,10 +454,14 @@ BOOL WINAPI EnumResourceNamesW( HMODULE hmod, LPCWSTR type, ENUMRESNAMEPROCW lpf
     }
     __ENDTRY
 done:
-    HeapFree( GetProcessHeap(), 0, name );
-    if (!IS_INTRESOURCE(typeW.Buffer)) HeapFree( GetProcessHeap(), 0, typeW.Buffer );
+    heap_free( name );
+    if (!IS_INTRESOURCE(typeW.Buffer)) heap_free( typeW.Buffer );
     if (status != STATUS_SUCCESS) SetLastError( RtlNtStatusToDosError(status) );
     return ret;
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+    return FALSE;
+#endif
 }
 
 
@@ -490,8 +519,8 @@ BOOL WINAPI EnumResourceLanguagesExA( HMODULE hmod, LPCSTR type, LPCSTR name,
     }
     __ENDTRY
 done:
-    if (!IS_INTRESOURCE(typeW.Buffer)) HeapFree( GetProcessHeap(), 0, typeW.Buffer );
-    if (!IS_INTRESOURCE(nameW.Buffer)) HeapFree( GetProcessHeap(), 0, nameW.Buffer );
+    if (!IS_INTRESOURCE(typeW.Buffer)) heap_free( typeW.Buffer );
+    if (!IS_INTRESOURCE(nameW.Buffer)) heap_free( nameW.Buffer );
     if (status != STATUS_SUCCESS) SetLastError( RtlNtStatusToDosError(status) );
     return ret;
 }
@@ -561,8 +590,8 @@ BOOL WINAPI EnumResourceLanguagesExW( HMODULE hmod, LPCWSTR type, LPCWSTR name,
     }
     __ENDTRY
 done:
-    if (!IS_INTRESOURCE(typeW.Buffer)) HeapFree( GetProcessHeap(), 0, typeW.Buffer );
-    if (!IS_INTRESOURCE(nameW.Buffer)) HeapFree( GetProcessHeap(), 0, nameW.Buffer );
+    if (!IS_INTRESOURCE(typeW.Buffer)) heap_free( typeW.Buffer );
+    if (!IS_INTRESOURCE(nameW.Buffer)) heap_free( nameW.Buffer );
     if (status != STATUS_SUCCESS) SetLastError( RtlNtStatusToDosError(status) );
     return ret;
 }
@@ -589,9 +618,13 @@ HGLOBAL WINAPI LoadResource( HINSTANCE hModule, HRSRC hRsrc )
     TRACE( "%p %p\n", hModule, hRsrc );
 
     if (!hRsrc) return 0;
+#if 0
     if (!hModule) hModule = GetModuleHandleA( NULL );
     status = LdrAccessResource( hModule, (IMAGE_RESOURCE_DATA_ENTRY *)hRsrc, &ret, NULL );
     if (status != STATUS_SUCCESS) SetLastError( RtlNtStatusToDosError(status) );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return ret;
 }
 
@@ -623,6 +656,7 @@ DWORD WINAPI SizeofResource( HINSTANCE hModule, HRSRC hRsrc )
     return ((PIMAGE_RESOURCE_DATA_ENTRY)hRsrc)->Size;
 }
 
+#if 0
 /*
  *  Data structure for updating resources.
  *  Type/Name/Language is a keyset for accessing resource data.
@@ -732,7 +766,7 @@ static LPWSTR res_strdupW( LPCWSTR str )
     if (IS_INTRESOURCE(str))
         return (LPWSTR) (UINT_PTR) LOWORD(str);
     len = (lstrlenW( str ) + 1) * sizeof (WCHAR);
-    ret = HeapAlloc( GetProcessHeap(), 0, len );
+    ret = heap_alloc( len );
     memcpy( ret, str, len );
     return ret;
 }
@@ -740,7 +774,7 @@ static LPWSTR res_strdupW( LPCWSTR str )
 static void res_free_str( LPWSTR str )
 {
     if (!IS_INTRESOURCE(str))
-        HeapFree( GetProcessHeap(), 0, str );
+        heap_free( str );
 }
 
 static BOOL update_add_resource( QUEUEDUPDATES *updates, LPCWSTR Type, LPCWSTR Name,
@@ -756,7 +790,7 @@ static BOOL update_add_resource( QUEUEDUPDATES *updates, LPCWSTR Type, LPCWSTR N
     restype = find_resource_dir_entry( &updates->root, Type );
     if (!restype)
     {
-        restype = HeapAlloc( GetProcessHeap(), 0, sizeof *restype );
+        restype = heap_alloc( sizeof *restype );
         restype->id = res_strdupW( Type );
         list_init( &restype->children );
         add_resource_dir_entry( &updates->root, restype );
@@ -765,7 +799,7 @@ static BOOL update_add_resource( QUEUEDUPDATES *updates, LPCWSTR Type, LPCWSTR N
     resname = find_resource_dir_entry( &restype->children, Name );
     if (!resname)
     {
-        resname = HeapAlloc( GetProcessHeap(), 0, sizeof *resname );
+        resname = heap_alloc( sizeof *resname );
         resname->id = res_strdupW( Name );
         list_init( &resname->children );
         add_resource_dir_entry( &restype->children, resname );
@@ -781,7 +815,7 @@ static BOOL update_add_resource( QUEUEDUPDATES *updates, LPCWSTR Type, LPCWSTR N
         if (!overwrite_existing)
             return FALSE;
         list_remove( &existing->entry );
-        HeapFree( GetProcessHeap(), 0, existing );
+        heap_free( existing );
     }
 
     if (resdata)
@@ -798,7 +832,7 @@ static struct resource_data *allocate_resource_data( WORD Language, DWORD codepa
     if (!lpData || !cbData)
         return NULL;
 
-    resdata = HeapAlloc( GetProcessHeap(), 0, sizeof *resdata + (copy_data ? cbData : 0) );
+    resdata = heap_alloc( sizeof *resdata + (copy_data ? cbData : 0) );
     if (resdata)
     {
         resdata->lang = Language;
@@ -830,14 +864,14 @@ static void free_resource_directory( struct list *head, int level )
             ent = LIST_ENTRY( ptr, struct resource_dir_entry, entry );
             res_free_str( ent->id );
             free_resource_directory( &ent->children, level - 1 );
-            HeapFree(GetProcessHeap(), 0, ent);
+            heap_free( ent );
         }
         else
         {
             struct resource_data *data;
 
             data = LIST_ENTRY( ptr, struct resource_data, entry );
-            HeapFree( GetProcessHeap(), 0, data );
+            heap_free( data );
         }
     }
 }
@@ -997,7 +1031,7 @@ static LPWSTR resource_dup_string( const IMAGE_RESOURCE_DIRECTORY *root, const I
         return UIntToPtr(entry->u.Id);
 
     string = (const IMAGE_RESOURCE_DIR_STRING_U*) (((const char *)root) + entry->u.s.NameOffset);
-    s = HeapAlloc(GetProcessHeap(), 0, (string->Length + 1)*sizeof (WCHAR) );
+    s = heap_alloc( (string->Length + 1)*sizeof (WCHAR) );
     memcpy( s, string->NameString, (string->Length + 1)*sizeof (WCHAR) );
     s[string->Length] = 0;
 
@@ -1053,7 +1087,7 @@ static BOOL enumerate_mapped_resources( QUEUEDUPDATES *updates,
                 if (resdata)
                 {
                     if (!update_add_resource( updates, Type, Name, Lang, resdata, FALSE ))
-                        HeapFree( GetProcessHeap(), 0, resdata );
+                        heap_free( resdata );
                 }
             }
             res_free_str( Name );
@@ -1142,14 +1176,14 @@ static void destroy_mapping( struct mapping_info *mi )
     unmap_file_from_memory( mi );
     if (mi->file)
         CloseHandle( mi->file );
-    HeapFree( GetProcessHeap(), 0, mi );
+    heap_free( mi );
 }
 
 static struct mapping_info *create_mapping( LPCWSTR name, BOOL rw )
 {
     struct mapping_info *mi;
 
-    mi = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof *mi );
+    mi = heap_alloc_zero( sizeof *mi );
     if (!mi)
         return NULL;
 
@@ -1676,7 +1710,7 @@ HANDLE WINAPI BeginUpdateResourceW( LPCWSTR pFileName, BOOL bDeleteExistingResou
     {
         list_init( &updates->root );
         updates->bDeleteExistingResources = bDeleteExistingResources;
-        updates->pFileName = HeapAlloc(GetProcessHeap(), 0, (lstrlenW(pFileName)+1)*sizeof(WCHAR));
+        updates->pFileName = heap_alloc((lstrlenW(pFileName)+1)*sizeof(WCHAR));
         if (updates->pFileName)
         {
             lstrcpyW(updates->pFileName, pFileName);
@@ -1689,7 +1723,7 @@ HANDLE WINAPI BeginUpdateResourceW( LPCWSTR pFileName, BOOL bDeleteExistingResou
                 (bDeleteExistingResources || check_pe_exe( file, updates )))
                 ret = hUpdate;
             else
-                HeapFree( GetProcessHeap(), 0, updates->pFileName );
+                heap_free( updates->pFileName );
 
             CloseHandle( file );
         }
@@ -1735,7 +1769,7 @@ BOOL WINAPI EndUpdateResourceW( HANDLE hUpdate, BOOL fDiscard )
 
     free_resource_directory( &updates->root, 2 );
 
-    HeapFree( GetProcessHeap(), 0, updates->pFileName );
+    heap_free( updates->pFileName );
     GlobalUnlock( hUpdate );
     GlobalFree( hUpdate );
 
@@ -1806,3 +1840,4 @@ BOOL WINAPI UpdateResourceA( HANDLE hUpdate, LPCSTR lpType, LPCSTR lpName,
     if(!IS_INTRESOURCE(lpName)) RtlFreeUnicodeString(&NameW);
     return ret;
 }
+#endif

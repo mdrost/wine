@@ -366,7 +366,7 @@ static void Control_FreeCPlItems(HWND hWnd, CPanel *panel)
         if (!GetMenuItemInfoW(hSubMenu, i, FALSE, &mii))
             continue;
 
-        heap_free((void *)mii.dwItemData);
+        heap_free((LPVOID) mii.dwItemData);
     }
 }
 

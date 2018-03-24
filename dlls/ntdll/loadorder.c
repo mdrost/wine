@@ -175,7 +175,7 @@ static void add_load_order( const module_loadorder_t *plo )
         /* No space in current array, make it larger */
         env_list.alloc += LOADORDER_ALLOC_CLUSTER;
         if (env_list.order)
-            env_list.order = RtlReAllocateHeap(GetProcessHeap(), 0, env_list.order,
+            env_list.order = realloc(env_list.order,
                                                env_list.alloc * sizeof(module_loadorder_t));
         else
             env_list.order = RtlAllocateHeap(GetProcessHeap(), 0,
@@ -341,7 +341,7 @@ static HANDLE get_app_key( const WCHAR *app_name )
 
     if (app_key != (HANDLE)-1) return app_key;
 
-    str = RtlAllocateHeap( GetProcessHeap(), 0,
+    str = malloc(
                            sizeof(AppDefaultsW) + sizeof(DllOverridesW) +
                            strlenW(app_name) * sizeof(WCHAR) );
     if (!str) return 0;
@@ -361,7 +361,7 @@ static HANDLE get_app_key( const WCHAR *app_name )
     /* @@ Wine registry key: HKCU\Software\Wine\AppDefaults\app.exe\DllOverrides */
     if (NtOpenKey( &app_key, KEY_ALL_ACCESS, &attr )) app_key = 0;
     NtClose( root );
-    RtlFreeHeap( GetProcessHeap(), 0, str );
+    free( str );
     return app_key;
 }
 
@@ -452,7 +452,7 @@ enum loadorder get_load_order( const WCHAR *app_name, const WCHAR *path )
     }
 
     if (!(len = strlenW(path))) return ret;
-    if (!(module = RtlAllocateHeap( GetProcessHeap(), 0, (len + 2) * sizeof(WCHAR) ))) return ret;
+    if (!(module = malloc( (len + 2) * sizeof(WCHAR) ))) return ret;
     strcpyW( module+1, path );  /* reserve module[0] for the wildcard char */
     basename = (WCHAR *)get_basename( module+1 );
 
@@ -484,6 +484,6 @@ enum loadorder get_load_order( const WCHAR *app_name, const WCHAR *path )
     TRACE( "got hardcoded %s for %s\n", debugstr_loadorder(ret), debugstr_w(path) );
 
  done:
-    RtlFreeHeap( GetProcessHeap(), 0, module );
+    free( module );
     return ret;
 }

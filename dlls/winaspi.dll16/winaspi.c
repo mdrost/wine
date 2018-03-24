@@ -144,7 +144,7 @@ ASPI_OpenDevice16(SRB_ExecSCSICmd16 *prb)
     }
 
     /* device is now open */
-    curr = HeapAlloc( GetProcessHeap(), 0, sizeof(ASPI_DEVICE_INFO) );
+    curr = heap_alloc( sizeof(ASPI_DEVICE_INFO) );
     curr->fd = fd;
     curr->hostId = prb->SRB_HaId;
     curr->target = prb->SRB_Target;
@@ -286,7 +286,7 @@ ASPI_ExecScsiCmd(DWORD ptrPRB, UINT16 mode)
   if (HOST_TO_TARGET(lpPRB)) {
     /* send header, command, and then data */
     in_len = SCSI_OFF + lpPRB->SRB_CDBLen + lpPRB->SRB_BufLen;
-    sg_hd = HeapAlloc(GetProcessHeap(), 0, in_len);
+    sg_hd = heap_alloc(in_len);
     memset(sg_hd, 0, SCSI_OFF);
     memcpy(sg_hd + 1, lpPRB->CDBByte, lpPRB->SRB_CDBLen);
     if (lpPRB->SRB_BufLen) {
@@ -296,20 +296,20 @@ ASPI_ExecScsiCmd(DWORD ptrPRB, UINT16 mode)
   else {
     /* send header and command - no data */
     in_len = SCSI_OFF + lpPRB->SRB_CDBLen;
-    sg_hd = HeapAlloc(GetProcessHeap(), 0, in_len);
+    sg_hd = heap_alloc(in_len);
     memset(sg_hd, 0, SCSI_OFF);
     memcpy(sg_hd + 1, lpPRB->CDBByte, lpPRB->SRB_CDBLen);
   }
 
   if (TARGET_TO_HOST(lpPRB)) {
     out_len = SCSI_OFF + lpPRB->SRB_BufLen;
-    sg_reply_hdr = HeapAlloc(GetProcessHeap(), 0, out_len);
+    sg_reply_hdr = heap_alloc(out_len);
     memset(sg_reply_hdr, 0, SCSI_OFF);
     sg_hd->reply_len = out_len;
   }
   else {
     out_len = SCSI_OFF;
-    sg_reply_hdr = HeapAlloc(GetProcessHeap(), 0, out_len);
+    sg_reply_hdr = heap_alloc(out_len);
     memset(sg_reply_hdr, 0, SCSI_OFF);
     sg_hd->reply_len = out_len;
   }
@@ -377,8 +377,8 @@ ASPI_ExecScsiCmd(DWORD ptrPRB, UINT16 mode)
     }
   }
 
-  HeapFree(GetProcessHeap(), 0, sg_reply_hdr);
-  HeapFree(GetProcessHeap(), 0, sg_hd);
+  heap_free(sg_reply_hdr);
+  heap_free(sg_hd);
   ASPI_DebugPrintResult(lpPRB, mode);
   return SS_COMP;
 
@@ -396,8 +396,8 @@ error_exit:
    * We probably should set lpPRB->SRB_TargStat, SRB_HaStat ?
    */
   WARN("error_exit\n");
-  HeapFree(GetProcessHeap(), 0, sg_reply_hdr);
-  HeapFree(GetProcessHeap(), 0, sg_hd);
+  heap_free(sg_reply_hdr);
+  heap_free(sg_hd);
   return lpPRB->SRB_Status;
 }
 #endif

@@ -3329,7 +3329,7 @@ static HRESULT TLB_ReadTypeLib(LPCWSTR pszFileName, LPWSTR pszPath, UINT cchPath
             FILE_NAME_INFORMATION *info;
             DWORD size = sizeof(*info) + size_info.FileNameLength + sizeof(WCHAR);
 
-            info = HeapAlloc(GetProcessHeap(), 0, size);
+            info = heap_alloc(size);
 
             br = GetFileInformationByHandleEx(h, FileNameInfo, info, size);
             if(br){
@@ -3337,7 +3337,7 @@ static HRESULT TLB_ReadTypeLib(LPCWSTR pszFileName, LPWSTR pszPath, UINT cchPath
                 lstrcpynW(pszPath + 2, info->FileName, cchPath - 2);
             }
 
-            HeapFree(GetProcessHeap(), 0, info);
+            heap_free(info);
         }
 
         CloseHandle(h);
@@ -8610,8 +8610,7 @@ HRESULT WINAPI CreateDispTypeInfo(
         pFuncDesc->funcdesc.elemdescFunc.tdesc.vt = md->vtReturn;
         pFuncDesc->funcdesc.elemdescFunc.u.paramdesc.wParamFlags = PARAMFLAG_NONE;
         pFuncDesc->funcdesc.elemdescFunc.u.paramdesc.pparamdescex = NULL;
-        pFuncDesc->funcdesc.lprgelemdescParam = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                                              md->cArgs * sizeof(ELEMDESC));
+        pFuncDesc->funcdesc.lprgelemdescParam = heap_alloc_zero(md->cArgs * sizeof(ELEMDESC));
         pFuncDesc->pParamDesc = TLBParDesc_Constructor(md->cArgs);
         for(param = 0; param < md->cArgs; param++) {
             pFuncDesc->funcdesc.lprgelemdescParam[param].tdesc.vt = md->ppdata[param].vt;
@@ -8870,6 +8869,7 @@ static HRESULT WINAPI ICreateTypeLib2_fnCreateTypeInfo(ICreateTypeLib2 *iface,
     if (!ctinfo || !name)
         return E_INVALIDARG;
 
+#if 0
     info = TLB_get_typeinfo_by_name(This->typeinfos, This->TypeInfoCount, name);
     if (info)
         return TYPE_E_NAMECONFLICT;
@@ -8923,6 +8923,9 @@ static HRESULT WINAPI ICreateTypeLib2_fnCreateTypeInfo(ICreateTypeLib2 *iface,
     ++This->TypeInfoCount;
 
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT WINAPI ICreateTypeLib2_fnSetName(ICreateTypeLib2 *iface,
@@ -10053,20 +10056,20 @@ static HRESULT WMSFT_fixup_typeinfos(ITypeLibImpl *This, WMSFT_TLBFile *file,
 
 static void WMSFT_free_file(WMSFT_TLBFile *file)
 {
-    HeapFree(GetProcessHeap(), 0, file->typeinfo_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->guidhash_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->guid_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->ref_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->impinfo_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->impfile_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->namehash_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->name_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->string_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->typdesc_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->arraydesc_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->custdata_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->cdguids_seg.data);
-    HeapFree(GetProcessHeap(), 0, file->aux_seg.data);
+    heap_free(file->typeinfo_seg.data);
+    heap_free(file->guidhash_seg.data);
+    heap_free(file->guid_seg.data);
+    heap_free(file->ref_seg.data);
+    heap_free(file->impinfo_seg.data);
+    heap_free(file->impfile_seg.data);
+    heap_free(file->namehash_seg.data);
+    heap_free(file->name_seg.data);
+    heap_free(file->string_seg.data);
+    heap_free(file->typdesc_seg.data);
+    heap_free(file->arraydesc_seg.data);
+    heap_free(file->custdata_seg.data);
+    heap_free(file->cdguids_seg.data);
+    heap_free(file->aux_seg.data);
 }
 
 static HRESULT WINAPI ICreateTypeLib2_fnSaveAllChanges(ICreateTypeLib2 *iface)
@@ -10588,6 +10591,7 @@ static HRESULT WINAPI ICreateTypeInfo2_fnAddFuncDesc(ICreateTypeInfo2 *iface,
     if (!funcDesc || funcDesc->oVft & 3)
         return E_INVALIDARG;
 
+#if 0
     switch (This->typeattr.typekind) {
     case TKIND_MODULE:
         if (funcDesc->funckind != FUNC_STATIC)
@@ -10702,6 +10706,9 @@ static HRESULT WINAPI ICreateTypeInfo2_fnAddFuncDesc(ICreateTypeInfo2 *iface,
     This->needs_layout = TRUE;
 
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT WINAPI ICreateTypeInfo2_fnAddImplType(ICreateTypeInfo2 *iface,
@@ -10713,6 +10720,7 @@ static HRESULT WINAPI ICreateTypeInfo2_fnAddImplType(ICreateTypeInfo2 *iface,
 
     TRACE("%p %u %d\n", This, index, refType);
 
+#if 0
     switch(This->typeattr.typekind){
         case TKIND_COCLASS: {
             if (index == -1) {
@@ -10777,6 +10785,9 @@ static HRESULT WINAPI ICreateTypeInfo2_fnAddImplType(ICreateTypeInfo2 *iface,
         return hres;
 
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT WINAPI ICreateTypeInfo2_fnSetImplTypeFlags(ICreateTypeInfo2 *iface,
@@ -10835,6 +10846,7 @@ static HRESULT WINAPI ICreateTypeInfo2_fnAddVarDesc(ICreateTypeInfo2 *iface,
 
     TRACE("%p %u %p\n", This, index, varDesc);
 
+#if 0
     if (This->vardescs){
         UINT i;
 
@@ -10872,6 +10884,9 @@ static HRESULT WINAPI ICreateTypeInfo2_fnAddVarDesc(ICreateTypeInfo2 *iface,
     This->needs_layout = TRUE;
 
     return S_OK;
+#else
+    return E_NOTIMPL;
+#endif
 }
 
 static HRESULT WINAPI ICreateTypeInfo2_fnSetFuncAndParamNames(ICreateTypeInfo2 *iface,

@@ -44,6 +44,7 @@
 #include "winuser.h"
 #include "winsock2.h"
 #include "ws2spi.h"
+#include "wine/heap.h"
 
 #include "wine/debug.h"
 
@@ -256,7 +257,7 @@ static void WINAPI async_worker( TP_CALLBACK_INSTANCE *instance, void *context )
     struct async_query_header *query = context;
     LPARAM lparam = query->func( query );
     PostMessageW( query->hWnd, query->uMsg, (WPARAM)query->handle, lparam );
-    HeapFree( GetProcessHeap(), 0, query );
+    heap_free( query );
 }
 
 
@@ -286,7 +287,7 @@ static HANDLE run_query( HWND hWnd, UINT uMsg, LPARAM (*func)(struct async_query
     if (!TrySubmitThreadpoolCallback( async_worker, query, NULL ))
     {
         SetLastError( WSAEWOULDBLOCK );
-        HeapFree( GetProcessHeap(), 0, query );
+        heap_free( query );
         return 0;
     }
     return UlongToHandle( handle );
@@ -303,7 +304,7 @@ HANDLE WINAPI WSAAsyncGetHostByAddr(HWND hWnd, UINT uMsg, LPCSTR addr,
 
     TRACE("hwnd %p, msg %04x, addr %p[%i]\n", hWnd, uMsg, addr, len );
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -326,7 +327,7 @@ HANDLE WINAPI WSAAsyncGetHostByName(HWND hWnd, UINT uMsg, LPCSTR name,
 
     TRACE("hwnd %p, msg %04x, host %s, buffer %i\n", hWnd, uMsg, debugstr_a(name), buflen );
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -347,7 +348,7 @@ HANDLE WINAPI WSAAsyncGetProtoByName(HWND hWnd, UINT uMsg, LPCSTR name,
 
     TRACE("hwnd %p, msg %04x, proto %s, buffer %i\n", hWnd, uMsg, debugstr_a(name), buflen );
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -368,7 +369,7 @@ HANDLE WINAPI WSAAsyncGetProtoByNumber(HWND hWnd, UINT uMsg, INT number,
 
     TRACE("hwnd %p, msg %04x, num %i\n", hWnd, uMsg, number );
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) )))
+    if (!(aq = heap_alloc( sizeof(*aq) )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -389,7 +390,7 @@ HANDLE WINAPI WSAAsyncGetServByName(HWND hWnd, UINT uMsg, LPCSTR name,
 
     TRACE("hwnd %p, msg %04x, name %s, proto %s\n", hWnd, uMsg, debugstr_a(name), debugstr_a(proto));
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len1 + len2 )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len1 + len2 )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;
@@ -420,7 +421,7 @@ HANDLE WINAPI WSAAsyncGetServByPort(HWND hWnd, UINT uMsg, INT port,
 
     TRACE("hwnd %p, msg %04x, port %i, proto %s\n", hWnd, uMsg, port, debugstr_a(proto));
 
-    if (!(aq = HeapAlloc( GetProcessHeap(), 0, sizeof(*aq) + len )))
+    if (!(aq = heap_alloc( sizeof(*aq) + len )))
     {
         SetLastError( WSAEWOULDBLOCK );
         return 0;

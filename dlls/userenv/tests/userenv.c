@@ -61,7 +61,7 @@ static BOOL get_env(const WCHAR * env, const char * var, char ** result)
             if (buf[varlen] == '=')
             {
                 buflen = strlen(buf);
-                *result = HeapAlloc(GetProcessHeap(), 0, buflen + 1);
+                *result = heap_alloc(buflen + 1);
                 if (!*result) return FALSE;
                 memcpy(*result, buf, buflen + 1);
                 return TRUE;
@@ -154,7 +154,7 @@ static void test_create_env(void)
         r = get_env(env[i], "SystemRoot", &st);
         ok(!strcmp(st, "SystemRoot=overwrite"), "%s\n", st);
         expect(TRUE, r);
-        HeapFree(GetProcessHeap(), 0, st);
+        heap_free(st);
     }
 
     /* Test for common environment variables (NT4 and higher) */
@@ -164,7 +164,7 @@ static void test_create_env(void)
         {
             r = get_env(env[j], common_vars[i].name, &st);
             expect_env(TRUE, r, common_vars[i].name);
-            if (r) HeapFree(GetProcessHeap(), 0, st);
+            if (r) heap_free(st);
         }
     }
 
@@ -181,7 +181,7 @@ static void test_create_env(void)
             {
                 r = get_env(env[j], common_post_nt4_vars[i].name, &st);
                 expect_env(TRUE, r, common_post_nt4_vars[i].name);
-                if (r) HeapFree(GetProcessHeap(), 0, st);
+                if (r) heap_free(st);
             }
         }
     }
@@ -196,7 +196,7 @@ static void test_create_env(void)
             {
                 r = get_env(env[j], common_win64_vars[i].name, &st);
                 ok(r || broken(!r)/* Vista,2k3,XP */, "Expected 1, got 0 for %s\n", common_win64_vars[i].name);
-                if (r) HeapFree(GetProcessHeap(), 0, st);
+                if (r) heap_free(st);
             }
         }
     }
@@ -209,11 +209,11 @@ static void test_create_env(void)
 
     r = get_env(env[2], "WINE_XYZZY", &st);
     expect(TRUE, r);
-    if (r) HeapFree(GetProcessHeap(), 0, st);
+    if (r) heap_free(st);
 
     r = get_env(env[3], "WINE_XYZZY", &st);
     expect(TRUE, r);
-    if (r) HeapFree(GetProcessHeap(), 0, st);
+    if (r) heap_free(st);
 
     for (i = 0; i < sizeof(env) / sizeof(env[0]); i++)
     {
@@ -241,13 +241,13 @@ static void test_get_profiles_dir(void)
         win_skip("No ProfilesDirectory value (NT4), skipping tests\n");
         return;
     }
-    buf = HeapAlloc(GetProcessHeap(), 0, cch);
+    buf = heap_alloc(cch);
     RegQueryValueExA(key, ProfilesDirectory, NULL, NULL, (BYTE *)buf, &cch);
     RegCloseKey(key);
     profiles_len = ExpandEnvironmentStringsA(buf, NULL, 0);
-    profiles_dir = HeapAlloc(GetProcessHeap(), 0, profiles_len);
+    profiles_dir = heap_alloc(profiles_len);
     ExpandEnvironmentStringsA(buf, profiles_dir, profiles_len);
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 
     SetLastError(0xdeadbeef);
     r = GetProfilesDirectoryA(NULL, NULL);
@@ -269,7 +269,7 @@ static void test_get_profiles_dir(void)
     /* Allocate one more character than the return value to prevent a buffer
      * overrun.
      */
-    buf = HeapAlloc(GetProcessHeap(), 0, cch + 1);
+    buf = heap_alloc(cch + 1);
     r = GetProfilesDirectoryA(buf, &cch);
     /* Rather than a BOOL, the return value is also the number of characters
      * stored in the buffer.
@@ -277,8 +277,8 @@ static void test_get_profiles_dir(void)
     expect(profiles_len - 1, r);
     ok(!strcmp(buf, profiles_dir), "expected %s, got %s\n", profiles_dir, buf);
 
-    HeapFree(GetProcessHeap(), 0, buf);
-    HeapFree(GetProcessHeap(), 0, profiles_dir);
+    heap_free(buf);
+    heap_free(profiles_dir);
 
     SetLastError(0xdeadbeef);
     r = GetProfilesDirectoryW(NULL, NULL);
@@ -327,13 +327,13 @@ static void test_get_user_profile_dir(void)
     ok(!ret, "expected failure\n");
     ok(error == ERROR_INVALID_PARAMETER, "expected ERROR_INVALID_PARAMETER, got %u\n", error);
 
-    dirA = HeapAlloc( GetProcessHeap(), 0, 32 );
+    dirA = heap_alloc( 32 );
     SetLastError( 0xdeadbeef );
     ret = GetUserProfileDirectoryA( token, dirA, NULL );
     error = GetLastError();
     ok(!ret, "expected failure\n");
     ok(error == ERROR_INVALID_PARAMETER, "expected ERROR_INVALID_PARAMETER, got %u\n", error);
-    HeapFree( GetProcessHeap(), 0, dirA );
+    heap_free( dirA );
 
     len = 0;
     SetLastError( 0xdeadbeef );
@@ -344,23 +344,23 @@ static void test_get_user_profile_dir(void)
     ok(!len, "expected 0, got %u\n", len);
 
     len = 0;
-    dirA = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, 32 );
+    dirA = heap_alloc_zero( 32 );
     SetLastError( 0xdeadbeef );
     ret = GetUserProfileDirectoryA( token, dirA, &len );
     error = GetLastError();
     ok(!ret, "expected failure\n");
     ok(error == ERROR_INSUFFICIENT_BUFFER, "expected ERROR_INSUFFICIENT_BUFFER, got %u\n", error);
     ok(len, "expected len > 0\n");
-    HeapFree( GetProcessHeap(), 0, dirA );
+    heap_free( dirA );
 
-    dirA = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, len );
+    dirA = heap_alloc_zero( len );
     SetLastError( 0xdeadbeef );
     ret = GetUserProfileDirectoryA( token, dirA, &len );
     ok(ret, "expected success %u\n", GetLastError());
     ok(len, "expected len > 0\n");
     ok(lstrlenA( dirA ) == len - 1, "length mismatch %d != %d - 1\n", lstrlenA( dirA ), len );
     trace("%s\n", dirA);
-    HeapFree( GetProcessHeap(), 0, dirA );
+    heap_free( dirA );
 
     SetLastError( 0xdeadbeef );
     ret = GetUserProfileDirectoryW( NULL, NULL, NULL );
@@ -374,13 +374,13 @@ static void test_get_user_profile_dir(void)
     ok(!ret, "expected failure\n");
     ok(error == ERROR_INVALID_PARAMETER, "expected ERROR_INVALID_PARAMETER, got %u\n", error);
 
-    dirW = HeapAlloc( GetProcessHeap(), 0, 32 );
+    dirW = heap_alloc( 32 );
     SetLastError( 0xdeadbeef );
     ret = GetUserProfileDirectoryW( token, dirW, NULL );
     error = GetLastError();
     ok(!ret, "expected failure\n");
     ok(error == ERROR_INVALID_PARAMETER, "expected ERROR_INVALID_PARAMETER, got %u\n", error);
-    HeapFree( GetProcessHeap(), 0, dirW );
+    heap_free( dirW );
 
     len = 0;
     SetLastError( 0xdeadbeef );
@@ -390,13 +390,13 @@ static void test_get_user_profile_dir(void)
     ok(error == ERROR_INSUFFICIENT_BUFFER, "expected ERROR_INSUFFICIENT_BUFFER, got %u\n", error);
     ok(len, "expected len > 0\n");
 
-    dirW = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, len * sizeof(WCHAR) );
+    dirW = heap_alloc_zero( len * sizeof(WCHAR) );
     SetLastError( 0xdeadbeef );
     ret = GetUserProfileDirectoryW( token, dirW, &len );
     ok(ret, "expected success %u\n", GetLastError());
     ok(len, "expected len > 0\n");
     ok(lstrlenW( dirW ) == len - 1, "length mismatch %d != %d - 1\n", lstrlenW( dirW ), len );
-    HeapFree( GetProcessHeap(), 0, dirW );
+    heap_free( dirW );
 
     CloseHandle( token );
 }

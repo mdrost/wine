@@ -28,6 +28,7 @@
 #include "winbase.h"
 #include "winnls.h"
 #include "objbase.h"
+#include "wine/heap.h"
 
 #include "wine/debug.h"
 
@@ -120,10 +121,10 @@ static HRESULT BindCtxImpl_Destroy(BindCtxImpl* This)
     TRACE("(%p)\n",This);
 
     /* free the table space memory */
-    HeapFree(GetProcessHeap(),0,This->bindCtxTable);
+    heap_free(This->bindCtxTable);
 
     /* free the bindctx structure */
-    HeapFree(GetProcessHeap(),0,This);
+    heap_free(This);
 
     return S_OK;
 }
@@ -203,7 +204,7 @@ BindCtxImpl_RevokeObjectBound(IBindCtx* iface, IUnknown* punk)
 
     if(This->bindCtxTable[index].pObj)
         IUnknown_Release(This->bindCtxTable[index].pObj);
-    HeapFree(GetProcessHeap(),0,This->bindCtxTable[index].pkeyObj);
+    heap_free(This->bindCtxTable[index].pkeyObj);
     
     /* left-shift all elements in the right side of the current revoked object */
     for(j=index; j<This->bindCtxTableLastIndex-1; j++)
@@ -230,7 +231,7 @@ BindCtxImpl_ReleaseBoundObjects(IBindCtx* iface)
     {
         if(This->bindCtxTable[i].pObj)
             IUnknown_Release(This->bindCtxTable[i].pObj);
-        HeapFree(GetProcessHeap(),0,This->bindCtxTable[i].pkeyObj);
+        heap_free(This->bindCtxTable[i].pkeyObj);
     }
     
     This->bindCtxTableLastIndex = 0;
@@ -342,7 +343,7 @@ BindCtxImpl_RegisterObjectParam(IBindCtx* iface,LPOLESTR pszkey, IUnknown* punk)
     {
 
         This->bindCtxTable[This->bindCtxTableLastIndex].pkeyObj=
-            HeapAlloc(GetProcessHeap(),0,(sizeof(WCHAR)*(1+lstrlenW(pszkey))));
+            heap_alloc((sizeof(WCHAR)*(1+lstrlenW(pszkey))));
 
         if (This->bindCtxTable[This->bindCtxTableLastIndex].pkeyObj==NULL)
             return E_OUTOFMEMORY;
@@ -399,7 +400,7 @@ BindCtxImpl_RevokeObjectParam(IBindCtx* iface,LPOLESTR ppenum)
     /* release the object if it's found */
     if(This->bindCtxTable[index].pObj)
         IUnknown_Release(This->bindCtxTable[index].pObj);
-    HeapFree(GetProcessHeap(),0,This->bindCtxTable[index].pkeyObj);
+    heap_free(This->bindCtxTable[index].pkeyObj);
     
     /* remove the object from the table with a left-shifting of all objects in the right side */
     for(j=index; j<This->bindCtxTableLastIndex-1; j++)
@@ -473,15 +474,18 @@ static HRESULT BindCtxImpl_ExpandTable(BindCtxImpl *This)
     if (!This->bindCtxTableSize)
     {
         This->bindCtxTableSize = BINDCTX_FIRST_TABLE_SIZE;
-        This->bindCtxTable = HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,
-                                       This->bindCtxTableSize * sizeof(BindCtxObject));
+        This->bindCtxTable = heap_alloc_zero(This->bindCtxTableSize * sizeof(BindCtxObject));
     }
     else
     {
         This->bindCtxTableSize *= 2;
 
+#if 0
         This->bindCtxTable = HeapReAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,This->bindCtxTable,
                                          This->bindCtxTableSize * sizeof(BindCtxObject));
+#else
+        This->bindCtxTable = NULL;
+#endif
     }
 
     if (!This->bindCtxTable)
@@ -570,14 +574,14 @@ HRESULT WINAPI CreateBindCtx(DWORD reserved, LPBC * ppbc)
         return E_INVALIDARG;
     }
 
-    newBindCtx = HeapAlloc(GetProcessHeap(), 0, sizeof(BindCtxImpl));
+    newBindCtx = heap_alloc(sizeof(BindCtxImpl));
     if (newBindCtx == 0)
         return E_OUTOFMEMORY;
 
     hr = BindCtxImpl_Construct(newBindCtx);
     if (FAILED(hr))
     {
-        HeapFree(GetProcessHeap(),0,newBindCtx);
+        heap_free(newBindCtx);
         return hr;
     }
 

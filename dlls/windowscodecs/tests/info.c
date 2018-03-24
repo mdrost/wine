@@ -586,7 +586,7 @@ todo_wine
 
     if (hr == S_OK)
     {
-        patterns = HeapAlloc(GetProcessHeap(), 0, size);
+        patterns = heap_alloc(size);
 
         count = size = 0xdeadbeef;
         hr = IWICMetadataReaderInfo_GetPatterns(reader_info, &GUID_MetadataFormatXMP,
@@ -602,7 +602,7 @@ todo_wine
         ok(count == 1, "unexpected count %d\n", count);
         ok(size == sizeof(WICMetadataPattern) + patterns->Length * 2, "unexpected size %d\n", size);
 
-        HeapFree(GetProcessHeap(), 0, patterns);
+        heap_free(patterns);
     }
 
     IWICMetadataReaderInfo_Release(reader_info);

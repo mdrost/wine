@@ -63,7 +63,7 @@ static char *strdup_unixcp( const WCHAR *str )
 {
     char *ret;
     int len = WideCharToMultiByte( CP_UNIXCP, 0, str, -1, NULL, 0, NULL, NULL );
-    if ((ret = HeapAlloc( GetProcessHeap(), 0, len )))
+    if ((ret = heap_alloc( len )))
         WideCharToMultiByte( CP_UNIXCP, 0, str, -1, ret, len, NULL, NULL );
     return ret;
 }
@@ -184,7 +184,7 @@ static NET_API_STATUS server_info_101_from_samba( const unsigned char *buf, BYTE
 
     if (info->sv101_name) len += MultiByteToWideChar( CP_UNIXCP, 0, info->sv101_name, -1, NULL, 0 );
     if (info->sv101_comment) len += MultiByteToWideChar( CP_UNIXCP, 0, info->sv101_comment, -1, NULL, 0 );
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, sizeof(*ret) + (len * sizeof(WCHAR) ))))
+    if (!(ret = heap_alloc( sizeof(*ret) + (len * sizeof(WCHAR) ))))
         return ERROR_OUTOFMEMORY;
 
     ptr = (WCHAR *)(ret + 1);
@@ -227,7 +227,7 @@ static NET_API_STATUS server_getinfo( LMSTR servername, DWORD level, LPBYTE *buf
 
     if (servername && !(server = strdup_unixcp( servername ))) return ERROR_OUTOFMEMORY;
     status = pNetServerGetInfo( server, level, &buf );
-    HeapFree( GetProcessHeap(), 0, server );
+    heap_free( server );
     if (!status)
     {
         status = server_info_from_samba( level, buf, bufptr );
@@ -263,7 +263,7 @@ static NET_API_STATUS share_info_2_to_samba( const BYTE *buf, unsigned char **bu
         len += WideCharToMultiByte( CP_UNIXCP, 0, info->shi2_path, -1, NULL, 0, NULL, NULL );
     if (info->shi2_passwd)
         len += WideCharToMultiByte( CP_UNIXCP, 0, info->shi2_passwd, -1, NULL, 0, NULL, NULL );
-    if (!(ret = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*ret) + len )))
+    if (!(ret = heap_alloc_zero( sizeof(*ret) + len )))
         return ERROR_OUTOFMEMORY;
 
     ptr = (char *)(ret + 1);
@@ -717,7 +717,7 @@ static NET_API_STATUS share_info_502_to_samba( const BYTE *buf, unsigned char **
         len += WideCharToMultiByte( CP_UNIXCP, 0, info->shi502_passwd, -1, NULL, 0, NULL, NULL );
     if (info->shi502_security_descriptor)
         size = sd_to_samba_size( info->shi502_security_descriptor );
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, sizeof(*ret) + (len * sizeof(WCHAR)) + size )))
+    if (!(ret = heap_alloc( sizeof(*ret) + (len * sizeof(WCHAR)) + size )))
         return ERROR_OUTOFMEMORY;
 
     ptr = (char *)(ret + 1);
@@ -756,7 +756,7 @@ static NET_API_STATUS share_info_502_to_samba( const BYTE *buf, unsigned char **
         status = sd_to_samba( info->shi502_security_descriptor, (struct security_descriptor *)ptr );
         if (status)
         {
-            HeapFree( GetProcessHeap(), 0, ret );
+            heap_free( ret );
             return status;
         }
         ret->shi502_security_descriptor = (struct security_descriptor *)ptr;
@@ -790,10 +790,10 @@ static NET_API_STATUS share_add( LMSTR servername, DWORD level, LPBYTE buf, LPDW
         unsigned int err;
 
         status = pNetShareAdd( server, level, info, &err );
-        HeapFree( GetProcessHeap(), 0, info );
+        heap_free( info );
         if (parm_err) *parm_err = err;
     }
-    HeapFree( GetProcessHeap(), 0, server );
+    heap_free( server );
     return status;
 }
 
@@ -805,12 +805,12 @@ static NET_API_STATUS share_del( LMSTR servername, LMSTR netname, DWORD reserved
     if (servername && !(server = strdup_unixcp( servername ))) return ERROR_OUTOFMEMORY;
     if (!(share = strdup_unixcp( netname )))
     {
-        HeapFree( GetProcessHeap(), 0, server );
+        heap_free( server );
         return ERROR_OUTOFMEMORY;
     }
     status = pNetShareDel( server, share, reserved );
-    HeapFree( GetProcessHeap(), 0, server );
-    HeapFree( GetProcessHeap(), 0, share );
+    heap_free( server );
+    heap_free( share );
     return status;
 }
 
@@ -834,7 +834,7 @@ static NET_API_STATUS wksta_info_100_from_samba( const unsigned char *buf, BYTE 
         len += MultiByteToWideChar( CP_UNIXCP, 0, info->wki100_computername, -1, NULL, 0 );
     if (info->wki100_langroup)
         len += MultiByteToWideChar( CP_UNIXCP, 0, info->wki100_langroup, -1, NULL, 0 );
-    if (!(ret = HeapAlloc( GetProcessHeap(), 0, sizeof(*ret) + (len * sizeof(WCHAR) ))))
+    if (!(ret = heap_alloc( sizeof(*ret) + (len * sizeof(WCHAR) ))))
         return ERROR_OUTOFMEMORY;
 
     ptr = (WCHAR *)(ret + 1);
@@ -876,7 +876,7 @@ static NET_API_STATUS wksta_getinfo( LMSTR servername, DWORD level, LPBYTE *bufp
 
     if (servername && !(wksta = strdup_unixcp( servername ))) return ERROR_OUTOFMEMORY;
     status = pNetWkstaGetInfo( wksta, level, &buf );
-    HeapFree( GetProcessHeap(), 0, wksta );
+    heap_free( wksta );
     if (!status)
     {
         status = wksta_info_from_samba( level, buf, bufptr );
@@ -1175,7 +1175,7 @@ NET_API_STATUS WINAPI NetApiBufferAllocate(DWORD ByteCount, LPVOID* Buffer)
     TRACE("(%d, %p)\n", ByteCount, Buffer);
 
     if (Buffer == NULL) return ERROR_INVALID_PARAMETER;
-    *Buffer = HeapAlloc(GetProcessHeap(), 0, ByteCount);
+    *Buffer = heap_alloc(ByteCount);
     if (*Buffer)
         return NERR_Success;
     else
@@ -1188,7 +1188,7 @@ NET_API_STATUS WINAPI NetApiBufferAllocate(DWORD ByteCount, LPVOID* Buffer)
 NET_API_STATUS WINAPI NetApiBufferFree(LPVOID Buffer)
 {
     TRACE("(%p)\n", Buffer);
-    HeapFree(GetProcessHeap(), 0, Buffer);
+    heap_free(Buffer);
     return NERR_Success;
 }
 
@@ -1202,14 +1202,14 @@ NET_API_STATUS WINAPI NetApiBufferReallocate(LPVOID OldBuffer, DWORD NewByteCoun
     if (NewByteCount)
     {
         if (OldBuffer)
-            *NewBuffer = HeapReAlloc(GetProcessHeap(), 0, OldBuffer, NewByteCount);
+            *NewBuffer = heap_realloc(OldBuffer, NewByteCount);
         else
-            *NewBuffer = HeapAlloc(GetProcessHeap(), 0, NewByteCount);
+            *NewBuffer = heap_alloc(NewByteCount);
 	return *NewBuffer ? NERR_Success : GetLastError();
     }
     else
     {
-	if (!HeapFree(GetProcessHeap(), 0, OldBuffer)) return GetLastError();
+	if (!heap_free(OldBuffer)) return GetLastError();
 	*NewBuffer = 0;
 	return NERR_Success;
     }
@@ -1980,7 +1980,7 @@ static BOOL NETAPI_IsCurrentUser(LPCWSTR username)
     BOOL ret = FALSE;
 
     dwSize = LM20_UNLEN+1;
-    curr_user = HeapAlloc(GetProcessHeap(), 0, dwSize * sizeof(WCHAR));
+    curr_user = heap_alloc(dwSize * sizeof(WCHAR));
     if(!curr_user)
     {
         ERR("Failed to allocate memory for user name.\n");
@@ -1997,7 +1997,7 @@ static BOOL NETAPI_IsCurrentUser(LPCWSTR username)
     }
 
 end:
-    HeapFree(GetProcessHeap(), 0, curr_user);
+    heap_free(curr_user);
     return ret;
 }
 
@@ -2028,7 +2028,7 @@ NET_API_STATUS WINAPI NetUserAdd(LPCWSTR servername,
     case 1:
     {
         PUSER_INFO_1 ui = (PUSER_INFO_1) bufptr;
-        su = HeapAlloc(GetProcessHeap(), 0, sizeof(struct sam_user));
+        su = heap_alloc(sizeof(struct sam_user));
         if(!su)
         {
             status = NERR_InternalError;
@@ -2070,7 +2070,7 @@ NET_API_STATUS WINAPI NetUserAdd(LPCWSTR servername,
         break;
     }
 
-    HeapFree(GetProcessHeap(), 0, su);
+    heap_free(su);
 
     return status;
 }
@@ -2093,10 +2093,10 @@ NET_API_STATUS WINAPI NetUserDel(LPCWSTR servername, LPCWSTR username)
 
     list_remove(&user->entry);
 
-    HeapFree(GetProcessHeap(), 0, user->home_dir);
-    HeapFree(GetProcessHeap(), 0, user->user_comment);
-    HeapFree(GetProcessHeap(), 0, user->user_logon_script_path);
-    HeapFree(GetProcessHeap(), 0, user);
+    heap_free(user->home_dir);
+    heap_free(user->user_comment);
+    heap_free(user->user_logon_script_path);
+    heap_free(user);
 
     return NERR_Success;
 }
@@ -2932,10 +2932,10 @@ static NET_API_STATUS change_password_smb( LPCWSTR domainname, LPCWSTR username,
         ret = NERR_InternalError;
 
 end:
-    HeapFree( GetProcessHeap(), 0, server );
-    HeapFree( GetProcessHeap(), 0, user );
-    HeapFree( GetProcessHeap(), 0, old );
-    HeapFree( GetProcessHeap(), 0, new );
+    heap_free( server );
+    heap_free( user );
+    heap_free( old );
+    heap_free( new );
     return ret;
 #else
     ERR( "no fork support on this platform\n" );
@@ -3061,7 +3061,7 @@ DWORD WINAPI DsGetSiteNameA(LPCSTR ComputerName, LPSTR *SiteName)
 VOID WINAPI DsRoleFreeMemory(PVOID Buffer)
 {
     TRACE("(%p)\n", Buffer);
-    HeapFree(GetProcessHeap(), 0, Buffer);
+    heap_free(Buffer);
 }
 
 /************************************************************
@@ -3119,7 +3119,7 @@ DWORD WINAPI DsRoleGetPrimaryDomainInformation(
 
             size = sizeof(DSROLE_PRIMARY_DOMAIN_INFO_BASIC) +
              logon_domain_sz * sizeof(WCHAR);
-            basic = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+            basic = heap_alloc_zero(size);
             if (basic)
             {
                 basic->MachineRole = DsRole_RoleStandaloneWorkstation;

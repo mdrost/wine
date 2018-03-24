@@ -1334,6 +1334,7 @@ ISFHelper_fnCopyItems (ISFHelper * iface, IShellFolder * pSFFrom, UINT cidl,
                 ret = E_FAIL;
             }
             heap_free(wszSrcPathsList);
+
         }
         SHFree(pidl);
         IPersistFolder2_Release(ppf2);

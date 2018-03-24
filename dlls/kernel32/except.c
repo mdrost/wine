@@ -48,6 +48,7 @@
 #include "wingdi.h"
 #include "winuser.h"
 #include "wine/exception.h"
+#include "wine/heap.h"
 #include "wine/library.h"
 #include "excpt.h"
 #include "wine/unicode.h"
@@ -60,6 +61,7 @@ static PTOP_LEVEL_EXCEPTION_FILTER top_filter;
 typedef INT (WINAPI *MessageBoxA_funcptr)(HWND,LPCSTR,LPCSTR,UINT);
 typedef INT (WINAPI *MessageBoxW_funcptr)(HWND,LPCWSTR,LPCWSTR,UINT);
 
+#if 0
 /*******************************************************************
  *         RaiseException  (KERNEL32.@)
  */
@@ -83,6 +85,7 @@ void WINAPI RaiseException( DWORD code, DWORD flags, DWORD nbargs, const ULONG_P
 
     RtlRaiseException( &record );
 }
+#endif
 
 
 /*******************************************************************
@@ -164,6 +167,7 @@ static int format_exception_msg( const EXCEPTION_POINTERS *ptr, char *buffer, in
 }
 
 
+#if 0
 /******************************************************************
  *		start_debugger
  *
@@ -212,12 +216,12 @@ static BOOL	start_debugger(PEXCEPTION_POINTERS epointers, HANDLE hEvent)
         if (NtQueryValueKey( hDbgConf, &nameW, KeyValuePartialInformation,
                              NULL, 0, &format_size ) == STATUS_BUFFER_TOO_SMALL)
         {
-            char *data = HeapAlloc(GetProcessHeap(), 0, format_size);
+            char *data = heap_alloc(format_size);
             NtQueryValueKey( hDbgConf, &nameW, KeyValuePartialInformation,
                              data, format_size, &format_size );
             info = (KEY_VALUE_PARTIAL_INFORMATION *)data;
             RtlUnicodeToMultiByteSize( &format_size, (WCHAR *)info->Data, info->DataLength );
-            format = HeapAlloc( GetProcessHeap(), 0, format_size+1 );
+            format = heap_alloc( format_size+1 );
             RtlUnicodeToMultiByteN( format, format_size, NULL,
                                     (WCHAR *)info->Data, info->DataLength );
             format[format_size] = 0;
@@ -228,12 +232,12 @@ static BOOL	start_debugger(PEXCEPTION_POINTERS epointers, HANDLE hEvent)
 
                 /* Expand environment variable references */
                 format_size=ExpandEnvironmentStringsA(format,NULL,0);
-                tmp=HeapAlloc(GetProcessHeap(), 0, format_size);
+                tmp=heap_alloc(format_size);
                 ExpandEnvironmentStringsA(format,tmp,format_size);
-                HeapFree(GetProcessHeap(), 0, format);
+                heap_free(format);
                 format=tmp;
             }
-            HeapFree( GetProcessHeap(), 0, data );
+            heap_free( data );
         }
 
         RtlInitUnicodeString( &nameW, AutoW );
@@ -256,13 +260,13 @@ static BOOL	start_debugger(PEXCEPTION_POINTERS epointers, HANDLE hEvent)
     if (format)
     {
         size_t format_size = strlen(format) + 2*20;
-        cmdline = HeapAlloc(GetProcessHeap(), 0, format_size);
+        cmdline = heap_alloc(format_size);
         snprintf(cmdline, format_size, format, (long)GetCurrentProcessId(), (long)HandleToLong(hEvent));
-        HeapFree(GetProcessHeap(), 0, format);
+        heap_free(format);
     }
     else
     {
-        cmdline = HeapAlloc(GetProcessHeap(), 0, 80);
+        cmdline = heap_alloc(80);
         snprintf(cmdline, 80, "winedbg --auto %ld %ld", /* as in tools/wine.inf */
                  (long)GetCurrentProcessId(), (long)HandleToLong(hEvent));
     }
@@ -323,7 +327,7 @@ static BOOL	start_debugger(PEXCEPTION_POINTERS epointers, HANDLE hEvent)
              "Read the Wine Developers Guide on how to set up winedbg or another debugger\n",
              debugstr_a(cmdline), GetLastError());
 EXIT:
-    HeapFree(GetProcessHeap(), 0, cmdline);
+    heap_free(cmdline);
     return ret;
 }
 
@@ -381,6 +385,7 @@ static BOOL start_debugger_atomic(PEXCEPTION_POINTERS epointers)
      * to the current process */
     return TRUE;
 }
+#endif
 
 
 /*******************************************************************
@@ -409,6 +414,7 @@ static inline BOOL check_resource_write( void *addr )
 }
 
 
+#if 0
 /*******************************************************************
  *         UnhandledExceptionFilter   (KERNEL32.@)
  */
@@ -448,6 +454,7 @@ LONG WINAPI UnhandledExceptionFilter(PEXCEPTION_POINTERS epointers)
     }
     return EXCEPTION_CONTINUE_SEARCH;
 }
+#endif
 
 
 /***********************************************************************

@@ -28,6 +28,7 @@
 #include "wingdi.h"
 #include "gdi_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(bitmap);
 
@@ -207,25 +208,25 @@ HBITMAP WINAPI CreateBitmapIndirect( const BITMAP *bmp )
     }
 
     /* Create the BITMAPOBJ */
-    if (!(bmpobj = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*bmpobj) )))
+    if (!(bmpobj = heap_alloc_zero( sizeof(*bmpobj) )))
     {
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return 0;
     }
 
     bmpobj->dib.dsBm = bm;
-    bmpobj->dib.dsBm.bmBits = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size );
+    bmpobj->dib.dsBm.bmBits = heap_alloc_zero( size );
     if (!bmpobj->dib.dsBm.bmBits)
     {
-        HeapFree( GetProcessHeap(), 0, bmpobj );
+        heap_free( bmpobj );
         SetLastError( ERROR_NOT_ENOUGH_MEMORY );
         return 0;
     }
 
     if (!(hbitmap = alloc_gdi_handle( bmpobj, OBJ_BITMAP, &bitmap_funcs )))
     {
-        HeapFree( GetProcessHeap(), 0, bmpobj->dib.dsBm.bmBits );
-        HeapFree( GetProcessHeap(), 0, bmpobj );
+        heap_free( bmpobj->dib.dsBm.bmBits );
+        heap_free( bmpobj );
         return 0;
     }
 
@@ -379,7 +380,7 @@ LONG WINAPI SetBitmapBits(
     }
     else
     {
-        if (!(src_bits.ptr = HeapAlloc( GetProcessHeap(), 0, dst.height * dst_stride )))
+        if (!(src_bits.ptr = heap_alloc( dst.height * dst_stride )))
         {
             GDI_ReleaseObj( hbitmap );
             return 0;
@@ -500,8 +501,8 @@ static BOOL BITMAP_DeleteObject( HGDIOBJ handle )
     BITMAPOBJ *bmp = free_gdi_handle( handle );
 
     if (!bmp) return FALSE;
-    HeapFree( GetProcessHeap(), 0, bmp->dib.dsBm.bmBits );
-    HeapFree( GetProcessHeap(), 0, bmp );
+    heap_free( bmp->dib.dsBm.bmBits );
+    heap_free( bmp );
     return TRUE;
 }
 

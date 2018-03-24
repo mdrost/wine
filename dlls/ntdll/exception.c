@@ -40,6 +40,7 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(seh);
 
+#if 0
 typedef struct
 {
     struct list                 entry;
@@ -63,7 +64,7 @@ static RTL_CRITICAL_SECTION vectored_handlers_section = { &critsect_debug, -1, 0
 static VECTORED_HANDLER *add_vectored_handler( struct list *handler_list, ULONG first,
                                                PVECTORED_EXCEPTION_HANDLER func )
 {
-    VECTORED_HANDLER *handler = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(*handler) );
+    VECTORED_HANDLER *handler = malloc( sizeof(*handler) );
     if (handler)
     {
         handler->func = RtlEncodePointer( func );
@@ -95,7 +96,7 @@ static ULONG remove_vectored_handler( struct list *handler_list, VECTORED_HANDLE
         }
     }
     RtlLeaveCriticalSection( &vectored_handlers_section );
-    if (ret) RtlFreeHeap( GetProcessHeap(), 0, handler );
+    if (ret) free( handler );
     return ret;
 }
 
@@ -219,7 +220,7 @@ LONG call_vectored_handlers( EXCEPTION_RECORD *rec, CONTEXT *context )
         handler->count++;
         func = RtlDecodePointer( handler->func );
         RtlLeaveCriticalSection( &vectored_handlers_section );
-        RtlFreeHeap( GetProcessHeap(), 0, to_free );
+        free( to_free );
         to_free = NULL;
 
         TRACE( "calling handler at %p code=%x flags=%x\n",
@@ -237,9 +238,10 @@ LONG call_vectored_handlers( EXCEPTION_RECORD *rec, CONTEXT *context )
         if (ret == EXCEPTION_CONTINUE_EXECUTION) break;
     }
     RtlLeaveCriticalSection( &vectored_handlers_section );
-    RtlFreeHeap( GetProcessHeap(), 0, to_free );
+    free( to_free );
     return ret;
 }
+#endif
 
 
 /*******************************************************************
@@ -270,6 +272,7 @@ void WINAPI RtlRaiseStatus( NTSTATUS status )
 }
 
 
+#if 0
 /*******************************************************************
  *         RtlAddVectoredContinueHandler   (NTDLL.@)
  */
@@ -325,3 +328,4 @@ void __wine_spec_unimplemented_stub( const char *module, const char *function )
     record.ExceptionInformation[1] = (ULONG_PTR)function;
     for (;;) RtlRaiseException( &record );
 }
+#endif

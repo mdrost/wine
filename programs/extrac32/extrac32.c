@@ -137,13 +137,13 @@ static LPWSTR *get_extrac_args(LPWSTR cmdline, int *pargc)
     BOOL new_arg;
 
     WINE_TRACE("cmdline: %s\n", wine_dbgstr_w(cmdline));
-    str = HeapAlloc(GetProcessHeap(), 0, (strlenW(cmdline) + 1) * sizeof(WCHAR));
+    str = heap_alloc((strlenW(cmdline) + 1) * sizeof(WCHAR));
     if(!str) return NULL;
     strcpyW(str, cmdline);
-    argv = HeapAlloc(GetProcessHeap(), 0, (max_argc + 1) * sizeof(LPWSTR));
+    argv = heap_alloc((max_argc + 1) * sizeof(LPWSTR));
     if(!argv)
     {
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
         return NULL;
     }
 
@@ -193,11 +193,11 @@ static LPWSTR *get_extrac_args(LPWSTR cmdline, int *pargc)
                 /* Realloc argv here because there always should be
                    at least one reserved cell for terminating NULL */
                 max_argc *= 2;
-                argv = HeapReAlloc(GetProcessHeap(), 0, argv,
+                argv = heap_realloc(argv,
                         (max_argc + 1) * sizeof(LPWSTR));
                 if(!argv)
                 {
-                    HeapFree(GetProcessHeap(), 0, str);
+                    heap_free(str);
                     return NULL;
                 }
             }

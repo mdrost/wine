@@ -106,7 +106,7 @@ static enum dllmode string_to_mode(char *in)
     enum dllmode res;
 
     len = strlen(in);
-    out = HeapAlloc(GetProcessHeap(), 0, len + 1);
+    out = heap_alloc(len + 1);
 
     /* remove the spaces */
     for (i = j = 0; i <= len; ++i) {
@@ -123,7 +123,7 @@ static enum dllmode string_to_mode(char *in)
     if (strcmp(out, "native") == 0) res = NATIVE;
     if (strcmp(out, "") == 0) res = DISABLE;
 
-    HeapFree(GetProcessHeap(), 0, out);
+    heap_free(out);
     return res;
 }
 
@@ -245,8 +245,8 @@ static void clear_settings(HWND dialog)
         struct dll *dll = (struct dll *) SendDlgItemMessageW(dialog, IDC_DLLS_LIST, LB_GETITEMDATA, 0, 0);
 
         SendDlgItemMessageW(dialog, IDC_DLLS_LIST, LB_DELETESTRING, 0, 0);
-        HeapFree(GetProcessHeap(), 0, dll->name);
-        HeapFree(GetProcessHeap(), 0, dll);
+        heap_free(dll->name);
+        heap_free(dll);
     }
 }
 
@@ -260,7 +260,7 @@ static void load_library_list_from_dir( HWND dialog, const char *dir_path, int c
     if (!dir) return;
 
     if (check_subdirs)
-        buffer = HeapAlloc( GetProcessHeap(), 0, strlen(dir_path) + 2 * sizeof(name) + 10 );
+        buffer = heap_alloc( strlen(dir_path) + 2 * sizeof(name) + 10 );
 
     while ((de = readdir( dir )))
     {
@@ -294,7 +294,7 @@ static void load_library_list_from_dir( HWND dialog, const char *dir_path, int c
         }
     }
     closedir( dir );
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
 }
 
 /* load the list of available libraries */
@@ -307,11 +307,11 @@ static void load_library_list( HWND dialog )
 
     if (build_dir)
     {
-        char *dir = HeapAlloc( GetProcessHeap(), 0, strlen(build_dir) + sizeof("/dlls") );
+        char *dir = heap_alloc( strlen(build_dir) + sizeof("/dlls") );
         strcpy( dir, build_dir );
         strcat( dir, "/dlls" );
         load_library_list_from_dir( dialog, dir, TRUE );
-        HeapFree( GetProcessHeap(), 0, dir );
+        heap_free( dir );
     }
 
     while ((path = wine_dll_enum_load_path( i++ )))
@@ -353,7 +353,7 @@ static void load_library_settings(HWND dialog)
         set_controls_from_selection(dialog);
         disable(IDC_DLLS_EDITDLL);
         disable(IDC_DLLS_REMOVEDLL);
-        HeapFree(GetProcessHeap(), 0, overrides);
+        heap_free(overrides);
         return;
     }
 
@@ -371,25 +371,25 @@ static void load_library_settings(HWND dialog)
 
         label = mode_to_label(string_to_mode(value));
         
-        str = HeapAlloc(GetProcessHeap(), 0, strlen(*p) + 2 + strlen(label) + 2);
+        str = heap_alloc(strlen(*p) + 2 + strlen(label) + 2);
         strcpy(str, *p);
         strcat(str, " (");
         strcat(str, label);
         strcat(str, ")");
 
-        dll = HeapAlloc(GetProcessHeap(), 0, sizeof(struct dll));
+        dll = heap_alloc(sizeof(struct dll));
         dll->name = *p;
         dll->mode = string_to_mode(value);
 
         index = SendDlgItemMessageA(dialog, IDC_DLLS_LIST, LB_ADDSTRING, (WPARAM) -1, (LPARAM) str);
         SendDlgItemMessageW(dialog, IDC_DLLS_LIST, LB_SETITEMDATA, index, (LPARAM) dll);
 
-        HeapFree(GetProcessHeap(), 0, str);
+        heap_free(str);
 
         count++;
     }
 
-    HeapFree(GetProcessHeap(), 0, overrides);
+    heap_free(overrides);
 
     /* restore the previous selection, if possible  */
     if (sel >= count - 1) sel = count - 1;
@@ -577,8 +577,8 @@ static void on_remove_click(HWND dialog)
     SendMessageW(GetParent(dialog), PSM_CHANGED, 0, 0);
     set_reg_key(config_key, keypath("DllOverrides"), dll->name, NULL);
 
-    HeapFree(GetProcessHeap(), 0, dll->name);
-    HeapFree(GetProcessHeap(), 0, dll);
+    heap_free(dll->name);
+    heap_free(dll);
 
     if (SendDlgItemMessageW(dialog, IDC_DLLS_LIST, LB_GETCOUNT, 0, 0) > 0)
         SendDlgItemMessageW(dialog, IDC_DLLS_LIST, LB_SETCURSEL, max(sel - 1, 0), 0);

@@ -226,9 +226,9 @@ static HRESULT WINAPI BmpFrameDecode_CopyPalette(IWICBitmapFrameDecode *iface,
             int i;
 
             count = 1 << bch->bcBitCount;
-            wiccolors = HeapAlloc(GetProcessHeap(), 0, sizeof(WICColor) * count);
+            wiccolors = heap_alloc(sizeof(WICColor) * count);
             tablesize = sizeof(RGBTRIPLE) * count;
-            bgrcolors = HeapAlloc(GetProcessHeap(), 0, tablesize);
+            bgrcolors = heap_alloc(tablesize);
             if (!wiccolors || !bgrcolors)
             {
                 hr = E_OUTOFMEMORY;
@@ -274,7 +274,7 @@ static HRESULT WINAPI BmpFrameDecode_CopyPalette(IWICBitmapFrameDecode *iface,
                 count = This->bih.bV5ClrUsed;
 
             tablesize = sizeof(WICColor) * count;
-            wiccolors = HeapAlloc(GetProcessHeap(), 0, tablesize);
+            wiccolors = heap_alloc(tablesize);
             if (!wiccolors)
             {
                 hr = E_OUTOFMEMORY;
@@ -310,8 +310,8 @@ end:
     if (SUCCEEDED(hr))
         hr = IWICPalette_InitializeCustom(pIPalette, wiccolors, count);
 
-    HeapFree(GetProcessHeap(), 0, wiccolors);
-    HeapFree(GetProcessHeap(), 0, bgrcolors);
+    heap_free(wiccolors);
+    heap_free(bgrcolors);
     return hr;
 }
 
@@ -388,7 +388,7 @@ static HRESULT BmpFrameDecode_ReadUncompressed(BmpDecoder* This)
     bytesperrow = (((width * This->bitsperpixel)+31)/32)*4;
     datasize = bytesperrow * height;
 
-    This->imagedata = HeapAlloc(GetProcessHeap(), 0, datasize);
+    This->imagedata = heap_alloc(datasize);
     if (!This->imagedata) return E_OUTOFMEMORY;
 
     offbits.QuadPart = This->image_offset;
@@ -411,7 +411,7 @@ static HRESULT BmpFrameDecode_ReadUncompressed(BmpDecoder* This)
     return S_OK;
 
 fail:
-    HeapFree(GetProcessHeap(), 0, This->imagedata);
+    heap_free(This->imagedata);
     This->imagedata = NULL;
     if (SUCCEEDED(hr)) hr = E_FAIL;
     return hr;
@@ -482,7 +482,7 @@ static HRESULT BmpFrameDecode_ReadRLE8(BmpDecoder* This)
     else
         palettesize = 4 * 256;
 
-    This->imagedata = HeapAlloc(GetProcessHeap(), 0, datasize);
+    This->imagedata = heap_alloc(datasize);
     if (!This->imagedata)
     {
         hr = E_OUTOFMEMORY;
@@ -578,7 +578,7 @@ end:
     return S_OK;
 
 fail:
-    HeapFree(GetProcessHeap(), 0, This->imagedata);
+    heap_free(This->imagedata);
     This->imagedata = NULL;
     if (SUCCEEDED(hr)) hr = E_FAIL;
     return hr;
@@ -606,7 +606,7 @@ static HRESULT BmpFrameDecode_ReadRLE4(BmpDecoder* This)
     else
         palettesize = 4 * 16;
 
-    This->imagedata = HeapAlloc(GetProcessHeap(), 0, datasize);
+    This->imagedata = heap_alloc(datasize);
     if (!This->imagedata)
     {
         hr = E_OUTOFMEMORY;
@@ -718,7 +718,7 @@ end:
     return S_OK;
 
 fail:
-    HeapFree(GetProcessHeap(), 0, This->imagedata);
+    heap_free(This->imagedata);
     This->imagedata = NULL;
     if (SUCCEEDED(hr)) hr = E_FAIL;
     return hr;
@@ -1013,10 +1013,10 @@ static ULONG WINAPI BmpDecoder_Release(IWICBitmapDecoder *iface)
     if (ref == 0)
     {
         if (This->stream) IStream_Release(This->stream);
-        HeapFree(GetProcessHeap(), 0, This->imagedata);
+        heap_free(This->imagedata);
         This->lock.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1165,7 +1165,7 @@ static HRESULT BmpDecoder_Create(int packed, int icoframe, BmpDecoder **ppDecode
 {
     BmpDecoder *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(BmpDecoder));
+    This = heap_alloc(sizeof(BmpDecoder));
     if (!This) return E_OUTOFMEMORY;
 
     This->IWICBitmapDecoder_iface.lpVtbl = &BmpDecoder_Vtbl;

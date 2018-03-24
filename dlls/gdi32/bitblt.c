@@ -32,6 +32,7 @@
 #include "wingdi.h"
 #include "gdi_private.h"
 #include "wine/debug.h"
+#include "wine/heap.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(bitblt);
 
@@ -154,7 +155,7 @@ static BOOL get_vis_rectangles( DC *dc_dst, struct bitblt_coords *dst,
 
 void free_heap_bits( struct gdi_image_bits *bits )
 {
-    HeapFree( GetProcessHeap(), 0, bits->ptr );
+    heap_free( bits->ptr );
 }
 
 DWORD convert_bits( const BITMAPINFO *src_info, struct bitblt_coords *src,
@@ -169,7 +170,7 @@ DWORD convert_bits( const BITMAPINFO *src_info, struct bitblt_coords *src,
     dst_info->bmiHeader.biSizeImage = get_dib_image_size( dst_info );
     if (top_down) dst_info->bmiHeader.biHeight = -dst_info->bmiHeader.biHeight;
 
-    if (!(ptr = HeapAlloc( GetProcessHeap(), 0, dst_info->bmiHeader.biSizeImage )))
+    if (!(ptr = heap_alloc( dst_info->bmiHeader.biSizeImage )))
         return ERROR_OUTOFMEMORY;
 
     err = convert_bitmapinfo( src_info, bits->ptr, src, dst_info, ptr );
@@ -192,7 +193,7 @@ DWORD stretch_bits( const BITMAPINFO *src_info, struct bitblt_coords *src,
     dst_info->bmiHeader.biSizeImage = get_dib_image_size( dst_info );
 
     if (src_info->bmiHeader.biHeight < 0) dst_info->bmiHeader.biHeight = -dst_info->bmiHeader.biHeight;
-    if (!(ptr = HeapAlloc( GetProcessHeap(), 0, dst_info->bmiHeader.biSizeImage )))
+    if (!(ptr = heap_alloc( dst_info->bmiHeader.biSizeImage )))
         return ERROR_OUTOFMEMORY;
 
     err = stretch_bitmapinfo( src_info, bits->ptr, src, dst_info, ptr, dst, mode );
@@ -210,7 +211,7 @@ static DWORD blend_bits( const BITMAPINFO *src_info, const struct gdi_image_bits
     if (!dst_bits->is_copy)
     {
         int size = dst_info->bmiHeader.biSizeImage;
-        void *ptr = HeapAlloc( GetProcessHeap(), 0, size );
+        void *ptr = heap_alloc( size );
         if (!ptr) return ERROR_OUTOFMEMORY;
         memcpy( ptr, dst_bits->ptr, size );
         if (dst_bits->free) dst_bits->free( dst_bits );
@@ -417,7 +418,7 @@ BOOL nulldrv_GradientFill( PHYSDEV dev, TRIVERTEX *vert_array, ULONG nvert,
     DWORD err;
     HRGN rgn;
 
-    if (!(pts = HeapAlloc( GetProcessHeap(), 0, nvert * sizeof(*pts) ))) return FALSE;
+    if (!(pts = heap_alloc( nvert * sizeof(*pts) ))) return FALSE;
     for (i = 0; i < nvert; i++)
     {
         pts[i].x = vert_array[i].x;
@@ -459,7 +460,7 @@ BOOL nulldrv_GradientFill( PHYSDEV dev, TRIVERTEX *vert_array, ULONG nvert,
     if (err && err != ERROR_BAD_FORMAT) goto done;
 
     info->bmiHeader.biSizeImage = get_dib_image_size( info );
-    if (!(bits.ptr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, info->bmiHeader.biSizeImage )))
+    if (!(bits.ptr = heap_alloc_zero( info->bmiHeader.biSizeImage )))
         goto done;
     bits.is_copy = TRUE;
     bits.free = free_heap_bits;
@@ -484,7 +485,7 @@ BOOL nulldrv_GradientFill( PHYSDEV dev, TRIVERTEX *vert_array, ULONG nvert,
     DeleteObject( rgn );
 
 done:
-    HeapFree( GetProcessHeap(), 0, pts );
+    heap_free( pts );
     return ret;
 }
 
@@ -642,7 +643,7 @@ BOOL WINAPI MaskBlt(HDC hdcDest, INT nXDest, INT nYDest,
     HDC hDC1, hDC2;
     HBRUSH hbrMask, hbrDst, hbrTmp;
 
-    static const DWORD ROP3Table[256] = 
+    static const DWORD ROP3Table[256] =
     {
         0x00000042, 0x00010289,
         0x00020C89, 0x000300AA,
@@ -804,7 +805,7 @@ BOOL WINAPI MaskBlt(HDC hdcDest, INT nXDest, INT nYDest,
     /* combine both using the mask as a pattern brush */
     SelectObject(hDC2, hbrMask);
     SetBrushOrgEx(hDC2, -xMask, -yMask, NULL);
-    BitBlt(hDC2, 0, 0, nWidth, nHeight, hDC1, 0, 0, 0xac0744 ); /* (D & P) | (S & ~P) */ 
+    BitBlt(hDC2, 0, 0, nWidth, nHeight, hDC1, 0, 0, 0xac0744 ); /* (D & P) | (S & ~P) */
     SelectObject(hDC2, hbrTmp);
 
     /* blit to dst */

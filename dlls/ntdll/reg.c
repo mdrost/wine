@@ -53,6 +53,7 @@ NTSTATUS WINAPI NtCreateKey( PHANDLE retkey, ACCESS_MASK access, const OBJECT_AT
                              ULONG TitleIndex, const UNICODE_STRING *class, ULONG options,
                              PULONG dispos )
 {
+#if 0
     NTSTATUS ret;
     data_size_t len;
     struct object_attributes *objattr;
@@ -78,8 +79,11 @@ NTSTATUS WINAPI NtCreateKey( PHANDLE retkey, ACCESS_MASK access, const OBJECT_AT
     SERVER_END_REQ;
 
     TRACE("<- %p\n", *retkey);
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 NTSTATUS WINAPI NtCreateKeyTransacted( PHANDLE retkey, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr,
@@ -123,6 +127,7 @@ static NTSTATUS open_key( PHANDLE retkey, ACCESS_MASK access, const OBJECT_ATTRI
     NTSTATUS ret;
 
     if (!retkey || !attr || !attr->ObjectName) return STATUS_ACCESS_VIOLATION;
+#if 0
     if ((ret = validate_open_object_attributes( attr ))) return ret;
 
     TRACE( "(%p,%s,%x,%p)\n", attr->RootDirectory,
@@ -142,6 +147,9 @@ static NTSTATUS open_key( PHANDLE retkey, ACCESS_MASK access, const OBJECT_ATTRI
     SERVER_END_REQ;
     TRACE("<- %p\n", *retkey);
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -201,6 +209,7 @@ NTSTATUS WINAPI NtDeleteKey( HANDLE hkey )
 
     TRACE( "(%p)\n", hkey );
 
+#if 0
     SERVER_START_REQ( delete_key )
     {
         req->hkey = wine_server_obj_handle( hkey );
@@ -208,6 +217,9 @@ NTSTATUS WINAPI NtDeleteKey( HANDLE hkey )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -231,6 +243,7 @@ NTSTATUS WINAPI NtDeleteValueKey( HANDLE hkey, const UNICODE_STRING *name )
     TRACE( "(%p,%s)\n", hkey, debugstr_us(name) );
     if (name->Length > MAX_VALUE_LENGTH) return STATUS_OBJECT_NAME_NOT_FOUND;
 
+#if 0
     SERVER_START_REQ( delete_key_value )
     {
         req->hkey = wine_server_obj_handle( hkey );
@@ -239,6 +252,9 @@ NTSTATUS WINAPI NtDeleteValueKey( HANDLE hkey, const UNICODE_STRING *name )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -251,6 +267,7 @@ static NTSTATUS enumerate_key( HANDLE handle, int index, KEY_INFORMATION_CLASS i
                                void *info, DWORD length, DWORD *result_len )
 
 {
+#if 0
     NTSTATUS ret;
     void *data_ptr;
     size_t fixed_size;
@@ -357,6 +374,9 @@ static NTSTATUS enumerate_key( HANDLE handle, int index, KEY_INFORMATION_CLASS i
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -390,7 +410,7 @@ NTSTATUS WINAPI RtlpNtEnumerateSubKey( HANDLE handle, UNICODE_STRING *out, ULONG
   if (out->Length)
   {
     dwLen = out->Length + sizeof(KEY_BASIC_INFORMATION);
-    info = RtlAllocateHeap( GetProcessHeap(), 0, dwLen );
+    info = malloc( dwLen );
     if (!info)
       return STATUS_NO_MEMORY;
   }
@@ -419,7 +439,7 @@ NTSTATUS WINAPI RtlpNtEnumerateSubKey( HANDLE handle, UNICODE_STRING *out, ULONG
     }
   }
 
-  RtlFreeHeap( GetProcessHeap(), 0, info );
+  free( info );
   return ret;
 }
 
@@ -492,6 +512,7 @@ NTSTATUS WINAPI NtEnumerateValueKey( HANDLE handle, ULONG index,
 
     TRACE( "(%p,%u,%d,%p,%d)\n", handle, index, info_class, info, length );
 
+#if 0
     /* compute the length we want to retrieve */
     switch(info_class)
     {
@@ -520,6 +541,9 @@ NTSTATUS WINAPI NtEnumerateValueKey( HANDLE handle, ULONG index,
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -540,6 +564,7 @@ NTSTATUS WINAPI NtQueryValueKey( HANDLE handle, const UNICODE_STRING *name,
 
     TRACE( "(%p,%s,%d,%p,%d)\n", handle, debugstr_us(name), info_class, info, length );
 
+#if 0
     if (name->Length > MAX_VALUE_LENGTH) return STATUS_OBJECT_NAME_NOT_FOUND;
 
     /* compute the length we want to retrieve */
@@ -590,6 +615,9 @@ NTSTATUS WINAPI NtQueryValueKey( HANDLE handle, const UNICODE_STRING *name,
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -605,7 +633,7 @@ NTSTATUS WINAPI RtlpNtQueryValueKey( HANDLE handle, ULONG *result_type, PBYTE de
     DWORD dwResultLen;
     DWORD dwLen = sizeof (KEY_VALUE_PARTIAL_INFORMATION) + (result_len ? *result_len : 0);
 
-    info = RtlAllocateHeap( GetProcessHeap(), 0, dwLen );
+    info = malloc( dwLen );
     if (!info)
       return STATUS_NO_MEMORY;
 
@@ -624,7 +652,7 @@ NTSTATUS WINAPI RtlpNtQueryValueKey( HANDLE handle, ULONG *result_type, PBYTE de
             memcpy( dest, info->Data, info->DataLength );
     }
 
-    RtlFreeHeap( GetProcessHeap(), 0, info );
+    free( info );
     return ret;
 }
 
@@ -638,6 +666,7 @@ NTSTATUS WINAPI NtFlushKey(HANDLE key)
 
     TRACE("key=%p\n", key);
 
+#if 0
     SERVER_START_REQ( flush_key )
     {
 	req->hkey = wine_server_obj_handle( key );
@@ -646,6 +675,9 @@ NTSTATUS WINAPI NtFlushKey(HANDLE key)
     SERVER_END_REQ;
     
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -654,6 +686,7 @@ NTSTATUS WINAPI NtFlushKey(HANDLE key)
  */
 NTSTATUS WINAPI NtLoadKey( const OBJECT_ATTRIBUTES *attr, OBJECT_ATTRIBUTES *file )
 {
+#if 0
     NTSTATUS ret;
     HANDLE hive;
     IO_STATUS_BLOCK io;
@@ -677,8 +710,11 @@ NTSTATUS WINAPI NtLoadKey( const OBJECT_ATTRIBUTES *attr, OBJECT_ATTRIBUTES *fil
     SERVER_END_REQ;
 
     NtClose(hive);
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -718,6 +754,7 @@ NTSTATUS WINAPI NtNotifyChangeMultipleKeys(
     if (Count || SubordinateObjects || ApcRoutine || ApcContext || ChangeBuffer || Length)
         FIXME("Unimplemented optional parameter\n");
 
+#if 0
     if (!Asynchronous)
     {
         OBJECT_ATTRIBUTES attr;
@@ -745,6 +782,9 @@ NTSTATUS WINAPI NtNotifyChangeMultipleKeys(
     }
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -823,6 +863,7 @@ NTSTATUS WINAPI NtSaveKey(IN HANDLE KeyHandle, IN HANDLE FileHandle)
 
     TRACE("(%p,%p)\n", KeyHandle, FileHandle);
 
+#if 0
     SERVER_START_REQ( save_registry )
     {
         req->hkey = wine_server_obj_handle( KeyHandle );
@@ -832,6 +873,9 @@ NTSTATUS WINAPI NtSaveKey(IN HANDLE KeyHandle, IN HANDLE FileHandle)
     SERVER_END_REQ;
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 /******************************************************************************
  * NtSetInformationKey [NTDLL.@]
@@ -866,6 +910,7 @@ NTSTATUS WINAPI NtSetValueKey( HANDLE hkey, const UNICODE_STRING *name, ULONG Ti
 
     if (name->Length > MAX_VALUE_LENGTH) return STATUS_INVALID_PARAMETER;
 
+#if 0
     SERVER_START_REQ( set_key_value )
     {
         req->hkey    = wine_server_obj_handle( hkey );
@@ -877,6 +922,9 @@ NTSTATUS WINAPI NtSetValueKey( HANDLE hkey, const UNICODE_STRING *name, ULONG Ti
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -902,6 +950,7 @@ NTSTATUS WINAPI NtUnloadKey(IN POBJECT_ATTRIBUTES attr)
 
     TRACE("(%p)\n", attr);
 
+#if 0
     SERVER_START_REQ( unload_registry )
     {
         req->hkey = wine_server_obj_handle( attr->RootDirectory );
@@ -910,6 +959,9 @@ NTSTATUS WINAPI NtUnloadKey(IN POBJECT_ATTRIBUTES attr)
     SERVER_END_REQ;
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -930,8 +982,7 @@ NTSTATUS WINAPI RtlFormatCurrentUserKeyPath( IN OUT PUNICODE_STRING KeyPath)
         status = RtlConvertSidToUnicodeString(KeyPath, ((TOKEN_USER *)buffer)->User.Sid, FALSE);
         if (status == STATUS_BUFFER_OVERFLOW)
         {
-            PWCHAR buf = RtlAllocateHeap(GetProcessHeap(), 0,
-                                         sizeof(pathW) + KeyPath->Length + sizeof(WCHAR));
+            PWCHAR buf = malloc(sizeof(pathW) + KeyPath->Length + sizeof(WCHAR));
             if (buf)
             {
                 memcpy(buf, pathW, sizeof(pathW));
@@ -1017,11 +1068,11 @@ static NTSTATUS RTL_ReportRegistryValue(PKEY_VALUE_FULL_INFORMATION pInfo,
                 RtlExpandEnvironmentStrings_U(pEnvironment, &src, &dst, &res);
                 dst.Length = 0;
                 dst.MaximumLength = res;
-                dst.Buffer = RtlAllocateHeap(GetProcessHeap(), 0, res * sizeof(WCHAR));
+                dst.Buffer = malloc(res * sizeof(WCHAR));
                 RtlExpandEnvironmentStrings_U(pEnvironment, &src, &dst, &res);
                 status = pQuery->QueryRoutine(pQuery->Name, pInfo->Type, dst.Buffer,
                                      dst.Length, pContext, pQuery->EntryContext);
-                RtlFreeHeap(GetProcessHeap(), 0, dst.Buffer);
+                free(dst.Buffer);
             }
 
         case REG_SZ:
@@ -1038,7 +1089,7 @@ static NTSTATUS RTL_ReportRegistryValue(PKEY_VALUE_FULL_INFORMATION pInfo,
 
             if (str->Buffer == NULL)
             {
-                str->Buffer = RtlAllocateHeap(GetProcessHeap(), 0, len);
+                str->Buffer = malloc(len);
                 str->MaximumLength = len;
             }
             len = min(len, str->MaximumLength);
@@ -1086,11 +1137,11 @@ static NTSTATUS RTL_ReportRegistryValue(PKEY_VALUE_FULL_INFORMATION pInfo,
             RtlExpandEnvironmentStrings_U(pEnvironment, &src, &dst, &res);
             dst.Length = 0;
             dst.MaximumLength = res;
-            dst.Buffer = RtlAllocateHeap(GetProcessHeap(), 0, res * sizeof(WCHAR));
+            dst.Buffer = malloc(res * sizeof(WCHAR));
             RtlExpandEnvironmentStrings_U(pEnvironment, &src, &dst, &res);
             status = pQuery->QueryRoutine(pQuery->Name, pInfo->Type, dst.Buffer,
                                           dst.Length, pContext, pQuery->EntryContext);
-            RtlFreeHeap(GetProcessHeap(), 0, dst.Buffer);
+            free(dst.Buffer);
         }
         else /* REG_MULTI_SZ */
         {
@@ -1118,11 +1169,11 @@ static NTSTATUS RTL_ReportRegistryValue(PKEY_VALUE_FULL_INFORMATION pInfo,
                     RtlExpandEnvironmentStrings_U(pEnvironment, &src, &dst, &res);
                     dst.Length = 0;
                     dst.MaximumLength = res;
-                    dst.Buffer = RtlAllocateHeap(GetProcessHeap(), 0, res * sizeof(WCHAR));
+                    dst.Buffer = malloc(res * sizeof(WCHAR));
                     RtlExpandEnvironmentStrings_U(pEnvironment, &src, &dst, &res);
                     status = pQuery->QueryRoutine(pQuery->Name, pInfo->Type, dst.Buffer,
                                                   dst.Length, pContext, pQuery->EntryContext);
-                    RtlFreeHeap(GetProcessHeap(), 0, dst.Buffer);
+                    free(dst.Buffer);
                     if(status != STATUS_SUCCESS && status != STATUS_BUFFER_TOO_SMALL)
                         return status;
                 }
@@ -1191,7 +1242,7 @@ static NTSTATUS RTL_GetKeyHandle(ULONG RelativeTo, PCWSTR Path, PHANDLE handle)
     }
 
     len = (strlenW(base) + strlenW(Path) + 1) * sizeof(WCHAR);
-    KeyString.Buffer = RtlAllocateHeap(GetProcessHeap(), 0, len);
+    KeyString.Buffer = malloc(len);
     if (KeyString.Buffer == NULL)
         return STATUS_NO_MEMORY;
 
@@ -1201,7 +1252,7 @@ static NTSTATUS RTL_GetKeyHandle(ULONG RelativeTo, PCWSTR Path, PHANDLE handle)
     KeyString.MaximumLength = len;
     InitializeObjectAttributes(&regkey, &KeyString, OBJ_CASE_INSENSITIVE, NULL, NULL);
     status = NtOpenKey(handle, KEY_ALL_ACCESS, &regkey);
-    RtlFreeHeap(GetProcessHeap(), 0, KeyString.Buffer);
+    free(KeyString.Buffer);
     return status;
 }
 
@@ -1307,8 +1358,8 @@ NTSTATUS WINAPI RtlQueryRegistryValues(IN ULONG RelativeTo, IN PCWSTR Path,
                     status == STATUS_BUFFER_TOO_SMALL)
                 {
                     buflen = len;
-                    RtlFreeHeap(GetProcessHeap(), 0, pInfo);
-                    pInfo = RtlAllocateHeap(GetProcessHeap(), 0, buflen);
+                    free(pInfo);
+                    pInfo = malloc(buflen);
                     NtEnumerateValueKey(handle, i, KeyValueFullInformation,
                         pInfo, buflen, &len);
                 }
@@ -1341,8 +1392,8 @@ NTSTATUS WINAPI RtlQueryRegistryValues(IN ULONG RelativeTo, IN PCWSTR Path,
                 status == STATUS_BUFFER_TOO_SMALL)
             {
                 buflen = len;
-                RtlFreeHeap(GetProcessHeap(), 0, pInfo);
-                pInfo = RtlAllocateHeap(GetProcessHeap(), 0, buflen);
+                free(pInfo);
+                pInfo = malloc(buflen);
                 status = NtQueryValueKey(handle, &Value,
                     KeyValueFullInformation, pInfo, buflen, &len);
             }
@@ -1375,7 +1426,7 @@ NTSTATUS WINAPI RtlQueryRegistryValues(IN ULONG RelativeTo, IN PCWSTR Path,
     }
 
 out:
-    RtlFreeHeap(GetProcessHeap(), 0, pInfo);
+    free(pInfo);
     if (handle != topkey)
         NtClose(handle);
     NtClose(topkey);
@@ -1512,7 +1563,7 @@ NTSTATUS WINAPI NtQueryLicenseValue( const UNICODE_STRING *name, ULONG *result_t
         return STATUS_INVALID_PARAMETER;
 
     info_length = FIELD_OFFSET(KEY_VALUE_PARTIAL_INFORMATION, Data) + length;
-    info = RtlAllocateHeap( GetProcessHeap(), 0, info_length );
+    info = malloc( info_length );
     if (!info) return STATUS_NO_MEMORY;
 
     attr.Length = sizeof(attr);
@@ -1546,6 +1597,6 @@ NTSTATUS WINAPI NtQueryLicenseValue( const UNICODE_STRING *name, ULONG *result_t
     if (status == STATUS_OBJECT_NAME_NOT_FOUND)
         FIXME( "License key %s not found\n", debugstr_w(name->Buffer) );
 
-    RtlFreeHeap( GetProcessHeap(), 0, info );
+    free( info );
     return status;
 }

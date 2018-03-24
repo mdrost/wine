@@ -33,8 +33,11 @@
 #include "win.h"
 #include "user_private.h"
 #include "controls.h"
+#include "wine/heap.h"
 #include "wine/unicode.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/exception.h"
 #include "wine/debug.h"
 
@@ -85,6 +88,7 @@ static void DEFWND_HandleWindowPosChanged( HWND hwnd, const WINDOWPOS *winpos )
  */
 static LRESULT DEFWND_SetTextA( HWND hwnd, LPCSTR text )
 {
+#if 0
     int count;
     WCHAR *textW;
     WND *wndPtr;
@@ -98,9 +102,9 @@ static LRESULT DEFWND_SetTextA( HWND hwnd, LPCSTR text )
     count = MultiByteToWideChar( CP_ACP, 0, text, -1, NULL, 0 );
 
     if (!(wndPtr = WIN_GetPtr( hwnd ))) return 0;
-    if ((textW = HeapAlloc(GetProcessHeap(), 0, count * sizeof(WCHAR))))
+    if ((textW = heap_alloc(count * sizeof(WCHAR))))
     {
-        HeapFree(GetProcessHeap(), 0, wndPtr->text);
+        heap_free(wndPtr->text);
         wndPtr->text = textW;
         MultiByteToWideChar( CP_ACP, 0, text, -1, textW, count );
         SERVER_START_REQ( set_window_text )
@@ -118,6 +122,9 @@ static LRESULT DEFWND_SetTextA( HWND hwnd, LPCSTR text )
     USER_Driver->pSetWindowText( hwnd, textW );
 
     return 1;
+#else
+    return 0;
+#endif
 }
 
 /***********************************************************************
@@ -127,6 +134,7 @@ static LRESULT DEFWND_SetTextA( HWND hwnd, LPCSTR text )
  */
 static LRESULT DEFWND_SetTextW( HWND hwnd, LPCWSTR text )
 {
+#if 0
     static const WCHAR empty_string[] = {0};
     WND *wndPtr;
     int count;
@@ -140,8 +148,8 @@ static LRESULT DEFWND_SetTextW( HWND hwnd, LPCWSTR text )
     count = strlenW(text) + 1;
 
     if (!(wndPtr = WIN_GetPtr( hwnd ))) return 0;
-    HeapFree(GetProcessHeap(), 0, wndPtr->text);
-    if ((wndPtr->text = HeapAlloc(GetProcessHeap(), 0, count * sizeof(WCHAR))))
+    heap_free(wndPtr->text);
+    if ((wndPtr->text = heap_alloc(count * sizeof(WCHAR))))
     {
         strcpyW( wndPtr->text, text );
         SERVER_START_REQ( set_window_text )
@@ -160,6 +168,9 @@ static LRESULT DEFWND_SetTextW( HWND hwnd, LPCWSTR text )
     USER_Driver->pSetWindowText( hwnd, text );
 
     return 1;
+#else
+    return 0;
+#endif
 }
 
 /***********************************************************************
@@ -347,9 +358,9 @@ static LRESULT DEFWND_DefWinProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
         {
             WND *wndPtr = WIN_GetPtr( hwnd );
             if (!wndPtr) return 0;
-            HeapFree( GetProcessHeap(), 0, wndPtr->text );
+            heap_free( wndPtr->text );
             wndPtr->text = NULL;
-            HeapFree( GetProcessHeap(), 0, wndPtr->pScroll );
+            heap_free( wndPtr->pScroll );
             wndPtr->pScroll = NULL;
             WIN_ReleasePtr( wndPtr );
             return 0;
@@ -740,7 +751,7 @@ static LRESULT DEFWND_DefWinProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
                 break;
             while (win_array[count])
                 SendMessageW( win_array[count++], WM_INPUTLANGCHANGE, wParam, lParam);
-            HeapFree(GetProcessHeap(),0,win_array);
+            heap_free(win_array);
             break;
         }
 
@@ -787,6 +798,7 @@ LRESULT WINAPI DefWindowProcA( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         ERR( "called for other process window %p\n", hwnd );
         return 0;
     }
+#if 0
     hwnd = full_handle;
 
     SPY_EnterMessage( SPY_DEFWNDPROC, hwnd, msg, wParam, lParam );
@@ -866,7 +878,7 @@ LRESULT WINAPI DefWindowProcA( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
             {
                 if ((size = ImmGetCompositionStringA( himc, GCS_RESULTSTR, NULL, 0 )))
                 {
-                    if (!(buf = HeapAlloc( GetProcessHeap(), 0, size ))) size = 0;
+                    if (!(buf = heap_alloc( size ))) size = 0;
                     else size = ImmGetCompositionStringA( himc, GCS_RESULTSTR, buf, size );
                 }
                 ImmReleaseContext( hwnd, himc );
@@ -887,7 +899,7 @@ LRESULT WINAPI DefWindowProcA( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
                         lead = 0;
                     }
                 }
-                HeapFree( GetProcessHeap(), 0, buf );
+                heap_free( buf );
             }
         }
         /* fall through */
@@ -923,6 +935,7 @@ LRESULT WINAPI DefWindowProcA( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
     }
 
     SPY_ExitMessage( SPY_RESULT_DEFWND, hwnd, msg, result, wParam, lParam );
+#endif
     return result;
 }
 
@@ -973,6 +986,7 @@ LRESULT WINAPI DefWindowProcW(
         ERR( "called for other process window %p\n", hwnd );
         return 0;
     }
+#if 0
     hwnd = full_handle;
     SPY_EnterMessage( SPY_DEFWNDPROC, hwnd, msg, wParam, lParam );
 
@@ -1053,14 +1067,14 @@ LRESULT WINAPI DefWindowProcW(
             {
                 if ((size = ImmGetCompositionStringW( himc, GCS_RESULTSTR, NULL, 0 )))
                 {
-                    if (!(buf = HeapAlloc( GetProcessHeap(), 0, size * sizeof(WCHAR) ))) size = 0;
+                    if (!(buf = heap_alloc( size * sizeof(WCHAR) ))) size = 0;
                     else size = ImmGetCompositionStringW( himc, GCS_RESULTSTR, buf, size * sizeof(WCHAR) );
                 }
                 ImmReleaseContext( hwnd, himc );
 
                 for (i = 0; i < size / sizeof(WCHAR); i++)
                     SendMessageW( hwnd, WM_IME_CHAR, buf[i], 1 );
-                HeapFree( GetProcessHeap(), 0, buf );
+                heap_free( buf );
             }
         }
         /* fall through */
@@ -1081,5 +1095,6 @@ LRESULT WINAPI DefWindowProcW(
         break;
     }
     SPY_ExitMessage( SPY_RESULT_DEFWND, hwnd, msg, result, wParam, lParam );
+#endif
     return result;
 }

@@ -50,7 +50,7 @@ static RTL_BITMAP bm;
 
 static void InitFunctionPtrs(void)
 {
-  hntdll = LoadLibraryA("ntdll.dll");
+  hntdll = LoadLibraryA("libwinapi-ntdll.so");
   ok(hntdll != 0, "LoadLibrary failed\n");
   if (hntdll)
   {

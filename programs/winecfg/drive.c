@@ -120,11 +120,11 @@ BOOL add_drive(char letter, const char *targetpath, const char *device, const WC
 /* deallocates the contents of the drive. does not free the drive itself  */
 void delete_drive(struct drive *d)
 {
-    HeapFree(GetProcessHeap(), 0, d->unixpath);
+    heap_free(d->unixpath);
     d->unixpath = NULL;
-    HeapFree(GetProcessHeap(), 0, d->device);
+    heap_free(d->device);
     d->device = NULL;
-    HeapFree(GetProcessHeap(), 0, d->label);
+    heap_free(d->label);
     d->label = NULL;
     d->serial = 0;
     d->in_use = FALSE;
@@ -269,7 +269,7 @@ BOOL load_drives(void)
         struct mountmgr_unix_drive input;
         struct mountmgr_unix_drive *data;
 
-        if (!(data = HeapAlloc( GetProcessHeap(), 0, size ))) break;
+        if (!(data = heap_alloc( size ))) break;
 
         memset( &input, 0, sizeof(input) );
         input.letter = root[0];
@@ -299,7 +299,7 @@ BOOL load_drives(void)
             if (GetLastError() == ERROR_MORE_DATA) size = data->size;
             else root[0]++;  /* skip this drive */
         }
-        HeapFree( GetProcessHeap(), 0, data );
+        heap_free( data );
     }
 
     /* reset modified flags */
@@ -334,7 +334,7 @@ void apply_drive_changes(void)
             len += strlen(drives[i].unixpath) + 1;
             if (drives[i].device) len += strlen(drives[i].device) + 1;
         }
-        if (!(ioctl = HeapAlloc( GetProcessHeap(), 0, len ))) continue;
+        if (!(ioctl = heap_alloc( len ))) continue;
         ioctl->size = len;
         ioctl->letter = 'a' + i;
         ioctl->device_offset = 0;
@@ -367,7 +367,7 @@ void apply_drive_changes(void)
         }
         else WINE_WARN( "failed to set drive %c: to %s type %u err %u\n", 'a' + i,
                        wine_dbgstr_a(drives[i].unixpath), drives[i].type, GetLastError() );
-        HeapFree( GetProcessHeap(), 0, ioctl );
+        heap_free( ioctl );
     }
     CloseHandle( mgr );
 }

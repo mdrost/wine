@@ -585,9 +585,9 @@ static void WINECON_Delete(struct inner_data* data)
     if (data->hConOut)		CloseHandle(data->hConOut);
     if (data->hSynchro)		CloseHandle(data->hSynchro);
     if (data->hProcess)         CloseHandle(data->hProcess);
-    HeapFree(GetProcessHeap(), 0, data->curcfg.registry);
-    HeapFree(GetProcessHeap(), 0, data->cells);
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(data->curcfg.registry);
+    heap_free(data->cells);
+    heap_free(data);
 }
 
 /******************************************************************
@@ -650,7 +650,7 @@ static struct inner_data* WINECON_Init(HINSTANCE hInst, DWORD pid, LPCWSTR appna
     struct config_data  cfg;
     STARTUPINFOW        si;
 
-    data = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*data));
+    data = heap_alloc_zero(sizeof(*data));
     if (!data) return 0;
 
     GetStartupInfoW(&si);
@@ -905,7 +905,7 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine, INT nCmdSh
 
             len = MultiByteToWideChar(CP_ACP, 0, wci.ptr, -1, NULL, 0);
 
-            buffer = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+            buffer = heap_alloc(len * sizeof(WCHAR));
             if (!buffer)
                 return 1;
 
@@ -913,11 +913,11 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine, INT nCmdSh
 
             if (!(data = WINECON_Init(hInst, GetCurrentProcessId(), buffer, wci.backend, nCmdShow)))
             {
-                HeapFree(GetProcessHeap(), 0, buffer);
+                heap_free(buffer);
                 return 1;
             }
             ret = WINECON_Spawn(data, buffer);
-            HeapFree(GetProcessHeap(), 0, buffer);
+            heap_free(buffer);
             if (ret != 0)
             {
                 WINECON_Delete(data);

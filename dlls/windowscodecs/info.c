@@ -260,7 +260,7 @@ static ULONG WINAPI BitmapDecoderInfo_Release(IWICBitmapDecoderInfo *iface)
     if (ref == 0)
     {
         RegCloseKey(This->classkey);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -555,7 +555,7 @@ static HRESULT WINAPI BitmapDecoderInfo_MatchesPattern(IWICBitmapDecoderInfo *if
     hr = BitmapDecoderInfo_GetPatterns(iface, 0, NULL, &pattern_count, &patterns_size);
     if (FAILED(hr)) return hr;
 
-    patterns = HeapAlloc(GetProcessHeap(), 0, patterns_size);
+    patterns = heap_alloc(patterns_size);
     if (!patterns) return E_OUTOFMEMORY;
 
     hr = BitmapDecoderInfo_GetPatterns(iface, patterns_size, patterns, &pattern_count, &patterns_size);
@@ -565,9 +565,9 @@ static HRESULT WINAPI BitmapDecoderInfo_MatchesPattern(IWICBitmapDecoderInfo *if
     {
         if (datasize < patterns[i].Length)
         {
-            HeapFree(GetProcessHeap(), 0, data);
+            heap_free(data);
             datasize = patterns[i].Length;
-            data = HeapAlloc(GetProcessHeap(), 0, patterns[i].Length);
+            data = heap_alloc(patterns[i].Length);
             if (!data)
             {
                 hr = E_OUTOFMEMORY;
@@ -608,8 +608,8 @@ static HRESULT WINAPI BitmapDecoderInfo_MatchesPattern(IWICBitmapDecoderInfo *if
     }
 
 end:
-    HeapFree(GetProcessHeap(), 0, patterns);
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(patterns);
+    heap_free(data);
 
     return hr;
 }
@@ -657,7 +657,7 @@ static HRESULT BitmapDecoderInfo_Constructor(HKEY classkey, REFCLSID clsid, IWIC
 {
     BitmapDecoderInfo *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(BitmapDecoderInfo));
+    This = heap_alloc(sizeof(BitmapDecoderInfo));
     if (!This)
     {
         RegCloseKey(classkey);
@@ -730,7 +730,7 @@ static ULONG WINAPI BitmapEncoderInfo_Release(IWICBitmapEncoderInfo *iface)
     if (ref == 0)
     {
         RegCloseKey(This->classkey);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -948,7 +948,7 @@ static HRESULT BitmapEncoderInfo_Constructor(HKEY classkey, REFCLSID clsid, IWIC
 {
     BitmapEncoderInfo *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(BitmapEncoderInfo));
+    This = heap_alloc(sizeof(BitmapEncoderInfo));
     if (!This)
     {
         RegCloseKey(classkey);
@@ -1020,7 +1020,7 @@ static ULONG WINAPI FormatConverterInfo_Release(IWICFormatConverterInfo *iface)
     if (ref == 0)
     {
         RegCloseKey(This->classkey);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1165,7 +1165,7 @@ static HRESULT FormatConverterInfo_Constructor(HKEY classkey, REFCLSID clsid, IW
 {
     FormatConverterInfo *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(FormatConverterInfo));
+    This = heap_alloc(sizeof(FormatConverterInfo));
     if (!This)
     {
         RegCloseKey(classkey);
@@ -1238,7 +1238,7 @@ static ULONG WINAPI PixelFormatInfo_Release(IWICPixelFormatInfo2 *iface)
     if (ref == 0)
     {
         RegCloseKey(This->classkey);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -1459,7 +1459,7 @@ static HRESULT PixelFormatInfo_Constructor(HKEY classkey, REFCLSID clsid, IWICCo
 {
     PixelFormatInfo *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(PixelFormatInfo));
+    This = heap_alloc(sizeof(PixelFormatInfo));
     if (!This)
     {
         RegCloseKey(classkey);
@@ -1533,7 +1533,7 @@ static ULONG WINAPI MetadataReaderInfo_Release(IWICMetadataReaderInfo *iface)
     if (!ref)
     {
         RegCloseKey(This->classkey);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
     return ref;
 }
@@ -1805,7 +1805,7 @@ static HRESULT WINAPI MetadataReaderInfo_MatchesPattern(IWICMetadataReaderInfo *
     hr = MetadataReaderInfo_GetPatterns(iface, container, 0, NULL, &pattern_count, &patterns_size);
     if (FAILED(hr)) return hr;
 
-    patterns = HeapAlloc(GetProcessHeap(), 0, patterns_size);
+    patterns = heap_alloc(patterns_size);
     if (!patterns) return E_OUTOFMEMORY;
 
     hr = MetadataReaderInfo_GetPatterns(iface, container, patterns_size, patterns, &pattern_count, &patterns_size);
@@ -1815,9 +1815,9 @@ static HRESULT WINAPI MetadataReaderInfo_MatchesPattern(IWICMetadataReaderInfo *
     {
         if (datasize < patterns[i].Length)
         {
-            HeapFree(GetProcessHeap(), 0, data);
+            heap_free(data);
             datasize = patterns[i].Length;
-            data = HeapAlloc(GetProcessHeap(), 0, patterns[i].Length);
+            data = heap_alloc(patterns[i].Length);
             if (!data)
             {
                 hr = E_OUTOFMEMORY;
@@ -1854,8 +1854,8 @@ static HRESULT WINAPI MetadataReaderInfo_MatchesPattern(IWICMetadataReaderInfo *
     }
 
 end:
-    HeapFree(GetProcessHeap(), 0, patterns);
-    HeapFree(GetProcessHeap(), 0, data);
+    heap_free(patterns);
+    heap_free(data);
 
     return hr;
 }
@@ -1898,7 +1898,7 @@ static HRESULT MetadataReaderInfo_Constructor(HKEY classkey, REFCLSID clsid, IWI
 {
     MetadataReaderInfo *This;
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(*This));
+    This = heap_alloc(sizeof(*This));
     if (!This)
     {
         RegCloseKey(classkey);
@@ -2057,11 +2057,11 @@ static ULONG WINAPI ComponentEnum_Release(IEnumUnknown *iface)
         {
             IUnknown_Release(cursor->unk);
             list_remove(&cursor->entry);
-            HeapFree(GetProcessHeap(), 0, cursor);
+            heap_free(cursor);
         }
         This->lock.DebugInfo->Spare[0] = 0;
         DeleteCriticalSection(&This->lock);
-        HeapFree(GetProcessHeap(), 0, This);
+        heap_free(This);
     }
 
     return ref;
@@ -2139,7 +2139,7 @@ static HRESULT WINAPI ComponentEnum_Clone(IEnumUnknown *iface, IEnumUnknown **pp
     HRESULT ret=S_OK;
     struct list *old_cursor;
 
-    new_enum = HeapAlloc(GetProcessHeap(), 0, sizeof(ComponentEnum));
+    new_enum = heap_alloc(sizeof(ComponentEnum));
     if (!new_enum)
     {
         *ppenum = NULL;
@@ -2159,7 +2159,7 @@ static HRESULT WINAPI ComponentEnum_Clone(IEnumUnknown *iface, IEnumUnknown **pp
 
     LIST_FOR_EACH_ENTRY(old_item, &This->objects, ComponentEnumItem, entry)
     {
-        new_item = HeapAlloc(GetProcessHeap(), 0, sizeof(ComponentEnumItem));
+        new_item = heap_alloc(sizeof(ComponentEnumItem));
         if (!new_item)
         {
             ret = E_OUTOFMEMORY;
@@ -2210,7 +2210,7 @@ HRESULT CreateComponentEnumerator(DWORD componentTypes, DWORD options, IEnumUnkn
     if (res != ERROR_SUCCESS)
         return HRESULT_FROM_WIN32(res);
 
-    This = HeapAlloc(GetProcessHeap(), 0, sizeof(ComponentEnum));
+    This = heap_alloc(sizeof(ComponentEnum));
     if (!This)
     {
         RegCloseKey(clsidkey);
@@ -2240,7 +2240,7 @@ HRESULT CreateComponentEnumerator(DWORD componentTypes, DWORD options, IEnumUnkn
                     res = RegEnumKeyExW(instancekey, i, guidstring, &guidstring_size, NULL, NULL, NULL, NULL);
                     if (res != ERROR_SUCCESS) break;
 
-                    item = HeapAlloc(GetProcessHeap(), 0, sizeof(ComponentEnumItem));
+                    item = heap_alloc(sizeof(ComponentEnumItem));
                     if (!item) { hr = E_OUTOFMEMORY; break; }
 
                     hr = CLSIDFromString(guidstring, &clsid);
@@ -2253,7 +2253,7 @@ HRESULT CreateComponentEnumerator(DWORD componentTypes, DWORD options, IEnumUnkn
 
                     if (FAILED(hr))
                     {
-                        HeapFree(GetProcessHeap(), 0, item);
+                        heap_free(item);
                         hr = S_OK;
                     }
                 }

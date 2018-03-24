@@ -37,7 +37,9 @@
 #include "windef.h"
 #include "winternl.h"
 #include "ntdll_misc.h"
+#if 0
 #include "wine/server.h"
+#endif
 
 WINE_DEFAULT_DEBUG_CHANNEL(ntdll);
 
@@ -58,6 +60,7 @@ NTSTATUS WINAPI NtQueryObject(IN HANDLE handle,
 
     TRACE("(%p,0x%08x,%p,0x%08x,%p)\n", handle, info_class, ptr, len, used_len);
 
+#if 0
     if (used_len) *used_len = 0;
 
     switch (info_class)
@@ -214,6 +217,9 @@ NTSTATUS WINAPI NtQueryObject(IN HANDLE handle,
         break;
     }
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************
@@ -231,6 +237,7 @@ NTSTATUS WINAPI NtSetInformationObject(IN HANDLE handle,
 
     switch (info_class)
     {
+#if 0
     case ObjectDataInformation:
         {
             OBJECT_DATA_INFORMATION* p = ptr;
@@ -249,6 +256,7 @@ NTSTATUS WINAPI NtSetInformationObject(IN HANDLE handle,
             SERVER_END_REQ;
         }
         break;
+#endif
     default:
         FIXME("Unsupported information class %u\n", info_class);
         status = STATUS_NOT_IMPLEMENTED;
@@ -279,9 +287,10 @@ NtQuerySecurityObject(
     TRACE("(%p,0x%08x,%p,0x%08x,%p)\n",
 	Object, RequestedInformation, pSecurityDescriptor, Length, ResultLength);
 
+#if 0
     do
     {
-        char *buffer = RtlAllocateHeap(GetProcessHeap(), 0, buffer_size);
+        char *buffer = malloc(buffer_size);
         if (!buffer)
             return STATUS_NO_MEMORY;
 
@@ -338,10 +347,13 @@ NtQuerySecurityObject(
             }
         }
         SERVER_END_REQ;
-        RtlFreeHeap(GetProcessHeap(), 0, buffer);
+        free(buffer);
     } while (need_more_memory);
 
     return status;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -353,6 +365,7 @@ NTSTATUS WINAPI NtDuplicateObject( HANDLE source_process, HANDLE source,
                                    HANDLE dest_process, PHANDLE dest,
                                    ACCESS_MASK access, ULONG attributes, ULONG options )
 {
+#if 0
     NTSTATUS ret;
     SERVER_START_REQ( dup_handle )
     {
@@ -375,11 +388,15 @@ NTSTATUS WINAPI NtDuplicateObject( HANDLE source_process, HANDLE source,
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /* Everquest 2 / Pirates of the Burning Sea hooks NtClose, so we need a wrapper */
 NTSTATUS close_handle( HANDLE handle )
 {
+#if 0
     NTSTATUS ret;
     int fd = server_remove_fd_from_cache( handle );
 
@@ -391,6 +408,9 @@ NTSTATUS close_handle( HANDLE handle )
     SERVER_END_REQ;
     if (fd != -1) close( fd );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /**************************************************************************
@@ -434,6 +454,7 @@ NTSTATUS WINAPI NtOpenDirectoryObject( HANDLE *handle, ACCESS_MASK access, const
     NTSTATUS ret;
 
     if (!handle) return STATUS_ACCESS_VIOLATION;
+#if 0
     if ((ret = validate_open_object_attributes( attr ))) return ret;
 
     TRACE("(%p,0x%08x,%s)\n", handle, access, debugstr_ObjectAttributes(attr));
@@ -450,6 +471,9 @@ NTSTATUS WINAPI NtOpenDirectoryObject( HANDLE *handle, ACCESS_MASK access, const
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -470,6 +494,7 @@ NTSTATUS WINAPI NtOpenDirectoryObject( HANDLE *handle, ACCESS_MASK access, const
 NTSTATUS WINAPI NtCreateDirectoryObject(PHANDLE DirectoryHandle, ACCESS_MASK DesiredAccess,
                                         OBJECT_ATTRIBUTES *attr )
 {
+#if 0
     NTSTATUS ret;
     data_size_t len;
     struct object_attributes *objattr;
@@ -488,8 +513,11 @@ NTSTATUS WINAPI NtCreateDirectoryObject(PHANDLE DirectoryHandle, ACCESS_MASK Des
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -515,6 +543,7 @@ NTSTATUS WINAPI NtQueryDirectoryObject(HANDLE handle, PDIRECTORY_BASIC_INFORMATI
                                        ULONG size, BOOLEAN single_entry, BOOLEAN restart,
                                        PULONG context, PULONG ret_size)
 {
+#if 0
     NTSTATUS ret;
 
     if (restart) *context = 0;
@@ -555,6 +584,9 @@ NTSTATUS WINAPI NtQueryDirectoryObject(HANDLE handle, PDIRECTORY_BASIC_INFORMATI
     }
 
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /*
@@ -579,6 +611,7 @@ NTSTATUS WINAPI NtQueryDirectoryObject(HANDLE handle, PDIRECTORY_BASIC_INFORMATI
 NTSTATUS WINAPI NtOpenSymbolicLinkObject( HANDLE *handle, ACCESS_MASK access,
                                           const OBJECT_ATTRIBUTES *attr)
 {
+#if 0
     NTSTATUS ret;
 
     TRACE("(%p,0x%08x,%s)\n", handle, access, debugstr_ObjectAttributes(attr));
@@ -598,6 +631,9 @@ NTSTATUS WINAPI NtOpenSymbolicLinkObject( HANDLE *handle, ACCESS_MASK access,
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -619,6 +655,7 @@ NTSTATUS WINAPI NtOpenSymbolicLinkObject( HANDLE *handle, ACCESS_MASK access,
 NTSTATUS WINAPI NtCreateSymbolicLinkObject(OUT PHANDLE SymbolicLinkHandle,IN ACCESS_MASK DesiredAccess,
 	                                   POBJECT_ATTRIBUTES attr, PUNICODE_STRING TargetName)
 {
+#if 0
     NTSTATUS ret;
     data_size_t len;
     struct object_attributes *objattr;
@@ -641,8 +678,11 @@ NTSTATUS WINAPI NtCreateSymbolicLinkObject(OUT PHANDLE SymbolicLinkHandle,IN ACC
     }
     SERVER_END_REQ;
 
-    RtlFreeHeap( GetProcessHeap(), 0, objattr );
+    free( objattr );
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************
@@ -668,6 +708,7 @@ NTSTATUS WINAPI NtQuerySymbolicLinkObject( HANDLE handle, PUNICODE_STRING target
 
     if (!target) return STATUS_ACCESS_VIOLATION;
 
+#if 0
     SERVER_START_REQ(query_symlink)
     {
         req->handle = wine_server_obj_handle( handle );
@@ -683,6 +724,9 @@ NTSTATUS WINAPI NtQuerySymbolicLinkObject( HANDLE handle, PUNICODE_STRING target
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /******************************************************************************

@@ -73,7 +73,7 @@ static void test_query_dos_deviceA(void)
     ok(!ret && GetLastError() == ERROR_INSUFFICIENT_BUFFER,
        "QueryDosDeviceA(no buffer): returned %u, le=%u\n", ret, GetLastError());
 
-    buffer = HeapAlloc( GetProcessHeap(), 0, buflen );
+    buffer = heap_alloc( buflen );
     SetLastError(0xdeadbeef);
     ret = QueryDosDeviceA( NULL, buffer, buflen );
     ok((ret && GetLastError() != ERROR_INSUFFICIENT_BUFFER),
@@ -101,7 +101,7 @@ static void test_query_dos_deviceA(void)
         }
     }
     ok(found, "expected at least one devicename to contain HARDDISK or RAMDISK\n");
-    HeapFree( GetProcessHeap(), 0, buffer );
+    heap_free( buffer );
 }
 
 static void test_define_dos_deviceA(void)
@@ -290,7 +290,7 @@ static void test_GetLogicalDriveStringsA(void)
     size = pGetLogicalDriveStringsA(0, NULL);
     ok(size%4 == 1, "size = %d\n", size);
 
-    buf = HeapAlloc(GetProcessHeap(), 0, size);
+    buf = heap_alloc(size);
 
     *buf = 0;
     size2 = pGetLogicalDriveStringsA(2, buf);
@@ -308,7 +308,7 @@ static void test_GetLogicalDriveStringsA(void)
     }
     ok(!*ptr, "buf[size2] is not nullbyte\n");
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 }
 
 static void test_GetLogicalDriveStringsW(void)
@@ -329,7 +329,7 @@ static void test_GetLogicalDriveStringsW(void)
     }
     ok(size%4 == 1, "size = %d\n", size);
 
-    buf = HeapAlloc(GetProcessHeap(), 0, size*sizeof(WCHAR));
+    buf = heap_alloc(size*sizeof(WCHAR));
 
     *buf = 0;
     size2 = pGetLogicalDriveStringsW(2, buf);
@@ -347,7 +347,7 @@ static void test_GetLogicalDriveStringsW(void)
     }
     ok(!*ptr, "buf[size2] is not nullbyte\n");
 
-    HeapFree(GetProcessHeap(), 0, buf);
+    heap_free(buf);
 }
 
 static void test_GetVolumeInformationA(void)

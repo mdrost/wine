@@ -35,7 +35,10 @@
 #include "win.h"
 #include "user_private.h"
 #include "controls.h"
+#include "wine/heap.h"
+#if 0
 #include "wine/server.h"
+#endif
 #include "wine/list.h"
 #include "wine/debug.h"
 
@@ -190,6 +193,7 @@ static BOOL is_builtin_class( const WCHAR *name )
  */
 static BOOL set_server_info( HWND hwnd, INT offset, LONG_PTR newval, UINT size )
 {
+#if 0
     BOOL ret;
 
     SERVER_START_REQ( set_class_info )
@@ -232,6 +236,9 @@ static BOOL set_server_info( HWND hwnd, INT offset, LONG_PTR newval, UINT size )
     }
     SERVER_END_REQ;
     return ret;
+#else
+    return FALSE;
+#endif
 }
 
 
@@ -265,12 +272,12 @@ static inline LPWSTR CLASS_GetMenuNameW( CLASS *classPtr )
  */
 static void CLASS_SetMenuNameA( CLASS *classPtr, LPCSTR name )
 {
-    if (!IS_INTRESOURCE(classPtr->menuName)) HeapFree( GetProcessHeap(), 0, classPtr->menuName );
+    if (!IS_INTRESOURCE(classPtr->menuName)) heap_free( classPtr->menuName );
     if (!IS_INTRESOURCE(name))
     {
         DWORD lenA = strlen(name) + 1;
         DWORD lenW = MultiByteToWideChar( CP_ACP, 0, name, lenA, NULL, 0 );
-        classPtr->menuName = HeapAlloc( GetProcessHeap(), 0, lenA + lenW*sizeof(WCHAR) );
+        classPtr->menuName = heap_alloc( lenA + lenW*sizeof(WCHAR) );
         MultiByteToWideChar( CP_ACP, 0, name, lenA, classPtr->menuName, lenW );
         memcpy( classPtr->menuName + lenW, name, lenA );
     }
@@ -285,12 +292,12 @@ static void CLASS_SetMenuNameA( CLASS *classPtr, LPCSTR name )
  */
 static void CLASS_SetMenuNameW( CLASS *classPtr, LPCWSTR name )
 {
-    if (!IS_INTRESOURCE(classPtr->menuName)) HeapFree( GetProcessHeap(), 0, classPtr->menuName );
+    if (!IS_INTRESOURCE(classPtr->menuName)) heap_free( classPtr->menuName );
     if (!IS_INTRESOURCE(name))
     {
         DWORD lenW = strlenW(name) + 1;
         DWORD lenA = WideCharToMultiByte( CP_ACP, 0, name, lenW, NULL, 0, NULL, NULL );
-        classPtr->menuName = HeapAlloc( GetProcessHeap(), 0, lenA + lenW*sizeof(WCHAR) );
+        classPtr->menuName = heap_alloc( lenA + lenW*sizeof(WCHAR) );
         memcpy( classPtr->menuName, name, lenW*sizeof(WCHAR) );
         WideCharToMultiByte( CP_ACP, 0, name, lenW,
                              (char *)(classPtr->menuName + lenW), lenA, NULL, NULL );
@@ -315,8 +322,8 @@ static void CLASS_FreeClass( CLASS *classPtr )
     if (classPtr->hbrBackground > (HBRUSH)(COLOR_GRADIENTINACTIVECAPTION + 1))
         DeleteObject( classPtr->hbrBackground );
     DestroyIcon( classPtr->hIconSmIntern );
-    HeapFree( GetProcessHeap(), 0, classPtr->menuName );
-    HeapFree( GetProcessHeap(), 0, classPtr );
+    heap_free( classPtr->menuName );
+    heap_free( classPtr );
     USER_Unlock();
 }
 
@@ -424,6 +431,7 @@ static CLASS *CLASS_RegisterClass( LPCWSTR name, UINT basename_offset, HINSTANCE
     TRACE("name=%s hinst=%p style=0x%x clExtr=0x%x winExtr=0x%x\n",
           debugstr_w(name), hInstance, style, classExtra, winExtra );
 
+#if 0
     /* Fix the extra bytes value */
 
     if (classExtra > 40)  /* Extra bytes are limited to 40 in Win32 */
@@ -431,7 +439,7 @@ static CLASS *CLASS_RegisterClass( LPCWSTR name, UINT basename_offset, HINSTANCE
     if (winExtra > 40)    /* Extra bytes are limited to 40 in Win32 */
         WARN("Win extra bytes %d is > 40\n", winExtra );
 
-    classPtr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(CLASS) + classExtra );
+    classPtr = heap_alloc_zero( sizeof(CLASS) + classExtra );
     if (!classPtr) return NULL;
 
     classPtr->atomName = get_int_atom_value( name );
@@ -459,7 +467,7 @@ static CLASS *CLASS_RegisterClass( LPCWSTR name, UINT basename_offset, HINSTANCE
     SERVER_END_REQ;
     if (!ret)
     {
-        HeapFree( GetProcessHeap(), 0, classPtr );
+        heap_free( classPtr );
         return NULL;
     }
 
@@ -475,6 +483,9 @@ static CLASS *CLASS_RegisterClass( LPCWSTR name, UINT basename_offset, HINSTANCE
     if (local) list_add_head( &class_list, &classPtr->entry );
     else list_add_tail( &class_list, &classPtr->entry );
     return classPtr;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -498,6 +509,7 @@ static void register_builtin( const struct builtin_class_descr *descr )
 }
 
 
+#if 0
 /***********************************************************************
  *           register_builtins
  */
@@ -536,6 +548,7 @@ void register_desktop_class(void)
     register_builtin( &DESKTOP_builtin_class );
     register_builtin( &MESSAGE_builtin_class );
 }
+#endif
 
 
 /***********************************************************************
@@ -751,6 +764,7 @@ BOOL WINAPI UnregisterClassW( LPCWSTR className, HINSTANCE hInstance )
 {
     CLASS *classPtr = NULL;
 
+#if 0
     GetDesktopWindow();  /* create the desktop window to trigger builtin class registration */
 
     className = CLASS_GetVersionedName( className, NULL );
@@ -764,6 +778,7 @@ BOOL WINAPI UnregisterClassW( LPCWSTR className, HINSTANCE hInstance )
     SERVER_END_REQ;
 
     if (classPtr) CLASS_FreeClass( classPtr );
+#endif
     return (classPtr != NULL);
 }
 
@@ -778,6 +793,7 @@ WORD WINAPI GetClassWord( HWND hwnd, INT offset )
 
     if (offset < 0) return GetClassLongA( hwnd, offset );
 
+#if 0
     if (!(class = get_class_ptr( hwnd, FALSE ))) return 0;
 
     if (class == CLASS_OTHER_PROCESS)
@@ -800,6 +816,9 @@ WORD WINAPI GetClassWord( HWND hwnd, INT offset )
     else
         SetLastError( ERROR_INVALID_INDEX );
     release_class_ptr( class );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return retvalue;
 }
 
@@ -815,6 +834,7 @@ static ULONG_PTR CLASS_GetClassLong( HWND hwnd, INT offset, UINT size,
     CLASS *class;
     ULONG_PTR retvalue = 0;
 
+#if 0
     if (!(class = get_class_ptr( hwnd, FALSE ))) return 0;
 
     if (class == CLASS_OTHER_PROCESS)
@@ -939,6 +959,9 @@ static ULONG_PTR CLASS_GetClassLong( HWND hwnd, INT offset, UINT size,
         break;
     }
     release_class_ptr( class );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return retvalue;
 }
 
@@ -972,6 +995,7 @@ WORD WINAPI SetClassWord( HWND hwnd, INT offset, WORD newval )
 
     if (offset < 0) return SetClassLongA( hwnd, offset, (DWORD)newval );
 
+#if 0
     if (!(class = get_class_ptr( hwnd, TRUE ))) return 0;
 
     SERVER_START_REQ( set_class_info )
@@ -990,6 +1014,9 @@ WORD WINAPI SetClassWord( HWND hwnd, INT offset, WORD newval )
     }
     SERVER_END_REQ;
     release_class_ptr( class );
+#else
+    SetLastError( ERROR_CALL_NOT_IMPLEMENTED );
+#endif
     return retval;
 }
 
@@ -1009,6 +1036,7 @@ static ULONG_PTR CLASS_SetClassLong( HWND hwnd, INT offset, LONG_PTR newval,
 
     if (offset >= 0)
     {
+#if 0
         if (set_server_info( hwnd, offset, newval, size ))
         {
             void *ptr = (char *)(class + 1) + offset;
@@ -1026,6 +1054,7 @@ static ULONG_PTR CLASS_SetClassLong( HWND hwnd, INT offset, LONG_PTR newval,
                 memcpy( ptr, &newval, sizeof(LONG_PTR) );
             }
         }
+    #endif
     }
     else switch(offset)
     {
@@ -1074,6 +1103,7 @@ static ULONG_PTR CLASS_SetClassLong( HWND hwnd, INT offset, LONG_PTR newval,
         }
         class->hIconSm = (HICON)newval;
         break;
+#if 0
     case GCL_STYLE:
         if (!set_server_info( hwnd, offset, newval, size )) break;
         retval = class->style;
@@ -1095,6 +1125,7 @@ static ULONG_PTR CLASS_SetClassLong( HWND hwnd, INT offset, LONG_PTR newval,
         class->atomName = newval;
         GlobalGetAtomNameW( newval, class->name, sizeof(class->name)/sizeof(WCHAR) );
         break;
+#endif
     case GCL_CBCLSEXTRA:  /* cannot change this one */
         SetLastError( ERROR_INVALID_PARAMETER );
         break;

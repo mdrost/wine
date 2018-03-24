@@ -77,7 +77,7 @@ static void test_WSAEnumProtocolsA(void)
     error = WSAGetLastError();
     ok( error == WSAENOBUFS, "Expected 10055, received %d\n", error);
 
-    buffer = HeapAlloc( GetProcessHeap(), 0, len );
+    buffer = heap_alloc( len );
 
     if (buffer)
     {
@@ -93,7 +93,7 @@ static void test_WSAEnumProtocolsA(void)
                                 buffer[i].dwServiceFlags1);
         }
 
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
     }
 
     /* Test invalid protocols in the list */
@@ -103,7 +103,7 @@ static void test_WSAEnumProtocolsA(void)
     ok( error == WSAENOBUFS || broken(error == WSAEFAULT) /* NT4 */,
        "Expected 10055, received %d\n", error);
 
-    buffer = HeapAlloc( GetProcessHeap(), 0, len );
+    buffer = heap_alloc( len );
 
     if (buffer)
     {
@@ -121,7 +121,7 @@ static void test_WSAEnumProtocolsA(void)
                 }
         ok(found == 0x0A, "Expected 2 bits represented as 0xA, received 0x%x\n", found);
 
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
     }
 }
 
@@ -144,7 +144,7 @@ static void test_WSAEnumProtocolsW(void)
     error = WSAGetLastError();
     ok( error == WSAENOBUFS, "Expected 10055, received %d\n", error);
 
-    buffer = HeapAlloc( GetProcessHeap(), 0, len );
+    buffer = heap_alloc( len );
 
     if (buffer)
     {
@@ -160,7 +160,7 @@ static void test_WSAEnumProtocolsW(void)
                                 buffer[i].dwServiceFlags1);
         }
 
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
     }
 
     /* Test invalid protocols in the list */
@@ -170,7 +170,7 @@ static void test_WSAEnumProtocolsW(void)
     ok( error == WSAENOBUFS || broken(error == WSAEFAULT) /* NT4 */,
        "Expected 10055, received %d\n", error);
 
-    buffer = HeapAlloc( GetProcessHeap(), 0, len );
+    buffer = heap_alloc( len );
 
     if (buffer)
     {
@@ -188,7 +188,7 @@ static void test_WSAEnumProtocolsW(void)
                 }
         ok(found == 0x0A, "Expected 2 bits represented as 0xA, received 0x%x\n", found);
 
-        HeapFree( GetProcessHeap(), 0, buffer );
+        heap_free( buffer );
     }
 }
 
